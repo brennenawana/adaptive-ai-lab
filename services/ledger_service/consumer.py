@@ -40,6 +40,39 @@ _POSTING_RULES: dict[str, tuple[str, str]] = {
 }
 
 
+def entry_row(event: DomainEvent) -> tuple[dict[str, Any] | None, str | None]:
+    """Decide whether this event posts, and if so with what values.
+
+    Pure — returns (row, skip_reason). Shared with the projection so the ids the
+    generator declares as evidence are the ids the consumer will actually write.
+    """
+    rule = _POSTING_RULES.get(event.normalized_type)
+    if rule is None:
+        # Not every domain event moves money. Identity and risk events flow past
+        # the ledger untouched.
+        return None, "no_posting_rule"
+
+    direction, reference_type = rule
+    account_id = event.payload.get("account_id")
+    amount = event.payload.get("amount")
+    if account_id is None or amount is None:
+        return None, "missing_account_or_amount"
+
+    return {
+        "entry_id": event.entry_id,
+        "account_id": account_id,
+        "direction": direction,
+        "amount": int(amount),
+        "currency": event.payload.get("currency", "GBP"),
+        "reference_type": reference_type,
+        "reference_id": event.payload.get("reference_id") or event.provider_event_id,
+        # occurred_at, NOT published_at. Posting with arrival time would hide the
+        # very reordering S07 is about.
+        "posted_at": event.occurred_at,
+        "scenario_id": event.scenario_id,
+    }, None
+
+
 class LedgerConsumer:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.conn = conn
@@ -49,44 +82,23 @@ class LedgerConsumer:
     async def handle(self, raw: dict[str, Any]) -> None:
         event = DomainEvent.model_validate(raw)
 
-        rule = _POSTING_RULES.get(event.normalized_type)
-        if rule is None:
-            # Not every domain event moves money. Identity and risk events flow
-            # past the ledger untouched.
-            self.skipped.append((event.normalized_type, "no_posting_rule"))
+        row, skip_reason = entry_row(event)
+        if row is None:
+            self.skipped.append((event.normalized_type, skip_reason))
             return
 
-        direction, reference_type = rule
-        account_id = event.payload.get("account_id")
-        amount = event.payload.get("amount")
-
-        if account_id is None or amount is None:
-            self.skipped.append((event.normalized_type, "missing_account_or_amount"))
-            return
-
-        entry_id = f"le_{event.envelope_id.hex[:12]}"
         with self.conn.cursor() as cur:
             cur.execute(
                 """INSERT INTO ledger.entries
                      (entry_id, account_id, direction, amount, currency,
                       reference_type, reference_id, posted_at, scenario_id)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   VALUES (%(entry_id)s,%(account_id)s,%(direction)s,%(amount)s,
+                           %(currency)s,%(reference_type)s,%(reference_id)s,
+                           %(posted_at)s,%(scenario_id)s)
                    ON CONFLICT (entry_id) DO NOTHING""",
-                (
-                    entry_id,
-                    account_id,
-                    direction,
-                    int(amount),
-                    event.payload.get("currency", "GBP"),
-                    reference_type,
-                    event.payload.get("reference_id") or event.provider_event_id,
-                    # occurred_at, NOT published_at. Posting with arrival time would
-                    # hide the very reordering S07 is about.
-                    event.occurred_at,
-                    event.scenario_id,
-                ),
+                row,
             )
-        self.posted.append(entry_id)
+        self.posted.append(row["entry_id"])
 
     def ordering_anomalies(self) -> list[tuple[str, str]]:
         """Entries whose POSTING ORDER disagrees with their EVENT ORDER.

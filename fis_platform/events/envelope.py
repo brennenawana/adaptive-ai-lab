@@ -22,11 +22,20 @@ import json
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID, uuid4, uuid5
 
 from pydantic import Field
 
 from schemas.common import Base, utc_now
+
+# Namespace for deriving a DomainEvent's identity from the ProviderEvent that caused
+# it. uuid5 is a hash, not a draw: the same cause always yields the same child id.
+#
+# This is what lets the generator name a row the consumer has not written yet. Every
+# id the pipeline materialises (delivery, normalized event, ledger entry) is a pure
+# function of the provider envelope id, so a builder can declare required evidence
+# without either predicting a random uuid or reading it back out of the database.
+DOMAIN_NAMESPACE = UUID("6f6e8f2a-1c4b-5d3e-9a7f-0b1c2d3e4f50")
 
 
 class Subject(StrEnum):
@@ -86,6 +95,27 @@ class ProviderEvent(Base):
     def has_safe_idempotency(self) -> bool:
         return self.idempotency_key is not None
 
+    # ------------------------------------------------------------ derived ids
+    # The single source of truth for what the pipeline will call the rows it
+    # writes. The consumers use these when persisting and the generator uses them
+    # when declaring required evidence, so the two cannot drift apart.
+    @property
+    def delivery_id(self) -> str:
+        return f"dlv_{self.envelope_id.hex[:12]}"
+
+    @property
+    def domain_envelope_id(self) -> UUID:
+        """Identity of the DomainEvent this event will cause, if it is not deduped."""
+        return uuid5(DOMAIN_NAMESPACE, str(self.envelope_id))
+
+    @property
+    def normalized_event_id(self) -> str:
+        return f"evt_{self.domain_envelope_id.hex[:12]}"
+
+    @property
+    def ledger_entry_id(self) -> str:
+        return f"le_{self.domain_envelope_id.hex[:12]}"
+
 
 class DomainEvent(Base):
     """Post-normalization internal event. This is what downstream services consume."""
@@ -103,3 +133,11 @@ class DomainEvent(Base):
 
     payload: dict[str, Any] = Field(default_factory=dict)
     scenario_id: str
+
+    @property
+    def event_id(self) -> str:
+        return f"evt_{self.envelope_id.hex[:12]}"
+
+    @property
+    def entry_id(self) -> str:
+        return f"le_{self.envelope_id.hex[:12]}"

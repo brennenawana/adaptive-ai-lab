@@ -17,6 +17,16 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from random import Random
 from typing import Any
+from uuid import UUID, uuid5
+
+from fis_platform.events.envelope import ProviderEvent
+
+# Envelope ids must be deterministic or the whole corpus stops being reproducible:
+# every row the pipeline writes is named after the envelope that caused it, so a
+# uuid4 here would give the same seed a different set of delivery, event and entry
+# ids on every regeneration — and the manifest's required evidence would point at
+# the previous run's rows.
+ENVELOPE_NAMESPACE = UUID("2b9d7c41-8e56-5a03-b1f4-7c8d9e0a1b23")
 
 # Fixed. Not "now" — a generator whose output depends on the wall clock is not
 # reproducible, and the test set would drift every time it was regenerated.
@@ -51,6 +61,18 @@ class Clock:
         """Absolute offset from base — used when a scenario needs out-of-order
         timestamps (S07 reversal race) rather than a monotonic sequence."""
         return self.base + timedelta(minutes=offset_minutes)
+
+    def before(self, *, days: int = 0, hours: int = 0, minutes: int = 0) -> datetime:
+        """A time in the past WITHOUT moving the cursor.
+
+        Backdated facts — when a customer signed up, when an account was opened —
+        are not events on the scenario's timeline. Expressing them with `tick(days=-30)`
+        rewound the shared cursor, so each extra customer dragged everything after it
+        another month into the past. S04 suffered worst: its four "simultaneous"
+        vendor timeouts were generated a month apart, so the outage it claimed to
+        model had no temporal cluster in it at all.
+        """
+        return self.base + self.cursor - timedelta(days=days, hours=hours, minutes=minutes)
 
 
 class Ids:
@@ -99,10 +121,27 @@ def minor_units(rng: Random, low: int = 500, high: int = 900_00) -> int:
 
 @dataclass
 class World:
-    """Accumulates rows for one scenario, then hands them to the writer.
+    """Accumulates one scenario: authoritative service state, plus the provider
+    events whose consequences the pipeline will materialise.
 
-    Nothing here touches the database — keeping generation pure makes it testable
-    without Postgres and makes a dry run genuinely free.
+    Nothing here touches the database or the broker — keeping generation pure makes
+    it testable without Postgres and makes a dry run genuinely free.
+
+    The two halves are not interchangeable:
+
+      * **State** (customers, accounts, cards, authorizations, settlements,
+        verifications, alerts, cases) is what each service independently knows. The
+        writer INSERTs it, because no event produced it — the processor really did
+        record that settlement.
+      * **Published events** are causes, not records. Whatever they produce —
+        webhook deliveries, normalized integration events, ledger entries — is
+        written by the consumers, because a failure the generator writes down by
+        hand is depicted rather than produced.
+
+    `webhook.deliveries`, `integration.events` and pipeline-caused `ledger.entries`
+    therefore have no builder here. That absence is the point of step 7 of the
+    migration: a scenario that wants a duplicate delivery has to publish twice and
+    let dedupe fail, which is the only version of the bug that can surprise us.
     """
 
     scenario_id: str
@@ -110,6 +149,10 @@ class World:
     rng: Random
     clock: Clock
     ids: Ids
+
+    # Which mapper version the integration service runs at for THIS scenario.
+    # v2 is stale about status vocabulary (S09); v3 corrupts amounts (S06).
+    mapping_version: int = 4
 
     customers: list[dict] = field(default_factory=list)
     verifications: list[dict] = field(default_factory=list)
@@ -120,8 +163,48 @@ class World:
     settlements: list[dict] = field(default_factory=list)
     alerts: list[dict] = field(default_factory=list)
     deliveries: list[dict] = field(default_factory=list)
-    events: list[dict] = field(default_factory=list)
     cases: list[dict] = field(default_factory=list)
+
+    published: list[ProviderEvent] = field(default_factory=list)
+    _envelope_n: int = 0
+
+    # --- events -----------------------------------------------------------------
+
+    def publish(self, *, provider_event_id: str, event_type: str, raw_payload: dict,
+                provider: str = "northpay", idempotency_key: str | None = None,
+                attempt: int = 1, occurred_at: datetime | None = None,
+                delivery_lag_minutes: int = 2) -> ProviderEvent:
+        """Queue a provider event for publication, in call order.
+
+        `published_at` advances the scenario clock on every call, so it is monotonic
+        in publish order by construction. `occurred_at` defaults to the same instant
+        but can be set earlier — that divergence is the whole of S07: an event that
+        happened first but arrived second.
+
+        Call order IS publish order IS the order the consumers will see. Nothing
+        downstream reorders, so a race is something a builder chooses, never
+        something timing does to it.
+
+        The returned envelope already knows the ids its consequences will carry
+        (`delivery_id`, `normalized_event_id`, `ledger_entry_id`), so a builder can
+        cite them as required evidence without predicting a uuid.
+        """
+        seen_at = self.clock.tick(minutes=delivery_lag_minutes)
+        self._envelope_n += 1
+        event = ProviderEvent(
+            envelope_id=uuid5(ENVELOPE_NAMESPACE, f"{self.scenario_id}:{self._envelope_n}"),
+            provider=provider,
+            provider_event_id=provider_event_id,
+            event_type=event_type,
+            idempotency_key=idempotency_key,
+            attempt=attempt,
+            occurred_at=occurred_at or seen_at,
+            published_at=seen_at,
+            raw_payload=raw_payload,
+            scenario_id=self.scenario_id,
+        )
+        self.published.append(event)
+        return event
 
     # --- builders ---------------------------------------------------------------
 
@@ -133,19 +216,24 @@ class World:
             "dob": dob,
             "country": country,
             "onboarding_state": state,
-            "created_at": self.clock.tick(days=-30),
+            "created_at": self.clock.before(days=30),
             "scenario_id": self.scenario_id,
         }
         self.customers.append(row)
         return row
 
     def add_verification(self, customer: dict, *, check_type: str, status: str,
-                         reason_code: str | None = None, minutes: int = 5) -> dict:
+                         reason_code: str | None = None, minutes: int = 5,
+                         vendor_name: str | None = None) -> dict:
+        # `vendor_name` pins the vendor instead of drawing one. S04 needs it: an
+        # outage is one vendor failing, and drawing independently per verification
+        # scattered the cluster across three vendors, which is not the incident the
+        # scenario claims to be.
         row = {
             "verification_id": self.ids.next("ver"),
             "provider_ref": self.ids.provider("vs"),
             "customer_id": customer["customer_id"],
-            "vendor": vendor(self.rng),
+            "vendor": vendor_name or vendor(self.rng),
             "check_type": check_type,
             "status": status,
             "reason_code": reason_code,
@@ -165,7 +253,7 @@ class World:
             "currency": "GBP",
             "available_balance": bal,
             "ledger_balance": bal,
-            "opened_at": self.clock.tick(days=-29),
+            "opened_at": self.clock.before(days=29),
             "scenario_id": self.scenario_id,
         }
         self.accounts.append(row)
@@ -179,7 +267,7 @@ class World:
             "account_id": account["account_id"],
             "status": status,
             "pan_token": f"tok_{self.rng.randint(10**11, 10**12 - 1)}",
-            "issued_at": self.clock.tick(days=-28) if status != "not_issued" else None,
+            "issued_at": self.clock.before(days=28) if status != "not_issued" else None,
             "scenario_id": self.scenario_id,
         }
         self.cards.append(row)
@@ -252,38 +340,39 @@ class World:
         self.alerts.append(row)
         return row
 
-    def add_delivery(self, *, provider_event_id: str, event_type: str, attempt: int = 1,
-                     status: str = "processed", idempotency_key: str | None = None,
-                     payload: dict | None = None, minutes: int = 2) -> dict:
+    # Deliveries that FAILED. Deliberately the only delivery builder left.
+    #
+    # A delivery the pipeline handled — processed or deduplicated — is a consequence
+    # and must come from `publish()`. A delivery that never got handled is not: the
+    # consumer's contract is that a handler exception is naked and redelivered, so
+    # it cannot record its own failure without pretending to have survived it.
+    # Modelling retry storms properly means poison-message handling in the bus,
+    # which is a capability this migration deliberately does not add.
+    #
+    # Restricted to failure statuses so that closing that gap later is a change
+    # here, not a silent return of hand-authored success paths.
+    _FAILED_STATUSES = frozenset({"retrying", "failed"})
+
+    def add_failed_delivery(self, *, provider_event_id: str, event_type: str,
+                            attempt: int = 1, status: str = "failed",
+                            payload: dict | None = None, minutes: int = 2) -> dict:
+        if status not in self._FAILED_STATUSES:
+            raise ValueError(
+                f"add_failed_delivery is for undelivered events only, got {status!r}. "
+                "A delivery the pipeline handled must come from publish()."
+            )
         row = {
             "delivery_id": self.ids.next("dlv"),
             "provider_event_id": provider_event_id,
             "event_type": event_type,
             "payload_hash": digest(payload or {"e": provider_event_id}),
-            "idempotency_key": idempotency_key,
+            "idempotency_key": None,
             "attempt": attempt,
             "status": status,
             "received_at": self.clock.tick(minutes=minutes),
             "scenario_id": self.scenario_id,
         }
         self.deliveries.append(row)
-        return row
-
-    def add_event(self, *, provider_event_id: str, normalized_type: str,
-                  normalized_state: str, raw_payload: dict, mapping_version: int = 4,
-                  delivery: dict | None = None, minutes: int = 1) -> dict:
-        row = {
-            "event_id": self.ids.next("evt"),
-            "provider_event_id": provider_event_id,
-            "delivery_id": delivery["delivery_id"] if delivery else None,
-            "normalized_type": normalized_type,
-            "mapping_version": mapping_version,
-            "raw_payload": raw_payload,
-            "normalized_state": normalized_state,
-            "created_at": self.clock.tick(minutes=minutes),
-            "scenario_id": self.scenario_id,
-        }
-        self.events.append(row)
         return row
 
     def add_case(self, *, category: str, summary: str, subject_ids: dict[str, str]) -> dict:

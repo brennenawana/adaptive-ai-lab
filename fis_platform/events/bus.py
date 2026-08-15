@@ -41,6 +41,10 @@ class EventBus:
         self.url = url
         self._nc: nats.NATS | None = None
         self._js: JetStreamContext | None = None
+        # Pull subscriptions are cached by durable name. Generation drains once per
+        # published event — 288 scenarios' worth — and re-binding a durable consumer
+        # every time is a round trip per drain for no benefit.
+        self._subs: dict[str, object] = {}
 
     async def connect(self) -> "EventBus":
         self._nc = await nats.connect(self.url)
@@ -53,6 +57,7 @@ class EventBus:
             await self._nc.drain()
             self._nc = None
             self._js = None
+            self._subs.clear()
 
     async def __aenter__(self) -> "EventBus":
         return await self.connect()
@@ -109,6 +114,7 @@ class EventBus:
         subject: str,
         durable: str,
         handler: Callable[[dict], Awaitable[None]],
+        expect: int | None = None,
         max_wait_s: float = 5.0,
         batch: int = 32,
     ) -> int:
@@ -116,18 +122,29 @@ class EventBus:
 
         Returns how many were processed. Pull-based rather than push: the caller
         decides when work happens, which is what makes generation reproducible.
+
+        `expect` is how many messages the caller knows it published. Supplying it is
+        the difference between a drain that returns as soon as the work is done and
+        one that waits out `max_wait_s` proving nothing more is coming — across a
+        288-scenario corpus that is the difference between seconds and an hour. It is
+        an optimisation only: the timeout still bounds the wait, and a caller that
+        does not know the count can omit it and get the same result more slowly.
         """
-        sub = await self.js.pull_subscribe(
-            subject,
-            durable=durable,
-            stream=stream,
-            config=ConsumerConfig(deliver_policy=DeliverPolicy.ALL, ack_wait=30),
-        )
+        sub = self._subs.get(durable)
+        if sub is None:
+            sub = await self.js.pull_subscribe(
+                subject,
+                durable=durable,
+                stream=stream,
+                config=ConsumerConfig(deliver_policy=DeliverPolicy.ALL, ack_wait=30),
+            )
+            self._subs[durable] = sub
 
         processed = 0
-        while True:
+        while expect is None or processed < expect:
             try:
-                msgs = await sub.fetch(batch, timeout=max_wait_s)
+                want = batch if expect is None else min(batch, expect - processed)
+                msgs = await sub.fetch(want, timeout=max_wait_s)
             except (asyncio.TimeoutError, nats.errors.TimeoutError):
                 break
             if not msgs:
@@ -144,6 +161,27 @@ class EventBus:
                     await msg.nak()
                     raise
         return processed
+
+    async def purge(self) -> None:
+        """Empty both streams and drop the durable cursors.
+
+        Regeneration must start from an empty broker. A surviving durable consumer
+        would replay the previous corpus's events into the new one, and surviving
+        messages would be redelivered on the first drain — either way the world no
+        longer corresponds to its seeds.
+        """
+        for stream in (WEBHOOK_STREAM, DOMAIN_STREAM):
+            try:
+                info = await self.js.streams_info()
+                if stream not in {s.config.name for s in info}:
+                    continue
+                for consumer in await self.js.consumers_info(stream):
+                    await self.js.delete_consumer(stream, consumer.name)
+                await self.js.purge_stream(stream)
+            except Exception:
+                # A stream that does not exist yet needs no purging.
+                pass
+        self._subs.clear()
 
     async def pending(self, stream: str, durable: str) -> int:
         """Consumer lag. Generation is only complete when this is zero."""

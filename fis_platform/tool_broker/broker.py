@@ -68,12 +68,49 @@ def _get_customer(conn, args):
 
 @handler("get_verifications")
 def _get_verifications(conn, args):
-    return _rows(conn, """
-        SELECT verification_id, provider_ref, vendor, check_type, status,
+    """This customer's verifications, optionally widened to a vendor window.
+
+    The widened form exists because `provider_outage` is DEFINED by clustering —
+    "the identity vendor is timing out across many customers". With a customer-keyed
+    tool only, that cluster is invisible, so the class was not hard but impossible:
+    it scored 0% root-cause accuracy and was capped at 0.333 evidence recall before
+    any model saw it.
+
+    The window is anchored on this customer's own verification times rather than an
+    absolute range, so the caller does not have to know when the incident was. Each
+    scenario occupies its own slot on the timeline (`scenario_epoch`), which is what
+    keeps a 2-hour window from returning the entire corpus.
+    """
+    cid = args["customer_id"]
+    own = _rows(conn, """
+        SELECT verification_id, provider_ref, customer_id, vendor, check_type, status,
                reason_code, event_time
         FROM identity.verifications
         WHERE customer_id = %s ORDER BY event_time
-    """, (args["customer_id"],))
+    """, (cid,))
+
+    vendor = args.get("vendor")
+    if not vendor:
+        return own
+
+    hours = int(args.get("window_hours") or 2)
+    nearby = _rows(conn, """
+        WITH anchor AS (
+            SELECT min(event_time) AS lo, max(event_time) AS hi
+            FROM identity.verifications WHERE customer_id = %s
+        )
+        SELECT v.verification_id, v.provider_ref, v.customer_id, v.vendor, v.check_type,
+               v.status, v.reason_code, v.event_time
+        FROM identity.verifications v, anchor a
+        WHERE v.vendor = %s
+          AND v.customer_id <> %s
+          AND v.event_time BETWEEN a.lo - make_interval(hours => %s)
+                               AND a.hi + make_interval(hours => %s)
+        ORDER BY v.event_time
+        LIMIT 50
+    """, (cid, vendor, cid, hours, hours))
+
+    return own + nearby
 
 
 @handler("get_processor_activity")

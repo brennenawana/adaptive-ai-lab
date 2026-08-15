@@ -89,21 +89,33 @@ def _phase_one(case: dict[str, Any]) -> list[tuple[str, dict]]:
     return plan
 
 
-def _phase_two(results: list[Any], limit: int = 6) -> list[tuple[str, dict]]:
-    """Follow provider references discovered in phase one into the event trail.
+def _phase_two(case: dict[str, Any], results: list[Any],
+               limit: int = 6) -> list[tuple[str, dict]]:
+    """Follow what phase one discovered into evidence that is not addressable yet.
 
-    Webhook and integration evidence is addressed by provider_event_id, which is
-    not knowable until a settlement or authorization has been read. Without this
-    hop, S01/S02 (duplicate delivery) and S09 (stale mapping) can never reach
-    their required evidence.
+    Two hops, for two different reasons:
+
+    * **Webhook and integration evidence** is addressed by `provider_event_id`,
+      which is not knowable until a settlement, authorization or verification has
+      been read. Without this hop S01/S02 (duplicate delivery), S06, S07 and S09
+      (stale mapping) can never reach their required evidence.
+    * **Vendor clustering** is addressed by vendor, and is invisible to every
+      customer-keyed query. Without it S04 cannot be distinguished from an ordinary
+      KYC hold by any amount of reasoning.
+
+    Both are the same failure if left out: evidence that exists, is required, and is
+    unreachable — which measures the harness rather than the model.
     """
     refs: list[str] = []
+    vendors: list[str] = []
 
     def walk(node: Any) -> None:
         if isinstance(node, dict):
             for k, v in node.items():
                 if k == "provider_ref" and isinstance(v, str):
                     refs.append(v)
+                elif k == "vendor" and isinstance(v, str):
+                    vendors.append(v)
                 else:
                     walk(v)
         elif isinstance(node, list):
@@ -111,11 +123,21 @@ def _phase_two(results: list[Any], limit: int = 6) -> list[tuple[str, dict]]:
                 walk(item)
 
     walk(results)
-    seen: list[str] = []
-    for r in refs:
-        if r not in seen:
-            seen.append(r)
-    return [("get_webhook_history", {"provider_event_id": r}) for r in seen[:limit]]
+
+    def dedupe(xs: list[str]) -> list[str]:
+        out: list[str] = []
+        for x in xs:
+            if x not in out:
+                out.append(x)
+        return out
+
+    plan = [("get_webhook_history", {"provider_event_id": r})
+            for r in dedupe(refs)[:limit]]
+
+    if cid := (case.get("subject_ids") or {}).get("customer_id"):
+        plan += [("get_verifications", {"customer_id": cid, "vendor": v, "window_hours": 2})
+                 for v in dedupe(vendors)[:2]]
+    return plan
 
 
 async def investigate(
@@ -157,7 +179,7 @@ async def investigate(
             res, _ = broker.invoke(tool, args)
             results.append({tool: res})
         # Second hop: provider refs only exist once phase one has run.
-        for tool, args in _phase_two(results):
+        for tool, args in _phase_two(case, results):
             res, _ = broker.invoke(tool, args)
             results.append({tool: res})
 

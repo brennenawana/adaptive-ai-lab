@@ -8,21 +8,33 @@ import json
 
 import pytest
 
+from fis_platform.events.projection import project
 from scenarios.generator.catalog import BUILDERS
 from scenarios.generator.run import SPLIT_RANGES, build, split_for_seed
 
 CODES = sorted(BUILDERS)
 
+# Classes the migration made genuinely event-driven. The rest are state-based on
+# purpose — not every operational problem is an event-ordering problem.
+EVENT_DRIVEN = ["S01", "S02", "S06", "S07", "S09", "S10"]
+
+STATE_ATTRS = (
+    "customers", "verifications", "accounts", "entries", "cards",
+    "authorizations", "settlements", "alerts", "deliveries", "cases",
+)
+
 
 def _fingerprint(world) -> str:
-    """Everything the generator produced, order included."""
-    payload = {
-        attr: getattr(world, attr)
-        for attr in (
-            "customers", "verifications", "accounts", "entries", "cards",
-            "authorizations", "settlements", "alerts", "deliveries", "events", "cases",
-        )
-    }
+    """Everything the generator produced, order included.
+
+    Published events are part of the fingerprint, and their envelope ids with them.
+    Those ids name every row the pipeline will write, so a uuid4 leaking back into
+    the generator would show up here as a determinism failure rather than as a
+    corpus whose manifests point at the previous run's rows.
+    """
+    payload = {attr: getattr(world, attr) for attr in STATE_ATTRS}
+    payload["published"] = [e.model_dump(mode="json") for e in world.published]
+    payload["mapping_version"] = world.mapping_version
     return json.dumps(payload, sort_keys=True, default=str)
 
 
@@ -54,23 +66,91 @@ def test_manifest_is_well_formed(code):
     assert m["forbidden_claims"], f"{code} defines no forbidden claims"
 
 
-@pytest.mark.parametrize("code", CODES)
-def test_required_evidence_actually_exists_in_the_world(code):
-    """A manifest that demands evidence the generator never wrote would make
-    100% recall unreachable and quietly cap the score for that class."""
-    world, m = build(code, 3_000_500)
+def _produced_ids(world) -> set[str]:
+    """Every id this scenario results in — inserted state plus what the pipeline
+    will materialise from the events it publishes.
+
+    The second half runs the real consumer decision functions (see
+    `fis_platform.events.projection`) rather than re-deriving them, so this cannot
+    quietly agree with a generator that is wrong.
+    """
     produced = set()
     for attr, key in (
         ("customers", "customer_id"), ("verifications", "verification_id"),
         ("accounts", "account_id"), ("entries", "entry_id"), ("cards", "card_id"),
         ("authorizations", "auth_id"), ("settlements", "settlement_id"),
         ("alerts", "alert_id"), ("deliveries", "delivery_id"),
-        ("events", "event_id"), ("cases", "case_id"),
+        ("cases", "case_id"),
     ):
         produced |= {row[key] for row in getattr(world, attr)}
+    return produced | project(world.published, world.mapping_version).ids()
 
-    missing = [e for e in m["required_evidence"] if e not in produced]
+
+@pytest.mark.parametrize("code", CODES)
+def test_required_evidence_actually_exists_in_the_world(code):
+    """A manifest that demands evidence the generator never wrote would make
+    100% recall unreachable and quietly cap the score for that class."""
+    world, m = build(code, 3_000_500)
+    missing = [e for e in m["required_evidence"] if e not in _produced_ids(world)]
     assert not missing, f"{code} requires evidence that was never generated: {missing}"
+
+
+@pytest.mark.parametrize("code", CODES)
+def test_required_evidence_is_reachable_by_the_tool_set(code):
+    """Ontology §5 invariant 2, enforced instead of merely written down.
+
+    Webhook and integration evidence is addressed by `provider_event_id`. The
+    fixed-evidence plan discovers those ids by walking `provider_ref` out of
+    phase-one results, so a delivery keyed to a reference no state row carries is
+    unreachable by any model and its scenario is permanently unwinnable — not hard,
+    impossible. That was true of every delivery in the pre-migration corpus, and it
+    capped four classes below the recall threshold before a model saw them.
+    """
+    world, _ = build(code, 3_000_500)
+    refs = {
+        row["provider_ref"]
+        for attr in ("verifications", "cards", "authorizations", "settlements")
+        for row in getattr(world, attr)
+        if row.get("provider_ref")
+    }
+    addressed = {e.provider_event_id for e in world.published}
+    addressed |= {d["provider_event_id"] for d in world.deliveries}
+
+    unreachable = sorted(addressed - refs)
+    assert not unreachable, (
+        f"{code} has webhook evidence addressed by {unreachable}, which no state row "
+        "carries as provider_ref — get_webhook_history can never be called with it"
+    )
+
+
+@pytest.mark.parametrize("code", EVENT_DRIVEN)
+def test_event_driven_scenarios_do_not_hand_author_their_consequences(code):
+    """Step 7 of the migration, made structural.
+
+    A ported class must publish, and must not write the rows publishing produces.
+    Without this the direct-insert path can come back one builder at a time and
+    nothing fails — the corpus would simply go back to depicting its failures.
+    """
+    world, _ = build(code, 3_000_500)
+    assert world.published, f"{code} is listed as event-driven but publishes nothing"
+    assert not world.entries, (
+        f"{code} hand-authored ledger entries; a pipeline-caused posting must come "
+        "from the ledger consumer"
+    )
+    assert not world.deliveries, (
+        f"{code} hand-authored webhook deliveries; publish() and let the consumer "
+        "record what it did with them"
+    )
+
+
+def test_the_fabrication_builders_are_gone():
+    """`add_event` and the general-purpose `add_delivery` no longer exist. Named
+    explicitly so that reintroducing one is a deliberate act with a failing test
+    attached, rather than an autocomplete accident."""
+    world, _ = build("S01", 3_000_500)
+    assert not hasattr(world, "add_event")
+    assert not hasattr(world, "add_delivery")
+    assert not hasattr(world, "events")
 
 
 def test_split_ranges_are_disjoint():

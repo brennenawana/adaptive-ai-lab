@@ -7,8 +7,11 @@ scenarios, and the scenario_id collision would have silently merged a training
 scenario with a test one.
 """
 
+from datetime import timedelta
+
 import pytest
 
+from fis_platform.events.projection import project
 from scenarios.generator.catalog import BUILDERS
 from scenarios.generator.run import SPLIT_RANGES, build
 
@@ -19,7 +22,7 @@ ID_FIELDS = [
     ("accounts", "account_id"), ("entries", "entry_id"), ("cards", "card_id"),
     ("authorizations", "auth_id"), ("settlements", "settlement_id"),
     ("alerts", "alert_id"), ("deliveries", "delivery_id"),
-    ("events", "event_id"), ("cases", "case_id"),
+    ("cases", "case_id"),
 ]
 
 
@@ -65,6 +68,62 @@ def test_entity_ids_unique_across_corpus(field):
                 "entity ids share one table space and must be globally unique"
             )
             seen[key] = w.scenario_id
+
+
+def test_envelope_derived_ids_unique_across_corpus():
+    """Every row the pipeline writes is named after the envelope that caused it, so
+    an envelope-id collision is a primary-key collision in three tables at once.
+
+    uuid5 over the scenario id makes that structurally impossible — this test is
+    what would catch a regression to uuid4, where the ids would be unique but not
+    reproducible, or to a per-seed counter, where two classes sharing a seed in a
+    test run would collide.
+    """
+    worlds, _ = _corpus()
+    seen: dict[str, str] = {}
+    for w in worlds:
+        for row_id in project(w.published, w.mapping_version).ids():
+            prev = seen.get(row_id)
+            assert prev is None, (
+                f"pipeline row id {row_id!r} produced by both {prev} and {w.scenario_id}"
+            )
+            seen[row_id] = w.scenario_id
+
+
+def test_published_events_are_reproducible_across_builds():
+    """The envelope ids specifically — the determinism test covers the world, but
+    these are the ids that end up in ground truth as required evidence."""
+    for code in CODES:
+        a, _ = build(code, 3_000_500)
+        b, _ = build(code, 3_000_500)
+        assert [e.envelope_id for e in a.published] == [e.envelope_id for e in b.published], (
+            f"{code} draws envelope ids non-deterministically"
+        )
+
+
+def test_scenario_verification_windows_do_not_overlap():
+    """What the vendor-window lookup depends on.
+
+    `get_verifications(vendor=...)` selects by TIME across customers, so it is the
+    first tool whose results are not confined to one scenario by construction. If two
+    scenarios' verifications fell within the same window, S04's outage cluster would
+    be polluted by unrelated cases — and every other class would appear to have a
+    cluster of its own.
+    """
+    worlds, _ = _corpus()
+    spans = []
+    for w in worlds:
+        times = [v["event_time"] for v in w.verifications]
+        if times:
+            spans.append((min(times), max(times), w.scenario_id))
+
+    spans.sort()
+    window = timedelta(hours=2)  # the tool's default
+    for (_, prev_hi, prev_id), (lo, _, this_id) in zip(spans, spans[1:]):
+        assert lo - prev_hi > window * 2, (
+            f"{prev_id} and {this_id} have verifications within one vendor window of "
+            "each other — a clustering query would mix the two scenarios"
+        )
 
 
 def test_provider_refs_unique_across_corpus():

@@ -16,6 +16,19 @@ start being *emergent*:
     'failed'. A scenario pinned to an old mapping_version reproduces the real
     incident shape: provider says approved, our domain state says failed, and the
     only way to see it is to compare raw payload against normalized state.
+
+  AMOUNT CORRUPTION (S06)
+    Version 3 shipped a field-order defect that transposes the last two digits of
+    a minor-units amount. The ledger then posts the corrupted value faithfully, so
+    the processor and the ledger disagree by a 9-divisible delta — the arithmetic
+    signature of a transposition. The corruption happens HERE, in the mapper, which
+    is what makes S06 a produced failure rather than a depicted one.
+
+Row construction is deliberately split out into module-level `*_row` functions. The
+consumer persists them; `fis_platform.events.projection` replays the same functions
+without a database so the generator can declare required evidence up front. One
+source of truth for both the decision and the row shape — if they were written twice
+they would drift, and the drift would surface as unwinnable eval cases.
 """
 
 from __future__ import annotations
@@ -66,6 +79,102 @@ def map_status(raw_status: str, mapping_version: int) -> tuple[str, bool]:
     return UNKNOWN_STATUS_FALLBACK, False
 
 
+# Mapping versions carrying the amount-transposition defect. A set rather than a
+# comparison because this is a specific bad release, not "everything before v4" —
+# v2 is stale about vocabulary but handles money correctly.
+AMOUNT_TRANSPOSING_VERSIONS = frozenset({3})
+
+
+def map_amount(amount: int, mapping_version: int) -> tuple[int, bool]:
+    """Return (normalized_amount, was_faithful).
+
+    v3 transposes the final two digits of the minor-units value. Any adjacent-digit
+    transposition shifts the value by a multiple of 9, which is the signature a
+    reconciliation analyst looks for — and the reason this defect is worth modelling
+    rather than a random perturbation.
+
+    A value whose last two digits are equal cannot be visibly transposed. The
+    generator pins S06's amount so this never silently produces a clean mapping;
+    returning the amount unchanged here is the honest answer, not a fallback.
+    """
+    if mapping_version not in AMOUNT_TRANSPOSING_VERSIONS:
+        return amount, True
+    digits = f"{amount:d}"
+    if len(digits) < 2 or digits[-1] == digits[-2]:
+        return amount, True
+    return int(digits[:-2] + digits[-1] + digits[-2]), False
+
+
+# ---------------------------------------------------------------------------
+# Row construction. Pure — no database, no clock. Shared with the projection.
+# ---------------------------------------------------------------------------
+def delivery_row(event: ProviderEvent, status: str) -> dict[str, Any]:
+    return {
+        "delivery_id": event.delivery_id,
+        "provider_event_id": event.provider_event_id,
+        "event_type": event.event_type,
+        "payload_hash": event.payload_hash,
+        "idempotency_key": event.idempotency_key,
+        "attempt": event.attempt,
+        "status": status,
+        "received_at": event.published_at,
+        "scenario_id": event.scenario_id,
+    }
+
+
+def normalized_row(src: ProviderEvent, domain: DomainEvent, recognised: bool) -> dict[str, Any]:
+    payload = dict(src.raw_payload)
+    if not recognised:
+        # Leave a breadcrumb the investigator can actually find. Without this the
+        # only signal is raw != normalized, which is the point of S09.
+        payload["_mapper_note"] = (
+            f"status {src.raw_payload.get('status')!r} not recognised by "
+            f"mapping_version {domain.mapping_version}"
+        )
+    return {
+        "event_id": domain.event_id,
+        "provider_event_id": src.provider_event_id,
+        "delivery_id": src.delivery_id,
+        "normalized_type": domain.normalized_type,
+        "mapping_version": domain.mapping_version,
+        # The RAW payload, uncorrupted. S06 is only diagnosable because what the
+        # provider sent survives next to what we made of it.
+        "raw_payload": payload,
+        "normalized_state": domain.normalized_state,
+        "created_at": domain.occurred_at,
+        "scenario_id": domain.scenario_id,
+    }
+
+
+def normalize(event: ProviderEvent, mapping_version: int) -> tuple[DomainEvent, bool]:
+    """The mapper itself. Pure, so the projection and the consumer cannot diverge."""
+    raw_status = str(event.raw_payload.get("status", ""))
+    normalized_state, recognised = map_status(raw_status, mapping_version)
+
+    # Non-identity events carry no status; pass their own state through.
+    if not raw_status:
+        normalized_state = str(event.raw_payload.get("state", event.event_type))
+        recognised = True
+
+    payload = dict(event.raw_payload)
+    if isinstance(payload.get("amount"), int):
+        payload["amount"], _ = map_amount(payload["amount"], mapping_version)
+
+    domain = DomainEvent(
+        envelope_id=event.domain_envelope_id,
+        causation_id=event.envelope_id,
+        normalized_type=event.event_type,
+        normalized_state=normalized_state,
+        mapping_version=mapping_version,
+        provider_event_id=event.provider_event_id,
+        occurred_at=event.occurred_at,
+        published_at=event.published_at,
+        payload=payload,
+        scenario_id=event.scenario_id,
+    )
+    return domain, recognised
+
+
 class IntegrationConsumer:
     """Stateful across a generation run — holds the dedupe ledger."""
 
@@ -73,6 +182,9 @@ class IntegrationConsumer:
         self.conn = conn
         self.mapping_version = mapping_version
         self.emitted: list[DomainEvent] = []
+        # What was actually persisted, for the generator's projection self-check.
+        self.wrote_deliveries: list[str] = []
+        self.wrote_events: list[str] = []
 
     async def handle(self, raw: dict[str, Any]) -> None:
         event = ProviderEvent.model_validate(raw)
@@ -88,26 +200,19 @@ class IntegrationConsumer:
 
         self._remember(event)
 
-        raw_status = str(event.raw_payload.get("status", ""))
-        normalized_state, recognised = map_status(raw_status, self.mapping_version)
-
-        # Non-identity events carry no status; pass their own state through.
-        if not raw_status:
-            normalized_state = str(event.raw_payload.get("state", event.event_type))
-            recognised = True
-
-        domain = DomainEvent(
-            causation_id=event.envelope_id,
-            normalized_type=event.event_type,
-            normalized_state=normalized_state,
-            mapping_version=self.mapping_version,
-            provider_event_id=event.provider_event_id,
-            occurred_at=event.occurred_at,
-            payload=event.raw_payload,
-            scenario_id=event.scenario_id,
-        )
+        domain, recognised = normalize(event, self.mapping_version)
         self._record_normalized(event, domain, recognised)
         self.emitted.append(domain)
+
+    def take_emitted(self) -> list[DomainEvent]:
+        """Hand off what this batch produced and reset.
+
+        The consumer does not publish downstream itself: the generator's driver
+        does, so that publish order stays under the generator's control. That is
+        what keeps S07's inverted order deliberate rather than incidental.
+        """
+        out, self.emitted = self.emitted, []
+        return out
 
     # ------------------------------------------------------------- dedupe
     def _is_duplicate(self, event: ProviderEvent) -> bool:
@@ -139,38 +244,33 @@ class IntegrationConsumer:
 
     # ------------------------------------------------------------- persist
     def _record_delivery(self, event: ProviderEvent, status: str) -> None:
+        row = delivery_row(event, status)
         with self.conn.cursor() as cur:
             cur.execute(
                 """INSERT INTO webhook.deliveries
                      (delivery_id, provider_event_id, event_type, payload_hash,
                       idempotency_key, attempt, status, received_at, scenario_id)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   VALUES (%(delivery_id)s,%(provider_event_id)s,%(event_type)s,
+                           %(payload_hash)s,%(idempotency_key)s,%(attempt)s,
+                           %(status)s,%(received_at)s,%(scenario_id)s)
                    ON CONFLICT (delivery_id) DO NOTHING""",
-                (f"dlv_{event.envelope_id.hex[:12]}", event.provider_event_id,
-                 event.event_type, event.payload_hash, event.idempotency_key,
-                 event.attempt, status, event.published_at, event.scenario_id),
+                row,
             )
+        self.wrote_deliveries.append(row["delivery_id"])
 
     def _record_normalized(self, src: ProviderEvent, domain: DomainEvent,
                            recognised: bool) -> None:
-        payload = dict(src.raw_payload)
-        if not recognised:
-            # Leave a breadcrumb the investigator can actually find. Without this
-            # the only signal is raw != normalized, which is the point of S09.
-            payload["_mapper_note"] = (
-                f"status {src.raw_payload.get('status')!r} not recognised by "
-                f"mapping_version {self.mapping_version}"
-            )
+        row = normalized_row(src, domain, recognised)
         with self.conn.cursor() as cur:
             cur.execute(
                 """INSERT INTO integration.events
                      (event_id, provider_event_id, delivery_id, normalized_type,
                       mapping_version, raw_payload, normalized_state, created_at,
                       scenario_id)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   VALUES (%(event_id)s,%(provider_event_id)s,%(delivery_id)s,
+                           %(normalized_type)s,%(mapping_version)s,%(raw_payload)s,
+                           %(normalized_state)s,%(created_at)s,%(scenario_id)s)
                    ON CONFLICT (event_id) DO NOTHING""",
-                (f"evt_{domain.envelope_id.hex[:12]}", src.provider_event_id,
-                 f"dlv_{src.envelope_id.hex[:12]}", domain.normalized_type,
-                 domain.mapping_version, Jsonb(payload), domain.normalized_state,
-                 domain.occurred_at, domain.scenario_id),
+                {**row, "raw_payload": Jsonb(row["raw_payload"])},
             )
+        self.wrote_events.append(row["event_id"])

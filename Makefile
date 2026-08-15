@@ -46,14 +46,26 @@ model-health: ## Is the local endpoint up?
 .PHONY: scenarios scenarios-dry corpus
 scenarios-dry: ## Build scenarios in memory, write nothing
 	$(PY) -m scenarios.generator.run --dry-run --per-class 1
-corpus: ## Generate the full frozen corpus (96 test / 48 dev / 144 train)
-	$(PY) -m scenarios.generator.run --split test  --per-class 8
+corpus: ## Regenerate the full frozen corpus (96 test / 48 dev / 144 train)
+	# --reset on the FIRST split only: it truncates the scenario tables and purges
+	# the streams, so the corpus is replaced rather than added to. Regenerating on
+	# top of an existing corpus collides primary keys, and a surviving dedupe ledger
+	# would make S01's first delivery look like a duplicate.
+	#
+	# learning.* is deliberately NOT truncated — that is where prior run scores live.
+	$(PY) -m scenarios.generator.run --split test  --per-class 8 --reset
 	$(PY) -m scenarios.generator.run --split dev   --per-class 4
 	$(PY) -m scenarios.generator.run --split train --per-class 12
 
 # ---------------------------------------------------------------- evals
 # Every arm is resumable: subscription rate limits WILL interrupt a long run, and
 # re-running a partial set against a full one is how you get a wrong conclusion.
+.PHONY: reachability
+reachability: ## Can the fixed-evidence plan reach every case's required evidence?
+	# Run after `make corpus`, before trusting any score. A class capped below the
+	# recall threshold is a harness bug that reads exactly like model weakness.
+	$(PY) scripts/evidence_reachability.py --split test
+
 .PHONY: eval-e2 eval-e4 eval-smoke report
 eval-e2: ## E2 — local specialist, fixed evidence
 	$(PY) -m evals.runner.run_eval --arm E2 --model-ref local-specialist --split test --resume

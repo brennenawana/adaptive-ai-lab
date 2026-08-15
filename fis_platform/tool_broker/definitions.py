@@ -43,14 +43,21 @@ TOOLS: list[ToolDefinition] = [
         verifiers=["customer_matches_case"],
     ),
     ToolDefinition(
-        name="get_verifications", version=1, kind=ToolKind.READ,
+        name="get_verifications", version=2, kind=ToolKind.READ,
         owning_service="identity_service",
         description=(
             "List KYC/identity verification steps for a customer with statuses and "
             "reason codes. Use this whenever onboarding is incomplete, a card is not "
-            "activated, or the customer disputes a verification outcome."
+            "activated, or the customer disputes a verification outcome. "
+            "Pass `vendor` as well to widen the result to that vendor's verifications "
+            "for OTHER customers around the same time — the only way to tell a "
+            "vendor-wide outage from one customer's failed check."
         ),
-        input_schema=_obj({"customer_id": _STR}, ["customer_id"]),
+        input_schema=_obj(
+            {"customer_id": _STR, "vendor": _STR,
+             "window_hours": {"type": "integer", "minimum": 1, "maximum": 24}},
+            ["customer_id"],
+        ),
         output_schema={"type": "array", "items": {"type": "object"}},
         verifiers=["status_time_consistent"],
     ),
