@@ -171,7 +171,41 @@ Set per session (`cc --model opus --effort high`) or persist in
 
 ---
 
-## Home-directory restructure (2026-08-15)
+## Final paths after the restructure (2026-08-15) — VERIFIED
+
+```
+~/projects/fintech-integration-sandbox     <- THE REPO (moved from ~/)
+~/infra/llama.cpp-upstream                 llama.cpp build (build-cuda/bin/)
+~/infra/models                             GGUF weights
+~/infra/cudaenv/lib                        CUDA runtime libs
+~/infra/ollama                             alt runtime, unused by FIS
+~/archive/                                 the-wall, bonsai-eval, rearch*, hmh
+```
+
+Claude Code project key is now
+`~/.claude/projects/-home-wall-projects-fintech-integration-sandbox/`
+(memories live there).
+
+Verified after the move: model UP on 8082, both containers healthy, **102 tests
+passing**, git clean, `.env.bak` removed.
+
+Three things the move broke, all fixed — each failed in a way that did not point
+at relocation:
+
+1. **CUDA libs** lived in `~/bonsai-eval/` (an archived project). Now `~/infra/cudaenv`.
+2. **`.env` had no trailing newline**, so `cat >>` concatenated `FIS_LLAMA_DIR=...`
+   onto the end of the OAuth token, corrupting it to 157 chars. Would have
+   surfaced only as an E4 auth failure hours later. **Never `cat >>` into `.env`.**
+3. **llama.cpp bakes an absolute RPATH**, so it could not find its own sibling
+   `.so` files. Fixed by adding `dirname(BIN)` to `LD_LIBRARY_PATH`.
+
+Also: `.venv` was rebuilt (uv bakes absolute paths, so a move invalidates it), and
+editing any file through a Windows UNC path drops the Unix exec bit — modes are
+now tracked in git as `100755` and the Makefile invokes `bash` explicitly.
+
+---
+
+## Home-directory restructure — rationale
 
 `/home/wall` had accumulated three unrelated things in one flat directory: shared
 AI infrastructure, an earlier unrelated project ("the wall" / bonsai / rearch), and
