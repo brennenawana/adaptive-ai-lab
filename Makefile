@@ -33,7 +33,10 @@ migrate: ## Apply all migrations in order (idempotent except role creation)
 # ---------------------------------------------------------------- model
 .PHONY: serve-local stop-local model-health
 serve-local: ## Start the local specialist on 8082 (8080/8081 stay free)
-	./infra/serve-local-model.sh
+	# Invoked via `bash` rather than executed directly: editing this repo through
+	# a Windows UNC path drops the Unix exec bit, which made this fail with a bare
+	# "Permission denied". Calling the interpreter makes the mode irrelevant.
+	bash ./infra/serve-local-model.sh
 stop-local: ## Stop it
 	@pkill -f 'llama-serve[r] .*--port 8082' && echo stopped || echo "not running"
 model-health: ## Is the local endpoint up?
