@@ -66,25 +66,39 @@ reconciliation, not replay.
 
 ---
 
-## Numbers so far, and their status
+## Numbers — the current baseline
 
-**E2 at n=96 (`run_id=E2-local-96`) — PRE-MIGRATION REFERENCE ONLY.**
-Do not compare anything post-migration to it; the corpus changes.
+**Suite v2, both arms on the final event-sourced corpus.** `E2-v2-96`, `E4-v2-96`.
 
-| Metric | value |
-|---|---|
-| Strict all-pass | 5.2% |
-| Root-cause accuracy | 29.2% |
-| Next-action accuracy | 13.5% |
-| Verifier pass | 64.6% |
-| Forbidden claims | 0 |
+| Metric | E2 local 8B | E4 frontier |
+|---|---|---|
+| Strict all-pass | 3.1% | 91.7% (**99.0% corrected**) |
+| Root-cause accuracy | 16.7% | 99.0% |
+| Next-action accuracy | 17.7% | 100% |
+| Evidence recall | 74.6% | 100% |
+| Verifier pass | 77.1% | 100% |
+| Unsupported claims | 13 | 0 |
+| Forbidden claims | 0 | 7 — all **false positives** |
 
-**The finding that matters:** the model is ~2× better at diagnosis (29.2%) than at
-remedy (13.5%). Confirmed at n=96 after an n=12 run suggested it. It is frequently
-wrong but never *dangerous* — zero forbidden claims in 96 cases.
+**Three findings that matter:**
 
-An earlier n=12 run showed 41.7% root-cause. That was small-sample optimism; one
-case was worth 8.3 points.
+1. **The local model's action choice is independent of its own diagnosis.** Action
+   accuracy is 18.8% when its root cause was right and 17.5% when it was wrong —
+   identical. It is not reasoning cause → remedy badly; it is not doing it at all.
+   **Evaluate E6 on this conditional, not on aggregate action accuracy**, which
+   rises if a model simply guesses common actions.
+2. **Evidence is no longer the bottleneck.** E2 sees 74.6% of required evidence and
+   still diagnoses 16.7%. E4 reaches 100% on the same bundles, so the ceiling is
+   real and the remainder is reasoning.
+3. **E4's 7 forbidden claims are a scorer bug, not model behaviour** — the detector
+   substring-matches, so "the decline was **not** caused by insufficient funds"
+   scores as the claim `insufficient_funds`. Verified by reproduction. Left unfixed
+   deliberately; see `experiment-log.md` harness bug #8. **Decide before E6.**
+
+> The earlier "~2× better at diagnosis than remedy" (29.2% vs 13.5%) framing came
+> from `E2-local-96`, which is **suite v1 and not comparable** — five classes could
+> not be passed by any model. `compare.py` marks it with a †. Do not subtract across
+> that line.
 
 ---
 
@@ -150,10 +164,24 @@ Each was initially mistakable for model weakness:
    often three different vendors. Backdated fields now use `Clock.before()`, which
    does not move the cursor, and the outage vendor is pinned.
 
-> The pattern in (2), (5), (6) and (7) is one bug wearing four costumes: **evidence
-> that exists but cannot be reached, or a signal the scenario never actually
-> contained.** It reads as a weak model every time. When a class scores near zero,
-> check the ceiling before believing the score.
+8. **`get_ledger_entries` hid `posting_seq`**, which made S07 undiagnosable after the
+   migration. The consumer stamps `posted_at` from `occurred_at`, so the reversal
+   race lives entirely in posting order — and the tool sorted by `posted_at` and
+   never returned the sequence. The model saw a chronological, net-zero ledger and
+   correctly concluded nothing was wrong. E4: **0.125 → 1.000** once exposed.
+9. **The forbidden-claim detector counts refutations as assertions** (substring
+   match). E4's "the decline was *not* caused by insufficient funds" scores as the
+   forbidden claim. **Still open — deliberately.** It is a metric about harm; see
+   `experiment-log.md`.
+
+> The pattern in (2), (5), (6), (7) and (8) is one bug wearing five costumes:
+> **evidence that exists but cannot be reached, or a signal the scenario never
+> actually contained.** It reads as a weak model every time. When a class scores near
+> zero, check the ceiling before believing the score.
+>
+> **(8) was found by disagreement between the arms** — E4 scored 12.5% on S07 while
+> the *weaker* local model scored higher. An inversion where the stronger arm does
+> worse is the signature of a scenario that rewards guessing. Watch for it.
 
 ---
 

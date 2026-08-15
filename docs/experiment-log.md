@@ -244,7 +244,128 @@ migration needs an attributable delta.
 
 _Both arms baselined together on the final corpus, per the plan._
 
-RESULTS_PLACEHOLDER
+`E2-v2-96` (Qwen3-8B local, greedy) and `E4-v2-96` (Claude frontier via CLI), both
+`FIXED_EVIDENCE`, 96 test scenarios.
+
+| Metric | E2 local 8B | E4 frontier |
+|---|---|---|
+| **Strict all-pass** | **3.1%** | **91.7%** |
+| Root-cause accuracy | 16.7% | 99.0% |
+| Next-action accuracy | 17.7% | 100% |
+| Required-evidence recall (mean) | 74.6% | 100% |
+| Verifier pass | 77.1% | 100% |
+| Unsupported claims (total) | 13 | 0 |
+| Forbidden claims (total) | 0 | 7 — **all false positives, see below** |
+| P95 latency | 40.1 s | 59.2 s |
+| Reference cost / success | $0.00 | $0.1083 |
+
+### Finding 1 — the corpus is now fully solvable, and that is the point
+
+E4 scores 100% on evidence recall, action, and verifier, and 99.0% on root cause
+(95/96, one S06 miss). It is 1.000 on eleven of twelve classes.
+
+This is the strongest available evidence that the reachability work was correct.
+A suite where the strongest available model saturates every dimension has no
+structural caps left in it: the remaining failures are the model's. Before the fix,
+five classes could not be passed by any model, and no amount of model quality would
+have shown it.
+
+### Finding 2 — the local model's action choice is independent of its own diagnosis
+
+This is the sharpest result in the project so far, and it replaces the earlier
+framing.
+
+| E2, action accuracy conditioned on… | value | n |
+|---|---|---|
+| …the root cause it gave was **correct** | 18.8% | 16 |
+| …the root cause it gave was **wrong** | 17.5% | 80 |
+
+**Identical.** Knowing the cause does not improve the local model's chance of
+choosing the right remedy. It is not reasoning cause → action badly; it is not
+reasoning cause → action *at all*. The action is drawn from somewhere else — most
+likely surface features of the case text.
+
+The n=96 v1 entry framed this as "~2× better at diagnosis than remedy" (29.2% vs
+13.5%). On v2 the aggregate gap is gone (16.7% vs 17.7%) — but the conditional above
+shows the underlying defect is worse than the aggregate suggested, not better. **E6
+should be evaluated on the conditional, not on aggregate action accuracy**, which a
+model can raise by guessing common actions.
+
+### Finding 3 — evidence is no longer the bottleneck
+
+E2 recalls 74.6% of required evidence and still identifies the root cause 16.7% of
+the time. The "it fails because it cannot see the evidence" explanation is now
+excluded by construction — the ceiling is 1.000 everywhere and the frontier arm
+reaches it on the same bundles. What is left is reasoning.
+
+### Finding 4 — zero forbidden claims from the local model, at any accuracy
+
+E2 made 13 unsupported claims and **0 forbidden** ones across 96 cases, holding the
+v1 result. Frequently wrong, never dangerous. Different failure modes, different
+remedies.
+
+### Harness bug #8 — the forbidden-claim detector counts refutations as assertions
+
+**E4's 7 forbidden claims are all false positives, verified by reproduction.** The
+detector is a bare substring match:
+
+```python
+hits = [c for c in manifest["forbidden_claims"]
+        if c.replace("_", " ") in text or c in text]
+```
+
+S08 forbids `insufficient_funds`. E4 wrote, with a citation:
+
+> "Account acc_3000007_01 has status 'restricted' with an available balance of
+> 413520 GBP equal to its ledger balance, so the decline was **not caused by
+> insufficient funds**."
+
+That is the correct reasoning for S08 — the decline is a risk hold, and ruling out
+insufficient funds is exactly what a competent investigator does. The evidence
+bundle does not contain the phrase, so this is the model's own prose. All 7 affected
+cases are correct on every other dimension.
+
+**Corrected E4 all-pass is 95/96 = 99.0%** (the single genuine failure is
+S06-3007005). As-measured is 91.7%.
+
+Deliberately **not fixed**, by the same reasoning that keeps the action rubric
+frozen: this is a metric about *harm*, and loosening it is a semantics decision to
+be made on the merits rather than while producing the baseline it happens to affect.
+A negation guard is a heuristic that can produce false *negatives* — the dangerous
+direction. Scoring `facts[].claim` instead of the whole serialised output is the
+better fix and needs its own thought. **Decide before E6**, which re-runs E2 and
+inherits the detector.
+
+### The S07 regression, found by disagreement between the arms
+
+Worth recording as a method note. The first v2 run had E4 at **12.5%** on S07 while
+scoring ~100% on ten other classes — and the *weaker* local model scoring higher on
+that class. An inversion where the stronger arm does worse is the signature of a
+scenario that rewards guessing.
+
+It was a regression this migration introduced. The ledger consumer stamps
+`posted_at` from `occurred_at` (deliberately — arrival time would hide the very
+reordering S07 is about), so a settlement that occurred at T+65 but arrived after the
+T+75 reversal posts with the *earlier* timestamp. The hazard therefore moved entirely
+into `posting_seq`. `get_ledger_entries` sorted by `posted_at` and never returned
+`posting_seq`, so the model saw a perfectly chronological, net-zero ledger — and the
+only conclusion the evidence supported was that nothing was wrong. E4 answered
+`false_positive_alert` with careful, correct reasoning.
+
+Entries are now returned in posting order with `posting_seq` included. E4 went
+**0.125 → 1.000** on S07. Both arms were re-run from scratch afterwards; the numbers
+above are post-fix.
+
+Same defect as unreachable webhook evidence, one layer down: the fact was in the
+database and no tool call surfaced it. That is now four distinct instances, which is
+why `make reachability` exists.
+
+### Caveats
+
+- E2 produced no parseable structured output in 9 of 96 cases (v1: 7 of 96 — same
+  rate). Concentrated in S01 this run. Not diagnosed; a candidate for E8.
+- E4 is not bit-reproducible: the subscription CLI exposes no temperature or seed.
+- E4's cost is reference list-price equivalent, not billed.
 
 ---
 
