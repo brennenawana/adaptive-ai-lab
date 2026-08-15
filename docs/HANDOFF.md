@@ -132,6 +132,45 @@ Each was initially mistakable for model weakness:
 
 ---
 
+## Model, effort, and ultracode — per stage
+
+Guidance, not law. The principle: **match the setting to the shape of the work, not
+to how important the project feels.** Most of what remains is execution against a
+written spec, which is cheaper than it looks.
+
+| Stage | Model | Effort | Ultracode | Why |
+|---|---|---|---|---|
+| **Steps 5-7: generator port, regenerate, re-baseline** | Opus 5 | `high` | **off** | Execution against a spec already written here and in `bus.py`. Inherently sequential — fanning out agents risks parallel edits to the same files with no upside. Raise to `xhigh` if the determinism logic stalls; that is the one expensive failure mode. |
+| **E6: cause->action prompt variants** | Opus 5 | `high` | **on** | Genuinely fan-out shaped: several prompt variants scored blind against the same frozen suite is a judge panel. This is what workflows are for. |
+| **E3 retrieval, E5 router** | Opus 5 | `high` | off | Sequential build-and-measure, same as the migration. |
+| **E7: QLoRA** | Opus 5 | `xhigh` | off | Training config is unforgiving and failures are slow to surface. Worth the extra depth. |
+| **E8: failure diagnosis** | Opus 5 | `high` | **on** | Classifying ~90 failed cases into the Discovery Controller taxonomy is embarrassingly parallel. |
+| **Phase 6: Discovery Controller design** | **Fable 5** | `xhigh` | off | The one genuinely novel design problem left. Not execution — this is where the premium buys something. |
+
+### Reasoning worth keeping
+
+**Opus 5 over Fable 5 by default.** Fable costs roughly double the rate-limit
+consumption ($10/$50 vs $5/$25 per MTok equivalent) and takes longer turns. Its
+advantage is novel long-horizon reasoning, which almost nothing remaining requires
+— the hard thinking is already written down. Reach for Fable when a result is
+confusing and needs real diagnosis, or when designing something not yet specified.
+
+**`high`, not `xhigh`, as the default.** `xhigh` is the documented default for
+coding on Opus 5 and is a fine one-setting-for-everything choice. But this codebase
+is well-specified and Opus 5 is unusually strong at lower effort; `high` is the
+balance point. Avoid `max` — it overthinks mechanical refactors.
+
+**Ultracode off unless the work fans out.** It standing-orders multi-agent
+workflows. That is right for parallel exploration, adversarial verification and
+broad audits; it is wrong for build-verify-fix loops, which are serial. Ultracode
+was on for the entire session that built this platform and no workflow was ever
+warranted — the two rows marked **on** above are the first places one would be.
+
+Set per session (`cc --model opus --effort high`) or persist in
+`.claude/settings.json` so it travels with the repo.
+
+---
+
 ## Verify everything is alive
 
 ```bash
