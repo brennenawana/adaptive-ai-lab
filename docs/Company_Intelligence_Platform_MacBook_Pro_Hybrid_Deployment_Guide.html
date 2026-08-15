@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>MacBook Pro Hybrid Deployment Guide</title>
+<style>
+:root {
+  --bg: #f6f8fb;
+  --paper: #ffffff;
+  --ink: #172033;
+  --muted: #5e6b80;
+  --line: #dfe5ed;
+  --navy: #17324d;
+  --navy-2: #244662;
+  --teal: #0e7c77;
+  --teal-soft: #e8f4f3;
+  --blue-soft: #eef4f9;
+  --amber: #a35b17;
+  --amber-soft: #fff4e8;
+  --code-bg: #f4f6f8;
+  --code-ink: #1f2b3d;
+  --shadow: 0 18px 60px rgba(23, 50, 77, .08);
+  --radius: 16px;
+  --content: 880px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.68;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: #08625e; }
+.shell { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: 260px minmax(0, var(--content)); gap: 44px; padding: 36px 28px 72px; justify-content: center; }
+.sidebar { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow: auto; padding: 18px 16px; }
+.brand { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
+.toc-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 800; margin: 0 0 8px; }
+.toc { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a { display: block; text-decoration: none; color: #526176; border-left: 2px solid transparent; padding: 5px 10px; font-size: 13px; line-height: 1.35; }
+.toc a:hover { color: var(--navy); border-left-color: #a8c9c7; background: rgba(255,255,255,.6); }
+.toc .h2 a { padding-left: 22px; font-size: 12.5px; }
+.document { min-width: 0; }
+.paper { background: var(--paper); border: 1px solid rgba(214,222,233,.85); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden; }
+.body { padding: 54px 64px 70px; }
+.hero {
+  padding: 58px 64px 48px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--navy) 0%, #1f4965 62%, #246a70 100%);
+  position: relative;
+  overflow: hidden;
+}
+.hero::after { content: ""; position: absolute; width: 320px; height: 320px; right: -120px; top: -160px; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; box-shadow: 0 0 0 45px rgba(255,255,255,.03), 0 0 0 90px rgba(255,255,255,.025); }
+.hero-eyebrow { margin: 0 0 10px; font-size: 12px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: #b8e2df; }
+.hero h1 { margin: 0; font-size: clamp(34px, 5vw, 52px); line-height: 1.06; letter-spacing: -.035em; max-width: 760px; color: #fff; }
+.hero .subtitle { margin: 16px 0 0; max-width: 720px; font-size: 18px; color: rgba(255,255,255,.82); line-height: 1.5; }
+.hero .meta { margin: 18px 0 0; max-width: 760px; font-size: 13px; color: rgba(255,255,255,.72); line-height: 1.55; }
+.body > p:first-child { margin-top: 0; }
+h1, h2, h3 { color: var(--navy); letter-spacing: -.025em; scroll-margin-top: 28px; }
+h1 { font-size: 30px; line-height: 1.18; margin: 58px 0 18px; padding-top: 4px; }
+h1:first-child { margin-top: 0; }
+h2 { font-size: 22px; line-height: 1.28; margin: 38px 0 12px; }
+h3 { font-size: 17px; line-height: 1.35; margin: 28px 0 8px; }
+p { margin: 0 0 16px; }
+strong { color: #12263a; }
+blockquote { margin: 24px 0; padding: 18px 22px; border-left: 4px solid var(--teal); background: #f5faf9; border-radius: 0 12px 12px 0; color: #26374a; }
+blockquote p:last-child { margin-bottom: 0; }
+ul, ol { margin: 12px 0 22px; padding-left: 26px; }
+li { margin: 6px 0; padding-left: 3px; }
+.callout { margin: 24px 0; padding: 19px 22px 20px; border: 1px solid #d7e8e6; border-radius: 14px; background: var(--teal-soft); }
+.callout.note { background: var(--blue-soft); border-color: #dce6ef; }
+.callout.warning { background: var(--amber-soft); border-color: #f0ddc6; }
+.callout .callout-title { display: block; margin: 0 0 5px; font-weight: 800; color: var(--navy); }
+.callout.warning .callout-title { color: #74400d; }
+.callout p:last-child { margin-bottom: 0; }
+pre {
+  position: relative;
+  margin: 20px 0 26px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  border: 1px solid #e1e6ec;
+  border-radius: 13px;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  tab-size: 2;
+  white-space: pre;
+}
+pre code { font: inherit; color: inherit; }
+.copy-btn { position: absolute; right: 8px; top: 8px; border: 1px solid #d2d9e2; background: rgba(255,255,255,.92); color: #475569; font: 600 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; border-radius: 7px; padding: 7px 9px; cursor: pointer; opacity: 0; transition: opacity .15s; }
+pre:hover .copy-btn { opacity: 1; }
+.table-wrap { overflow-x: auto; margin: 22px 0 30px; border: 1px solid var(--line); border-radius: 13px; }
+table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.45; background: #fff; }
+table.data th { background: #f1f5f8; color: var(--navy); text-align: left; font-weight: 800; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.data td { padding: 12px 14px; border-top: 1px solid #e7ebf0; vertical-align: top; }
+table.data tr:first-child td { border-top: 0; }
+table.data tbody tr:nth-child(even) { background: #fbfcfd; }
+.small-note { font-size: 13px; color: var(--muted); }
+hr { border: 0; border-top: 1px solid var(--line); margin: 36px 0; }
+.footer { padding: 20px 64px 30px; color: #7a8798; font-size: 12px; border-top: 1px solid #edf0f4; }
+@media (max-width: 1080px) {
+  .shell { grid-template-columns: 1fr; max-width: 960px; gap: 0; padding-top: 18px; }
+  .sidebar { position: static; max-height: none; padding: 0 4px 18px; }
+  .toc { columns: 2; column-gap: 24px; }
+  .toc li { break-inside: avoid; }
+}
+@media (max-width: 720px) {
+  .shell { padding: 0; display: block; }
+  .sidebar { display: none; }
+  .paper { border-radius: 0; border-left: 0; border-right: 0; }
+  .hero { padding: 40px 24px 34px; }
+  .hero h1 { font-size: 36px; }
+  .body { padding: 34px 22px 48px; }
+  .footer { padding: 18px 22px 26px; }
+  h1 { font-size: 27px; margin-top: 46px; }
+  h2 { font-size: 21px; }
+  pre { margin-left: -4px; margin-right: -4px; font-size: 11.5px; }
+}
+@media print {
+  @page { size: Letter; margin: 0.65in; }
+  body { background: white; }
+  .shell { display: block; max-width: none; padding: 0; }
+  .sidebar, .copy-btn { display: none !important; }
+  .paper { box-shadow: none; border: 0; border-radius: 0; }
+  .hero { border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .body { padding: 36px 0 0; }
+  .footer { padding-left: 0; padding-right: 0; }
+  h1, h2, h3 { break-after: avoid; }
+  pre, .callout, .table-wrap { break-inside: avoid; }
+  .table-wrap { overflow: visible; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" aria-label="Table of contents">
+    <div class="brand">Company Intelligence Platform</div>
+    <div class="toc-title">On this page</div>
+    <ul class="toc"><li class="h1"><a href="#executive-summary">Executive Summary</a></li><li class="h2"><a href="#guide-structure">Guide Structure</a></li><li class="h1"><a href="#1-hardware-reality-unified-memory-is-the-advantage-and-the-constraint">1. Hardware Reality: Unified Memory Is the Advantage and the Constraint</a></li><li class="h2"><a href="#practical-model-envelope">Practical model envelope</a></li><li class="h2"><a href="#why-context-length-matters">Why context length matters</a></li><li class="h1"><a href="#2-local-versus-cloud-placement-logic">2. Local-versus-Cloud Placement Logic</a></li><li class="h2"><a href="#recommended-routing-order">Recommended routing order</a></li><li class="h1"><a href="#3-recommended-hybrid-architecture">3. Recommended Hybrid Architecture</a></li><li class="h1"><a href="#4-what-to-run-locally">4. What to Run Locally</a></li><li class="h2"><a href="#native-macos-versus-docker">Native macOS versus Docker</a></li><li class="h1"><a href="#5-what-to-move-to-cloud-infrastructure">5. What to Move to Cloud Infrastructure</a></li><li class="h1"><a href="#6-docker-heavy-ram-management-strategy">6. Docker-Heavy RAM Management Strategy</a></li><li class="h2"><a href="#a-resource-budget-not-a-fixed-allocation">A resource budget, not a fixed allocation</a></li><li class="h2"><a href="#docker-controls-that-matter">Docker controls that matter</a></li><li class="h2"><a href="#compose-profile-example">Compose profile example</a></li><li class="h1"><a href="#7-operating-profiles-for-a-24-gb-mac">7. Operating Profiles for a 24 GB Mac</a></li><li class="h2"><a href="#profile-selection-rule">Profile selection rule</a></li><li class="h2"><a href="#memory-pressure-response-ladder">Memory-pressure response ladder</a></li><li class="h1"><a href="#8-resource-aware-model-gateway">8. Resource-Aware Model Gateway</a></li><li class="h2"><a href="#suggested-request-metadata">Suggested request metadata</a></li><li class="h2"><a href="#suggested-workstation-telemetry">Suggested workstation telemetry</a></li><li class="h2"><a href="#routing-policy-sketch">Routing policy sketch</a></li><li class="h1"><a href="#9-local-model-sizing-and-context-discipline">9. Local Model Sizing and Context Discipline</a></li><li class="h2"><a href="#recommended-local-intelligence-tiers">Recommended local intelligence tiers</a></li><li class="h2"><a href="#memory-saving-rules">Memory-saving rules</a></li><li class="h1"><a href="#10-training-and-continual-improvement-placement">10. Training and Continual-Improvement Placement</a></li><li class="h2"><a href="#local-training-is-best-for">Local training is best for</a></li><li class="h2"><a href="#cloud-training-is-best-for">Cloud training is best for</a></li><li class="h1"><a href="#11-production-migration-path">11. Production Migration Path</a></li><li class="h1"><a href="#12-security-and-data-placement-rules">12. Security and Data-Placement Rules</a></li><li class="h2"><a href="#examples">Examples</a></li><li class="h1"><a href="#13-first-implementation-sequence">13. First Implementation Sequence</a></li><li class="h2"><a href="#recommended-initial-topology">Recommended initial topology</a></li><li class="h1"><a href="#14-quick-decision-tables">14. Quick Decision Tables</a></li><li class="h2"><a href="#should-this-inference-run-locally">Should this inference run locally?</a></li><li class="h2"><a href="#should-this-training-run-locally">Should this training run locally?</a></li><li class="h1"><a href="#15-technical-reference-notes">15. Technical Reference Notes</a></li><li class="h1"><a href="#final-deployment-position">Final Deployment Position</a></li></ul>
+  </nav>
+  <main class="document">
+    <article class="paper">
+      <header class="hero">
+      <div class="hero-eyebrow">Company Intelligence Platform</div>
+      <h1>MacBook Pro Hybrid Deployment Guide</h1>
+      <p class="subtitle">Local-first AI development with resource-aware cloud escalation</p>
+    </header>
+      <div class="body">
+        <p class="small-note"><strong><strong>Target workstation</strong><br>Apple MacBook Pro • M4 Pro • 24 GB unified memory • macOS Tahoe 26.6<br>Existing environment: Docker-based company microservices plus AI development workloads</strong></p><aside class="callout info"><span class="callout-title">Deployment thesis</span><p>Use the Mac as a capable development and private-inference node, but make workload placement dynamic. Keep small/medium inference, orchestration, evaluation, and light adapter training local when memory permits; move always-on production services, high-concurrency workloads, larger models, and heavy training to cloud infrastructure. The model gateway should make that placement transparent to applications.</p></aside><p class="small-note"><strong>Final implementation guide</strong><br>Designed for a resource-constrained developer workstation that must continue running existing work services.</p><h1 id="executive-summary">Executive Summary</h1><p>The recommended deployment model is hybrid and resource-aware. The MacBook Pro should run enough of the platform locally to preserve fast iteration, privacy, and low marginal inference cost, but it should not be treated as the permanent production server or as the only place models may run.</p><aside class="callout info"><span class="callout-title">Operating rule</span><p>Run each workload at the smallest, cheapest, most private execution location that can reliably complete the task without destabilizing the developer workstation.</p></aside><p>The 24 GB of unified memory is shared by macOS, Docker Desktop, native applications, and local AI inference/training. That makes memory pressure—not raw model compatibility—the main constraint. A model that technically fits can still be the wrong local choice if Docker microservices, IDEs, browsers, databases, or long model contexts cause the system to swap heavily.</p><p>The solution is to treat local versus cloud placement as a routing decision rather than a fixed architecture. The same model gateway that routes by capability and privacy should also route by resource availability.</p><pre><code>TASK REQUEST
+     ↓
+policy / sensitivity
+     ↓
+capability required
+     ↓
+current local memory headroom
+     ↓
+┌───────────────┬──────────────────┐
+│ local allowed │ local constrained │
+│      ↓        │        ↓         │
+│ local model   │ cloud escalation │
+└───────────────┴──────────────────┘</code></pre><h2 id="guide-structure">Guide Structure</h2><ul><li>1. Hardware reality and the unified-memory constraint</li><li>2. Local-versus-cloud placement logic</li><li>3. Recommended hybrid architecture</li><li>4. What to run locally</li><li>5. What to move to cloud infrastructure</li><li>6. Docker-heavy RAM management strategy</li><li>7. Operating profiles for a 24 GB Mac</li><li>8. Resource-aware model gateway</li><li>9. Local model sizing and context discipline</li><li>10. Training and continual-improvement placement</li><li>11. Production migration path</li><li>12. Security and data-placement rules</li><li>13. First implementation sequence</li><li>14. Technical reference notes</li></ul><h1 id="1-hardware-reality-unified-memory-is-the-advantage-and-the-constraint">1. Hardware Reality: Unified Memory Is the Advantage and the Constraint</h1><p>Apple Silicon is unusually attractive for local AI because CPU and GPU share a high-bandwidth unified-memory pool. The M4 Pro family provides 273 GB/s of memory bandwidth. In this 24 GB configuration, however, the same 24 GB must support macOS, Docker Desktop, native applications, model weights, KV cache, inference runtime, and any training state.</p><h2 id="practical-model-envelope">Practical model envelope</h2><div class="table-wrap"><table class="data"><thead><tr><th><strong>Model class</strong></th><th><strong>Expected local role</strong></th><th><strong>Practical guidance</strong></th></tr></thead><tbody><tr><td>~1–4B</td><td>Router, classifier, extraction, embeddings-adjacent tasks</td><td>Excellent local default. Keep resident if useful.</td></tr><tr><td>~7–8B</td><td>Primary local specialist</td><td>Strong target for daily local use, especially quantized.</td></tr><tr><td>~12–14B</td><td>Higher-capability specialist</td><td>Usable in 4-bit form when Docker load is controlled; avoid assuming it can remain loaded all day.</td></tr><tr><td>~20B+</td><td>Occasional local experiment</td><td>Possible for some architectures/quantizations, but resource contention and context memory make this an exception.</td></tr><tr><td>~30B+ dense / 70B-class</td><td>Large open model</td><td>Prefer cloud GPU or hosted inference.</td></tr><tr><td>Frontier proprietary</td><td>Planning, difficult escalation, judging</td><td>Use via approved cloud API.</td></tr></tbody></table></div><aside class="callout warning"><span class="callout-title">Important distinction</span><p>A model fitting in memory is not the same as a model fitting comfortably alongside your work environment. For this Mac, “comfortable coexistence with Docker and normal development” is the more useful threshold.</p></aside><h2 id="why-context-length-matters">Why context length matters</h2><p>Model weights are only part of inference memory. The runtime also needs KV cache and temporary buffers. Long contexts, multiple concurrent requests, and multiple loaded models can turn an otherwise comfortable setup into a high-memory-pressure system. Local model sizing should therefore be paired with explicit context limits and low concurrency.</p><h1 id="2-local-versus-cloud-placement-logic">2. Local-versus-Cloud Placement Logic</h1><p>Every workload should be placed using a small number of explicit questions. The model gateway can eventually implement these as policy and runtime checks.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Decision factor</strong></th><th><strong>Prefer local when…</strong></th><th><strong>Prefer cloud when…</strong></th></tr></thead><tbody><tr><td>Data sensitivity</td><td>The task is confidential, local-only, or benefits from keeping raw data on device.</td><td>The provider is approved and the data classification permits transmission.</td></tr><tr><td>Memory headroom</td><td>The model plus expected context fits while preserving healthy macOS/Docker headroom.</td><td>Local memory pressure is elevated or Docker workloads cannot be reduced.</td></tr><tr><td>Model capability</td><td>A 1–14B-class local specialist reliably passes the task eval.</td><td>The task requires larger-model reasoning or a capability not available locally.</td></tr><tr><td>Concurrency</td><td>One or a few interactive requests are expected.</td><td>Multiple employees or services need concurrent inference.</td></tr><tr><td>Availability</td><td>The task is developer-local or can tolerate laptop availability.</td><td>The service must be always-on or business-critical.</td></tr><tr><td>Training load</td><td>LoRA/QLoRA experiment is small and iteration speed matters.</td><td>Training is long, large, highly parallel, or would monopolize the laptop.</td></tr><tr><td>Latency / network</td><td>Local model is fast enough and avoids round trips.</td><td>Cloud hardware materially reduces total completion time.</td></tr><tr><td>Economics</td><td>Local marginal cost is effectively zero and utilization is modest.</td><td>A rented GPU/API is cheaper than lost developer productivity or local contention.</td></tr></tbody></table></div><h2 id="recommended-routing-order">Recommended routing order</h2><pre><code>1. Is this data permitted to leave the local/trusted environment?
+       NO  → local/trusted infrastructure only
+       YES ↓
+
+2. Is a local specialist proven capable on this task?
+       NO  → approved cloud model
+       YES ↓
+
+3. Is there enough local memory + concurrency headroom right now?
+       NO  → cloud model
+       YES ↓
+
+4. Is this an always-on/shared production request?
+       YES → cloud/production runtime
+       NO  → local model</code></pre><aside class="callout info"><span class="callout-title">Core strategy</span><p>Local and cloud are not separate applications. They are interchangeable execution targets behind one model gateway and one set of task contracts.</p></aside><h1 id="3-recommended-hybrid-architecture">3. Recommended Hybrid Architecture</h1><pre><code>                         ┌─────────────────────┐
+                         │ FRONTIER / CLOUD AI │
+                         │ planner • judge     │
+                         │ hard escalation     │
+                         └──────────┬──────────┘
+                                    │
+┌──────────────── M4 PRO MAC ───────┼──────────────────────────┐
+│                                   │                          │
+│                         MODEL GATEWAY                        │
+│                       /      │       \                      │
+│             local MLX   local llama.cpp   cloud             │
+│                 ↓              ↓                            │
+│        router / specialists / embeddings                    │
+│                         ↓                                   │
+│                    ORCHESTRATOR                             │
+│                         ↓                                   │
+│              context • tools • RAG                          │
+│                         ↓                                   │
+│                    verification                             │
+│                         ↓                                   │
+│                      outcome                                │
+│                         ↓                                   │
+│                 trajectory capture                          │
+│                         ↓                                   │
+│          diagnose → dataset → local QLoRA                   │
+│                         ↓                                   │
+│                       eval                                  │
+│                                                             │
+│ Docker: selected microservices + PostgreSQL/pgvector         │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+                            ▼
+                  ┌─────────────────────┐
+                  │ CLOUD PLATFORM      │
+                  │ production API      │
+                  │ production DB       │
+                  │ object storage      │
+                  │ observability       │
+                  │ queues              │
+                  │ large GPU models    │
+                  │ heavy training      │
+                  │ backups             │
+                  └─────────────────────┘</code></pre><p>The Mac can host the complete development skeleton. Cloud infrastructure becomes the stable production substrate and the capacity pool for workloads that exceed the laptop’s available memory, compute, availability, or concurrency.</p><h1 id="4-what-to-run-locally">4. What to Run Locally</h1><p><strong>Orchestration and business logic: </strong>FastAPI services, Pydantic schemas, workflow state machines, routing logic, context assembly, tool definitions, verification, evaluation runners, and local developer UI.</p><p><strong>Small and medium inference: </strong>Tiny routers/classifiers plus a primary quantized 7–8B specialist. A 12–14B specialist can be loaded when the Docker profile leaves enough headroom.</p><p><strong>Embeddings and lightweight retrieval: </strong>Embedding company documents locally is attractive for privacy and cost. PostgreSQL + pgvector is sufficient for the first implementation.</p><p><strong>Trajectory and correction development: </strong>Local trajectory schemas, test data, outcome joins, correction capture, dataset builders, and eval execution.</p><p><strong>Small adapter training: </strong>MLX-LM supports LoRA and QLoRA on Apple Silicon, making it a natural environment for small, fast company-specific experiments.</p><p><strong>Private/offline tasks: </strong>Any workflow that must remain on-device can use local models, local tools, and local databases provided the hardware envelope is respected.</p><h2 id="native-macos-versus-docker">Native macOS versus Docker</h2><div class="table-wrap"><table class="data"><thead><tr><th><strong>Run natively on macOS</strong></th><th><strong>Run in Docker</strong></th></tr></thead><tbody><tr><td>MLX-LM</td><td>PostgreSQL / pgvector</td></tr><tr><td>llama.cpp with Metal</td><td>Existing company microservices</td></tr><tr><td>Model gateway if it directly controls native model processes</td><td>Redis / queue services when required</td></tr><tr><td>Local inference benchmarks and adapter training</td><td>MinIO/object-storage emulator if needed</td></tr><tr><td>GPU-sensitive AI processes</td><td>Stateless application dependencies and integration services</td></tr></tbody></table></div><p>The reason is hardware access: llama.cpp enables Metal on macOS, and MLX is built specifically for Apple Silicon. The llama.cpp project notes that its Docker images do not provide Metal acceleration, so placing the model runtime inside the Docker Linux VM sacrifices one of the Mac’s main AI advantages.</p><h1 id="5-what-to-move-to-cloud-infrastructure">5. What to Move to Cloud Infrastructure</h1><p><strong>Strong planning and difficult escalation: </strong>Use a frontier model when local specialists are uncertain, the task is novel, or decomposition/reasoning quality is more important than local execution cost.</p><p><strong>Large open models: </strong>Use rented GPU capacity or hosted inference for models that create unacceptable local memory pressure.</p><p><strong>Heavy training: </strong>Scale up to cloud GPUs only when a locally validated training experiment deserves more compute or the dataset/model size exceeds practical local limits.</p><p><strong>Always-on production control plane: </strong>Production APIs, production databases, queues, backups, shared observability, secrets management, and high-availability infrastructure should not depend on a laptop being open and connected.</p><p><strong>High-concurrency inference: </strong>Once multiple employees or automated workflows call the system simultaneously, production inference should move to infrastructure designed for concurrency and predictable throughput.</p><aside class="callout note"><span class="callout-title">Cloud is a capacity pool, not the architecture</span><p>The application should not contain separate code paths for “local AI” and “cloud AI.” It should call one model gateway using a stable contract; the gateway chooses the permitted execution target.</p></aside><h1 id="6-docker-heavy-ram-management-strategy">6. Docker-Heavy RAM Management Strategy</h1><p>This is the most important operational section for a 24 GB Mac that already hosts many Docker microservices. Docker Desktop runs Linux containers inside a VM on macOS. Docker documents that its memory limit defaults to 50% of host memory, which would be about 12 GB on a 24 GB machine. That is a ceiling for the Docker VM, not a guarantee that all of it is permanently consumed, but a 12 GB Docker ceiling plus a large local model leaves little room for macOS and normal development applications.</p><aside class="callout warning"><span class="callout-title">Planning target</span><p>Do not allocate the entire 24 GB on paper. Preserve approximately 5–7 GB of practical operating headroom for macOS, IDE/browser activity, buffers, and transient spikes. Treat sustained yellow/red Memory Pressure or heavy swap as a signal to offload, not as normal operation.</p></aside><h2 id="a-resource-budget-not-a-fixed-allocation">A resource budget, not a fixed allocation</h2><div class="table-wrap"><table class="data"><thead><tr><th><strong>Workload</strong></th><th><strong>Typical planning envelope</strong></th><th><strong>Control lever</strong></th></tr></thead><tbody><tr><td>macOS + normal apps</td><td>~5–7 GB+ practical headroom</td><td>Close heavy apps/tabs; avoid competing creative workloads during AI experiments.</td></tr><tr><td>Docker microservices</td><td>~4–12 GB depending on profile</td><td>Docker Desktop memory cap; Compose profiles; per-container limits; stop optional services.</td></tr><tr><td>1–4B local model</td><td>Low-to-moderate</td><td>Keep quantized; limited context; one resident model if desired.</td></tr><tr><td>7–8B 4-bit model</td><td>Moderate</td><td>Single model, low concurrency, controlled context.</td></tr><tr><td>12–14B 4-bit model</td><td>High on 24 GB system</td><td>Use only in reduced-Docker/AI-focused profile; cloud fallback otherwise.</td></tr><tr><td>QLoRA experiment</td><td>Variable/high</td><td>Stop nonessential containers; use small batch/sequence; offload larger runs.</td></tr></tbody></table></div><p class="small-note">The envelopes above are operating guidance rather than fixed byte guarantees. Actual consumption varies materially by model architecture, quantization, context length, KV-cache implementation, runtime, and application mix.</p><h2 id="docker-controls-that-matter">Docker controls that matter</h2><ul><li>Set an intentional Docker Desktop memory limit rather than leaving the default unexamined. Docker Desktop exposes CPU, memory, swap, and disk limits for the Linux VM on macOS.</li><li>Use Compose profiles so the full company stack does not have to run for every AI task. Create “core,” “full-work,” “ai-dev,” and “integration-test” profiles.</li><li>Add container-level memory limits for services with known runaway behavior. A global Docker cap protects macOS; service limits protect the Docker VM from one container consuming the whole cap.</li><li>Store database/cache data in Docker named volumes rather than broad host bind mounts where practical. Docker notes that excessive file sharing can add CPU and filesystem overhead.</li><li>Keep Docker Resource Saver enabled. Docker reports that it can reduce host memory use by 2 GB or more when no containers are running by stopping the Linux VM.</li><li>Do not keep multiple large local models resident. Treat model loading as a scheduled resource decision.</li></ul><h2 id="compose-profile-example">Compose profile example</h2><pre><code># AI day:   docker compose --profile core --profile ai-dev up -d
+# Work day: docker compose --profile work up -d</code></pre><h1 id="7-operating-profiles-for-a-24-gb-mac">7. Operating Profiles for a 24 GB Mac</h1><p>Instead of trying to find one Docker memory setting that works for every day, maintain several operating profiles. The numbers below are starting points to benchmark and adjust on the actual machine.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Profile</strong></th><th><strong>Docker VM target</strong></th><th><strong>Local AI target</strong></th><th><strong>Cloud use</strong></th><th><strong>Best for</strong></th></tr></thead><tbody><tr><td>A. Work / microservices first</td><td>~10–12 GB cap</td><td>1–4B router/extractor; embeddings; optionally small 7B if pressure stays low</td><td>7–14B+ and frontier</td><td>Normal company development with many services running.</td></tr><tr><td>B. Balanced AI development</td><td>~6–8 GB cap</td><td>7–8B 4-bit primary specialist; small router</td><td>14B+ / hard tasks</td><td>Daily AI feature development with only core microservices.</td></tr><tr><td>C. AI experiment mode</td><td>~4–6 GB cap or Docker mostly stopped</td><td>7–14B inference; small QLoRA experiments</td><td>Large training and large models</td><td>Benchmarking, adapter training, eval campaigns.</td></tr><tr><td>D. Production-like integration</td><td>~8–10 GB cap</td><td>Small local model only</td><td>Main inference + frontier</td><td>Testing realistic cloud/local routing while the integration stack runs.</td></tr></tbody></table></div><h2 id="profile-selection-rule">Profile selection rule</h2><pre><code>Need the full company microservice stack?
+    YES → Work / microservices-first profile
+    NO  ↓
+
+Need local 12–14B or training?
+    YES → AI experiment profile
+    NO  ↓
+
+Building day-to-day AI features?
+    YES → Balanced AI development profile
+
+Need production-like service topology?
+    YES → Production-like integration profile</code></pre><h2 id="memory-pressure-response-ladder">Memory-pressure response ladder</h2><p><strong>1.  </strong>Reduce model context length and local concurrency.</p><p><strong>2.  </strong>Unload any model not required for the active task.</p><p><strong>3.  </strong>Stop optional Docker Compose profiles or heavy workers.</p><p><strong>4.  </strong>Lower the Docker VM cap if the running service set does not need it.</p><p><strong>5.  </strong>Move the requested model tier to cloud inference.</p><p><strong>6.  </strong>For repeated pressure, permanently reclassify that workload as cloud-first.</p><aside class="callout warning"><span class="callout-title">Avoid swap as an architecture</span><p>macOS swap is useful protection against transient spikes, but sustained swapping can make model inference, databases, and development tools compete for storage bandwidth. The gateway should offload before heavy swap becomes normal.</p></aside><h1 id="8-resource-aware-model-gateway">8. Resource-Aware Model Gateway</h1><p>The model gateway should combine capability routing, data policy, cost, and live workstation health. This is particularly valuable on a shared-memory architecture because a request that was safe locally at 9:00 AM may be a poor local choice after the full Docker stack, IDE, browser, and databases are active.</p><h2 id="suggested-request-metadata">Suggested request metadata</h2><pre><code>{
+  &quot;task_type&quot;: &quot;contracts.renewal&quot;,
+  &quot;data_policy&quot;: &quot;CLOUD_REDACTED&quot;,
+  &quot;required_capability&quot;: &quot;medium_reasoning&quot;,
+  &quot;preferred_local_model&quot;: &quot;contract-specialist-8b&quot;,
+  &quot;max_latency_ms&quot;: 15000,
+  &quot;fallback&quot;: &quot;approved-frontier&quot;,
+  &quot;risk_class&quot;: &quot;read_only&quot;
+}</code></pre><h2 id="suggested-workstation-telemetry">Suggested workstation telemetry</h2><ul><li>macOS memory pressure state</li><li>swap usage and swap growth rate</li><li>Docker VM memory usage and configured cap</li><li>currently loaded local model and estimated footprint</li><li>active context length / KV-cache budget</li><li>local inference queue depth</li><li>battery/power policy if relevant</li></ul><h2 id="routing-policy-sketch">Routing policy sketch</h2><pre><code>if data_policy == &quot;LOCAL_ONLY&quot;:
+    route = best_permitted_local_or_private_model()
+
+elif not local_model_passes_eval(task_type):
+    route = approved_cloud_model()
+
+elif memory_pressure in {&quot;yellow&quot;, &quot;red&quot;}:
+    route = approved_cloud_model()
+
+elif predicted_local_footprint &gt; available_safe_headroom:
+    route = approved_cloud_model()
+
+elif queue_depth &gt; local_concurrency_limit:
+    route = approved_cloud_model()
+
+else:
+    route = cheapest_capable_local_model()</code></pre><p>The exact memory API implementation can be simple at first. Even a small local daemon that reports pressure, swap, and loaded-model state is enough to make better routing decisions than a static configuration.</p><h1 id="9-local-model-sizing-and-context-discipline">9. Local Model Sizing and Context Discipline</h1><p>A 24 GB workstation benefits more from disciplined small-model use than from maximizing parameter count. The objective is reliable task completion while preserving the rest of the machine.</p><h2 id="recommended-local-intelligence-tiers">Recommended local intelligence tiers</h2><div class="table-wrap"><table class="data"><thead><tr><th><strong>Tier</strong></th><th><strong>Target</strong></th><th><strong>Local responsibility</strong></th></tr></thead><tbody><tr><td>Tier 1</td><td>~1–4B</td><td>Routing, classification, extraction, normalization, lightweight tool selection.</td></tr><tr><td>Tier 2</td><td>~7–8B</td><td>Primary specialist for well-defined company workflows.</td></tr><tr><td>Tier 3</td><td>~12–14B</td><td>Higher-capability local specialist loaded only when resource profile permits.</td></tr><tr><td>Tier 4</td><td>Cloud large/frontier</td><td>Novel reasoning, difficult planning, very long contexts, high concurrency, hard escalation.</td></tr></tbody></table></div><h2 id="memory-saving-rules">Memory-saving rules</h2><ul><li>Prefer 4-bit quantized inference for local specialists unless evals show an unacceptable quality loss.</li><li>Set task-specific maximum context windows instead of accepting every model’s maximum supported context.</li><li>Retrieve fewer, higher-quality chunks rather than filling a huge context window by default.</li><li>Keep local concurrency low; scale horizontally in cloud rather than attempting multi-user throughput on the laptop.</li><li>Load one substantial model at a time. Tiny routers may remain resident if their footprint is negligible.</li><li>Use explicit unload/idle timers so experimental models do not remain mapped after use.</li><li>Benchmark successful-task latency and memory together. A slower but lighter model can be the better local worker if it avoids cloud calls and workstation contention.</li></ul><h1 id="10-training-and-continual-improvement-placement">10. Training and Continual-Improvement Placement</h1><p>The learning plane should also be hybrid. The Mac is ideal for cheap, fast experiments; cloud GPUs are ideal for scale. Production does not modify its own weights directly.</p><pre><code>production trajectories
+       ↓
+corrections + outcomes
+       ↓
+failure diagnosis
+       ↓
+training-worthy examples
+       ↓
+small local QLoRA experiment (MLX)
+       ↓
+frozen eval suite
+  ┌────┴─────┐
+  │ no gain  │ meaningful gain
+  ↓          ↓
+discard   scale if needed
+             ↓
+        cloud GPU job
+             ↓
+      candidate registry
+             ↓
+      shadow → canary</code></pre><h2 id="local-training-is-best-for">Local training is best for</h2><ul><li>small adapters on 3–8B-class models</li><li>rapid hyperparameter experiments</li><li>small corrected datasets</li><li>proof-of-value before renting GPU time</li><li>adapter/eval iteration where turnaround matters more than throughput</li></ul><h2 id="cloud-training-is-best-for">Cloud training is best for</h2><ul><li>larger base models</li><li>large datasets or long sequence lengths</li><li>many experiment variants in parallel</li><li>long-running jobs that would monopolize the laptop</li><li>production-scale reproducibility and scheduled training pipelines</li></ul><h1 id="11-production-migration-path">11. Production Migration Path</h1><p>The development architecture should be designed so components can migrate without changing business contracts.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Stage</strong></th><th><strong>Mac responsibility</strong></th><th><strong>Cloud responsibility</strong></th></tr></thead><tbody><tr><td>1. Vertical slice</td><td>Almost everything; hosted frontier escalation only</td><td>Frontier API and optional observability.</td></tr><tr><td>2. Team pilot</td><td>Developer local models/evals; local testing</td><td>Shared API, DB, object storage, observability; larger inference.</td></tr><tr><td>3. Production</td><td>Engineering workstation, private tests, local experiments</td><td>Always-on orchestration, data plane, model gateway, queues, shared models, backups.</td></tr><tr><td>4. Mature hybrid</td><td>Edge/private specialist experiments; emergency/local-only workflows</td><td>Primary multi-user serving, heavy training, registry, release automation.</td></tr></tbody></table></div><aside class="callout info"><span class="callout-title">Production rule</span><p>The MacBook should never become a hidden single point of failure. Once another employee depends on a workflow, its required services should have an always-on production home.</p></aside><h1 id="12-security-and-data-placement-rules">12. Security and Data-Placement Rules</h1><p>Data placement should be explicit in the model gateway. Every request should carry a policy that constrains where it can be processed.</p><pre><code>LOCAL_ONLY
+CLOUD_ALLOWED
+CLOUD_REDACTED
+CLOUD_APPROVED_PROVIDER
+PRIVATE_CLOUD_ONLY
+NO_EXTERNAL_MODEL</code></pre><p>Routing then becomes a constrained optimization problem:</p><pre><code>permitted models
+      ↓
+capable models
+      ↓
+healthy execution locations
+      ↓
+lowest cost / latency that meets the task SLO</code></pre><h2 id="examples">Examples</h2><div class="table-wrap"><table class="data"><thead><tr><th><strong>Task</strong></th><th><strong>Policy</strong></th><th><strong>Likely execution</strong></th></tr></thead><tbody><tr><td>Employee compensation analysis</td><td>LOCAL_ONLY or PRIVATE_CLOUD_ONLY</td><td>Local/private specialist only.</td></tr><tr><td>Generic marketing rewrite</td><td>CLOUD_ALLOWED</td><td>Cheapest capable local or hosted model.</td></tr><tr><td>Confidential contract reasoning</td><td>CLOUD_REDACTED or approved private provider</td><td>Local retrieval; redact/minimize; cloud planner if allowed.</td></tr><tr><td>Public-document extraction</td><td>CLOUD_ALLOWED</td><td>Local small model by default; cloud under memory/concurrency pressure.</td></tr></tbody></table></div><h1 id="13-first-implementation-sequence">13. First Implementation Sequence</h1><p>The first milestone is not “run the largest model that fits.” It is to run one real company task end-to-end while capturing enough evidence to explain why it succeeded or failed, and while proving that the workstation can degrade gracefully into cloud inference under memory pressure.</p><p><strong>1.  </strong>Create the model gateway interface before choosing multiple models.</p><p><strong>2.  </strong>Add a local MLX or llama.cpp endpoint and one approved cloud endpoint behind the same API contract.</p><p><strong>3.  </strong>Instrument one company workflow with full trajectory capture and an eval suite.</p><p><strong>4.  </strong>Run PostgreSQL/pgvector and only the Docker microservices needed for that workflow.</p><p><strong>5.  </strong>Create Work, Balanced AI, AI Experiment, and Production-like Compose profiles.</p><p><strong>6.  </strong>Add a simple resource monitor for macOS memory pressure, swap, and Docker state.</p><p><strong>7.  </strong>Implement gateway fallback: if local resource thresholds are exceeded, send permitted requests to cloud.</p><p><strong>8.  </strong>Benchmark 1–4B and 7–8B specialists locally. Add a 12–14B tier only if it improves task success enough to justify the memory cost.</p><p><strong>9.  </strong>Capture human corrections and outcomes. Use MLX QLoRA for the first small adapter experiment.</p><p><strong>10.  </strong>Move shared/always-on components to cloud only when the first workflow is useful to more than the developer.</p><h2 id="recommended-initial-topology">Recommended initial topology</h2><pre><code>LOCAL MAC
+  FastAPI / orchestrator
+  model gateway
+  MLX-LM + llama.cpp (native)
+  1–4B router
+  7–8B primary local specialist
+  PostgreSQL + pgvector (Docker)
+  selected company microservices (Docker profiles)
+  trajectory + eval tooling
+  local QLoRA experiments
+
+CLOUD
+  approved frontier-model API
+  optional shared observability
+  optional production DB/object store as the pilot expands
+  GPU instances only when large inference/training is justified</code></pre><aside class="callout info"><span class="callout-title">North-star operating principle</span><p>The learning system should gradually push work downward: difficult tasks may begin on frontier models, but repeated, well-instrumented company workflows should migrate toward smaller specialists when evals prove they can succeed at lower cost and with stronger privacy.</p></aside><h1 id="14-quick-decision-tables">14. Quick Decision Tables</h1><h2 id="should-this-inference-run-locally">Should this inference run locally?</h2><div class="table-wrap"><table class="data"><thead><tr><th><strong>Question</strong></th><th><strong>If YES</strong></th><th><strong>If NO</strong></th></tr></thead><tbody><tr><td>Must data stay on device/private?</td><td>Local/private path required.</td><td>Continue.</td></tr><tr><td>Has a local model passed the task eval?</td><td>Continue.</td><td>Cloud capable model.</td></tr><tr><td>Is Memory Pressure healthy and headroom sufficient?</td><td>Continue.</td><td>Cloud fallback.</td></tr><tr><td>Will local inference disrupt required Docker services?</td><td>Cloud fallback or change profile.</td><td>Continue.</td></tr><tr><td>Is this single-user/low-concurrency?</td><td>Local is attractive.</td><td>Cloud/shared serving.</td></tr><tr><td>Must it be always-on?</td><td>Cloud production service.</td><td>Local remains acceptable.</td></tr></tbody></table></div><h2 id="should-this-training-run-locally">Should this training run locally?</h2><div class="table-wrap"><table class="data"><thead><tr><th><strong>Question</strong></th><th><strong>Local</strong></th><th><strong>Cloud</strong></th></tr></thead><tbody><tr><td>Small LoRA/QLoRA proof-of-value?</td><td>✓</td><td></td></tr><tr><td>3–8B-class model and modest dataset?</td><td>✓</td><td>Optional</td></tr><tr><td>Long sequence / large adapter workload?</td><td>Maybe</td><td>✓</td></tr><tr><td>Large base model or full fine-tune?</td><td></td><td>✓</td></tr><tr><td>Needs parallel experiment sweep?</td><td></td><td>✓</td></tr><tr><td>Would monopolize developer machine for hours?</td><td></td><td>✓</td></tr></tbody></table></div><h1 id="15-technical-reference-notes">15. Technical Reference Notes</h1><p>The implementation guidance above is based on the following primary technical sources and current platform documentation. Product capabilities and software defaults can change; verify exact runtime behavior when upgrading the development environment.</p><p class="small-note"><strong>Apple — M4 Pro and M4 Max announcement — </strong>. M4 Pro unified-memory architecture and 273 GB/s memory bandwidth.</p><p class="small-note"><strong>MLX-LM — official repository — </strong>. Apple Silicon text generation, quantization, and fine-tuning.</p><p class="small-note"><strong>MLX-LM — LoRA / QLoRA guide — </strong>. LoRA and QLoRA support and training workflow.</p><p class="small-note"><strong>llama.cpp — official repository — </strong>. Apple Silicon first-class support, Metal, quantized local inference, OpenAI-compatible server.</p><p class="small-note"><strong>llama.cpp — build documentation — </strong>. Metal is enabled by default on macOS.</p><p class="small-note"><strong>Docker Desktop — settings and resource controls — </strong>. Docker VM CPU, memory, swap, disk limits; default memory limit is 50% of host memory; file-sharing guidance.</p><p class="small-note"><strong>Docker Desktop — Resource Saver — </strong>. Automatic Linux VM shutdown when idle and host resource savings.</p><h1 id="final-deployment-position">Final Deployment Position</h1><p>The M4 Pro MacBook Pro should be treated as a high-capability local AI workstation, not as a miniature datacenter. It can host the full development architecture, private inference, small/medium specialists, embeddings, evaluation, trajectory processing, and meaningful QLoRA experiments. Its 24 GB unified-memory ceiling becomes manageable when Docker services are profiled, models are loaded deliberately, context and concurrency are constrained, and cloud capacity is treated as an automatic overflow and escalation tier.</p><aside class="callout info"><span class="callout-title">Final rule</span><p>Keep the intelligence architecture portable. Let data policy, task capability, live resource headroom, availability, and economics decide where each workload runs.</p></aside>
+      </div>
+      <footer class="footer">Standalone HTML edition • Source: finalized DOCX</footer>
+    </article>
+  </main>
+</div>
+<script>
+document.querySelectorAll('pre').forEach((pre) => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn'; btn.type = 'button'; btn.textContent = 'Copy';
+  btn.addEventListener('click', async () => {
+    const code = pre.querySelector('code')?.innerText || pre.innerText.replace(/^Copy\s*/, '');
+    try { await navigator.clipboard.writeText(code); btn.textContent = 'Copied'; setTimeout(()=>btn.textContent='Copy', 1200); } catch(e) {}
+  });
+  pre.appendChild(btn);
+});
+</script>
+</body>
+</html>

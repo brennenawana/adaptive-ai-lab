@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Company Intelligence Platform — Canonical Architecture v1</title>
+<style>
+:root {
+  --bg: #f6f8fb;
+  --paper: #ffffff;
+  --ink: #172033;
+  --muted: #5e6b80;
+  --line: #dfe5ed;
+  --navy: #17324d;
+  --navy-2: #244662;
+  --teal: #0e7c77;
+  --teal-soft: #e8f4f3;
+  --blue-soft: #eef4f9;
+  --amber: #a35b17;
+  --amber-soft: #fff4e8;
+  --code-bg: #f4f6f8;
+  --code-ink: #1f2b3d;
+  --shadow: 0 18px 60px rgba(23, 50, 77, .08);
+  --radius: 16px;
+  --content: 880px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.68;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: #08625e; }
+.shell { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: 260px minmax(0, var(--content)); gap: 44px; padding: 36px 28px 72px; justify-content: center; }
+.sidebar { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow: auto; padding: 18px 16px; }
+.brand { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
+.toc-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 800; margin: 0 0 8px; }
+.toc { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a { display: block; text-decoration: none; color: #526176; border-left: 2px solid transparent; padding: 5px 10px; font-size: 13px; line-height: 1.35; }
+.toc a:hover { color: var(--navy); border-left-color: #a8c9c7; background: rgba(255,255,255,.6); }
+.toc .h2 a { padding-left: 22px; font-size: 12.5px; }
+.document { min-width: 0; }
+.paper { background: var(--paper); border: 1px solid rgba(214,222,233,.85); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden; }
+.body { padding: 54px 64px 70px; }
+.hero {
+  padding: 58px 64px 48px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--navy) 0%, #1f4965 62%, #246a70 100%);
+  position: relative;
+  overflow: hidden;
+}
+.hero::after { content: ""; position: absolute; width: 320px; height: 320px; right: -120px; top: -160px; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; box-shadow: 0 0 0 45px rgba(255,255,255,.03), 0 0 0 90px rgba(255,255,255,.025); }
+.hero-eyebrow { margin: 0 0 10px; font-size: 12px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: #b8e2df; }
+.hero h1 { margin: 0; font-size: clamp(34px, 5vw, 52px); line-height: 1.06; letter-spacing: -.035em; max-width: 760px; color: #fff; }
+.hero .subtitle { margin: 16px 0 0; max-width: 720px; font-size: 18px; color: rgba(255,255,255,.82); line-height: 1.5; }
+.hero .meta { margin: 18px 0 0; max-width: 760px; font-size: 13px; color: rgba(255,255,255,.72); line-height: 1.55; }
+.body > p:first-child { margin-top: 0; }
+h1, h2, h3 { color: var(--navy); letter-spacing: -.025em; scroll-margin-top: 28px; }
+h1 { font-size: 30px; line-height: 1.18; margin: 58px 0 18px; padding-top: 4px; }
+h1:first-child { margin-top: 0; }
+h2 { font-size: 22px; line-height: 1.28; margin: 38px 0 12px; }
+h3 { font-size: 17px; line-height: 1.35; margin: 28px 0 8px; }
+p { margin: 0 0 16px; }
+strong { color: #12263a; }
+blockquote { margin: 24px 0; padding: 18px 22px; border-left: 4px solid var(--teal); background: #f5faf9; border-radius: 0 12px 12px 0; color: #26374a; }
+blockquote p:last-child { margin-bottom: 0; }
+ul, ol { margin: 12px 0 22px; padding-left: 26px; }
+li { margin: 6px 0; padding-left: 3px; }
+.callout { margin: 24px 0; padding: 19px 22px 20px; border: 1px solid #d7e8e6; border-radius: 14px; background: var(--teal-soft); }
+.callout.note { background: var(--blue-soft); border-color: #dce6ef; }
+.callout.warning { background: var(--amber-soft); border-color: #f0ddc6; }
+.callout .callout-title { display: block; margin: 0 0 5px; font-weight: 800; color: var(--navy); }
+.callout.warning .callout-title { color: #74400d; }
+.callout p:last-child { margin-bottom: 0; }
+pre {
+  position: relative;
+  margin: 20px 0 26px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  border: 1px solid #e1e6ec;
+  border-radius: 13px;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  tab-size: 2;
+  white-space: pre;
+}
+pre code { font: inherit; color: inherit; }
+.copy-btn { position: absolute; right: 8px; top: 8px; border: 1px solid #d2d9e2; background: rgba(255,255,255,.92); color: #475569; font: 600 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; border-radius: 7px; padding: 7px 9px; cursor: pointer; opacity: 0; transition: opacity .15s; }
+pre:hover .copy-btn { opacity: 1; }
+.table-wrap { overflow-x: auto; margin: 22px 0 30px; border: 1px solid var(--line); border-radius: 13px; }
+table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.45; background: #fff; }
+table.data th { background: #f1f5f8; color: var(--navy); text-align: left; font-weight: 800; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.data td { padding: 12px 14px; border-top: 1px solid #e7ebf0; vertical-align: top; }
+table.data tr:first-child td { border-top: 0; }
+table.data tbody tr:nth-child(even) { background: #fbfcfd; }
+.small-note { font-size: 13px; color: var(--muted); }
+hr { border: 0; border-top: 1px solid var(--line); margin: 36px 0; }
+.footer { padding: 20px 64px 30px; color: #7a8798; font-size: 12px; border-top: 1px solid #edf0f4; }
+@media (max-width: 1080px) {
+  .shell { grid-template-columns: 1fr; max-width: 960px; gap: 0; padding-top: 18px; }
+  .sidebar { position: static; max-height: none; padding: 0 4px 18px; }
+  .toc { columns: 2; column-gap: 24px; }
+  .toc li { break-inside: avoid; }
+}
+@media (max-width: 720px) {
+  .shell { padding: 0; display: block; }
+  .sidebar { display: none; }
+  .paper { border-radius: 0; border-left: 0; border-right: 0; }
+  .hero { padding: 40px 24px 34px; }
+  .hero h1 { font-size: 36px; }
+  .body { padding: 34px 22px 48px; }
+  .footer { padding: 18px 22px 26px; }
+  h1 { font-size: 27px; margin-top: 46px; }
+  h2 { font-size: 21px; }
+  pre { margin-left: -4px; margin-right: -4px; font-size: 11.5px; }
+}
+@media print {
+  @page { size: Letter; margin: 0.65in; }
+  body { background: white; }
+  .shell { display: block; max-width: none; padding: 0; }
+  .sidebar, .copy-btn { display: none !important; }
+  .paper { box-shadow: none; border: 0; border-radius: 0; }
+  .hero { border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .body { padding: 36px 0 0; }
+  .footer { padding-left: 0; padding-right: 0; }
+  h1, h2, h3 { break-after: avoid; }
+  pre, .callout, .table-wrap { break-inside: avoid; }
+  .table-wrap { overflow: visible; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" aria-label="Table of contents">
+    <div class="brand">Company Intelligence Platform</div>
+    <div class="toc-title">On this page</div>
+    <ul class="toc"><li class="h1"><a href="#1-the-complete-architecture">1. The complete architecture</a></li><li class="h1"><a href="#2-a-specialist-is-more-than-a-model">2. A specialist is more than a model</a></li><li class="h1"><a href="#3-the-memory-architecture">3. The memory architecture</a></li><li class="h2"><a href="#authoritative-memory">Authoritative memory</a></li><li class="h2"><a href="#knowledge-memory">Knowledge memory</a></li><li class="h2"><a href="#working-memory">Working memory</a></li><li class="h2"><a href="#experience-memory">Experience memory</a></li><li class="h2"><a href="#learned-memory">Learned memory</a></li><li class="h1"><a href="#4-the-trajectory-becomes-the-primary-data-object">4. The trajectory becomes the primary data object</a></li><li class="h1"><a href="#5-the-discovery-controller-is-the-key-new-component">5. The Discovery Controller is the key new component</a></li><li class="h1"><a href="#6-prioritized-learning-instead-of-train-on-everything">6. Prioritized learning instead of “train on everything”</a></li><li class="h1"><a href="#7-initial-technology-stack">7. Initial technology stack</a></li><li class="h2"><a href="#application-layer">Application layer</a></li><li class="h2"><a href="#local-inference">Local inference</a></li><li class="h2"><a href="#storage">Storage</a></li><li class="h2"><a href="#observability">Observability</a></li><li class="h2"><a href="#training">Training</a></li><li class="h2"><a href="#cloud-inference">Cloud inference</a></li><li class="h1"><a href="#8-initial-model-strategy">8. Initial model strategy</a></li><li class="h2"><a href="#router">Router</a></li><li class="h2"><a href="#main-local-worker">Main local worker</a></li><li class="h2"><a href="#strong-planner">Strong planner</a></li><li class="h1"><a href="#9-specialization-ladder">9. Specialization ladder</a></li><li class="h1"><a href="#10-evaluation-becomes-a-first-class-product">10. Evaluation becomes a first-class product</a></li><li class="h1"><a href="#11-intelligence-density-becomes-the-platform-kpi">11. Intelligence-density becomes the platform KPI</a></li><li class="h1"><a href="#12-implementation-phases">12. Implementation phases</a></li><li class="h2"><a href="#phase-0-choose-one-vertical-slice">Phase 0 — Choose one vertical slice</a></li><li class="h2"><a href="#phase-1-instrumented-single-model-workflow">Phase 1 — Instrumented single-model workflow</a></li><li class="h2"><a href="#phase-2-build-the-eval-suite">Phase 2 — Build the eval suite</a></li><li class="h2"><a href="#phase-3-correction-capture">Phase 3 — Correction capture</a></li><li class="h2"><a href="#phase-4-first-specialist-adapter">Phase 4 — First specialist adapter</a></li><li class="h2"><a href="#phase-5-router-multiple-specialists">Phase 5 — Router + multiple specialists</a></li><li class="h2"><a href="#phase-6-discovery-controller">Phase 6 — Discovery Controller</a></li><li class="h2"><a href="#phase-7-prioritized-replay">Phase 7 — Prioritized replay</a></li><li class="h2"><a href="#phase-8-candidate-factory">Phase 8 — Candidate factory</a></li><li class="h2"><a href="#phase-9-advanced-learning-experiments">Phase 9 — Advanced learning experiments</a></li><li class="h1"><a href="#13-what-i-would-deliberately-not-build-yet">13. What I would deliberately NOT build yet</a></li><li class="h1"><a href="#14-suggested-repository-layout">14. Suggested repository layout</a></li><li class="h1"><a href="#15-local-development-topology">15. Local development topology</a></li><li class="h1"><a href="#16-the-first-thing-i-would-implement">16. The first thing I would implement</a></li><li class="h1"><a href="#the-resulting-north-star-architecture">The resulting north-star architecture</a></li></ul>
+  </nav>
+  <main class="document">
+    <article class="paper">
+      <header class="hero">
+      <div class="hero-eyebrow">Company Intelligence Platform</div>
+      <h1>Company Intelligence Platform — Canonical Architecture v1</h1>
+      <p class="subtitle">Finalized Reference Architecture and Phased Implementation Specification</p>
+    </header>
+      <div class="body">
+        <p>This document defines Canonical Architecture v1. Future papers, models, or tools should be evaluated against this architecture rather than continuously redesigning the system.</p><p>The system is not primarily a chatbot, an agent framework, a collection of LoRAs, or a RAG application.</p><p>It is:</p><blockquote><p><em><strong>A company intelligence platform that learns which combination of model, adapter, context, knowledge, tool, workflow, and verifier solves each company task most reliably—and turns every production attempt into evidence for improving the next version.</strong></em></p></blockquote><p>The self-improvement loop is therefore:</p><pre><code>USE
+ ↓
+OBSERVE
+ ↓
+DIAGNOSE
+ ↓
+DECIDE WHAT NEEDS IMPROVEMENT
+ ↓
+ACQUIRE THE MISSING EVIDENCE
+ ↓
+FIX SYSTEM or TRAIN MODEL
+ ↓
+EVALUATE
+ ↓
+SHADOW
+ ↓
+CANARY
+ ↓
+PROMOTE / ROLLBACK
+ ↓
+USE AGAIN</code></pre><p><strong>Crucially:</strong><strong> self-improvement ≠ autonomous self-modification.</strong></p><p>Production generates evidence. A separate system manufactures candidate successors. Candidates have to earn their way into production.</p><h1 id="1-the-complete-architecture"><strong>1. The complete architecture</strong></h1><p>Retain two planes and add a cross-cutting control layer.</p><pre><code>┌──────────────────────────────────────────────────────────────────┐
+│                    COMPANY INTELLIGENCE PLATFORM                 │
+│                                                                  │
+│  ┌──────────────────── RUNTIME PLANE ─────────────────────────┐  │
+│  │                                                            │  │
+│  │ User / business event                                      │  │
+│  │        ↓                                                   │  │
+│  │ Identity + authorization + policy                          │  │
+│  │        ↓                                                   │  │
+│  │ Task classifier / router                                   │  │
+│  │        ↓                                                   │  │
+│  │ ┌──────────────────────────────────────────────────────┐   │  │
+│  │ │ Specialist A       Specialist B       Specialist C   │   │  │
+│  │ │ base + adapter     base + adapter     base + adapter │   │  │
+│  │ │                                                      │   │  │
+│  │ │            Strong planner / escalation               │   │  │
+│  │ └──────────────────────────────────────────────────────┘   │  │
+│  │        ↓                                                   │  │
+│  │ Context Builder                                            │  │
+│  │   ├── authoritative business data                          │  │
+│  │   ├── document retrieval                                   │  │
+│  │   ├── persistent task artifacts                            │  │
+│  │   └── relevant history                                     │  │
+│  │        ↓                                                   │  │
+│  │ Tool Broker                                                │  │
+│  │   ├── CRM                                                  │  │
+│  │   ├── databases                                            │  │
+│  │   ├── email                                                │  │
+│  │   ├── ERP                                                  │  │
+│  │   └── company APIs                                         │  │
+│  │        ↓                                                   │  │
+│  │ Deterministic verifier / critic / approval                 │  │
+│  │        ↓                                                   │  │
+│  │ Answer / artifact / controlled business action             │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                           │                                      │
+│                complete production trajectory                   │
+│                           ↓                                      │
+│  ┌──────────────────── LEARNING PLANE ────────────────────────┐  │
+│  │                                                            │  │
+│  │ Canonical trajectory store                                 │  │
+│  │        ↓                                                   │  │
+│  │ Outcome + correction enrichment                            │  │
+│  │        ↓                                                   │  │
+│  │ Failure / novelty diagnosis                                │  │
+│  │        ↓                                                   │  │
+│  │ Discovery Controller                                       │  │
+│  │        │                                                   │  │
+│  │   ┌────┴─────────────────────────────┐                     │  │
+│  │   ↓                                  ↓                     │  │
+│  │ System problem                    Model problem             │  │
+│  │   ↓                                  ↓                     │  │
+│  │ fix retrieval/tool/              acquire useful            │  │
+│  │ workflow/data/prompt             examples/evidence          │  │
+│  │                                      ↓                     │  │
+│  │                               prioritized replay            │  │
+│  │                                      ↓                     │  │
+│  │                               versioned datasets            │  │
+│  │                                      ↓                     │  │
+│  │                          SFT / QLoRA / later RL             │  │
+│  │                                      ↓                     │  │
+│  │                              candidate registry             │  │
+│  │                                      ↓                     │  │
+│  │                                frozen evals                 │  │
+│  │                                      ↓                     │  │
+│  │                           shadow → canary → gate            │  │
+│  │                                      ↓                     │  │
+│  │                              production champion            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  ─────────────── CONTROL / GOVERNANCE LAYER ──────────────────   │
+│                                                                  │
+│   Permissions • lineage • privacy • secrets • model registry     │
+│   dataset governance • eval policy • costs • auditing • rollback │
+└──────────────────────────────────────────────────────────────────┘</code></pre><p>That becomes the reference design.</p><h1 id="2-a-specialist-is-more-than-a-model"><strong>2. A specialist is more than a model</strong></h1><p>This is an important architectural decision.</p><p>Don’t define:</p><pre><code>sales specialist = fine-tuned Qwen model</code></pre><p>Define:</p><pre><code>SPECIALIST
+ =
+ base model
+ + adapter, if necessary
+ + system contract
+ + permitted tools
+ + retrieval policy
+ + context-building rules
+ + structured output schema
+ + verifier
+ + task rubric
+ + evaluation suite</code></pre><p>For example:</p><pre><code>id: contract-renewal-specialist
+version: 3.2.0
+
+base_model: qwen-company-base
+adapter: contract-analysis-v7
+
+tools:
+  - contracts.search
+  - contracts.get_document
+  - crm.get_customer
+
+permissions:
+  read_only: true
+
+context_policy:
+  max_documents: 12
+  prefer_authoritative_sources: true
+
+output_schema:
+  customer:
+  contracts:
+  renewal_dates:
+  confidence:
+  citations:
+
+verifiers:
+  - date_validation
+  - contract_id_exists
+  - citation_required
+
+eval_suite:
+  contract-renewal-eval-v14</code></pre><p>This gives us modularity without requiring dozens of independent models.</p><h1 id="3-the-memory-architecture"><strong>3. The memory architecture</strong></h1><p>Do not call everything “memory.”</p><p>There should be five distinct types.</p><h2 id="authoritative-memory"><strong>Authoritative memory</strong></h2><p>Actual systems of record:</p><pre><code>CRM
+ERP
+contract database
+ticketing system
+finance system
+HR systems
+company databases</code></pre><p>The AI doesn’t “remember” these. It queries them.</p><h2 id="knowledge-memory"><strong>Knowledge memory</strong></h2><p>Documents and relatively static company knowledge:</p><pre><code>policies
+SOPs
+contracts
+manuals
+product docs
+internal wiki
+training material</code></pre><p>This is where retrieval/RAG applies.</p><p>For the first implementation, I would use PostgreSQL + pgvector rather than introducing a dedicated vector database.</p><h2 id="working-memory"><strong>Working memory</strong></h2><p>Persistent state for an ongoing task:</p><pre><code>task objective
+requirements
+decisions made
+files created
+open questions
+completed steps
+human approvals</code></pre><p>This should live as explicit versioned artifacts, not buried inside a gigantic chat context.</p><p>Example:</p><pre><code>/tasks/991/
+    task.json
+    requirements.md
+    evidence.json
+    decisions.md
+    draft-v1.md
+    corrections.json</code></pre><h2 id="experience-memory"><strong>Experience memory</strong></h2><p>Everything the AI attempted:</p><pre><code>trajectories
+tool usage
+retrieval
+outputs
+human corrections
+failures
+business outcomes</code></pre><p>This is the trajectory lake.</p><h2 id="learned-memory"><strong>Learned memory</strong></h2><p>What eventually becomes encoded into:</p><pre><code>prompts
+routing rules
+tool policies
+LoRA adapters
+fine-tuned weights
+rubrics
+verifiers</code></pre><p>Keeping those five separated prevents a lot of architectural confusion.</p><h1 id="4-the-trajectory-becomes-the-primary-data-object"><strong>4. The trajectory becomes the primary data object</strong></h1><p>Every meaningful job gets one trace_id.</p><p>A minimal production trajectory should contain something like:</p><pre><code>{
+  &quot;trace_id&quot;: &quot;uuid&quot;,
+  &quot;workflow&quot;: &quot;contract_renewal_analysis&quot;,
+  &quot;workflow_version&quot;: &quot;1.4.2&quot;,
+
+  &quot;user&quot;: &quot;...&quot;,
+  &quot;permissions_snapshot&quot;: &quot;...&quot;,
+
+  &quot;task_type&quot;: &quot;contracts.renewal&quot;,
+  &quot;risk_class&quot;: &quot;read_only&quot;,
+
+  &quot;router&quot;: {
+    &quot;selected&quot;: &quot;contract-specialist-v3&quot;,
+    &quot;confidence&quot;: 0.93
+  },
+
+  &quot;model&quot;: {
+    &quot;base&quot;: &quot;model-id&quot;,
+    &quot;adapter&quot;: &quot;contract-v7&quot;,
+    &quot;prompt_version&quot;: &quot;12&quot;
+  },
+
+  &quot;retrieval&quot;: [
+    {
+      &quot;document_id&quot;: &quot;...&quot;,
+      &quot;version&quot;: &quot;...&quot;,
+      &quot;score&quot;: 0.84
+    }
+  ],
+
+  &quot;tool_calls&quot;: [
+    {
+      &quot;tool&quot;: &quot;contracts.search&quot;,
+      &quot;version&quot;: &quot;2&quot;,
+      &quot;status&quot;: &quot;success&quot;
+    }
+  ],
+
+  &quot;output&quot;: &quot;...&quot;,
+
+  &quot;verification&quot;: {
+    &quot;passed&quot;: true,
+    &quot;scores&quot;: {}
+  },
+
+  &quot;human_feedback&quot;: {
+    &quot;accepted&quot;: false,
+    &quot;correction_id&quot;: &quot;...&quot;
+  },
+
+  &quot;business_outcome&quot;: null,
+
+  &quot;metrics&quot;: {
+    &quot;latency_ms&quot;: 4182,
+    &quot;input_tokens&quot;: 2841,
+    &quot;output_tokens&quot;: 319,
+    &quot;inference_cost&quot;: 0.012
+  }
+}</code></pre><p>Store big or sensitive payloads elsewhere and reference them from the trace.</p><p>I would use:</p><pre><code>PostgreSQL
+    metadata / relationships / outcomes
+
+MinIO or S3
+    encrypted prompts
+    retrieved source material
+    generated artifacts
+    corrected artifacts
+    datasets
+    adapters
+
+Parquet
+    immutable dataset snapshots
+    analytical exports</code></pre><p>And:</p><pre><code>OpenTelemetry
+      ↓
+Langfuse</code></pre><p>for operator-facing observability.</p><p><strong>Langfuse should be a view into the system.</strong></p><p>It should not be the sole canonical datastore.</p><h1 id="5-the-discovery-controller-is-the-key-new-component"><strong>5. The Discovery Controller is the key new component</strong></h1><p>When something goes wrong:</p><pre><code>BAD OUTPUT
+    ↓
+Why?</code></pre><p>Do not immediately create a training example.</p><p>The controller should classify competing explanations:</p><pre><code>ROUTING_FAILURE
+RETRIEVAL_FAILURE
+MISSING_KNOWLEDGE
+STALE_DATA
+TOOL_FAILURE
+TOOL_SCHEMA_FAILURE
+PERMISSION_FAILURE
+PROMPT_FAILURE
+MODEL_REASONING_FAILURE
+MODEL_CAPABILITY_FAILURE
+BAD_RUBRIC
+NOVEL_TASK
+UNKNOWN</code></pre><p>Then ask:</p><blockquote><p><em><strong>What’s the cheapest experiment that distinguishes between these explanations?</strong></em></p></blockquote><p>Example:</p><pre><code>Employee says contract answer is wrong.
+
+Hypothesis 1:
+model misunderstood contract.
+
+Hypothesis 2:
+retrieval missed an amendment.
+
+Hypothesis 3:
+CRM has stale renewal date.
+
+Hypothesis 4:
+document parser extracted the date incorrectly.</code></pre><p>Potential experiments:</p><pre><code>rerun retrieval with known document ID
+
+query authoritative contract DB
+
+inspect extracted document structure
+
+give identical evidence to stronger model
+
+ask employee for canonical answer</code></pre><p><strong>Only if the evidence indicates model behavior/capability should training become the preferred fix.</strong></p><p>This prevents the system from literally training itself to compensate for broken infrastructure.</p><h1 id="6-prioritized-learning-instead-of-train-on-everything"><strong>6. Prioritized learning instead of “train on everything”</strong></h1><p>Once an example is training-worthy, don’t sample everything uniformly.</p><p>Each domain gets state such as:</p><pre><code>task family
+success EMA
+failure severity
+uncertainty
+novelty
+business value
+staleness
+training coverage
+last trained
+label quality</code></pre><p>A conceptual priority score:</p><pre><code>learning_priority
+ =
+ failure_severity
+ + uncertainty
+ + novelty
+ + staleness
+ + business_value
+ - labeling_cost</code></pre><p>With a little random exploration so “solved” areas don’t disappear forever.</p><p>That is the learning scheduler.</p><h1 id="7-initial-technology-stack"><strong>7. Initial technology stack</strong></h1><p>I would deliberately keep v1 boring.</p><h2 id="application-layer"><strong>Application layer</strong></h2><pre><code>Python
+FastAPI
+Pydantic
+SQLAlchemy</code></pre><p>Avoid a heavyweight agent framework initially.</p><p>Business workflows should be explicit state machines.</p><pre><code>class TaskState:
+    trace_id
+    user
+    permissions
+    task_type
+    route
+    evidence
+    tool_results
+    candidate_output
+    verification
+    approval
+    outcome</code></pre><p>Flow:</p><pre><code>classify
+→ authorize
+→ retrieve
+→ route
+→ generate
+→ verify
+→ execute if allowed
+→ capture outcome</code></pre><h2 id="local-inference"><strong>Local inference</strong></h2><p>On your machine:</p><pre><code>llama.cpp</code></pre><p>as the primary controlled runtime.</p><p>Ollama remains useful for quick experimentation.</p><p>Both should sit behind your own model gateway:</p><pre><code>Company App
+     ↓
+Model Gateway
+     ├── local llama.cpp
+     ├── cloud vLLM
+     └── hosted frontier API</code></pre><p>Nothing in the business logic should care where the model physically lives.</p><h2 id="storage"><strong>Storage</strong></h2><pre><code>PostgreSQL
+pgvector
+MinIO</code></pre><p>That’s enough initially.</p><p>No Pinecone/Milvus/Weaviate/etc. unless scale gives us an actual reason.</p><h2 id="observability"><strong>Observability</strong></h2><pre><code>OpenTelemetry
+     ↓
+Langfuse</code></pre><p>Plus your canonical trajectory tables.</p><h2 id="training"><strong>Training</strong></h2><pre><code>Hugging Face Transformers
+PEFT
+TRL
+Unsloth</code></pre><p>Unsloth is particularly attractive for QLoRA work on the RTX 5080 laptop.</p><h2 id="cloud-inference"><strong>Cloud inference</strong></h2><p>When local hardware isn’t sufficient:</p><pre><code>vLLM</code></pre><p>on a rented GPU.</p><p>The application still sees an OpenAI-compatible endpoint.</p><h1 id="8-initial-model-strategy"><strong>8. Initial model strategy</strong></h1><p><strong>Do not start with eight models.</strong></p><p>Start with three logical intelligence tiers.</p><pre><code>Tier 1
+tiny router / classifier
+
+Tier 2
+main local specialist
+
+Tier 3
+strong escalation model</code></pre><p>Working candidates:</p><h2 id="router"><strong>Router</strong></h2><pre><code>Qwen3 ~1.7B–4B class</code></pre><p>or another strong current small classifier.</p><h2 id="main-local-worker"><strong>Main local worker</strong></h2><p>Test:</p><pre><code>Qwen3 8B
+Gemma-class ~12B
+Qwen3 14B</code></pre><p>quantized.</p><p>With your RTX 5080 Laptop GPU and 64 GB system RAM, the 4B–14B range is where I’d concentrate local experiments.</p><h2 id="strong-planner"><strong>Strong planner</strong></h2><p>Initially use a hosted frontier-class model.</p><p>Its job is not to answer every question.</p><p>It handles:</p><pre><code>novel tasks
+complex decomposition
+ambiguous planning
+failure analysis
+difficult escalations
+dataset/eval generation</code></pre><p>As usage data accumulates, we’ll learn which pieces can be pushed downward into cheaper specialists.</p><h1 id="9-specialization-ladder"><strong>9. Specialization ladder</strong></h1><p>Before training anything:</p><pre><code>Can we fix it with a better tool?
+        ↓ no
+
+Can we fix retrieval/context?
+        ↓ no
+
+Can we improve output schema/verifier?
+        ↓ no
+
+Can prompting solve it reliably?
+        ↓ no
+
+Does LoRA improve held-out performance?
+        ↓ no
+
+Try larger adapter / stronger base.
+        ↓
+
+Only then consider full fine-tuning.</code></pre><p>The first actual post-training method should therefore be:</p><blockquote><p><em><strong>SFT + QLoRA on human-verified corrections.</strong></em></p></blockquote><p>Not RL.</p><p>Not SDPO.</p><p>Not autonomous continual training.</p><h1 id="10-evaluation-becomes-a-first-class-product"><strong>10. Evaluation becomes a first-class product</strong></h1><p>Every specialist must have an eval suite before we train it.</p><p>Hierarchy of evidence:</p><pre><code>actual business outcome
+        &gt;
+deterministic execution/test
+        &gt;
+domain expert rubric
+        &gt;
+calibrated model judge
+        &gt;
+generic LLM preference</code></pre><p>For example:</p><p>SQL agent:</p><pre><code>execute against sandbox
+compare result</code></pre><p>Extraction:</p><pre><code>schema validation
+field-level exact/fuzzy match</code></pre><p>Contract analysis:</p><pre><code>canonical dates
+source citations
+clause identification
+human rubric</code></pre><p>Coding:</p><pre><code>tests
+lint
+security scan</code></pre><p><strong>Do not ask an LLM judge to evaluate something we can objectively test.</strong></p><h1 id="11-intelligence-density-becomes-the-platform-kpi"><strong>11. Intelligence-density becomes the platform KPI</strong></h1><p>The goal isn’t:</p><pre><code>lowest token cost</code></pre><p>or:</p><pre><code>highest benchmark score</code></pre><p>It is something closer to:</p><pre><code>business value × successful outcomes
+─────────────────────────────────────
+inference + tools + latency + human work</code></pre><p>Track at minimum:</p><pre><code>task success rate
+acceptance rate
+human correction rate
+escalation rate
+cost per successful task
+latency per successful task
+tokens per successful task
+success by specialist
+success by model
+success by adapter
+success by workflow
+success by tool</code></pre><p>This is how we’ll know when a 4B specialist genuinely beats a much larger model economically.</p><h1 id="12-implementation-phases"><strong>12. Implementation phases</strong></h1><p>I would build in this order.</p><h2 id="phase-0-choose-one-vertical-slice"><strong>Phase 0 — Choose one vertical slice</strong></h2><p>Pick one real business workflow meeting these criteria:</p><pre><code>high value
+repeated often
+reasonably measurable
+has accessible data
+human currently performs it
+mistakes aren’t catastrophic
+ideally read-only</code></pre><p>Examples:</p><pre><code>contract renewal analysis
+invoice normalization
+sales-account research
+support-ticket classification
+document compliance review
+CRM enrichment</code></pre><p><strong>Don’t start with “general company assistant.”</strong></p><h2 id="phase-1-instrumented-single-model-workflow"><strong>Phase 1 — Instrumented single-model workflow</strong></h2><p>Build:</p><pre><code>authentication
+one workflow
+one model
+retrieval if needed
+2–5 tools
+structured output
+verification
+full trajectories</code></pre><p>No model training.</p><p>No multi-agent system.</p><p>No smart router.</p><h3 id="exit-condition"><strong>Exit condition</strong></h3><p>For almost every request, we can reconstruct:</p><pre><code>who asked
+what was requested
+what context was supplied
+what tools ran
+what model version ran
+what it returned
+what the employee changed
+whether it succeeded
+what it cost</code></pre><p>This foundation matters more than model sophistication.</p><h2 id="phase-2-build-the-eval-suite"><strong>Phase 2 — Build the eval suite</strong></h2><p>From real examples, create:</p><pre><code>gold cases
+failure cases
+edge cases
+security cases
+tool-error cases
+retrieval cases</code></pre><p>Version it:</p><pre><code>contract-eval-v1
+contract-eval-v2
+...</code></pre><p>Every code/model/prompt change runs against it.</p><p>Now we have a scientific baseline.</p><h2 id="phase-3-correction-capture"><strong>Phase 3 — Correction capture</strong></h2><p>Make feedback almost invisible.</p><p>Employee sees AI draft.</p><p>They:</p><pre><code>accept
+edit
+reject</code></pre><p>We preserve:</p><pre><code>AI artifact
+employee artifact
+diff
+trajectory
+reason where available
+eventual outcome</code></pre><p>This produces extremely valuable company-specific supervision.</p><h2 id="phase-4-first-specialist-adapter"><strong>Phase 4 — First specialist adapter</strong></h2><p>Now train our first QLoRA.</p><p>Dataset:</p><pre><code>verified successful examples
++
+human-corrected failures</code></pre><p>Hold out a meaningful portion.</p><p>Then compare:</p><pre><code>prompt-only incumbent
+vs
+LoRA candidate</code></pre><p>on the frozen eval suite.</p><p>If LoRA doesn’t clearly help:</p><p><strong>don’t deploy it.</strong></p><h2 id="phase-5-router-multiple-specialists"><strong>Phase 5 — Router + multiple specialists</strong></h2><p>Only now introduce logical specialists.</p><pre><code>request
+    ↓
+router
+ ┌──┼──┐
+ ↓  ↓  ↓
+A   B   C
+     │
+ difficult?
+     ↓
+strong planner</code></pre><p>Initially the specialists may simply be:</p><pre><code>same base model
++
+different adapters
++
+different tools/prompts</code></pre><p>This greatly simplifies serving.</p><h2 id="phase-6-discovery-controller"><strong>Phase 6 — Discovery Controller</strong></h2><p>Implement failure diagnosis.</p><p>Every failure enters:</p><pre><code>failure queue</code></pre><p>Controller assigns:</p><pre><code>probable cause
+confidence
+business severity
+recommended experiment
+recommended owner</code></pre><p>Example:</p><pre><code>{
+  &quot;trace&quot;: &quot;abc123&quot;,
+  &quot;likely_failure&quot;: &quot;retrieval_failure&quot;,
+  &quot;confidence&quot;: 0.74,
+
+  &quot;alternatives&quot;: [
+    &quot;model_reasoning_failure&quot;,
+    &quot;stale_source&quot;
+  ],
+
+  &quot;recommended_test&quot;:
+    &quot;retrieve known amendment directly and replay&quot;,
+
+  &quot;training_recommended&quot;: false
+}</code></pre><p>This is where the system starts becoming genuinely adaptive.</p><h2 id="phase-7-prioritized-replay"><strong>Phase 7 — Prioritized replay</strong></h2><p>Introduce:</p><pre><code>domain performance
+uncertainty
+novelty
+staleness
+business value</code></pre><p>Now your dataset-generation process becomes intelligent rather than FIFO.</p><h2 id="phase-8-candidate-factory"><strong>Phase 8 — Candidate factory</strong></h2><p>Automate:</p><pre><code>dataset snapshot
+        ↓
+training job
+        ↓
+model/adapter manifest
+        ↓
+offline eval
+        ↓
+comparison report
+        ↓
+shadow
+        ↓
+canary
+        ↓
+promotion</code></pre><p>But deployment remains gated.</p><p>This is the real self-improvement factory.</p><h2 id="phase-9-advanced-learning-experiments"><strong>Phase 9 — Advanced learning experiments</strong></h2><p>Only after the previous system has accumulated significant high-quality production experience:</p><p>Explore:</p><pre><code>DPO / preference optimization
+GRPO-style RL
+SDPO
+automated curriculum generation
+teacher/student distillation
+active learning
+Model-Discovery-style experiment selection</code></pre><p>Those should compete against the simpler QLoRA baseline.</p><p>Not automatically replace it.</p><h1 id="13-what-i-would-deliberately-not-build-yet"><strong>13. What I would deliberately NOT build yet</strong></h1><p>This is almost as important as the architecture.</p><p>Don’t initially build:</p><pre><code>❌ Kubernetes
+
+❌ a complicated multi-agent framework
+
+❌ ten specialized models
+
+❌ full fine-tunes
+
+❌ autonomous RL
+
+❌ SDPO production loop
+
+❌ dedicated vector database cluster
+
+❌ giant knowledge graph
+
+❌ model that rewrites itself
+
+❌ agent-generated production code deployed automatically
+
+❌ separate GPU instance for every specialist
+
+❌ elaborate MCP mesh
+
+❌ sophisticated Bayesian MDA implementation</code></pre><p>A strong model with explicit failure hypotheses and controlled experiments will get us surprisingly far.</p><h1 id="14-suggested-repository-layout"><strong>14. Suggested repository layout</strong></h1><p>I would actually structure the codebase roughly like this:</p><pre><code>company-ai/
+│
+├── apps/
+│   ├── api/
+│   └── operator-ui/
+│
+├── platform/
+│   ├── orchestrator/
+│   ├── router/
+│   ├── context/
+│   ├── tools/
+│   ├── authorization/
+│   ├── verification/
+│   └── model_gateway/
+│
+├── intelligence/
+│   ├── specialists/
+│   │   ├── contracts/
+│   │   ├── sales/
+│   │   └── finance/
+│   │
+│   ├── prompts/
+│   └── adapters/
+│
+├── learning/
+│   ├── trajectories/
+│   ├── corrections/
+│   ├── diagnosis/
+│   ├── discovery/
+│   ├── datasets/
+│   ├── training/
+│   └── promotion/
+│
+├── evals/
+│   ├── contracts/
+│   ├── routing/
+│   ├── retrieval/
+│   ├── tools/
+│   └── safety/
+│
+├── schemas/
+│   ├── trajectory.py
+│   ├── specialist.py
+│   ├── tool.py
+│   ├── model_manifest.py
+│   └── eval.py
+│
+├── infra/
+│   ├── docker-compose.yml
+│   ├── postgres/
+│   ├── minio/
+│   ├── langfuse/
+│   └── inference/
+│
+└── docs/
+    ├── architecture.md
+    ├── task-ontology.md
+    ├── security-model.md
+    └── learning-policy.md</code></pre><p>That’s close to the repository I would want us actually implementing.</p><h1 id="15-local-development-topology"><strong>15. Local development topology</strong></h1><p>Your laptop can act as the first complete development environment:</p><pre><code>┌──────────── RTX 5080 laptop ─────────────┐
+
+FastAPI application
+
+PostgreSQL + pgvector
+
+MinIO
+
+Langfuse
+
+OpenTelemetry Collector
+
+llama.cpp
+   ├── tiny router
+   └── quantized main model
+
+training environment
+   └── Unsloth / PEFT / TRL
+
+└───────────────────────────────────────────┘
+               │
+               │ only when necessary
+               ▼
+        Hosted strong model
+               or
+        rented cloud GPU</code></pre><p>That’s enough to build the entire architectural skeleton without purchasing dedicated infrastructure.</p><p>Later, components can migrate to servers without changing their logical interfaces.</p><h1 id="16-the-first-thing-i-would-implement"><strong>16. The first thing I would implement</strong></h1><p>Before downloading a pile of models, I’d create these six pieces:</p><pre><code>1. Task schema
+
+2. Specialist schema
+
+3. Tool schema
+
+4. Trajectory schema
+
+5. Model gateway
+
+6. Evaluation runner</code></pre><p>Then implement one real company workflow end to end.</p><p>That means the very first milestone isn’t:</p><blockquote><p><em><strong>“Run Qwen locally.”</strong></em></p></blockquote><p>It’s:</p><blockquote><p><em><strong>“Run one real company task end-to-end and capture enough evidence that we can explain exactly why it succeeded or failed.”</strong></em></p></blockquote><p>That distinction should guide the entire project.</p><h1 id="the-resulting-north-star-architecture"><strong>The resulting north-star architecture</strong></h1><p>Everything in the architecture collapses cleanly into this:</p><pre><code>EXECUTION
+models + tools + context + workflows
+               │
+               ▼
+          EXPERIENCE
+complete production trajectories
+               │
+               ▼
+           DISCOVERY
+why did this succeed/fail?
+what evidence do we need next?
+               │
+               ▼
+         IMPROVEMENT
+fix system or train specialist
+               │
+               ▼
+          EVALUATION
+prove it is actually better
+               │
+               ▼
+           RELEASE
+shadow → canary → champion
+               │
+               └───────────────┐
+                               ▼
+                            EXECUTION</code></pre><p>The models are replaceable workers. The compounding company asset is: <strong>task ontology + tools + permissions + company knowledge + persistent artifacts + trajectories + corrections + outcomes + evals + discovery logic + dataset lineage.</strong> That’s the system I would build.</p>
+      </div>
+      <footer class="footer">Standalone HTML edition • Source: finalized DOCX</footer>
+    </article>
+  </main>
+</div>
+<script>
+document.querySelectorAll('pre').forEach((pre) => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn'; btn.type = 'button'; btn.textContent = 'Copy';
+  btn.addEventListener('click', async () => {
+    const code = pre.querySelector('code')?.innerText || pre.innerText.replace(/^Copy\s*/, '');
+    try { await navigator.clipboard.writeText(code); btn.textContent = 'Copied'; setTimeout(()=>btn.textContent='Copy', 1200); } catch(e) {}
+  });
+  pre.appendChild(btn);
+});
+</script>
+</body>
+</html>

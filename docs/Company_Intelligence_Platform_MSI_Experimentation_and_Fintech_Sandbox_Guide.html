@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>MSI AI Workstation Experimentation Guide</title>
+<style>
+:root {
+  --bg: #f6f8fb;
+  --paper: #ffffff;
+  --ink: #172033;
+  --muted: #5e6b80;
+  --line: #dfe5ed;
+  --navy: #17324d;
+  --navy-2: #244662;
+  --teal: #0e7c77;
+  --teal-soft: #e8f4f3;
+  --blue-soft: #eef4f9;
+  --amber: #a35b17;
+  --amber-soft: #fff4e8;
+  --code-bg: #f4f6f8;
+  --code-ink: #1f2b3d;
+  --shadow: 0 18px 60px rgba(23, 50, 77, .08);
+  --radius: 16px;
+  --content: 880px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.68;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: #08625e; }
+.shell { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: 260px minmax(0, var(--content)); gap: 44px; padding: 36px 28px 72px; justify-content: center; }
+.sidebar { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow: auto; padding: 18px 16px; }
+.brand { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
+.toc-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 800; margin: 0 0 8px; }
+.toc { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a { display: block; text-decoration: none; color: #526176; border-left: 2px solid transparent; padding: 5px 10px; font-size: 13px; line-height: 1.35; }
+.toc a:hover { color: var(--navy); border-left-color: #a8c9c7; background: rgba(255,255,255,.6); }
+.toc .h2 a { padding-left: 22px; font-size: 12.5px; }
+.document { min-width: 0; }
+.paper { background: var(--paper); border: 1px solid rgba(214,222,233,.85); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden; }
+.body { padding: 54px 64px 70px; }
+.hero {
+  padding: 58px 64px 48px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--navy) 0%, #1f4965 62%, #246a70 100%);
+  position: relative;
+  overflow: hidden;
+}
+.hero::after { content: ""; position: absolute; width: 320px; height: 320px; right: -120px; top: -160px; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; box-shadow: 0 0 0 45px rgba(255,255,255,.03), 0 0 0 90px rgba(255,255,255,.025); }
+.hero-eyebrow { margin: 0 0 10px; font-size: 12px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: #b8e2df; }
+.hero h1 { margin: 0; font-size: clamp(34px, 5vw, 52px); line-height: 1.06; letter-spacing: -.035em; max-width: 760px; color: #fff; }
+.hero .subtitle { margin: 16px 0 0; max-width: 720px; font-size: 18px; color: rgba(255,255,255,.82); line-height: 1.5; }
+.hero .meta { margin: 18px 0 0; max-width: 760px; font-size: 13px; color: rgba(255,255,255,.72); line-height: 1.55; }
+.body > p:first-child { margin-top: 0; }
+h1, h2, h3 { color: var(--navy); letter-spacing: -.025em; scroll-margin-top: 28px; }
+h1 { font-size: 30px; line-height: 1.18; margin: 58px 0 18px; padding-top: 4px; }
+h1:first-child { margin-top: 0; }
+h2 { font-size: 22px; line-height: 1.28; margin: 38px 0 12px; }
+h3 { font-size: 17px; line-height: 1.35; margin: 28px 0 8px; }
+p { margin: 0 0 16px; }
+strong { color: #12263a; }
+blockquote { margin: 24px 0; padding: 18px 22px; border-left: 4px solid var(--teal); background: #f5faf9; border-radius: 0 12px 12px 0; color: #26374a; }
+blockquote p:last-child { margin-bottom: 0; }
+ul, ol { margin: 12px 0 22px; padding-left: 26px; }
+li { margin: 6px 0; padding-left: 3px; }
+.callout { margin: 24px 0; padding: 19px 22px 20px; border: 1px solid #d7e8e6; border-radius: 14px; background: var(--teal-soft); }
+.callout.note { background: var(--blue-soft); border-color: #dce6ef; }
+.callout.warning { background: var(--amber-soft); border-color: #f0ddc6; }
+.callout .callout-title { display: block; margin: 0 0 5px; font-weight: 800; color: var(--navy); }
+.callout.warning .callout-title { color: #74400d; }
+.callout p:last-child { margin-bottom: 0; }
+pre {
+  position: relative;
+  margin: 20px 0 26px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  border: 1px solid #e1e6ec;
+  border-radius: 13px;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  tab-size: 2;
+  white-space: pre;
+}
+pre code { font: inherit; color: inherit; }
+.copy-btn { position: absolute; right: 8px; top: 8px; border: 1px solid #d2d9e2; background: rgba(255,255,255,.92); color: #475569; font: 600 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; border-radius: 7px; padding: 7px 9px; cursor: pointer; opacity: 0; transition: opacity .15s; }
+pre:hover .copy-btn { opacity: 1; }
+.table-wrap { overflow-x: auto; margin: 22px 0 30px; border: 1px solid var(--line); border-radius: 13px; }
+table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.45; background: #fff; }
+table.data th { background: #f1f5f8; color: var(--navy); text-align: left; font-weight: 800; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.data td { padding: 12px 14px; border-top: 1px solid #e7ebf0; vertical-align: top; }
+table.data tr:first-child td { border-top: 0; }
+table.data tbody tr:nth-child(even) { background: #fbfcfd; }
+.small-note { font-size: 13px; color: var(--muted); }
+hr { border: 0; border-top: 1px solid var(--line); margin: 36px 0; }
+.footer { padding: 20px 64px 30px; color: #7a8798; font-size: 12px; border-top: 1px solid #edf0f4; }
+@media (max-width: 1080px) {
+  .shell { grid-template-columns: 1fr; max-width: 960px; gap: 0; padding-top: 18px; }
+  .sidebar { position: static; max-height: none; padding: 0 4px 18px; }
+  .toc { columns: 2; column-gap: 24px; }
+  .toc li { break-inside: avoid; }
+}
+@media (max-width: 720px) {
+  .shell { padding: 0; display: block; }
+  .sidebar { display: none; }
+  .paper { border-radius: 0; border-left: 0; border-right: 0; }
+  .hero { padding: 40px 24px 34px; }
+  .hero h1 { font-size: 36px; }
+  .body { padding: 34px 22px 48px; }
+  .footer { padding: 18px 22px 26px; }
+  h1 { font-size: 27px; margin-top: 46px; }
+  h2 { font-size: 21px; }
+  pre { margin-left: -4px; margin-right: -4px; font-size: 11.5px; }
+}
+@media print {
+  @page { size: Letter; margin: 0.65in; }
+  body { background: white; }
+  .shell { display: block; max-width: none; padding: 0; }
+  .sidebar, .copy-btn { display: none !important; }
+  .paper { box-shadow: none; border: 0; border-radius: 0; }
+  .hero { border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .body { padding: 36px 0 0; }
+  .footer { padding-left: 0; padding-right: 0; }
+  h1, h2, h3 { break-after: avoid; }
+  pre, .callout, .table-wrap { break-inside: avoid; }
+  .table-wrap { overflow: visible; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" aria-label="Table of contents">
+    <div class="brand">Company Intelligence Platform</div>
+    <div class="toc-title">On this page</div>
+    <ul class="toc"><li class="h1"><a href="#executive-summary">Executive Summary</a></li><li class="h2"><a href="#what-you-should-have-at-the-end">What you should have at the end</a></li><li class="h2"><a href="#project-philosophy">Project philosophy</a></li><li class="h1"><a href="#part-i-msi-workstation-setup">Part I — MSI Workstation Setup</a></li><li class="h1"><a href="#1-why-the-msi-is-the-experimentation-machine">1. Why the MSI Is the Experimentation Machine</a></li><li class="h2"><a href="#resource-separation-advantage">Resource separation advantage</a></li><li class="h1"><a href="#2-recommended-os-and-runtime-topology">2. Recommended OS and Runtime Topology</a></li><li class="h1"><a href="#3-resource-budget-and-operating-profiles">3. Resource Budget and Operating Profiles</a></li><li class="h1"><a href="#4-base-software-stack">4. Base Software Stack</a></li><li class="h1"><a href="#5-initial-machine-setup-sequence">5. Initial Machine Setup Sequence</a></li><li class="h2"><a href="#windows-wsl-foundation">Windows / WSL foundation</a></li><li class="h2"><a href="#confirm-gpu-access">Confirm GPU access</a></li><li class="h2"><a href="#developer-tooling">Developer tooling</a></li><li class="h2"><a href="#inference-path">Inference path</a></li><li class="h2"><a href="#training-path">Training path</a></li><li class="h1"><a href="#6-model-serving-strategy-on-16-gb-vram">6. Model Serving Strategy on 16 GB VRAM</a></li><li class="h1"><a href="#7-when-the-msi-should-still-use-cloud">7. When the MSI Should Still Use Cloud</a></li><li class="h1"><a href="#part-ii-reference-project-fintech-integration-sandbox-fis">Part II — Reference Project: Fintech Integration Sandbox (FIS)</a></li><li class="h1"><a href="#8-project-scope-and-clean-room-boundary">8. Project Scope and Clean-Room Boundary</a></li><li class="h2"><a href="#what-it-should-teach">What it should teach</a></li><li class="h1"><a href="#9-product-story">9. Product Story</a></li><li class="h2"><a href="#primary-ai-use-case">Primary AI use case</a></li><li class="h1"><a href="#10-microservice-topology">10. Microservice Topology</a></li><li class="h1"><a href="#11-fis-runtime-architecture">11. FIS Runtime Architecture</a></li><li class="h1"><a href="#12-ai-tool-contracts">12. AI Tool Contracts</a></li><li class="h1"><a href="#13-minimal-domain-model">13. Minimal Domain Model</a></li><li class="h2"><a href="#use-normalized-ids-everywhere">Use normalized IDs everywhere</a></li><li class="h1"><a href="#14-deterministic-scenario-generator">14. Deterministic Scenario Generator</a></li><li class="h2"><a href="#hidden-scenario-manifest">Hidden scenario manifest</a></li><li class="h1"><a href="#15-investigator-output-contract">15. Investigator Output Contract</a></li><li class="h1"><a href="#16-trajectory-schema-for-the-sandbox">16. Trajectory Schema for the Sandbox</a></li><li class="h1"><a href="#17-evaluation-suite">17. Evaluation Suite</a></li><li class="h2"><a href="#all-pass-definition">All-pass definition</a></li><li class="h1"><a href="#18-experiment-matrix">18. Experiment Matrix</a></li><li class="h1"><a href="#19-metrics-you-can-demonstrate">19. Metrics You Can Demonstrate</a></li><li class="h2"><a href="#example-report-language">Example report language</a></li><li class="h1"><a href="#20-controlled-improvement-loop">20. Controlled Improvement Loop</a></li><li class="h1"><a href="#21-first-qlora-experiment">21. First QLoRA Experiment</a></li><li class="h1"><a href="#22-failure-taxonomy">22. Failure Taxonomy</a></li><li class="h1"><a href="#23-repository-layout">23. Repository Layout</a></li><li class="h1"><a href="#24-docker-compose-profiles">24. Docker Compose Profiles</a></li><li class="h1"><a href="#25-six-week-build-plan">25. Six-Week Build Plan</a></li><li class="h2"><a href="#if-you-want-a-slower-pace">If you want a slower pace</a></li><li class="h1"><a href="#26-your-first-three-working-sessions">26. Your First Three Working Sessions</a></li><li class="h2"><a href="#session-1-prove-the-machine">Session 1 — Prove the machine</a></li><li class="h2"><a href="#session-2-prove-the-platform-shape">Session 2 — Prove the platform shape</a></li><li class="h2"><a href="#session-3-prove-measurement">Session 3 — Prove measurement</a></li><li class="h1"><a href="#27-demonstration-script">27. Demonstration Script</a></li><li class="h1"><a href="#28-how-this-becomes-reusable-client-knowledge">28. How This Becomes Reusable Client Knowledge</a></li><li class="h1"><a href="#29-security-and-safety-boundaries-for-the-sandbox">29. Security and Safety Boundaries for the Sandbox</a></li><li class="h1"><a href="#30-decision-gates-before-adding-complexity">30. Decision Gates Before Adding Complexity</a></li><li class="h1"><a href="#appendix-a-setup-checklist">Appendix A — Setup Checklist</a></li><li class="h2"><a href="#suggested-initial-ports">Suggested initial ports</a></li><li class="h1"><a href="#appendix-b-resource-monitoring">Appendix B — Resource Monitoring</a></li><li class="h1"><a href="#appendix-c-current-platform-notes-and-primary-sources">Appendix C — Current Platform Notes and Primary Sources</a></li><li class="h1"><a href="#final-north-star">Final North Star</a></li></ul>
+  </nav>
+  <main class="document">
+    <article class="paper">
+      <header class="hero">
+      <div class="hero-eyebrow">Company Intelligence Platform</div>
+      <h1>MSI AI Workstation Experimentation Guide</h1>
+      <p class="subtitle">Clean-room Fintech Integration Sandbox reference project</p>
+    </header>
+      <div class="body">
+        <p class="small-note"><strong><strong>Target workstation</strong><br>AMD Ryzen 9 9955HX • 64 GB system RAM • NVIDIA GeForce RTX 5080 Laptop GPU • 16 GB GDDR7<br>Preferred development topology: Windows 11 + WSL 2 + Docker + CUDA, or native Linux if the machine is dedicated.</strong></p><aside class="callout info"><span class="callout-title">Purpose</span><p>Use this guide together with the Canonical Architecture document to learn the platform end-to-end on a machine where experimentation is inexpensive and unconstrained by company code. The reference project is intentionally realistic enough to teach integration, observability, evaluation, routing, and continual-learning mechanics that can later transfer to real fintech work.</p></aside><aside class="callout warning"><span class="callout-title">Clean-room rule</span><p>Do not copy Spidr source code, internal API schemas, prompts, architecture documents, credentials, customer data, runbooks, or proprietary implementation details into this sandbox. Design all services, fields, workflows, test data, and vendor simulators independently.</p></aside><h1 id="executive-summary">Executive Summary</h1><p>The recommended first experiment is a synthetic but operationally realistic fintech integration platform named the Fintech Integration Sandbox (FIS). It simulates the kinds of boundaries common in neobank infrastructure—processor events, identity verification, transaction monitoring, ledger postings, webhooks, reconciliation, and operations cases—without reproducing any employer implementation.</p><aside class="callout info"><span class="callout-title">The learning objective</span><p>Build one complete AI loop: request → authorization → router → tool calls across microservices → evidence-backed answer → deterministic verification → trajectory capture → eval → correction → candidate improvement. The project succeeds when you can measure this loop, not merely when a chat interface works.</p></aside><p>The MSI is ideal for this because system RAM and GPU VRAM are separate. Your microservices and databases can occupy a substantial portion of the 64 GB system memory while the RTX 5080 retains a dedicated 16 GB GPU memory pool for inference or adapter training. NVIDIA specifies the RTX 5080 Laptop GPU with 7,680 CUDA cores, 16 GB GDDR7, and 896 GB/s memory bandwidth.</p><h2 id="what-you-should-have-at-the-end">What you should have at the end</h2><ul><li>A 7–9 service fintech sandbox with synthetic customers, accounts, cards, transactions, KYC/AML events, webhooks, and operations cases.</li><li>A model gateway capable of selecting local NVIDIA inference or an optional cloud/frontier fallback.</li><li>A read-only AI investigation workflow that gathers evidence from multiple services and produces a structured case assessment.</li><li>A deterministic scenario generator with known ground truth, allowing objective evals.</li><li>A canonical trajectory store containing model versions, prompts, context, tool calls, outputs, corrections, latency, and cost.</li><li>A small evaluation dashboard showing task success, evidence correctness, escalation, latency, and cost per successful investigation.</li><li>At least one QLoRA/SFT candidate experiment so you understand the entire improvement pipeline even if the trained adapter does not beat the baseline.</li></ul><h2 id="project-philosophy">Project philosophy</h2><pre><code>DON&#x27;T START WITH:       &quot;build a self-improving agent&quot;
+
+START WITH:             build a deterministic sandbox
+                             ↓
+                        instrument every attempt
+                             ↓
+                        establish objective evals
+                             ↓
+                        compare model/system variants
+                             ↓
+                        train only when the evidence says
+                        model behavior is the bottleneck</code></pre><h1 id="part-i-msi-workstation-setup">Part I — MSI Workstation Setup</h1><h1 id="1-why-the-msi-is-the-experimentation-machine">1. Why the MSI Is the Experimentation Machine</h1><div class="table-wrap"><table class="data"><thead><tr><th><strong>Resource</strong></th><th><strong>MSI capability</strong></th><th><strong>Why it matters</strong></th></tr></thead><tbody><tr><td>CPU</td><td>Ryzen 9 9955HX; 16 cores / 32 threads</td><td>Enough CPU capacity for multiple services, event consumers, synthetic load generation, preprocessing, and development tools.</td></tr><tr><td>System RAM</td><td>64 GB</td><td>Lets the sandbox run a realistic microservice topology without directly consuming the GPU model memory pool.</td></tr><tr><td>GPU</td><td>RTX 5080 Laptop GPU; 16 GB GDDR7</td><td>Dedicated CUDA/Blackwell inference and training memory for local small and medium models.</td></tr><tr><td>GPU bandwidth</td><td>896 GB/s</td><td>High local model-memory bandwidth; useful for interactive inference and batch evals.</td></tr><tr><td>Software ecosystem</td><td>CUDA + Linux tooling via WSL 2 or native Linux</td><td>Closely resembles common cloud NVIDIA deployment environments, making experiments more portable.</td></tr></tbody></table></div><aside class="callout note"><span class="callout-title">Practical model envelope</span><p>Design daily experiments around roughly 4B–12B quantized models. Test 14B-class models when memory permits. Treat 16 GB VRAM as a hard engineering budget that also includes KV cache and runtime buffers; a model that barely loads is not a healthy serving configuration.</p></aside><h2 id="resource-separation-advantage">Resource separation advantage</h2><pre><code>64 GB SYSTEM RAM                         16 GB GPU VRAM
+┌──────────────────────────┐              ┌─────────────────────┐
+│ Windows / WSL            │              │ model weights       │
+│ Docker services          │              │ KV cache            │
+│ PostgreSQL / NATS        │              │ CUDA kernels        │
+│ IDE / tests / loaders    │              │ inference buffers   │
+│ synthetic data generator │              │ training state*     │
+└──────────────────────────┘              └─────────────────────┘
+
+* training requires more aggressive memory management than inference</code></pre><h1 id="2-recommended-os-and-runtime-topology">2. Recommended OS and Runtime Topology</h1><p>If the MSI is currently a Windows laptop, use Windows 11 + WSL 2 rather than immediately dual-booting. This gives you the NVIDIA Linux/CUDA ecosystem while preserving the convenience of a normal Windows workstation. If the machine later becomes a dedicated AI node, native Ubuntu/Linux is the cleaner long-term server configuration.</p><aside class="callout info"><span class="callout-title">Preferred first path</span><p>Windows host → current NVIDIA Windows driver → WSL 2 Ubuntu → Docker Desktop WSL backend → Linux project files inside WSL → CUDA-visible containers and Python environments.</p></aside><ul><li>Install/update the NVIDIA Windows driver. Under WSL, do not install a separate Linux display driver; NVIDIA exposes the Windows driver into WSL.</li><li>Install WSL 2 and keep the WSL kernel current.</li><li>Enable Docker Desktop WSL integration. Docker documents GPU support on Windows through the WSL 2 backend.</li><li>Keep repositories inside the WSL Linux filesystem rather than under /mnt/c for better Linux tooling and file performance.</li><li>Use VS Code/JetBrains remote-to-WSL workflows so the editor can remain on Windows while execution occurs in Linux.</li></ul><h1 id="3-resource-budget-and-operating-profiles">3. Resource Budget and Operating Profiles</h1><p>Unlike the 24 GB Mac, this machine can run a substantial sandbox and a local model simultaneously. Still, you should operate with profiles rather than assuming every component must remain running.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Profile</strong></th><th><strong>System RAM target</strong></th><th><strong>GPU VRAM target</strong></th><th><strong>Use case</strong></th></tr></thead><tbody><tr><td>Services-first</td><td>≤ 36 GB WSL/Docker</td><td>0–5 GB</td><td>Build/test microservices; model is remote or tiny.</td></tr><tr><td>Balanced AI</td><td>≤ 40 GB WSL/Docker</td><td>8–13 GB</td><td>Normal end-to-end development with a 4B–8B local model.</td></tr><tr><td>AI experiment</td><td>≤ 28 GB services</td><td>13–15 GB</td><td>Benchmark 8B–14B models, long eval batches, or QLoRA. Stop nonessential services.</td></tr><tr><td>Training</td><td>≤ 20 GB services</td><td>as much of 16 GB as possible</td><td>Run only databases/fixtures required by training/eval. Heavy jobs may move to cloud.</td></tr></tbody></table></div><p>For WSL, a reasonable starting cap on a 64 GB system is 40–48 GB, leaving Windows enough headroom. Microsoft allows the WSL 2 VM memory limit to be configured in %UserProfile%\.wslconfig. Start conservatively; increase only after observing real usage.</p><pre><code># Example %UserProfile%\.wslconfig
+[wsl2]
+memory=44GB
+processors=24
+swap=8GB
+
+[experimental]
+autoMemoryReclaim=gradual</code></pre><p class="small-note">After changing .wslconfig, run wsl --shutdown from PowerShell before restarting the environment.</p><h1 id="4-base-software-stack">4. Base Software Stack</h1><div class="table-wrap"><table class="data"><thead><tr><th><strong>Layer</strong></th><th><strong>Recommended first choice</strong></th><th><strong>Reason</strong></th></tr></thead><tbody><tr><td>Linux environment</td><td>WSL 2 Ubuntu</td><td>Portable Linux development with CUDA access while keeping Windows.</td></tr><tr><td>Containers</td><td>Docker Desktop + Compose</td><td>Easy multi-service lifecycle and GPU pass-through on WSL 2.</td></tr><tr><td>Python</td><td>uv + project virtual environments</td><td>Fast, reproducible dependency management; current vLLM and Unsloth docs support uv workflows.</td></tr><tr><td>API services</td><td>FastAPI + Pydantic</td><td>Simple explicit service contracts and tool adapters.</td></tr><tr><td>Database</td><td>PostgreSQL + pgvector</td><td>One operational database can support service schemas, trajectories, and initial retrieval.</td></tr><tr><td>Event bus</td><td>NATS JetStream</td><td>Lightweight event-driven behavior without introducing Kafka-scale operations for a learning sandbox.</td></tr><tr><td>Object storage</td><td>MinIO (optional at first)</td><td>Artifacts, datasets, scenario fixtures, and larger trace payloads.</td></tr><tr><td>Inference</td><td>vLLM when compatible; llama.cpp/Ollama for fallback experiments</td><td>vLLM aligns with NVIDIA/cloud serving; llama.cpp/Ollama are useful compatibility options.</td></tr><tr><td>Training</td><td>Unsloth / Transformers + PEFT + TRL</td><td>Current Unsloth supports RTX 50-series/Blackwell and is convenient for constrained QLoRA.</td></tr><tr><td>Observability</td><td>OpenTelemetry + canonical trajectory tables; add Langfuse later</td><td>Preserve your own data model first; visualization is secondary.</td></tr></tbody></table></div><h1 id="5-initial-machine-setup-sequence">5. Initial Machine Setup Sequence</h1><p>Use these as a checklist rather than blindly copying every package. Version compatibility moves quickly; when installing CUDA/PyTorch/vLLM, prefer the current official installer guidance for your installed NVIDIA driver.</p><h2 id="windows-wsl-foundation">Windows / WSL foundation</h2><pre><code># PowerShell (Administrator)
+wsl --install
+wsl --update
+
+# After Ubuntu is installed
+wsl
+
+# Inside Ubuntu
+sudo apt update &amp;&amp; sudo apt upgrade -y
+sudo apt install -y build-essential git curl jq make ca-certificates</code></pre><h2 id="confirm-gpu-access">Confirm GPU access</h2><pre><code># Inside WSL
+nvidia-smi
+
+# Docker Desktop GPU validation (official Docker sample)
+docker run --rm -it --gpus=all nvcr.io/nvidia/k8s/cuda-sample:nbody nbody -gpu -benchmark</code></pre><h2 id="developer-tooling">Developer tooling</h2><pre><code># uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Example project environment
+uv venv .venv --python 3.13
+source .venv/bin/activate</code></pre><h2 id="inference-path">Inference path</h2><pre><code># vLLM: use the current official install command for your driver/PyTorch stack.
+# Current docs support automatic torch backend selection:
+uv pip install vllm --torch-backend=auto
+
+# Validate before choosing a larger model:
+python -c &quot;import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))&quot;</code></pre><h2 id="training-path">Training path</h2><pre><code># Unsloth current Linux/WSL path
+uv venv unsloth_env --python 3.13
+source unsloth_env/bin/activate
+uv pip install unsloth --torch-backend=auto</code></pre><aside class="callout warning"><span class="callout-title">Do not install everything into one Python environment</span><p>Keep the application, inference server, and training environment separate. GPU libraries often have tight version constraints; isolation makes upgrades and rollback much easier.</p></aside><h1 id="6-model-serving-strategy-on-16-gb-vram">6. Model Serving Strategy on 16 GB VRAM</h1><p>The first goal is not maximum model size. It is a stable API endpoint with enough headroom to run repeatable evals while the sandbox services remain available.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Tier</strong></th><th><strong>Suggested size class</strong></th><th><strong>Role</strong></th><th><strong>Placement</strong></th></tr></thead><tbody><tr><td>Router / classifier</td><td>~1B–4B</td><td>Task type, risk class, escalation decision</td><td>Local; can remain resident if inexpensive.</td></tr><tr><td>Primary investigator</td><td>~4B–8B</td><td>Tool use, evidence synthesis, structured case assessment</td><td>Local default.</td></tr><tr><td>Higher local capability</td><td>~12B–14B quantized</td><td>Harder investigations and comparison experiments</td><td>Local when GPU headroom is sufficient.</td></tr><tr><td>Large open / frontier</td><td>30B+ or proprietary</td><td>Complex planning, judge, hard escalation, teacher traces</td><td>Cloud / hosted API.</td></tr></tbody></table></div><aside class="callout info"><span class="callout-title">Starter recommendation</span><p>Begin with one instruction-tuned 4B–8B model that supports tool/function calling in your chosen runtime. Do not start with multiple local specialists. First prove the workflow, trajectory schema, and eval harness. Add a second model only when you have a measured reason.</p></aside><p>Current open model families include Qwen3 dense models in 4B/8B/14B sizes and Gemma 4 variants intended for laptop/desktop deployment. Treat family selection as an experiment: benchmark tool-call correctness and structured-output reliability on your own FIS evals rather than choosing by generic leaderboard score.</p><h1 id="7-when-the-msi-should-still-use-cloud">7. When the MSI Should Still Use Cloud</h1><ul><li>A model does not fit comfortably in 16 GB VRAM with the required context and concurrency.</li><li>You need a strong teacher/planner to establish an upper-bound baseline.</li><li>A training run requires substantially more VRAM or would occupy the workstation for too long.</li><li>You need high-throughput batch generation or large-scale eval runs.</li><li>You want to test whether a local model failure is capability-limited: replay the same evidence to a stronger cloud model and compare.</li></ul><pre><code>local model passes? ── yes ──→ keep local
+        │
+        no
+        ↓
+same evidence to stronger model
+        │
+   ┌────┴────┐
+   │         │
+ passes    fails
+   │         │
+model       likely system/evidence problem
+capability  (retrieval/tool/schema/data/etc.)</code></pre><h1 id="part-ii-reference-project-fintech-integration-sandbox-fis">Part II — Reference Project: Fintech Integration Sandbox (FIS)</h1><h1 id="8-project-scope-and-clean-room-boundary">8. Project Scope and Clean-Room Boundary</h1><p>FIS is a fictional fintech platform for a fictional neobank named Northstar Bank. It exposes independently designed APIs and synthetic events representing common categories of fintech infrastructure. The purpose is to recreate the engineering shape of integration work—not any specific vendor or employer implementation.</p><aside class="callout warning"><span class="callout-title">No real financial activity</span><p>FIS uses only synthetic people, accounts, money movements, identifiers, policies, alerts, and decisions. It must never connect to production financial accounts, real customer PII, vendor credentials, or employer systems.</p></aside><h2 id="what-it-should-teach">What it should teach</h2><ul><li>Microservice boundaries and cross-service data gathering.</li><li>Vendor-normalization patterns and webhook idempotency.</li><li>Event-driven workflows and eventual consistency.</li><li>Operational cases that require combining processor, identity, risk, and ledger evidence.</li><li>Tool-based AI rather than “stuff the database into the prompt.”</li><li>Production-style observability, trajectory capture, evals, and controlled improvement.</li><li>How to compare local small models against stronger cloud models using business-level metrics.</li></ul><h1 id="9-product-story">9. Product Story</h1><p>Northstar Bank wants a single operations console that hides the complexity of several simulated providers. A customer applies for an account, undergoes identity verification, receives a virtual card, authorizes transactions through a processor, and has ledger postings and risk events generated asynchronously. Operations staff investigate exceptions through cases.</p><pre><code>Customer / operator
+      │
+      ▼
+Northstar API / Ops UI
+      │
+      ├── identity + onboarding
+      ├── accounts + ledger
+      ├── cards + processor simulation
+      ├── risk / AML simulation
+      ├── webhooks + normalized events
+      └── operations cases
+
+AI Investigator reads through controlled tools only.
+It does not write money movement or approve/reject customers.</code></pre><h2 id="primary-ai-use-case">Primary AI use case</h2><aside class="callout info"><span class="callout-title">Operations Investigation Copilot</span><p>Given a synthetic case or incident ID, gather evidence across the platform, identify the most likely root cause, cite the relevant facts, distinguish facts from hypotheses, recommend the next operational step, and assign a confidence score. The output must conform to a schema and pass deterministic checks.</p></aside><p>This is a strong test case because success can be objectively scored: the scenario generator knows the injected root cause and the authoritative records the model should discover.</p><h1 id="10-microservice-topology">10. Microservice Topology</h1><div class="table-wrap"><table class="data"><thead><tr><th><strong>Service</strong></th><th><strong>Responsibility</strong></th><th><strong>Example endpoints / events</strong></th></tr></thead><tbody><tr><td>customer-service</td><td>Synthetic customer profiles and onboarding applications</td><td>GET /customers/{id}; customer.created</td></tr><tr><td>identity-service</td><td>KYC status, document checks, simulated vendor responses</td><td>GET /verifications/{id}; verification.updated</td></tr><tr><td>processor-sim</td><td>Cards, authorizations, settlements, reversals, disputes</td><td>GET /auths/{id}; authorization.created</td></tr><tr><td>ledger-service</td><td>Accounts, balances, postings, holds, reconciliation views</td><td>GET /accounts/{id}/entries; posting.created</td></tr><tr><td>risk-service</td><td>Transaction-monitoring alerts, synthetic AML/KYC risk signals</td><td>GET /alerts/{id}; alert.created</td></tr><tr><td>webhook-gateway</td><td>Webhook receipt, signatures, retries, dedupe, delivery log</td><td>GET /deliveries/{event_id}; webhook.failed</td></tr><tr><td>integration-service</td><td>Normalizes provider-style payloads into internal domain events</td><td>GET /events/{id}; integration.normalized</td></tr><tr><td>case-service</td><td>Operations cases, status, analyst notes, expected resolution</td><td>GET /cases/{id}; case.opened</td></tr><tr><td>knowledge-service</td><td>Synthetic policies, runbooks, escalation rules</td><td>search policy/runbook documents</td></tr><tr><td>ai-orchestrator</td><td>Model gateway, tool broker, verification, trajectory capture</td><td>POST /investigate/{case_id}</td></tr></tbody></table></div><aside class="callout note"><span class="callout-title">Keep infrastructure efficient</span><p>Use one PostgreSQL container with separate databases or schemas per service during the learning project. Preserve service-level ownership in code, but do not burn RAM on ten independent database servers. Add NATS JetStream for asynchronous events. Add MinIO only when artifact storage becomes useful.</p></aside><h1 id="11-fis-runtime-architecture">11. FIS Runtime Architecture</h1><pre><code>                              ┌──────────────────────┐
+                              │   Optional frontier  │
+                              │ planner / escalation │
+                              └──────────┬───────────┘
+                                         │
+Operator → AI API → Policy → Model Gateway ──────┐
+                     │                          │
+                     │                    Local RTX model
+                     │                          │
+                     ▼                          ▼
+                 Tool Broker ←──────────── Investigator
+                     │
+        ┌────────────┼──────────────┬───────────────┐
+        ▼            ▼              ▼               ▼
+   identity       processor       ledger           risk
+        │            │              │               │
+        └────────────┼──────┬───────┴───────────────┘
+                     ▼      ▼
+                  webhooks  cases / knowledge
+                     │
+                     ▼
+                deterministic verifier
+                     │
+                     ▼
+                 structured result
+                     │
+                     ▼
+                trajectory store</code></pre><h1 id="12-ai-tool-contracts">12. AI Tool Contracts</h1><p>Tools should be narrow, typed, and read-only for the first project. The AI should never receive direct SQL access to every service database. This forces you to practice stable company-tool interfaces and creates better traces.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Tool</strong></th><th><strong>Input</strong></th><th><strong>Output</strong></th><th><strong>Verifier</strong></th></tr></thead><tbody><tr><td>get_case</td><td>case_id</td><td>case metadata, subject IDs, timestamps</td><td>case exists; IDs valid</td></tr><tr><td>get_customer</td><td>customer_id</td><td>profile and onboarding status</td><td>customer matches case</td></tr><tr><td>get_verification</td><td>verification_id/customer_id</td><td>KYC steps, statuses, reason codes</td><td>status/time consistency</td></tr><tr><td>get_processor_activity</td><td>customer/card/txn IDs</td><td>auths, reversals, settlements, disputes</td><td>amount/currency/id checks</td></tr><tr><td>get_ledger_entries</td><td>account_id + time window</td><td>postings, holds, balances</td><td>debits/credits and references valid</td></tr><tr><td>get_risk_alerts</td><td>customer/transaction ID</td><td>alerts, rule hits, dispositions</td><td>alert IDs and times valid</td></tr><tr><td>get_webhook_history</td><td>event/provider ID</td><td>delivery attempts, dedupe, status</td><td>idempotency/retry state</td></tr><tr><td>search_runbooks</td><td>query + case category</td><td>synthetic runbook passages</td><td>document/version/citation valid</td></tr></tbody></table></div><h1 id="13-minimal-domain-model">13. Minimal Domain Model</h1><div class="table-wrap"><table class="data"><thead><tr><th><strong>Entity</strong></th><th><strong>Important fields</strong></th></tr></thead><tbody><tr><td>Customer</td><td>customer_id, name, synthetic DOB, country, onboarding_state, created_at</td></tr><tr><td>Verification</td><td>verification_id, customer_id, vendor, check_type, status, reason_code, event_time</td></tr><tr><td>Account</td><td>account_id, customer_id, status, currency, available_balance, ledger_balance</td></tr><tr><td>Card</td><td>card_id, customer_id, account_id, status, tokenized PAN placeholder</td></tr><tr><td>Authorization</td><td>auth_id, card_id, amount, merchant, processor_state, decline_code, timestamps</td></tr><tr><td>LedgerEntry</td><td>entry_id, account_id, direction, amount, reference_type/id, posted_at</td></tr><tr><td>RiskAlert</td><td>alert_id, customer_id, transaction_id, rule_code, severity, status</td></tr><tr><td>WebhookDelivery</td><td>delivery_id, provider_event_id, payload_hash, attempt, status, received_at</td></tr><tr><td>Case</td><td>case_id, category, subject IDs, opened_at, status, injected_root_cause</td></tr><tr><td>Trajectory</td><td>trace_id, case_id, model/prompt/tool versions, calls, output, eval, correction, metrics</td></tr></tbody></table></div><h2 id="use-normalized-ids-everywhere">Use normalized IDs everywhere</h2><p>The simulator should deliberately create provider-specific IDs and normalized internal IDs. The AI tools should expose both where useful. Cross-system ID mapping is a realistic source of operational mistakes and makes for good evaluation scenarios.</p><h1 id="14-deterministic-scenario-generator">14. Deterministic Scenario Generator</h1><p>Build a scenario generator that produces complete synthetic timelines from a random seed. Each scenario writes authoritative records across services and stores a hidden ground-truth manifest. The model can query the services but never sees the manifest.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Scenario</strong></th><th><strong>Injected root cause</strong></th><th><strong>Evidence the AI should find</strong></th></tr></thead><tbody><tr><td>S01 Duplicate webhook</td><td>Provider event delivered twice; dedupe handled correctly</td><td>Same provider_event_id; duplicate attempt; one normalized event; one ledger effect.</td></tr><tr><td>S02 Missing idempotency</td><td>Duplicate event creates two downstream actions</td><td>Two effects tied to same provider event; idempotency key absent/misused.</td></tr><tr><td>S03 KYC hold</td><td>Onboarding blocked by incomplete verification</td><td>Verification pending/failed; account/card activation waiting on it.</td></tr><tr><td>S04 Provider outage</td><td>Identity vendor timeout delays onboarding</td><td>Webhook/API failures clustered in window; no customer-specific failure reason.</td></tr><tr><td>S05 Processor decline</td><td>Authorization rejected for processor reason</td><td>Decline code, card/account states otherwise healthy.</td></tr><tr><td>S06 Ledger mismatch</td><td>Processor settlement differs from ledger posting</td><td>Processor amount/reference differs from ledger authoritative record.</td></tr><tr><td>S07 Reversal race</td><td>Authorization reversed before delayed posting arrives</td><td>Out-of-order timestamps; reversal and late event visible.</td></tr><tr><td>S08 Risk hold</td><td>Transaction alert causes account/card restriction</td><td>Risk alert precedes restriction; processor symptom is secondary.</td></tr><tr><td>S09 Stale integration mapping</td><td>Provider field change maps status incorrectly</td><td>Raw provider event differs from normalized domain state.</td></tr><tr><td>S10 Reconciliation gap</td><td>Settlement received but corresponding posting missing</td><td>Processor settlement exists; ledger reference absent.</td></tr><tr><td>S11 False-positive operational alert</td><td>Case opened but authoritative systems are internally consistent</td><td>Alert trigger present; no actual downstream failure.</td></tr><tr><td>S12 Compound failure</td><td>Webhook retry plus KYC hold produces misleading surface symptom</td><td>Two issues exist; only one explains the customer-facing state.</td></tr></tbody></table></div><aside class="callout info"><span class="callout-title">Why this matters</span><p>You can generate hundreds of variations while preserving objective labels. That lets you test whether improvements generalize across amounts, timestamps, customers, providers, event orderings, and irrelevant distractor events.</p></aside><h2 id="hidden-scenario-manifest">Hidden scenario manifest</h2><pre><code>{
+  &quot;scenario_id&quot;: &quot;S06-00421&quot;,
+  &quot;seed&quot;: 421,
+  &quot;category&quot;: &quot;ledger_mismatch&quot;,
+  &quot;root_cause&quot;: &quot;settlement_amount_mapping_error&quot;,
+  &quot;required_evidence&quot;: [
+    &quot;processor.settlement:set_912&quot;,
+    &quot;ledger.entry:le_884&quot;,
+    &quot;integration.event:evt_111&quot;
+  ],
+  &quot;acceptable_next_actions&quot;: [
+    &quot;open_reconciliation_review&quot;,
+    &quot;inspect_mapping_version&quot;
+  ],
+  &quot;forbidden_claims&quot;: [
+    &quot;customer_fraud_confirmed&quot;
+  ]
+}</code></pre><h1 id="15-investigator-output-contract">15. Investigator Output Contract</h1><pre><code>{
+  &quot;case_id&quot;: &quot;case_123&quot;,
+  &quot;classification&quot;: &quot;ledger_reconciliation&quot;,
+  &quot;root_cause&quot;: {
+    &quot;label&quot;: &quot;settlement_amount_mapping_error&quot;,
+    &quot;confidence&quot;: 0.88
+  },
+  &quot;facts&quot;: [
+    {&quot;claim&quot;: &quot;...&quot;, &quot;source&quot;: &quot;tool://processor/...&quot;},
+    {&quot;claim&quot;: &quot;...&quot;, &quot;source&quot;: &quot;tool://ledger/...&quot;}
+  ],
+  &quot;hypotheses&quot;: [&quot;...&quot;],
+  &quot;recommended_next_action&quot;: &quot;inspect_mapping_version&quot;,
+  &quot;escalation_required&quot;: false,
+  &quot;uncertainties&quot;: [&quot;...&quot;],
+  &quot;summary&quot;: &quot;...&quot;
+}</code></pre><p>The deterministic verifier should reject missing citations, invalid IDs, impossible amounts, unsupported facts, unknown action codes, or schemas that do not validate. It should not attempt to judge every reasoning nuance.</p><h1 id="16-trajectory-schema-for-the-sandbox">16. Trajectory Schema for the Sandbox</h1><pre><code>trace_id
+scenario_id / case_id
+workflow_version
+model_provider / model_id / quantization
+adapter_version
+prompt_version
+router_decision + confidence
+policy_decision
+retrieval / runbook references
+tool_call sequence + args hash + result references
+final structured output
+verifier results
+scenario-ground-truth score
+human correction (optional)
+latency / tokens / estimated cost
+error taxonomy
+created_at</code></pre><aside class="callout note"><span class="callout-title">Canonical data ownership</span><p>Keep the full trajectory and eval result in your own PostgreSQL/object-store schema. If you add Langfuse or another observability UI, treat it as an operator view—not as the only copy of your learning data.</p></aside><h1 id="17-evaluation-suite">17. Evaluation Suite</h1><p>The benchmark should have frozen train/dev/test seeds. Do not tune against the test set. Each scenario should score several dimensions so you can see whether a change helps one capability while hurting another.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Metric</strong></th><th><strong>Scoring method</strong></th><th><strong>Why it matters</strong></th></tr></thead><tbody><tr><td>Root-cause accuracy</td><td>Exact/accepted-label match</td><td>Core task success.</td></tr><tr><td>Required-evidence recall</td><td>Required evidence IDs found / total</td><td>Did the model gather the right facts?</td></tr><tr><td>Unsupported-claim rate</td><td>Claims without authoritative support</td><td>Hallucination/overreach measure.</td></tr><tr><td>Next-action accuracy</td><td>Allowed action-code match</td><td>Operational usefulness.</td></tr><tr><td>Tool efficiency</td><td>Useful calls / total calls; call count</td><td>Measures wandering and cost.</td></tr><tr><td>Verifier pass rate</td><td>Schema + deterministic checks</td><td>Machine-actionability and reliability.</td></tr><tr><td>Escalation quality</td><td>Escalates hard cases without escalating easy ones</td><td>Router calibration.</td></tr><tr><td>Latency</td><td>P50/P95 investigation time</td><td>Developer/operator usability.</td></tr><tr><td>Cost per successful case</td><td>Inference + tool cost / successful cases</td><td>Intelligence-density KPI.</td></tr><tr><td>Cloud dependence</td><td>Percent of cases requiring cloud model</td><td>Measures progress toward local specialization.</td></tr></tbody></table></div><h2 id="all-pass-definition">All-pass definition</h2><pre><code>CASE_SUCCESS =
+    root_cause_correct
+    AND required_evidence_recall &gt;= threshold
+    AND unsupported_claims == 0
+    AND next_action_acceptable
+    AND verifier_passed</code></pre><p>Track component scores as well as the strict all-pass rate. A strict metric is useful because real operational tasks often fail if any one critical dimension is wrong.</p><h1 id="18-experiment-matrix">18. Experiment Matrix</h1><p>Run controlled comparisons instead of changing multiple things at once. The sequence below teaches which layer contributes value.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Experiment</strong></th><th><strong>Configuration</strong></th><th><strong>Question</strong></th></tr></thead><tbody><tr><td>E0 Deterministic baseline</td><td>Scripted rules using known case type</td><td>What can be solved without an LLM?</td></tr><tr><td>E1 Local model, no tools</td><td>Case description only</td><td>How weak is context-free generation?</td></tr><tr><td>E2 Local model + tools</td><td>4B–8B investigator, structured tools</td><td>How much do tools improve correctness?</td></tr><tr><td>E3 + runbook retrieval</td><td>Add synthetic policy/runbook search</td><td>Does explicit company knowledge help?</td></tr><tr><td>E4 Strong cloud model</td><td>Same tools/evidence contract</td><td>What is the capability ceiling?</td></tr><tr><td>E5 Router + escalation</td><td>Local first, cloud on uncertainty/hard cases</td><td>Can we reduce cloud use while preserving success?</td></tr><tr><td>E6 Prompt/verifier optimization</td><td>No weight change</td><td>Can system changes fix most failures?</td></tr><tr><td>E7 QLoRA candidate</td><td>Fine-tune on verified train traces</td><td>Does specialization improve held-out cases?</td></tr><tr><td>E8 Failure diagnosis</td><td>Classify model vs tool/data/retrieval failures</td><td>Can the learning layer recommend the right fix?</td></tr></tbody></table></div><h1 id="19-metrics-you-can-demonstrate">19. Metrics You Can Demonstrate</h1><aside class="callout info"><span class="callout-title">The demo should end with numbers</span><p>The project is most valuable when you can show a before/after table such as: local-only all-pass rate, hybrid all-pass rate, cloud escalation rate, median tool calls, P95 latency, unsupported-claim rate, and estimated cost per successful case.</p></aside><div class="table-wrap"><table class="data"><thead><tr><th><strong>Metric</strong></th><th><strong>Baseline</strong></th><th><strong>Candidate</strong></th><th><strong>Interpretation</strong></th></tr></thead><tbody><tr><td>Strict all-pass rate</td><td>E2</td><td>E5/E7</td><td>Primary reliability measure.</td></tr><tr><td>Root-cause accuracy</td><td>E2</td><td>E5/E7</td><td>Did capability improve?</td></tr><tr><td>Evidence recall</td><td>E2</td><td>E5/E7</td><td>Did tool strategy improve?</td></tr><tr><td>Unsupported claim rate</td><td>E2</td><td>E6/E7</td><td>Did verification/training reduce hallucination?</td></tr><tr><td>Cloud escalation rate</td><td>E5 initial</td><td>E5 after tuning</td><td>Can more work stay local?</td></tr><tr><td>Median/P95 latency</td><td>E2/E4</td><td>E5</td><td>Tradeoff between local and cloud.</td></tr><tr><td>Cost per successful case</td><td>E4 cloud-only</td><td>E5 hybrid</td><td>Economic value of routing/specialization.</td></tr><tr><td>Tool calls per success</td><td>E2</td><td>E6/E7</td><td>Efficiency / intelligence density.</td></tr></tbody></table></div><h2 id="example-report-language">Example report language</h2><p>Use statements only after you have measured them, for example: “On 200 held-out synthetic incidents, the hybrid router preserved a 91% strict all-pass rate while reducing frontier-model escalations from 100% to 23%. The local specialist handled the remaining cases at lower marginal inference cost. Most residual failures were evidence-selection errors rather than reasoning failures.”</p><h1 id="20-controlled-improvement-loop">20. Controlled Improvement Loop</h1><pre><code>production-like sandbox runs
+          ↓
+trajectory + hidden ground truth
+          ↓
+error classifier
+          ↓
+┌───────────────────────┬──────────────────────────┐
+│ system failure        │ model behavior failure   │
+│ tool/data/router/etc. │ evidence was sufficient  │
+└──────────┬────────────┴────────────┬─────────────┘
+           ↓                         ↓
+      fix system               training candidate
+           │                         │
+           └──────────┬──────────────┘
+                      ↓
+                frozen eval suite
+                      ↓
+                 compare to champion
+                      ↓
+                keep or discard</code></pre><p>For the first adapter experiment, curate only cases where the evidence was sufficient and the target correction is unambiguous. Do not train the model to compensate for broken tools, missing records, or bad scenario data.</p><h1 id="21-first-qlora-experiment">21. First QLoRA Experiment</h1><ol><li>Generate a few hundred to a few thousand diverse training scenarios, but hold out entire seeds/scenario variations for evaluation.</li><li>Select only verified traces with correct tool evidence and a canonical structured answer.</li><li>Convert trajectories into the chat/tool format expected by the base model. Preserve tool-call sequences if your chosen training stack supports them.</li><li>Train a small LoRA/QLoRA adapter on the MSI using Unsloth/PEFT. Start with a 4B–8B model rather than maximizing model size.</li><li>Evaluate the adapter against exactly the same frozen test cases as the prompt-only champion.</li><li>Promote only if the improvement is meaningful and regressions on other scenario classes are acceptable.</li></ol><aside class="callout warning"><span class="callout-title">A failed fine-tune is still a successful experiment</span><p>If the adapter does not beat the prompt/tool baseline, you have learned something important: the bottleneck may be context engineering, tool use, routing, or base-model capability. Record the result rather than forcing the fine-tune into the architecture.</p></aside><h1 id="22-failure-taxonomy">22. Failure Taxonomy</h1><div class="table-wrap"><table class="data"><thead><tr><th><strong>Failure class</strong></th><th><strong>Example in FIS</strong></th><th><strong>Preferred first response</strong></th></tr></thead><tbody><tr><td>Routing</td><td>Simple case escalated or hard case stayed local</td><td>Tune router thresholds / features.</td></tr><tr><td>Tool selection</td><td>Model never queried ledger for a reconciliation case</td><td>Prompt/tool description/eval change.</td></tr><tr><td>Tool result</td><td>Simulator/API returned wrong or stale data</td><td>Fix service; do not train around it.</td></tr><tr><td>Evidence synthesis</td><td>Correct records retrieved but wrong root cause</td><td>Candidate for prompt or model specialization.</td></tr><tr><td>Schema</td><td>Invalid output / malformed action code</td><td>Structured generation / verifier.</td></tr><tr><td>Unsupported claim</td><td>Model invents fraud/identity conclusion</td><td>Verifier, instruction, training examples.</td></tr><tr><td>Knowledge</td><td>Runbook needed but not retrieved</td><td>Retrieval policy or knowledge indexing.</td></tr><tr><td>Capability</td><td>Strong model succeeds with identical evidence, small model fails repeatedly</td><td>Escalation and/or post-training candidate.</td></tr><tr><td>Novel scenario</td><td>No rubric/label fits</td><td>Expand ontology/evals before training.</td></tr></tbody></table></div><h1 id="23-repository-layout">23. Repository Layout</h1><pre><code>fintech-integration-sandbox/
+│
+├── services/
+│   ├── customer_service/
+│   ├── identity_service/
+│   ├── processor_sim/
+│   ├── ledger_service/
+│   ├── risk_service/
+│   ├── webhook_gateway/
+│   ├── integration_service/
+│   ├── case_service/
+│   ├── knowledge_service/
+│   └── ai_orchestrator/
+│
+├── platform/
+│   ├── model_gateway/
+│   ├── tool_broker/
+│   ├── authorization/
+│   ├── verification/
+│   └── telemetry/
+│
+├── scenarios/
+│   ├── generator/
+│   ├── manifests/
+│   ├── train_seeds.txt
+│   ├── dev_seeds.txt
+│   └── test_seeds.txt
+│
+├── evals/
+│   ├── runner/
+│   ├── scorers/
+│   └── reports/
+│
+├── learning/
+│   ├── datasets/
+│   ├── diagnosis/
+│   ├── training/
+│   └── registry/
+│
+├── infra/
+│   ├── compose.yaml
+│   ├── compose.services.yaml
+│   ├── compose.ai.yaml
+│   └── migrations/
+│
+├── docs/
+│   ├── architecture.md
+│   ├── clean-room-boundary.md
+│   ├── task-ontology.md
+│   └── experiment-log.md
+│
+└── Makefile</code></pre><h1 id="24-docker-compose-profiles">24. Docker Compose Profiles</h1><p>Use Compose profiles so you can run only what the current experiment requires.</p><pre><code># Conceptual profiles
+core:
+  postgres
+  nats
+  customer-service
+  identity-service
+  processor-sim
+  ledger-service
+  case-service
+
+full:
+  core + risk + webhook + integration + knowledge
+
+ai:
+  ai-orchestrator + model-gateway
+
+observability:
+  otel-collector + optional UI
+
+# Examples
+make up-core
+make up-full
+make up-ai
+make down-ai
+make eval MODEL=local-8b
+make eval MODEL=frontier</code></pre><aside class="callout note"><span class="callout-title">GPU server can stay outside Compose initially</span><p>Run vLLM/llama.cpp in its own process or container and expose an OpenAI-compatible endpoint. This lets you restart/swap models without restarting the entire fintech sandbox.</p></aside><h1 id="25-six-week-build-plan">25. Six-Week Build Plan</h1><div class="table-wrap"><table class="data"><thead><tr><th><strong>Week</strong></th><th><strong>Goal</strong></th><th><strong>Definition of done</strong></th></tr></thead><tbody><tr><td>1</td><td>Machine + skeleton</td><td>WSL/Docker GPU works; repo boots Postgres/NATS; two toy services communicate; local model endpoint responds.</td></tr><tr><td>2</td><td>Fintech core</td><td>Customer, identity, processor, ledger, webhook/integration flows; scenario generator creates deterministic timelines.</td></tr><tr><td>3</td><td>Cases + AI tools</td><td>Case service and read-only tool broker; investigator can collect evidence and return validated JSON.</td></tr><tr><td>4</td><td>Trajectory + evals</td><td>Every investigation traced; ≥100 frozen test scenarios; automated score report and failure taxonomy.</td></tr><tr><td>5</td><td>Hybrid routing</td><td>Local model + frontier baseline/fallback; router and escalation metrics; cost/latency comparison.</td></tr><tr><td>6</td><td>Learning experiment</td><td>Curated dataset; QLoRA candidate; regression report; final demo dashboard and architecture write-up.</td></tr></tbody></table></div><h2 id="if-you-want-a-slower-pace">If you want a slower pace</h2><p>Treat each week as a milestone rather than a calendar commitment. The important sequencing rule is: do not train before the scenario/eval system is trustworthy, and do not add multiple models before one model + tools works end-to-end.</p><h1 id="26-your-first-three-working-sessions">26. Your First Three Working Sessions</h1><h2 id="session-1-prove-the-machine">Session 1 — Prove the machine</h2><ul><li>Update/install NVIDIA driver, WSL 2, Docker Desktop WSL integration.</li><li>Run nvidia-smi inside WSL and the Docker GPU sample.</li><li>Create the repository and Python environments.</li><li>Serve a small local model and call it through HTTP.</li><li>Record GPU VRAM, tokens/sec, and idle system RAM.</li></ul><h2 id="session-2-prove-the-platform-shape">Session 2 — Prove the platform shape</h2><ul><li>Start PostgreSQL and NATS.</li><li>Create customer-service and processor-sim.</li><li>Generate one synthetic customer and one authorization event.</li><li>Create an ai-orchestrator with two read-only tools.</li><li>Capture a trajectory containing the model call and tool calls.</li></ul><h2 id="session-3-prove-measurement">Session 3 — Prove measurement</h2><ul><li>Create three injected failure scenarios with hidden ground truth.</li><li>Write an eval runner that calls /investigate/{case_id}.</li><li>Score root cause, evidence IDs, action code, latency, and verifier pass.</li><li>Run the same scenarios with a local model and a strong cloud model.</li><li>Save the first comparison report.</li></ul><aside class="callout info"><span class="callout-title">At that point you have the essence of the entire system</span><p>Everything after Session 3 is scaling, specializing, adding better diagnosis, and improving reliability. You will already understand the core architecture through a real working loop.</p></aside><h1 id="27-demonstration-script">27. Demonstration Script</h1><p><strong>1.  </strong>Open the operator UI and select a seeded incident whose root cause is hidden from the viewer.</p><p><strong>2.  </strong>Run the investigation locally. Show the live tool sequence: case → processor → ledger → webhook/risk as needed.</p><p><strong>3.  </strong>Display the structured answer with evidence references and verifier result.</p><p><strong>4.  </strong>Reveal the hidden scenario manifest and automatic score.</p><p><strong>5.  </strong>Show the trajectory record: model, prompt version, tool calls, latency, token counts, score.</p><p><strong>6.  </strong>Switch to hybrid routing and replay a difficult case that escalates to the cloud model.</p><p><strong>7.  </strong>Show the eval dashboard comparing local-only, cloud-only, and hybrid runs.</p><p><strong>8.  </strong>Optionally load the QLoRA adapter and show the regression report rather than cherry-picking one demo case.</p><h1 id="28-how-this-becomes-reusable-client-knowledge">28. How This Becomes Reusable Client Knowledge</h1><p>The sandbox-specific code is less important than the repeatable implementation method. Keep a clear boundary between reusable platform components and domain adapters.</p><div class="table-wrap"><table class="data"><thead><tr><th><strong>Reusable platform asset</strong></th><th><strong>Client-specific replacement</strong></th></tr></thead><tbody><tr><td>Model gateway</td><td>Approved providers, local/cloud policy, model registry</td></tr><tr><td>Trajectory schema</td><td>Client task/outcome metadata and retention policy</td></tr><tr><td>Tool broker interface</td><td>Client APIs/databases/workflows</td></tr><tr><td>Authorization middleware</td><td>Client identity and permissions</td></tr><tr><td>Eval runner</td><td>Client-specific gold cases and business outcomes</td></tr><tr><td>Failure taxonomy</td><td>Client task ontology and failure modes</td></tr><tr><td>Dataset builder</td><td>Client corrections/outcomes and privacy transformations</td></tr><tr><td>Candidate promotion pipeline</td><td>Client release gates/canary policy</td></tr><tr><td>Cost/success dashboard</td><td>Client economics and SLA metrics</td></tr></tbody></table></div><aside class="callout info"><span class="callout-title">Portable consulting story</span><p>The reusable product is not “a fintech agent.” It is a method and platform for instrumenting a workflow, establishing objective evals, selecting the cheapest reliable model/harness, capturing corrections, diagnosing failures, and safely improving the system.</p></aside><h1 id="29-security-and-safety-boundaries-for-the-sandbox">29. Security and Safety Boundaries for the Sandbox</h1><ul><li>Synthetic identities only; generate obviously fictional names and identifiers.</li><li>No real payment credentials, PANs, SSNs, account numbers, or vendor secrets.</li><li>AI tools are read-only in the first project. Any “action” is an action code or simulated case update.</li><li>Separate hidden ground-truth manifests from model-visible service APIs.</li><li>Log hashed/redacted arguments where full values are unnecessary.</li><li>If using a cloud model, route only synthetic sandbox data. This keeps provider/privacy experimentation simple.</li><li>Do not claim the sandbox constitutes compliance advice or a production AML/KYC decision system.</li></ul><h1 id="30-decision-gates-before-adding-complexity">30. Decision Gates Before Adding Complexity</h1><div class="table-wrap"><table class="data"><thead><tr><th><strong>Before adding…</strong></th><th><strong>Require evidence that…</strong></th></tr></thead><tbody><tr><td>Multiple specialist models</td><td>Different task families benefit from materially different models/adapters or tool sets.</td></tr><tr><td>Dedicated vector database</td><td>PostgreSQL/pgvector is measurably the bottleneck.</td></tr><tr><td>Complex agent framework</td><td>Explicit state-machine orchestration has become unmanageably repetitive.</td></tr><tr><td>RL / SDPO</td><td>You have substantial high-quality trajectories, stable evals, and SFT/QLoRA is insufficient.</td></tr><tr><td>Kubernetes</td><td>One-machine/Compose operation is genuinely blocking multi-node production needs.</td></tr><tr><td>Large local model</td><td>A smaller model fails despite correct evidence and a larger model passes enough cases to justify cost.</td></tr><tr><td>Automated self-training</td><td>Candidate evaluation, rollback, lineage, and human release gates are already reliable.</td></tr></tbody></table></div><h1 id="appendix-a-setup-checklist">Appendix A — Setup Checklist</h1><ul><li>☐ Windows and NVIDIA driver are current.</li><li>☐ WSL 2 installed and updated.</li><li>☐ Ubuntu distro opens and nvidia-smi sees the RTX 5080.</li><li>☐ Docker Desktop uses the WSL 2 backend and GPU sample succeeds.</li><li>☐ Repository lives inside the WSL filesystem.</li><li>☐ uv, git, build tools, jq, curl installed.</li><li>☐ PostgreSQL + NATS Compose stack starts.</li><li>☐ Local model server exposes an OpenAI-compatible endpoint.</li><li>☐ One API service calls that endpoint successfully.</li><li>☐ GPU/system RAM baseline recorded before adding project services.</li></ul><h2 id="suggested-initial-ports">Suggested initial ports</h2><div class="table-wrap"><table class="data"><thead><tr><th><strong>Component</strong></th><th><strong>Port</strong></th><th><strong>Notes</strong></th></tr></thead><tbody><tr><td>customer-service</td><td>8101</td><td>Synthetic customer API</td></tr><tr><td>identity-service</td><td>8102</td><td>Verification API</td></tr><tr><td>processor-sim</td><td>8103</td><td>Processor simulator</td></tr><tr><td>ledger-service</td><td>8104</td><td>Ledger API</td></tr><tr><td>risk-service</td><td>8105</td><td>Risk API</td></tr><tr><td>webhook-gateway</td><td>8106</td><td>Webhook ingress/logs</td></tr><tr><td>integration-service</td><td>8107</td><td>Normalization/event API</td></tr><tr><td>case-service</td><td>8108</td><td>Ops cases</td></tr><tr><td>knowledge-service</td><td>8109</td><td>Runbook retrieval</td></tr><tr><td>ai-orchestrator</td><td>8110</td><td>Investigation API</td></tr><tr><td>local model server</td><td>8000</td><td>Keep configurable</td></tr><tr><td>PostgreSQL</td><td>5432</td><td>Single dev instance</td></tr><tr><td>NATS</td><td>4222</td><td>JetStream/event bus</td></tr></tbody></table></div><h1 id="appendix-b-resource-monitoring">Appendix B — Resource Monitoring</h1><pre><code># GPU utilization / VRAM
+watch -n 1 nvidia-smi
+
+# Docker service usage
+docker stats
+
+# Linux memory
+free -h
+
+# Top processes
+htop
+
+# WSL shutdown after config changes (PowerShell)
+wsl --shutdown</code></pre><p>Record memory and GPU usage for each major profile. A simple CSV or experiment log containing model, quantization, context limit, concurrency, VRAM peak, system RAM peak, tokens/sec, P50/P95 latency, and all-pass rate becomes useful evidence when deciding what should eventually run locally versus in cloud infrastructure.</p><h1 id="appendix-c-current-platform-notes-and-primary-sources">Appendix C — Current Platform Notes and Primary Sources</h1><p>Software compatibility changes quickly. These sources were checked while preparing this guide in August 2026. Re-check them before major upgrades.</p><p><strong>• </strong> — RTX 5080 Laptop GPU memory, CUDA-core, and bandwidth specifications.</p><p><strong>• </strong> — Ryzen 9 9955HX 16-core / 32-thread specifications.</p><p><strong>• </strong> — Current guidance for CUDA development in WSL 2 and the rule not to install a Linux display driver inside WSL.</p><p><strong>• </strong> — WSL 2 GPU prerequisites and the official GPU validation container.</p><p><strong>• </strong> — Recommended Linux-workspace / Windows-IDE development model.</p><p><strong>• </strong> — Memory/processors/swap settings and memory-reclaim controls.</p><p><strong>• </strong> — Current CUDA/PyTorch installation guidance and uv backend selection.</p><p><strong>• </strong> — Current RTX 30/40/50 and Blackwell training support and WSL installation path.</p><p><strong>• </strong> — Open-weight 4B/8B/14B model sizes and recommended serving/local runtimes.</p><p><strong>• </strong> — Current Gemma family sizing and intended laptop/desktop/server deployment classes.</p><h1 id="final-north-star">Final North Star</h1><aside class="callout info"><span class="callout-title">What you are really building</span><p>A miniature company-intelligence factory: a realistic operational system that emits observable trajectories, an AI runtime that must use controlled tools to solve tasks, an objective benchmark that tells you whether it worked, and a learning pipeline that can improve the model or the surrounding system based on evidence.</p></aside><pre><code>FINTECH SANDBOX
+       ↓
+realistic synthetic incidents
+       ↓
+AI + tools + verifier
+       ↓
+complete trajectories
+       ↓
+objective hidden-ground-truth evals
+       ↓
+failure diagnosis
+       ↓
+system fix OR model training
+       ↓
+champion vs candidate comparison
+       ↓
+measurable improvement</code></pre><p>If you can build this cleanly on the MSI, you will have learned the mechanics needed to apply the same architecture to a real company workflow without depending on the sandbox domain. The portable skill is the instrumentation, evaluation, routing, tool, governance, and improvement methodology—not the fictional fintech APIs themselves.</p>
+      </div>
+      <footer class="footer">Standalone HTML edition • Source: finalized DOCX</footer>
+    </article>
+  </main>
+</div>
+<script>
+document.querySelectorAll('pre').forEach((pre) => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn'; btn.type = 'button'; btn.textContent = 'Copy';
+  btn.addEventListener('click', async () => {
+    const code = pre.querySelector('code')?.innerText || pre.innerText.replace(/^Copy\s*/, '');
+    try { await navigator.clipboard.writeText(code); btn.textContent = 'Copied'; setTimeout(()=>btn.textContent='Copy', 1200); } catch(e) {}
+  });
+  pre.appendChild(btn);
+});
+</script>
+</body>
+</html>

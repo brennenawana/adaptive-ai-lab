@@ -1,0 +1,46 @@
+# ---- secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+auth.json
+
+# ---- python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ---- model weights & adapters (large binaries) ----
+*.gguf
+*.safetensors
+*.bin
+models/
+adapters/
+learning/training/runs/
+
+# ---- generated artefacts ----
+evals/reports/*.json
+evals/reports/*.html
+evals/reports/*.parquet
+!evals/reports/.gitkeep
+scenarios/manifests/*.json
+!scenarios/manifests/.gitkeep
+
+# ---- local infra state ----
+infra/pgdata/
+infra/natsdata/
+infra/miniodata/
+
+# ---- os / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
