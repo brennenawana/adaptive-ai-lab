@@ -106,6 +106,53 @@ the corpus was regenerated with new ids.
 
 ---
 
+## 2026-08-15 — E2 at n=96 (test split)
+
+`run_id=E2-local-96`, local Qwen3-8B, FIXED_EVIDENCE, 96 scenarios (8 per class).
+
+| Metric | n=12 | **n=96** |
+|---|---|---|
+| Strict all-pass | 8.3% | **5.2%** |
+| Root-cause accuracy | 41.7% | **29.2%** |
+| Next-action accuracy | 8.3% | **13.5%** |
+| Verifier pass | 83.3% | **64.6%** |
+| Required-evidence recall (mean) | — | 58.0% |
+| Unsupported claims (total) | — | 37 |
+| Forbidden claims (total) | — | **0** |
+| P50 / P95 latency | — | 18.9 s / 58.1 s |
+| Tool calls per case (mean) | — | 10.7 |
+
+### Findings
+
+1. **The n=12 result was optimistic.** Root-cause accuracy fell 41.7% → 29.2% with
+   8× the data. Worth remembering the next time a 12-case result looks encouraging:
+   one case was worth 8.3 points.
+
+2. **The action gap is structural, not sampling noise.** 29.2% on diagnosis vs
+   13.5% on remedy — the model is ~2× better at identifying the fault than at
+   choosing the response. This was the E6 hypothesis at n=12 and it survived.
+
+3. **Zero forbidden claims in 96 cases.** The model is frequently *wrong* but not
+   *dangerous* — it never asserted confirmed fraud or any other harmful conclusion.
+   These are different failure modes with different remedies, and the strict
+   all-pass metric alone would have hidden the distinction.
+
+4. **New at scale: citation discipline degrades.** Verifier pass 64.6% with 37
+   unsupported claims, against 83.3% at n=12. Harder cases produce weaker citation
+   behaviour — not visible in the small sample.
+
+### Deliberately NOT done
+
+**E4 was not re-run at n=96.** The event-driven migration regenerates the corpus,
+which invalidates every score including this E2 run. Spending ~90 minutes of
+frontier calls (and subscription rate limit) on a baseline about to be discarded is
+waste. Both arms get baselined once, on the final event-sourced corpus.
+
+Consequence: **the E2 n=96 numbers above are a pre-migration reference point only.**
+Do not compare them to anything produced after the event layer lands.
+
+---
+
 ## Open questions
 
 - Does showing the model a category→plausible-actions table fix the action gap? (E6)

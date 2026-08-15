@@ -31,3 +31,6 @@ target-version = "py312"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Consumers are async; without this every async test silently reports as failed
+# with "async functions are not natively supported".
+asyncio_mode = "auto"
