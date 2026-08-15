@@ -28,6 +28,8 @@ from schemas.common import ModelTier, new_trace_id, utc_now
 from schemas.investigator import InvestigationResult
 from schemas.trajectory import ModelInvocation, Trajectory
 
+from .prompts import DEFAULT_PROMPT, PROMPTS
+
 WORKFLOW = "fintech_case_investigation"
 WORKFLOW_VERSION = "1.0.0"
 PROMPT_VERSION = "1"
@@ -38,26 +40,9 @@ class EvidenceMode(StrEnum):
     FIXED_EVIDENCE = "fixed_evidence"
 
 
-SYSTEM_PROMPT = """You are an operations investigator for Northstar Bank.
-
-Given a case, determine the most likely root cause from the evidence available.
-
-Rules:
-- Separate facts from hypotheses. A fact is something a tool result directly shows;
-  anything inferred, suspected or probable is a hypothesis, not a fact.
-- Every fact must cite its source as tool://<tool_name>/<entity_id>, where
-  <tool_name> is the tool the evidence came from and <entity_id> is the specific
-  record id. For example: tool://get_ledger_entries/le_001539
-- Put the specific record ids you relied on in each fact's entity_ids list.
-- Do not assert customer fraud, or any conclusion the evidence does not directly
-  support. An open alert is a pattern match, not a finding.
-- The surface symptom is often not the root cause. A decline may be caused by an
-  upstream risk hold; an inactive card may be waiting on identity verification.
-- "Nothing is wrong" is a legitimate conclusion when the authoritative systems agree.
-- Set confidence honestly. Low confidence with correct reasoning is better than
-  high confidence you cannot support.
-
-Respond only via the provided schema."""
+# Kept as a module-level name because callers and tests import it. The registry in
+# `prompts.py` is the source of truth; this is its default entry.
+SYSTEM_PROMPT = PROMPTS[DEFAULT_PROMPT]
 
 
 def _phase_one(case: dict[str, Any]) -> list[tuple[str, dict]]:
@@ -150,6 +135,7 @@ async def investigate(
     mode: EvidenceMode = EvidenceMode.FIXED_EVIDENCE,
     scenario_id: str | None = None,
     max_tool_rounds: int = 8,
+    prompt_ref: str = DEFAULT_PROMPT,
     user: str = "eval-runner",
 ) -> tuple[InvestigationResult | None, Trajectory]:
     traj = Trajectory(
@@ -163,6 +149,13 @@ async def investigate(
         experiment_arm=experiment_arm,
         permissions_snapshot={"read_only": True},
     )
+
+    # Resolved here rather than defaulted in the signature so an unknown ref fails
+    # loudly at the start of a run instead of silently scoring 96 cases against the
+    # baseline prompt and reporting them as the variant.
+    if prompt_ref not in PROMPTS:
+        raise KeyError(f"unknown prompt {prompt_ref!r}; known: {sorted(PROMPTS)}")
+    system_prompt = PROMPTS[prompt_ref]
 
     # --- gather -------------------------------------------------------------
     case, case_call = broker.invoke("get_case", {"case_id": case_id})
@@ -207,7 +200,7 @@ async def investigate(
     for _round in range(max_tool_rounds if mode is EvidenceMode.AGENTIC else 1):
         req = GenerationRequest(
             model_ref=model_ref,
-            system=SYSTEM_PROMPT,
+            system=system_prompt,
             messages=transcript,
             json_schema=schema if mode is EvidenceMode.FIXED_EVIDENCE else None,
             tools=openai_tool_specs() if mode is EvidenceMode.AGENTIC else None,

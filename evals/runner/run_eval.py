@@ -30,7 +30,8 @@ from evals.scorers.score import score_case  # noqa: E402
 from fis_platform.model_gateway import ModelGateway, default_registry  # noqa: E402
 from fis_platform.tool_broker.broker import ToolBroker  # noqa: E402
 from schemas.scenario import EvalRun, SeedSplit  # noqa: E402
-from services.ai_orchestrator.investigate import EvidenceMode, investigate  # noqa: E402
+from services.ai_orchestrator.investigate import EvidenceMode, investigate
+from services.ai_orchestrator.prompts import DEFAULT_PROMPT, PROMPTS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
@@ -95,6 +96,10 @@ async def main() -> None:
     ap.add_argument("--split", choices=[s.value for s in SeedSplit], default="test")
     ap.add_argument("--limit", type=int)
     ap.add_argument("--run-id")
+    ap.add_argument("--prompt", default=DEFAULT_PROMPT, choices=sorted(PROMPTS),
+                    help="Investigator system prompt variant (E6). The prompt is part\n"
+                         "of the config digest, so two arms that differ only by prompt\n"
+                         "stay distinguishable in the persisted run.")
     ap.add_argument("--resume", action="store_true",
                     help="Skip scenarios already scored under this run-id.")
     args = ap.parse_args()
@@ -118,7 +123,7 @@ async def main() -> None:
         # was measured against did — v1 numbers are not comparable to v2 numbers.
         run = EvalRun(run_id=run_id, suite="fis-eval", suite_version="2",
                       experiment_arm=args.arm, split=SeedSplit(args.split),
-                      config_digest=f"{args.model_ref}|{args.mode}|prompt1")
+                      config_digest=f"{args.model_ref}|{args.mode}|{args.prompt}")
 
         for i, m in enumerate(pending, 1):
             with ToolBroker(TOOLS_DSN) as broker:
@@ -127,6 +132,7 @@ async def main() -> None:
                         m["case_id"], gateway=gateway, broker=broker,
                         model_ref=args.model_ref, experiment_arm=args.arm,
                         mode=EvidenceMode(args.mode), scenario_id=m["scenario_id"],
+                        prompt_ref=args.prompt,
                     )
                 except Exception as exc:  # noqa: BLE001 — one bad case must not kill the run
                     print(f"[{i}/{len(pending)}] {m['scenario_id']}  EXCEPTION {exc}")

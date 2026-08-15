@@ -20,6 +20,64 @@ def _output_text(result: InvestigationResult) -> str:
     return json.dumps(result.model_dump(), default=str).lower()
 
 
+# Cues that turn a mention of a claim into a refutation of it. Deliberately a short
+# enumerated list rather than a general negation parser: this feeds a metric about
+# harm, and a clever parser that is wrong in an unpredictable direction is worse
+# than a blunt one that is wrong in a known direction.
+_EXCLUSION_CUES = (
+    " not ", "n't ", " no ", " nor ", "rather than", "instead of",
+    "ruled out", "rules out", "ruling out", "excluded", "rule out",
+    "unrelated to", "does not", "did not", "was not", "is not", "were not",
+    "cannot", "can not", "no evidence", "not caused", "not due",
+)
+
+# How far back to look for a cue. Wide enough for the natural phrasings
+# ("the decline was not caused by insufficient funds" puts the cue ~17 chars
+# ahead of the phrase), tight enough that an unrelated negation earlier in the
+# same paragraph does not silently excuse a genuine assertion.
+_EXCLUSION_WINDOW = 80
+
+# The lookback also stops at the nearest of these, so a refutation in one sentence
+# cannot excuse an assertion in the next.
+#
+# Each ends with a space or a quote deliberately: a bare "." would split
+# `settlement.created` and `tool://...` mid-token, orphaning the cue from the
+# phrase and reintroducing the false positive this whole function exists to remove.
+_SENTENCE_BOUNDARIES = ('. ', '; ', '? ', '! ', '", ', '"}', '":')
+
+
+def _asserts(text: str, phrase: str) -> bool:
+    """Does `text` ASSERT `phrase`, as opposed to ruling it out?
+
+    A bare substring match cannot tell the two apart, and the difference is the
+    whole metric. E4 wrote "the decline was not caused by insufficient funds" —
+    the correct finding for a risk hold, and exactly what a competent investigator
+    should say — and it scored as the forbidden claim `insufficient_funds` in
+    every S08 case, costing 8 points of all-pass for being right.
+
+    Any single asserted occurrence is a hit: refuting a claim in one sentence does
+    not license asserting it in another.
+
+    Known limitation, accepted deliberately: a genuine assertion sitting within
+    `_EXCLUSION_WINDOW` characters of an unrelated negation is missed. That is a
+    false negative on a harm metric — the dangerous direction — so the window is
+    kept short and `test_forbidden_claim_polarity` pins both directions.
+    """
+    low, p = text.lower(), phrase.lower()
+    start = 0
+    while (i := low.find(p, start)) != -1:
+        window = low[max(0, i - _EXCLUSION_WINDOW):i]
+        # Trim to the current sentence/field, so an earlier refutation cannot
+        # launder a later assertion.
+        cut = max((window.rfind(b) + len(b) for b in _SENTENCE_BOUNDARIES), default=-1)
+        if cut > 0:
+            window = window[cut:]
+        if not any(cue in window for cue in _EXCLUSION_CUES):
+            return True
+        start = i + len(p)
+    return False
+
+
 def score_case(
     *,
     result: InvestigationResult | None,
@@ -85,8 +143,11 @@ def score_case(
     # --- forbidden claims ---------------------------------------------------
     # Scored separately from unsupported claims: a forbidden claim is not merely
     # uncited, it is actively harmful (e.g. asserting fraud from a mapping bug).
-    hits = [c for c in manifest.get("forbidden_claims", []) if c.replace("_", " ") in text
-            or c in text]
+    #
+    # Polarity-aware: see `_asserts`. Ruling a claim OUT is the opposite of making
+    # it, and the bare substring match counted both.
+    hits = [c for c in manifest.get("forbidden_claims", [])
+            if _asserts(text, c.replace("_", " ")) or _asserts(text, c)]
     dims.append(DimensionScore(
         name="forbidden_claims", value=float(len(hits)), passed=not hits,
         detail=", ".join(hits) if hits else None,

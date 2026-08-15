@@ -36,6 +36,12 @@ SELECT run_id,
        avg(((payload->>'root_cause_correct')::bool)::int)          AS root_cause,
        avg((payload->>'required_evidence_recall')::float)          AS evidence,
        avg(((payload->>'next_action_acceptable')::bool)::int)      AS action,
+       -- The metric E6 is judged on. Aggregate action accuracy rises if a model
+       -- simply guesses common actions; this asks whether it can apply a policy to
+       -- the diagnosis it actually made. The v2 local baseline is 18.8% here, against
+       -- 17.5% when its cause was WRONG - i.e. no relationship at all.
+       avg(((payload->>'next_action_acceptable')::bool)::int)
+           FILTER (WHERE (payload->>'root_cause_correct')::bool)  AS action_given_cause,
        avg(((payload->>'verifier_passed')::bool)::int)             AS verifier,
        sum((payload->>'unsupported_claims')::int)                  AS unsupported,
        sum(((payload->>'forbidden_claim_made')::bool)::int)        AS forbidden,
@@ -64,8 +70,8 @@ def main() -> None:
         return
 
     hdr = (f"{'run':<26}{'n':>4}{'all-pass':>10}{'root':>8}{'evid':>8}{'act':>8}"
-           f"{'ver':>8}{'unsup':>7}{'forb':>6}{'cloud':>8}{'p50':>8}{'p95':>8}"
-           f"{'tools':>7}{'$/win':>9}")
+           f"{'act|rc':>8}{'ver':>8}{'unsup':>7}{'forb':>6}{'cloud':>8}{'p50':>8}"
+           f"{'p95':>8}{'tools':>7}{'$/win':>9}")
     print(hdr)
     print("-" * len(hdr))
 
@@ -75,7 +81,8 @@ def main() -> None:
         label = r["run_id"] + (" †" if r["run_id"] in SUITE_V1_RUNS else "")
         print(
             f"{label:<26}{r['n']:>4}{_pct(r['all_pass']):>10}{_pct(r['root_cause']):>8}"
-            f"{_pct(r['evidence']):>8}{_pct(r['action']):>8}{_pct(r['verifier']):>8}"
+            f"{_pct(r['evidence']):>8}{_pct(r['action']):>8}"
+            f"{_pct(r['action_given_cause']):>8}{_pct(r['verifier']):>8}"
             f"{r['unsupported'] or 0:>7}{r['forbidden'] or 0:>6}{_pct(r['cloud']):>8}"
             f"{r['p50_ms']:>7}ms{r['p95_ms']:>7}ms{r['tools']:>7.1f}"
             f"{('  n/a' if cost_per_win is None else f'${cost_per_win:.4f}'):>9}"
@@ -85,6 +92,8 @@ def main() -> None:
     print("AND zero unsupported claims AND acceptable action AND verifier passed.")
     print("$/win uses reference list prices — subscription marginal cost is ~zero, so")
     print("billed amounts would make every cloud arm look free.")
+    print("act|rc is action accuracy among cases whose ROOT CAUSE was correct — the")
+    print("E6 metric. Aggregate act rises by guessing common actions; act|rc does not.")
 
     if any(r["run_id"] in SUITE_V1_RUNS for r in rows):
         print("\n† scored against eval suite v1, the PRE-migration corpus. Not comparable")

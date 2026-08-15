@@ -60,6 +60,26 @@ corpus: ## Regenerate the full frozen corpus (96 test / 48 dev / 144 train)
 # ---------------------------------------------------------------- evals
 # Every arm is resumable: subscription rate limits WILL interrupt a long run, and
 # re-running a partial set against a full one is how you get a wrong conclusion.
+# ---------------------------------------------------------------- E6
+# Variant SELECTION happens on dev, never on test.
+#
+# E6 compares several prompts and keeps the best. Doing that on the test split is
+# tuning against the test set by definition — the guide's own rule — and it would
+# quietly convert the frozen suite into a training signal. Dev exists for this.
+# `eval-e6-confirm` then runs the chosen variant on test exactly once.
+.PHONY: eval-e6-dev eval-e6-confirm
+eval-e6-dev: ## E6 — score all three prompt variants on the DEV split
+	$(PY) -m evals.runner.run_eval --arm E6 --model-ref local-specialist --split dev \
+	  --prompt baseline              --run-id E6-A-baseline-dev  --resume
+	$(PY) -m evals.runner.run_eval --arm E6 --model-ref local-specialist --split dev \
+	  --prompt cause_action_table    --run-id E6-B-table-dev     --resume
+	$(PY) -m evals.runner.run_eval --arm E6 --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --run-id E6-C-directed-dev  --resume
+eval-e6-confirm: ## E6 — run the winning variant on TEST once (set PROMPT=...)
+	@test -n "$(PROMPT)" || { echo "usage: make eval-e6-confirm PROMPT=cause_action_directed"; exit 1; }
+	$(PY) -m evals.runner.run_eval --arm E6 --model-ref local-specialist --split test \
+	  --prompt $(PROMPT) --run-id E6-$(PROMPT)-96 --resume
+
 .PHONY: reachability
 reachability: ## Can the fixed-evidence plan reach every case's required evidence?
 	# Run after `make corpus`, before trusting any score. A class capped below the

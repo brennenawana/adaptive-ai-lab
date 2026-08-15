@@ -115,16 +115,36 @@ It has no model of which remedies attach to which defects.
 > genuinely-lost-event scenario belongs in the ontology and is not yet generated. Its
 > presence in the enum with no valid use makes it a pure distractor — which is why a
 > model anchoring on names rather than reasoning reaches for it.
+>
+> **Decision 2026-08-15: keep it.** It is earning its place as a diagnostic — reaching
+> for it is the signature of name-anchoring rather than reasoning, which is precisely
+> the E2 failure mode under study, and E4 never selected it (96/96 sanctioned).
+> Removing it or adding a lost-event class are both breaking suite changes; batch
+> them with the next one that has to happen anyway.
+>
+> Note S10 is now *literally* a lost event — the settlement is never published — but
+> its correct remedy is still reconciliation, not replay. A lost-event class would
+> need a scenario where re-delivery is genuinely the fix.
 
-### Two entries under review (`BAD_RUBRIC` candidates)
+### Two entries reviewed and CLOSED — no change (2026-08-15)
 
-Logged 2026-08-15, **not yet changed**, because altering a rubric after seeing model
-answers is tuning against the test set. To be decided before the next frozen suite:
+Logged after two E4 answers on suite v1 looked defensible but scored wrong:
 
 1. `stale_integration_mapping` — is `contact_identity_vendor` defensible? The vendor
    genuinely did change their schema. Argument against: the fix is ours, not theirs.
 2. `reconciliation_gap` — is `inspect_mapping_version` defensible? Plausible if you
    suspect the mapper dropped the posting.
+
+**Closed as no change.** The evidence that prompted the review does not reproduce:
+on suite v2, E4 selected a sanctioned action in **96 of 96** cases — zero rejections
+in any class, including S09 and S10. Both disagreements were artefacts of the v1
+corpus, where those classes had structurally unreachable evidence and the model was
+choosing a remedy for a cause it could not properly establish.
+
+The rubric was written on the merits before results existed and is unchanged. Note
+what did *not* happen here: it was not widened because a model disagreed with it, and
+it is not being narrowed now because a model agrees. The closure rests on the
+disagreement having had a separate, identified cause.
 
 ---
 
