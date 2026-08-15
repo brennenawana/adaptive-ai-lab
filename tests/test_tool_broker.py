@@ -112,3 +112,61 @@ def test_calls_are_recorded_in_order():
         b.invoke("get_case", {"case_id": "b"})
     assert [c.sequence for c in b.calls] == [0, 1]
     assert all(c.args_hash for c in b.calls)
+
+
+# ---------------------------------------------------------------- S07 visibility
+def test_ledger_entries_expose_posting_order(pg_required=None):
+    """S07's hazard must be visible through the TOOL, not just in the database.
+
+    The reversal race lives in the disagreement between `posting_seq` (the order
+    postings were made) and `posted_at` (when the events occurred). If the tool
+    sorts by `posted_at` and omits `posting_seq`, the ledger reads as perfectly
+    chronological and net zero — so the only conclusion the evidence supports is
+    that nothing is wrong, and `reversal_race` becomes unreachable by correct
+    reasoning while remaining guessable from the case summary.
+
+    That is the same defect as unreachable webhook evidence, one layer down: the
+    fact exists, and no tool call surfaces it.
+    """
+    import os
+
+    import psycopg
+
+    from fis_platform.tool_broker.broker import ToolBroker
+
+    dsn = os.environ.get("FIS_TOOLS_DSN",
+                         "postgresql://fis_tools:fis_tools_local_dev@127.0.0.1:5433/fis")
+    try:
+        with psycopg.connect(dsn, connect_timeout=3):
+            pass
+    except psycopg.Error:
+        import pytest
+        pytest.skip("FIS Postgres not running")
+
+    owner = os.environ.get("FIS_PG_DSN", "postgresql://fis:fis_local_dev@127.0.0.1:5433/fis")
+    with psycopg.connect(owner) as conn:
+        row = conn.execute(
+            "SELECT subject_ids->>'account_id' FROM ground_truth.scenario_manifests "
+            "WHERE scenario_id LIKE 'S07%' AND split = 'test' LIMIT 1"
+        ).fetchone()
+    if row is None or row[0] is None:
+        import pytest
+        pytest.skip("no S07 scenario generated yet")
+
+    with ToolBroker(dsn) as broker:
+        res, _ = broker.invoke("get_ledger_entries", {"account_id": row[0]})
+
+    entries = res["entries"]
+    assert entries, "S07 account has no ledger entries"
+    assert all("posting_seq" in e for e in entries), (
+        "posting_seq must be returned — without it the reversal race is invisible"
+    )
+    # Returned in insertion order, which is the misleading view the case describes.
+    seqs = [e["posting_seq"] for e in entries]
+    assert seqs == sorted(seqs), "entries must be returned in posting order"
+
+    inverted = any(b["posted_at"] < a["posted_at"] for a, b in zip(entries, entries[1:]))
+    assert inverted, (
+        "S07 must show a posting whose event time precedes its predecessor's — "
+        "that disagreement is the whole scenario"
+    )

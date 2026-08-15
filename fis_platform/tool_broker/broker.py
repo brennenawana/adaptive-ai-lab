@@ -170,12 +170,27 @@ def _get_ledger_entries(conn, args):
     else:
         raise ValueError("get_ledger_entries requires account_id or customer_id")
 
+    # posting_seq is returned, and is the sort key.
+    #
+    # It is the order the postings were actually made. `posted_at` is when the event
+    # OCCURRED, which the ledger consumer stamps deliberately. For almost every
+    # scenario the two agree and this changes nothing.
+    #
+    # For S07 they disagree, and that disagreement IS the case: a reversal posted
+    # before the settlement it reverses, because the settlement was delayed in
+    # delivery. Reading the account in insertion order shows a credit then a debit —
+    # exactly the customer's "refunded transaction was charged again". Sorting by
+    # `posted_at` and hiding `posting_seq` presented a ledger that was perfectly
+    # chronological and net zero, so the only correct reading of the evidence was
+    # that nothing was wrong. The hazard existed in the database and was invisible
+    # to every tool, which made `reversal_race` unreachable by correct reasoning and
+    # rewarded guessing from the case summary instead.
     ids = [a["account_id"] for a in accounts] or ["__none__"]
     entries = _rows(conn, """
         SELECT entry_id, account_id, direction, amount, currency, reference_type,
-               reference_id, posted_at
+               reference_id, posted_at, posting_seq
         FROM ledger.entries
-        WHERE account_id = ANY(%s) ORDER BY posted_at LIMIT %s
+        WHERE account_id = ANY(%s) ORDER BY posting_seq LIMIT %s
     """, (ids, int(args.get("limit", 200))))
     return {"accounts": accounts, "entries": entries}
 
