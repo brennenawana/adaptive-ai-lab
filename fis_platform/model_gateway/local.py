@@ -14,6 +14,7 @@ import httpx
 from schemas.common import LatencyRecord, TokenUsage
 
 from .base import GenerationRequest, GenerationResponse, ModelAdapter
+from .schema_compat import to_gbnf_safe
 
 
 class LocalLlamaCppAdapter(ModelAdapter):
@@ -60,9 +61,15 @@ class LocalLlamaCppAdapter(ModelAdapter):
         if req.json_schema is not None:
             # llama.cpp converts this to a GBNF grammar and constrains decoding, so
             # the output cannot be malformed rather than merely usually being valid.
+            # Length/numeric constraints must be stripped first — this build fails
+            # grammar compilation on them. The verifier still enforces them.
             body["response_format"] = {
                 "type": "json_schema",
-                "json_schema": {"name": "fis_output", "schema": req.json_schema, "strict": True},
+                "json_schema": {
+                    "name": "fis_output",
+                    "schema": to_gbnf_safe(req.json_schema),
+                    "strict": True,
+                },
             }
 
         started = time.perf_counter()
@@ -72,11 +79,17 @@ class LocalLlamaCppAdapter(ModelAdapter):
                 r.raise_for_status()
                 payload = r.json()
         except httpx.HTTPError as exc:
+            # Include the server's response body. llama.cpp returns the actual
+            # reason (bad grammar, context overflow) in the body; without it a 400
+            # is just "something was wrong" and costs an hour to diagnose.
+            detail = ""
+            if isinstance(exc, httpx.HTTPStatusError):
+                detail = f" | body: {exc.response.text[:600]}"
             return GenerationResponse(
                 text="", model_id=self.manifest.model_id, provider=self.manifest.provider,
                 tier=self.manifest.tier,
                 latency=LatencyRecord(wall_ms=int((time.perf_counter() - started) * 1000)),
-                is_error=True, error=f"{type(exc).__name__}: {exc}",
+                is_error=True, error=f"{type(exc).__name__}: {exc}{detail}",
             )
         wall_ms = int((time.perf_counter() - started) * 1000)
 
