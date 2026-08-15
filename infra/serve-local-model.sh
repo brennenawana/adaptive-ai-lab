@@ -8,14 +8,26 @@
 # Usage: ./serve-local-model.sh [model.gguf] [ctx] [port]
 set -u
 
-BIN="$HOME/llama.cpp-upstream/build-cuda/bin/llama-server"
-MODEL="${1:-$HOME/models/Qwen3-8B-Q4_K_M.gguf}"
+# Overridable so shared inference infrastructure can be relocated without editing
+# this script. Defaults preserve the original layout.
+#
+# NOTE: the CUDA runtime libs historically lived inside ~/bonsai-eval/, an
+# unrelated earlier project. That was a hidden cross-project dependency — tidying
+# that directory away would have broken the model server with a bare
+# "libcudart.so.12 not found" that points nowhere near the cause.
+FIS_LLAMA_DIR="${FIS_LLAMA_DIR:-$HOME/llama.cpp-upstream}"
+FIS_MODELS_DIR="${FIS_MODELS_DIR:-$HOME/models}"
+FIS_CUDA_LIB="${FIS_CUDA_LIB:-$HOME/bonsai-eval/cudaenv/lib}"
+
+BIN="$FIS_LLAMA_DIR/build-cuda/bin/llama-server"
+MODEL="${1:-$FIS_MODELS_DIR/Qwen3-8B-Q4_K_M.gguf}"
 CTX="${2:-16384}"
 PORT="${3:-8082}"
 LOG=/tmp/fis-local-model.log
 
-# The CUDA runtime libs live in the bonsai-eval env, not on the default path.
-export LD_LIBRARY_PATH="$HOME/bonsai-eval/cudaenv/lib:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$FIS_CUDA_LIB:${LD_LIBRARY_PATH:-}"
+
+[ -d "$FIS_CUDA_LIB" ] || echo "!! warning: FIS_CUDA_LIB not found: $FIS_CUDA_LIB" >&2
 
 [ -f "$MODEL" ] || { echo "!! model not found: $MODEL"; exit 1; }
 [ -x "$BIN" ]   || { echo "!! llama-server not found: $BIN"; exit 1; }

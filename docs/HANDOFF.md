@@ -171,6 +171,45 @@ Set per session (`cc --model opus --effort high`) or persist in
 
 ---
 
+## Home-directory restructure (2026-08-15)
+
+`/home/wall` had accumulated three unrelated things in one flat directory: shared
+AI infrastructure, an earlier unrelated project ("the wall" / bonsai / rearch), and
+this project. The user reorganised into `~/infra`, `~/projects`, `~/archive`.
+
+**Why this is recorded:** FIS had a *hidden cross-project dependency*. The local
+model server sourced its CUDA runtime libraries from `~/bonsai-eval/cudaenv/lib` —
+inside the earlier project. Archiving that directory would have broken the model
+server with a bare `libcudart.so.12 not found`, which points nowhere near the
+actual cause. If the local model will not start, suspect this first.
+
+`infra/serve-local-model.sh` is now parameterised, defaults unchanged:
+
+| Variable | Default | What it is |
+|---|---|---|
+| `FIS_LLAMA_DIR` | `~/llama.cpp-upstream` | llama.cpp build (needs `build-cuda/bin/llama-server`) |
+| `FIS_MODELS_DIR` | `~/models` | GGUF weights |
+| `FIS_CUDA_LIB` | `~/bonsai-eval/cudaenv/lib` | CUDA runtime libs |
+
+After relocation, set these in `.env` (gitignored) or export them. The script now
+warns if `FIS_CUDA_LIB` does not exist rather than failing obscurely later.
+
+**Two consequences of moving the repo itself** (if `~/fintech-integration-sandbox`
+moved under `~/projects/`):
+
+1. **`.venv` breaks.** uv venvs bake absolute paths into their scripts. Recreate:
+   `uv venv --python 3.12 && uv pip install -e ".[dev]"` — or reinstall the
+   packages listed in `pyproject.toml`.
+2. **The Claude Code project key changes**, so the memory directory moves with it:
+   `~/.claude/projects/-home-wall-fintech-integration-sandbox/` becomes
+   `-home-wall-projects-fintech-integration-sandbox`. Memories do not follow
+   automatically.
+
+Also relocated: `~/ollama` sets `OLLAMA_MODELS=$HOME/ollama/models` in its own
+`env.sh`, which needs updating if that directory moved. Not used by FIS.
+
+---
+
 ## Verify everything is alive
 
 ```bash
