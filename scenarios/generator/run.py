@@ -41,8 +41,12 @@ def build(code: str, seed: int) -> tuple[World, dict]:
     if code not in BUILDERS:
         raise KeyError(f"unknown scenario {code!r}; known: {sorted(BUILDERS)}")
     rng = Random(seed)
-    scenario_id = f"{code}-{seed % 100_000:05d}"
-    world = World(scenario_id=scenario_id, seed=seed, rng=rng, clock=Clock(), ids=Ids(rng))
+    # The FULL seed, not seed % 100_000 — the modulo made train seed 1_000_000 and
+    # test seed 3_000_000 both render as "S01-00000", colliding a training scenario
+    # with a test one on the primary key and quietly breaking the split boundary.
+    scenario_id = f"{code}-{seed:07d}"
+    world = World(scenario_id=scenario_id, seed=seed, rng=rng, clock=Clock(),
+                  ids=Ids(rng, seed))
     manifest = BUILDERS[code](world)
     manifest |= {
         "scenario_id": scenario_id,

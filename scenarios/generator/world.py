@@ -54,23 +54,28 @@ class Clock:
 
 
 class Ids:
-    """Short, readable, deterministic ids.
+    """Deterministic ids, globally unique across every scenario.
 
-    Every entity gets both an internal id and a provider-native one. The mismatch
-    between the two id spaces is realistic and is what S09 exercises.
+    The seed is part of every id. An earlier version used a per-scenario counter
+    plus a few random digits, which collided as soon as the split grew past a
+    handful of scenarios — entity ids must be unique across the whole corpus
+    because they all land in one set of tables.
     """
 
-    def __init__(self, rng: Random) -> None:
+    def __init__(self, rng: Random, seed: int) -> None:
         self._rng = rng
+        self._seed = seed
         self._counters: dict[str, int] = {}
 
     def next(self, prefix: str) -> str:
         n = self._counters.get(prefix, 0) + 1
         self._counters[prefix] = n
-        return f"{prefix}_{n:03d}{self._rng.randint(100, 999)}"
+        return f"{prefix}_{self._seed}_{n:02d}"
 
     def provider(self, vendor_prefix: str) -> str:
-        return f"{vendor_prefix}-{self._rng.randint(10**7, 10**8 - 1)}"
+        n = self._counters.get("_prov", 0) + 1
+        self._counters["_prov"] = n
+        return f"{vendor_prefix}-{self._seed}-{n:02d}"
 
 
 def person(rng: Random) -> tuple[str, str, str]:

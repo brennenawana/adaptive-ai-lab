@@ -31,7 +31,9 @@ class ScenarioManifest(FrozenBase):
     """Ground truth for one generated incident. Frozen — a manifest that can be
     edited after scoring is not ground truth."""
 
-    scenario_id: str = Field(pattern=r"^S\d{2}-\d{5}$")
+    # 7 digits carries the full seed, so ids are unique across splits. A 5-digit
+    # form collided train seed 1,000,000 with test seed 3,000,000.
+    scenario_id: str = Field(pattern=r"^S\d{2}-\d{7}$")
     seed: int
     split: SeedSplit
     category: str
