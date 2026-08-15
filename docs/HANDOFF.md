@@ -5,9 +5,9 @@ in the other four docs. Read `architecture.md` and `task-ontology.md` before cod
 
 ---
 
-## State: working, coherent, mid-migration
+## State: the event migration is DONE
 
-**5 commits, 102 tests green.** `git log --oneline` for the trail.
+**6 commits, 132 tests green.** `git log --oneline` for the trail.
 
 | Piece | State |
 |---|---|
@@ -18,35 +18,51 @@ in the other four docs. Read `architecture.md` and `task-ontology.md` before cod
 | Orchestrator (`investigate`) | done, two evidence modes |
 | Scenario generator, 12 classes | done, deterministic, 288 scenarios |
 | Eval runner + scorers | done, checkpointed/resumable |
-| **Event layer** | **envelopes + bus + integration consumer + ledger consumer done; generator NOT yet ported** |
+| **Event layer** | **DONE — all 7 steps. Generator publishes; consumers materialise.** |
 
 Infra (all healthy): Postgres+pgvector `:5433`, NATS JetStream `:4222`,
 Qwen3-8B on llama.cpp `:8082`. Start with `make up-core` and `make serve-local`.
 
+**Suite version is now `2`.** The corpus is event-sourced and the tool set gained
+`get_verifications` v2. Nothing from v1 is comparable to anything from v2.
+
+### What landed
+
+S01, S02, S06, S07, S09 and S10 publish `ProviderEvent`s and let the consumers decide
+what happens. `World.add_event` is deleted; `add_delivery` is now
+`add_failed_delivery`, restricted to `retrying`/`failed` because a delivery that
+failed is the one thing a consumer cannot record about itself. See
+`architecture.md` § "What step 7 actually deleted, and what survives" — two narrow
+direct-write paths survive on purpose, and **S12's retry storm is the one genuinely
+open item** (it needs poison-message handling in the bus).
+
+Determinism held by making envelope ids `uuid5` over the scenario id. Every
+materialised row is named after the envelope that caused it, so `uuid4` would have
+given the same seed a different world on every regeneration — and the
+`ON CONFLICT DO NOTHING` on manifests would have hidden it as stale evidence ids.
+`fis_platform/events/projection.py` replays the real consumer logic without a broker
+so a builder can name rows before publishing them; generation asserts the projection
+and the live pipeline agree, per scenario.
+
 ---
 
-## THE NEXT TASK — finish the event migration
+## THE NEXT TASK — E6, the cause→action intervention
 
-`architecture.md` declares this **normative**: no new scenario class or experiment
-arm ships until it lands. Steps 1–4 are done. Remaining:
+The action gap is confirmed and is the largest addressable failure. The intervention
+is already written: the cause→action table in `task-ontology.md` §3. Put it in the
+investigator system prompt and re-run E2 against suite v2.
 
-**5. Port the generator to publish instead of insert.**
-`scenarios/generator/world.py` currently appends rows to lists which
-`run.py::write()` INSERTs directly. For the webhook/settlement/verification paths,
-publish a `ProviderEvent` through `EventBus.publish_provider_event()` and let
-`IntegrationConsumer` → `LedgerConsumer` materialise the rows.
+E6 sits **above** LoRA on the specialization ladder — run it before considering any
+training. It is also the first genuinely fan-out-shaped work in this project (several
+prompt variants scored blind against the same frozen suite is a judge panel), so it
+is the first place `ultracode` is warranted. See the per-stage table below.
 
-Keep determinism: publish, then drain to consumer acknowledgement before the next
-publish (`EventBus.drain()`). Do **not** fire-and-forget — see the reasoning in
-`bus.py`'s docstring. Races (S07) come from publishing in a deliberately inverted
-order, never from timing.
-
-Scenarios that become genuinely event-driven: **S01, S02, S06, S07, S09, S10.**
-S03/S04/S05/S08/S11 stay state-based, which is correct.
-
-**6. Delete the direct-insert path** so it cannot silently return.
-
-**7. Regenerate the corpus and re-baseline E2 and E4 together.**
+While writing that table: **`replay_webhook` is sanctioned for no current root
+cause** — a genuinely-lost-event scenario belongs in the ontology and is not
+generated yet. It is therefore a pure distractor, which is very likely why a
+name-anchoring model reached for it across three unrelated scenarios. Note that S10
+is now *literally* a lost event (never published), but its correct remedy is still
+reconciliation, not replay.
 
 ---
 
@@ -74,30 +90,20 @@ case was worth 8.3 points.
 
 ## Deliberately NOT done (do not silently undo these)
 
-1. **E4 was not re-run at n=96.** The migration invalidates it. Baseline both arms
-   once, together, on the final corpus.
-2. **The action rubric was not widened** despite two arguably-defensible E4 answers
+1. **The action rubric was not widened** despite two arguably-defensible E4 answers
    (S09 `contact_identity_vendor`, S10 `inspect_mapping_version`). It was written
    on the merits *before* results existed; changing it after seeing model answers
    is tuning against the test set. Logged as `BAD_RUBRIC` candidates in
    `task-ontology.md` §3 — decide before the next frozen suite version, not after
-   seeing more scores.
-3. **MinIO provisioned but unused** — trajectories still fit in JSONB.
-
----
-
-## After the migration: E6
-
-Targets the confirmed action gap, and sits **above** LoRA on the specialization
-ladder — run it before considering any training.
-
-The intervention is already written: the cause→action table in
-`task-ontology.md` §3. Put it in the investigator system prompt and re-run E2.
-
-While writing that table I noticed **`replay_webhook` is sanctioned for no current
-root cause** — a genuinely-lost-event scenario belongs in the ontology and is not
-generated yet. It is therefore a pure distractor, which is very likely why a
-name-anchoring model reached for it across three unrelated scenarios.
+   seeing more scores. **Still open, and now more tempting**, because the v2
+   corpus makes both answers marginally more defensible. Decide it on the merits or
+   not at all.
+2. **S12's retry storm was not made event-driven.** It needs poison-message handling
+   in the bus, which is a new capability rather than a port. `add_failed_delivery`
+   rejects non-failure statuses so the gap stays visible instead of quietly widening.
+3. **The root-cause and action sets were not touched** by the migration. Suite v2 is
+   a corpus + tool change, not an ontology change.
+4. **MinIO provisioned but unused** — trajectories still fit in JSONB.
 
 ---
 
@@ -129,6 +135,25 @@ Each was initially mistakable for model weakness:
    3,000,000 — the same primary key for a train and a test scenario.
 4. Reversal-race detector ordered by `entry_id` (a random uuid hex), so it silently
    reported no anomalies. Fixed with `ledger.entries.posting_seq`.
+5. **Every webhook delivery in the corpus was unaddressable — 0 of 312.** Bug (2)
+   added the second hop but nothing ever checked a real address existed on the other
+   end. Deliveries were keyed by a `provider_event_id` no state row carried as
+   `provider_ref`, so the hop always returned nothing. S01 was capped at 0.25
+   evidence recall, S02/S09/S12 at 0.50. Now `make reachability` measures the
+   ceiling per class against the built corpus instead of trusting the generator.
+6. **S04 was undiagnosable in principle.** `provider_outage` is defined by clustering
+   across customers; every tool was keyed by `customer_id`. Root-cause accuracy was
+   0.000 for all 8 cases. Fixed by `get_verifications` v2 (vendor + window).
+7. **S04's cluster was not a cluster.** `add_customer` used `tick(days=-30)`, which
+   rewound the *shared* cursor, so its four "simultaneous" vendor timeouts were
+   generated a month apart — and the vendor was drawn per verification, so they were
+   often three different vendors. Backdated fields now use `Clock.before()`, which
+   does not move the cursor, and the outage vendor is pinned.
+
+> The pattern in (2), (5), (6) and (7) is one bug wearing four costumes: **evidence
+> that exists but cannot be reached, or a signal the scenario never actually
+> contained.** It reads as a weak model every time. When a class scores near zero,
+> check the ceiling before believing the score.
 
 ---
 

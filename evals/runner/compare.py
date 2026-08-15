@@ -19,6 +19,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 DSN = os.environ.get("FIS_PG_DSN", "postgresql://fis:fis_local_dev@127.0.0.1:5433/fis")
 
+# Runs scored against eval suite v1 — the PRE-migration corpus, where failures were
+# written by the generator rather than produced by the pipeline and five scenario
+# classes had structurally unreachable evidence.
+#
+# This table is the one place every arm appears side by side, which makes it the one
+# place a reader is most likely to subtract two numbers that cannot be subtracted.
+# Marking the rows is cheaper than trusting everyone to remember.
+SUITE_V1_RUNS = {"E2-local-96", "E2-local-specialist-test", "E4-claude-frontier-test"}
+
 QUERY = """
 SELECT run_id,
        experiment_arm                                              AS arm,
@@ -63,10 +72,11 @@ def main() -> None:
     for r in rows:
         wins = float(r["all_pass"] or 0) * r["n"]
         cost_per_win = (r["total_cost"] / wins) if wins else None
+        label = r["run_id"] + (" †" if r["run_id"] in SUITE_V1_RUNS else "")
         print(
-            f"{r['run_id']:<26}{r['n']:>4}{_pct(r['all_pass']):>10}{_pct(r['root_cause']):>8}"
+            f"{label:<26}{r['n']:>4}{_pct(r['all_pass']):>10}{_pct(r['root_cause']):>8}"
             f"{_pct(r['evidence']):>8}{_pct(r['action']):>8}{_pct(r['verifier']):>8}"
-            f"{r['unsupported']:>7}{r['forbidden']:>6}{_pct(r['cloud']):>8}"
+            f"{r['unsupported'] or 0:>7}{r['forbidden'] or 0:>6}{_pct(r['cloud']):>8}"
             f"{r['p50_ms']:>7}ms{r['p95_ms']:>7}ms{r['tools']:>7.1f}"
             f"{('  n/a' if cost_per_win is None else f'${cost_per_win:.4f}'):>9}"
         )
@@ -75,6 +85,13 @@ def main() -> None:
     print("AND zero unsupported claims AND acceptable action AND verifier passed.")
     print("$/win uses reference list prices — subscription marginal cost is ~zero, so")
     print("billed amounts would make every cloud arm look free.")
+
+    if any(r["run_id"] in SUITE_V1_RUNS for r in rows):
+        print("\n† scored against eval suite v1, the PRE-migration corpus. Not comparable")
+        print("  to any v2 run: the corpus is regenerated (failures are now produced by")
+        print("  the consumers, not written by the generator) and five scenario classes")
+        print("  had structurally unreachable required evidence. Rows above and below")
+        print("  this line answer different questions — do not subtract them.")
 
 
 if __name__ == "__main__":

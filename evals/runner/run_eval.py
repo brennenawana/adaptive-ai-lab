@@ -111,7 +111,12 @@ async def main() -> None:
         print(f"{len(manifests)} scenarios in split, {len(done)} already scored, "
               f"{len(pending)} to run\n")
 
-        run = EvalRun(run_id=run_id, suite="fis-eval", suite_version="1",
+        # v2: the event migration. The corpus is regenerated (failures are now
+        # produced by the consumers rather than written by the generator) and the
+        # tool set gained the vendor-window form of get_verifications. Neither the
+        # root-cause set nor the cause->action mapping changed, but the suite a score
+        # was measured against did — v1 numbers are not comparable to v2 numbers.
+        run = EvalRun(run_id=run_id, suite="fis-eval", suite_version="2",
                       experiment_arm=args.arm, split=SeedSplit(args.split),
                       config_digest=f"{args.model_ref}|{args.mode}|prompt1")
 

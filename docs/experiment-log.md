@@ -153,6 +153,101 @@ Do not compare them to anything produced after the event layer lands.
 
 ---
 
+## 2026-08-15 — Event migration landed; suite bumped to v2
+
+Steps 5–7 of the migration in `architecture.md`. S01, S02, S06, S07, S09 and S10 now
+publish `ProviderEvent`s; the integration and ledger consumers materialise every
+consequence. `World.add_event` is deleted, `add_delivery` is narrowed to
+`add_failed_delivery`.
+
+**The corpus was regenerated. `EvalRun.suite_version` is now `2`.** Neither the
+root-cause set nor the cause→action mapping changed, so this is not an ontology
+change — but the corpus and the tool set both did, and v1 scores are not comparable
+to v2 scores. `E2-local-96` (pre-migration) is kept and the new run ids are
+`E2-v2-96` / `E4-v2-96` so the two cannot be confused.
+
+### What became emergent
+
+| Class | Before | After |
+|---|---|---|
+| S01 | two hand-written delivery rows, one flagged `deduplicated` | published twice with one idempotency key; the consumer's dedupe ledger suppresses the second |
+| S02 | two hand-written ledger entries | published twice with no key; the consumer genuinely cannot tell retry from reality, so it posts twice |
+| S06 | entry written with a transposed amount | mapping v3 transposes it; the ledger posts what it was told |
+| S07 | entries written with inverted timestamps | reversal published *before* a settlement that occurred earlier; reverse the two `publish` calls and the anomaly disappears |
+| S09 | raw/normalized mismatch written by hand | mapping v2 does not know `APPROVED_WITH_CONDITIONS` and turns a real approval into `failed` |
+| S10 | entry simply omitted | the settlement event is never published — the ledger never heard about it |
+
+Determinism survives because envelope ids are `uuid5` over the scenario id rather
+than `uuid4`. Every materialised row is named after the envelope that caused it, so
+random ids would have given the same seed a different world on every regeneration —
+and, worse, left each manifest citing the *previous* run's row ids while the
+`ON CONFLICT DO NOTHING` on manifests hid it.
+
+### The harness defect this exposed — larger than the migration itself
+
+**No webhook delivery in the entire pre-migration corpus was reachable by any tool
+call. 0 of 312.**
+
+The fixed-evidence plan reaches the event trail by walking `provider_ref` out of
+phase-one results and calling `get_webhook_history` with it. No delivery's
+`provider_event_id` had ever been set to a `provider_ref` that any state row carried,
+so the second hop always came up empty. Measured ceilings on evidence recall against
+a 0.8 threshold:
+
+| Class | Ceiling before | Observed E2 recall (n=96) | Ceiling after |
+|---|---|---|---|
+| S01 | 0.250 | 0.000 | 1.000 |
+| S02 | 0.500 | 0.500 | 1.000 |
+| S04 | 0.333 | 0.333 | 1.000 |
+| S09 | 0.500 | 0.500 | 1.000 |
+| S12 | 0.500 | 0.406 | 1.000 |
+
+The observed recalls sit exactly on the structural ceilings for S02, S04 and S09 —
+the model was not failing to find this evidence, it was never shown it. **Five of
+twelve classes could not pass evidence recall whatever the model did**, and the
+resulting numbers read as model weakness.
+
+This is the same defect as harness bug #2 from the n=12 entry above, which was
+recorded as fixed. Adding the second hop made the evidence *addressable in principle*
+but nothing ever checked that a real address existed. Hence a third invariant in
+`task-ontology.md` §5: reachability must now be **demonstrated against the built
+corpus** (`make reachability`), not argued from the generator.
+
+S04 needed more than an address. `provider_outage` is defined by clustering across
+customers and every tool was keyed by `customer_id`, so the signal was invisible in
+principle — root-cause accuracy was 0.000 across all 8 cases. Three changes:
+
+1. `get_verifications` v2 takes an optional `vendor` + `window_hours`, anchored on
+   the customer's own verification times.
+2. The outage vendor is **pinned** across the cluster. It had been drawn per
+   verification, so the four "vendor timeouts" often came from three different
+   vendors — three coincidences, not an outage.
+3. `Clock.before()` — backdated fields (`created_at`, `opened_at`, `issued_at`) no
+   longer rewind the shared cursor. `tick(days=-30)` per customer had scattered
+   S04's four "simultaneous" timeouts **a month apart**. The scenario had never
+   contained the cluster it claimed to model.
+
+Scenarios now occupy disjoint 48-hour slots on the timeline, because a vendor+time
+query is the first tool whose results are not confined to one scenario by
+construction.
+
+**Second-order consequence, stated plainly:** the v2 baseline moves for two reasons
+at once — the corpus is event-sourced *and* five classes stopped being unwinnable.
+Any improvement over `E2-local-96` is therefore **not** evidence that event sourcing
+helped the model. The clean reading of v2 is as a new reference point, not as a
+delta. A migration-only comparison was available (port first, fix reachability
+after) and was deliberately not taken: it would have meant knowingly baselining a
+corpus with five impossible classes, and E6 needs a trustworthy floor more than the
+migration needs an attributable delta.
+
+### Results — E2 and E4, n=96, suite v2
+
+_Both arms baselined together on the final corpus, per the plan._
+
+RESULTS_PLACEHOLDER
+
+---
+
 ## Open questions
 
 - Does showing the model a category→plausible-actions table fix the action gap? (E6)

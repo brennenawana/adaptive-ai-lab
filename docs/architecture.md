@@ -55,23 +55,30 @@ For *why the platform exists*, see the Canonical Architecture doc in `docs/`.
 
 ## Event-driven requirement (NORMATIVE)
 
-**Status: required, not yet implemented. No new scenario class or experiment arm
-ships until the event layer lands.**
+**Status: LANDED 2026-08-15.** All seven migration steps are done. The requirement
+below stays normative: a new scenario class in an event-shaped category must publish
+rather than insert, and `test_event_driven_scenarios_do_not_hand_author_their_consequences`
+enforces it for the ported classes.
 
 The guide names event-driven workflows and eventual consistency as core things the
-sandbox must teach. Today the scenario generator writes rows directly into every
-service schema, which means the interesting failures are **depicted rather than
-produced**:
+sandbox must teach. Before the migration the scenario generator wrote rows directly
+into every service schema, which meant the interesting failures were **depicted
+rather than produced**:
 
-- S01/S02 (duplicate delivery, idempotency) are hand-authored row pairs. Nothing
-  actually attempts deduplication, so nothing can actually fail to.
-- S07 (reversal race) is hand-authored out-of-order timestamps. No real ordering
-  hazard exists.
-- S09 (stale mapping) is a hand-written mismatch between `raw_payload` and
+- S01/S02 (duplicate delivery, idempotency) were hand-authored row pairs. Nothing
+  actually attempted deduplication, so nothing could actually fail to.
+- S07 (reversal race) was hand-authored out-of-order timestamps. No real ordering
+  hazard existed.
+- S09 (stale mapping) was a hand-written mismatch between `raw_payload` and
   `normalized_state`, rather than the output of a mapper that is genuinely stale.
 
-That is a meaningful gap. A scripted race teaches the *shape* of the bug; an
+That was a meaningful gap. A scripted race teaches the *shape* of the bug; an
 emergent one teaches the mechanism, and only the emergent one can surprise us.
+
+It surprised us immediately. Porting S04 to a real clustering query exposed that its
+four "simultaneous" vendor timeouts were generated a *month apart* — `add_customer`
+ticked the shared clock back 30 days, so every extra customer dragged the timeline
+with it. The scenario had never contained the cluster it claimed to model.
 
 ### Required topology
 
@@ -119,21 +126,65 @@ Resolution — **deterministic event sourcing**:
 4. A generation run is complete only when the consumer lag is zero. The generator
    blocks on that, so a partially-materialised world can never be scored.
 
-### Migration plan
+### Migration plan — all steps complete
 
-| Step | Change |
-|---|---|
-| 1 | `fis_platform/events/` — JetStream connection, publisher, typed envelopes |
-| 2 | Stream provisioning in `make up-core` (idempotent) |
-| 3 | `integration-service` consumer: idempotency + versioned mapper |
-| 4 | `ledger-service` consumer: posts entries from normalized events |
-| 5 | Generator publishes instead of inserting for webhook/settlement paths |
-| 6 | Regenerate the corpus; re-baseline every arm (results are not comparable across this change) |
-| 7 | Delete the direct-insert path so it cannot silently come back |
+| Step | Change | Status |
+|---|---|---|
+| 1 | `fis_platform/events/` — JetStream connection, publisher, typed envelopes | done |
+| 2 | Stream provisioning in `make up-core` (idempotent) | done |
+| 3 | `integration-service` consumer: idempotency + versioned mapper | done |
+| 4 | `ledger-service` consumer: posts entries from normalized events | done |
+| 5 | Generator publishes instead of inserting for webhook/settlement paths | done |
+| 6 | Regenerate the corpus; re-baseline every arm | done — suite v2 |
+| 7 | Delete the direct-insert path so it cannot silently come back | done |
 
-Scenarios that are genuinely event-driven after this: S01, S02, S06, S07, S09, S10.
-S03/S04/S05/S08/S11 stay largely state-based, which is correct — not every
-operational problem is an event-ordering problem.
+Genuinely event-driven: **S01, S02, S06, S07, S09, S10.**
+State-based, correctly: **S03, S04, S05, S08, S11, S12** — not every operational
+problem is an event-ordering problem.
+
+#### What step 7 actually deleted, and what survives
+
+`World.add_event` is gone outright and `integration.events` is not in the writer's
+table list, so a normalized event cannot be hand-authored at all — it is the mapper's
+output, and the mapper is the thing under test.
+
+Two narrow direct-write paths survive **on purpose**:
+
+| Survivor | Used by | Why it is not a regression |
+|---|---|---|
+| `World.add_failed_delivery` | S04, S12 | A delivery that FAILED is the one thing a consumer cannot record about itself — the bus naks and redelivers on handler exception, so recording its own failure would mean pretending to have survived it. Modelling retry storms properly needs poison-message handling, which this migration deliberately does not add. Restricted to `retrying`/`failed`; a handled delivery raises `ValueError`. |
+| `World.add_entry` | S11 | S11 models an account that is already correctly reconciled. The postings are prior state, not consequences of anything the scenario publishes. |
+
+**S12 is the open one.** Its retry storm is genuinely webhook-shaped and would be
+better as a real one; it stays hand-authored only because the bus has no poison-message
+path. Closing that gap is a change to `add_failed_delivery`'s callers, not a new
+escape hatch — which is the point of the status restriction.
+
+### Evidence reachability (NORMATIVE)
+
+**Every id a manifest requires must be returnable by some tool call the evidence plan
+actually makes.** Not "exists in the database" — *reachable*.
+
+This is stated in `task-ontology.md` §5 and was violated by the entire corpus until
+the migration. The event trail is addressed by `provider_event_id`, which the
+fixed-evidence plan discovers by walking `provider_ref` out of phase-one results —
+and no delivery's `provider_event_id` had ever matched one. Zero of 312 deliveries
+were reachable. Four classes were capped below the 0.8 recall threshold before a
+model saw them, which reads in a report as model weakness.
+
+Two enforcement points, both required for a new scenario class:
+
+- `test_required_evidence_is_reachable_by_the_tool_set` — static, per class.
+- `make reachability` — replays the real plan through the real broker against the
+  generated corpus and prints the recall **ceiling** per class. Anything below
+  threshold is a harness bug. Run it after every `make corpus`.
+
+Cross-entity queries carry an extra obligation. `get_verifications` v2 can select by
+vendor and time rather than by customer, so it is the first tool whose results are
+not confined to one scenario by construction. Scenarios therefore occupy disjoint
+48-hour slots on the timeline (`scenario_epoch`), and
+`test_scenario_verification_windows_do_not_overlap` guards it. Any future
+time-scoped or cohort-scoped tool inherits this constraint.
 
 ---
 
@@ -176,6 +227,19 @@ Deterministic: no global `random`, no `datetime.now()`. Splits are disjoint seed
 ranges so train/test leakage is structurally impossible. Entity IDs embed the seed
 (they share one table space across the whole corpus).
 
+Since the migration, `build()` is still pure — it produces state rows plus a list of
+`ProviderEvent`s — and `run.py` does the I/O: insert state, then publish and drain
+one event at a time. **Envelope ids are `uuid5` over the scenario id, not `uuid4`.**
+Every row the pipeline writes is named after the envelope that caused it, so a random
+id would give the same seed a different delivery/event/entry id set on every
+regeneration and leave the manifests pointing at the previous run's rows.
+
+`fis_platform/events/projection.py` replays the real consumer decision functions
+without a broker, so a builder can name the rows its events will cause before it
+publishes them. Generation asserts projection and live pipeline agree per scenario —
+if they ever diverge the manifest would cite ids that do not exist, and the class
+would be unwinnable for a reason no score could explain.
+
 ### Eval runner (`evals/runner/`)
 Commits per case with `UNIQUE(run_id, scenario_id)`, so `--resume` is exact.
 Subscription rate limits *will* interrupt a long run.
@@ -202,4 +266,6 @@ Two decisions that keep the KPI honest:
 | Case has `injected_root_cause` | It does not | `cases.cases` is model-visible; storing the label there lets the investigator read the answer |
 | `scenario_id` short form | 7-digit full seed | `seed % 100_000` collided train seed 1,000,000 with test seed 3,000,000 |
 | Add MinIO when useful | provisioned, unused | trajectories still fit in JSONB |
-| NATS for events | **provisioned, unused** | **being fixed — see requirement above** |
+| NATS for events | **in use** | migration landed 2026-08-15; corpus is suite v2 |
+| `get_verifications(customer_id)` | v2 also takes `vendor` + `window_hours` | `provider_outage` is *defined* by clustering across customers. With only customer-keyed tools the class was not hard but impossible — 0% root-cause accuracy, 0.333 recall ceiling. Applies identically to every arm, so E2/E4 stay a controlled comparison |
+| One clock base for all scenarios | one 48h slot per scenario | a time-scoped tool would otherwise sweep all 288 scenarios into one answer |

@@ -67,10 +67,16 @@ reachability: ## Can the fixed-evidence plan reach every case's required evidenc
 	$(PY) scripts/evidence_reachability.py --split test
 
 .PHONY: eval-e2 eval-e4 eval-smoke report
+# run-ids carry the suite version. `E2-local-96` is the PRE-migration reference and
+# must stay reachable and unconfusable: the corpus it scored no longer exists, so a
+# run id that could be mistaken for it would silently invite a comparison across the
+# one line in this project's history that cannot be compared across.
 eval-e2: ## E2 — local specialist, fixed evidence
-	$(PY) -m evals.runner.run_eval --arm E2 --model-ref local-specialist --split test --resume
+	$(PY) -m evals.runner.run_eval --arm E2 --model-ref local-specialist --split test \
+	  --run-id E2-v2-96 --resume
 eval-e4: ## E4 — frontier ceiling, same evidence contract
-	$(PY) -m evals.runner.run_eval --arm E4 --model-ref claude-frontier --split test --resume
+	$(PY) -m evals.runner.run_eval --arm E4 --model-ref claude-frontier --split test \
+	  --run-id E4-v2-96 --resume
 eval-smoke: ## Fast sanity run (3 cases, local)
 	$(PY) -m evals.runner.run_eval --arm SMOKE --model-ref local-specialist --split dev --limit 3
 report: ## Cross-arm comparison table
