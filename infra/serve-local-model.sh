@@ -25,7 +25,15 @@ CTX="${2:-16384}"
 PORT="${3:-8082}"
 LOG=/tmp/fis-local-model.log
 
-export LD_LIBRARY_PATH="$FIS_CUDA_LIB:${LD_LIBRARY_PATH:-}"
+# Two directories are required:
+#   FIS_CUDA_LIB          the CUDA runtime (libcudart, libcublas)
+#   dirname "$BIN"        llama.cpp's OWN shared objects (libllama-server-impl.so
+#                         and friends), which sit beside the binary. The build
+#                         bakes an absolute RPATH, so after relocating the tree
+#                         the loader looks in the old path and fails with
+#                         "cannot open shared object file". Adding the binary's
+#                         directory explicitly makes the whole tree relocatable.
+export LD_LIBRARY_PATH="$FIS_CUDA_LIB:$(dirname "$BIN"):${LD_LIBRARY_PATH:-}"
 
 [ -d "$FIS_CUDA_LIB" ] || echo "!! warning: FIS_CUDA_LIB not found: $FIS_CUDA_LIB" >&2
 
