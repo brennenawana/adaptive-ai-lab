@@ -45,3 +45,6 @@ Thumbs.db
 .vscode/
 *.swp
 .venv/
+
+# local model server logs
+*.log
