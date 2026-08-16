@@ -662,3 +662,56 @@ against the harness before being read as model behaviour:
   arm; `test_schema_property_order_is_not_alphabetical…` guards the record).
 - The alphabetical-grammar variant was neither adopted nor rejected on the R1
   numbers — it is an unpre-registered prompt-format factor on n=48.
+
+---
+
+## 2026-08-16 — R0.1 Switchyard made transparent; R4 deterministic cascade on dev and test
+
+Full tables in `routing-experiments.md` § R0.1 and § R4.
+
+### R0.1 — fix at the adapter boundary, proven same-session
+
+`SwitchyardAdapter.build_body` rewrites every object schema into `allOf` components
+(one property each, optional ones under `anyOf`, `additionalProperties` dropped) —
+llama.cpp compiles that to the byte-identical grammar text as the plain schema, and
+arrays survive Switchyard's key sorting. No suite change, no loss of the model's
+`<think>` phase, direct path untouched. Same llama.cpp session (pid 4848,
+`b1-9b05354`), same order, `prime-local` before each arm: `R01-direct2-dev` →
+`R01-switchyard-dev` **48/48 identical output digests**, 48/48 outcomes, tokens
+identical (117 426 / 62 938; Switchyard's routing log agrees to the token), model
+p50 +11 ms. The one difference in the earlier direct arm was a stray `pytest` request
+mid-run — live tests are now opt-in (`FIS_LIVE_TESTS=1`).
+
+### R4 — deterministic cascade
+
+Gate: escalate on no schema-valid output, unsupported claim, or any verifier failure
+(nested policies none ⊂ parse ⊂ verifier; features are verifier-derived only).
+Selection on dev by replay over the same-session weak run against `E4-v2-dev`, rule
+pre-registered (adopt `verifier` unless > 2 unnecessary escalations beyond `parse`):
+parse 5 escalations / 3 rescues; verifier 11 / 8, both 0 unnecessary → **`verifier`**.
+
+| | weak-only | cascade | strong-only | oracle |
+|---|---|---|---|---|
+| dev (n=48, live `R4-cascade-verifier-dev`) | 29.2% | **50.0%** | 91.7% | 91.7% |
+| test (n=96, one run `R4-cascade-verifier-96`) | 29.2% | **49.0%** | 99.0% | 100% |
+
+Test: escalation 21.9% (12 unsupported claims, 9 no-output), rescue 19/21, unnecessary
+0/96, false negatives 47/96, cost per success $0.046 vs $0.097 strong-only (floor),
+wall p50 14.5 s vs 38.2 s. Dev→test 50.0% → 49.0%.
+
+### What it demonstrates
+
+Structural gates recover ~¼ of the weak→strong gap at ~22% strong calls, never
+escalate a case the weak model would have passed, and turn 9 in 10 escalations into
+passes. The remaining ¾ are verifier-clean answers that are wrong on root cause or
+short on evidence — invisible to any production-available deterministic signal, and
+the same family E6b showed prompting cannot move.
+
+### Deliberately NOT changed
+
+- Scorer, verifier, generator, suite v2, `weak-baseline-v1`, `DEFAULT_PROMPT`.
+- No further trigger was added after seeing the oracle gap; no second look at test.
+- The suite-v3 backlog (unposted background settlements; S08 declined amount >
+  balance — it tripped the strong arm again in this run, S08-2003007; `idempotency_key`
+  not an observed id; post-positioned refutation cue) stays a backlog.
+- Nemotron / learned routing / QLoRA not started.

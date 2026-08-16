@@ -1,4 +1,4 @@
-# Handoff — 2026-08-16 (routing-foundation milestone: R0–R2 done)
+# Handoff — 2026-08-16 (routing baseline: R0–R2, R0.1, R4 done)
 
 Written deliberately at a context boundary. Everything needed to resume is here or
 in the other docs. Read `architecture.md` and `task-ontology.md` before coding, and
@@ -16,10 +16,11 @@ found.
 
 ---
 
-## State: migration done, E6 done, E6b closed, routing foundation (R0–R2) done
+## State: migration done, E6 done, E6b closed, routing baseline done (R0–R2, R0.1, R4)
 
-**~33 commits, 187 tests green** (`make test`; two of them are live and skip when
-Switchyard/llama.cpp are down). `git log --oneline` for the trail.
+**~40 commits, 197 tests green** (`make test`; one live test skips unless
+`FIS_LIVE_TESTS=1` — it must never touch :8082 during a paired run). `git log
+--oneline` for the trail.
 
 | Piece | State |
 |---|---|
@@ -33,8 +34,9 @@ Switchyard/llama.cpp are down). `git log --oneline` for the trail.
 | **Event layer** | **DONE — all 7 steps. Generator publishes; consumers materialise.** |
 | Prompt registry (`prompts.py`) | done, 8 named variants; `DEFAULT_PROMPT` is the control |
 | Experiments | E2, E4 baselined on suite v2. **E6 done** (variant C is local best). **E6b closed — negative.** E3/E5/E7/E8 open |
-| **Routing track (R-series)** | **R0 frozen** (`weak-baseline-v1` = variant C on `f48039a`), **R1 measured** (Switchyard passthrough is *not* semantically invisible — see below), **R2 done** (oracle map on dev). R3–R5 not started. `routing-experiments.md` |
-| Routing gateway | NeMo Switchyard 0.2.0 on :4000 (`make serve-switchyard`), registry entry `local-specialist-switchyard`, `RoutingRecord` on every routed invocation, gold-leak guards tested |
+| **Routing track (R-series)** | **R0 frozen** (`weak-baseline-v1` = variant C on `f48039a`), **R1 measured**, **R0.1 fixed** (Switchyard passthrough now 48/48 identical to direct), **R2 done** (oracle map on dev), **R4 done** (deterministic cascade, policy `verifier`, dev + one test confirmation). R3/R5 not started. `routing-experiments.md` |
+| Routing gateway | NeMo Switchyard 0.2.0 on :4000 (`make serve-switchyard`), registry entry `local-specialist-switchyard` with the key-order-invariant schema rewrite, `RoutingRecord` on every routed invocation, gold-leak guards tested |
+| Deterministic cascade | `services/ai_orchestrator/cascade.py`, `run_eval --escalate-to`, `scripts/routing_cascade_report.py` (replay + live), make `r4-replay` / `eval-r4-dev` / `r4-report` / `eval-r4-confirm` |
 
 Infra (all healthy): Postgres+pgvector `:5433`, NATS JetStream `:4222`,
 Qwen3-8B on llama.cpp `:8082`. Start with `make up-core` and `make serve-local`.
@@ -62,50 +64,35 @@ and the live pipeline agree, per scenario.
 
 ---
 
-## THE NEXT TASK — R4 deterministic cascade, on dev, against the R2 oracle. Not before reading the R1 caveat.
+## THE NEXT TASK — R3: Nemotron 3.5 Lightning as a candidate weak arm, on suite v2. Not suite v3 yet.
 
-R2 says routing is worth doing: on dev the weak arm passes 35% (safe-local), the
-strong arm rescues another 58%, and a perfect router would reach 93.8% all-pass at
-35% less strong-model cost than strong-only. R4 asks how much of that a
-**production-available** cascade captures: run weak first; escalate on parse/schema
-failure, verifier failure, unsupported claims. Judge on dev with the same
-`routing_oracle.py` framing (route regret, unnecessary escalation, rescue rate), then
-one test confirmation of one frozen policy. Do **not** route on evidence recall or
-any gold field — `RoutingRecord.router_signals` rejects them, and
-`test_routing_no_gold_leak.py` will fail if routing code imports the answer key.
+Why this and not suite v3 first: the routing baseline is now measured and understood
+(`routing-experiments.md` § R4). Its residual — 47/96 test cases where the weak model
+returns a verifier-clean answer that is wrong on root cause or terse on evidence — is
+a weak-model capability problem, the same family E6b showed prompting cannot move and
+R4 showed structural gates cannot see. The untested axis is the weak model itself.
+Suite v3's four candidates change ≤ 4 dev outcomes and would re-baseline every arm;
+run it as a deliberate release once there are two weak arms to re-baseline together.
 
-**The R1 caveat you must decide on first.** Switchyard 0.2.0 sorts JSON keys; llama.cpp
-compiles the response schema to an order-sensitive grammar; so a routed local run
-generates under a *different grammar* than the direct baseline and its outputs differ
-(`routing-experiments.md` § R1 has the byte-level proof and the measured delta).
-Options, in order of preference: (a) upstream Switchyard issue — preserve key order;
-(b) FIS suite v3 that canonicalises schema property order for every arm and
-re-baselines E2/E4/E6 (a deliberate, versioned change — not a quiet one); (c) run the
-weak stage of R4 on the direct path and use Switchyard only for the strong hop and
-telemetry until (a) or (b) lands. (c) is what the current code supports today.
+R3 protocol (guide § R3): compatibility spike first (checkpoint, quantisation, license,
+runtime, VRAM margin on the 16 GB 5080 — hosted endpoint if local packaging is not
+ready); then the identical prompt (`cause_action_directed`), evidence, grammar and
+scorer as `weak-baseline-v1`, on dev, one llama.cpp/session for the paired comparison
+with a same-session Qwen run; report every dimension plus parse rate, latency, tokens,
+cost; only then a dev-only prompt adaptation, and one test confirmation. Then
+`best weak arm + deterministic cascade` (R4 replay is free: `make r4-replay WEAK=…`).
 
-**Second caveat, bigger than it looks:** the local arm is bit-reproducible only
-**within a llama.cpp server session with the same request order** (38/39 identical
-digests back-to-back). Across a server restart the same 48-case dev run moved
-all-pass 17→14, evidence recall 70.8→60.6, and 23/48 outcomes changed. Any two local
-runs you compare must have been produced in one server session, in the same order —
-or the difference you see is the KV-cache/session, not your intervention. Record
-`system_fingerprint` (llama.cpp `b1-9b05354`) and server start time with every run.
+Rules that carry: select on dev, one test look, one factor per arm, gold labels score
+a route but never choose it, same server session + same order for any case-level local
+comparison, `FIS_LIVE_TESTS` off during paired runs.
 
-Three harness candidates for the next suite version, all found by **arm disagreement**
-in R2 (none visible in aggregates), all deliberately not fixed mid-baseline:
-
-1. Background settlements are never posted to the ledger in S01/S02/S05/S06/S07/S08/S10
-   (only S11 posts). S10's fault signature is therefore present as noise everywhere,
-   and the frontier's two S06 `compound_failure` answers (dev S06-2003005, test
-   S06-3007005) are defensible readings of a world with two anomalies.
-2. S08 can draw a declined amount above the available balance (S08-2003007: 70 530 vs
-   17 530), making the forbidden `insufficient_funds` hypothesis data-consistent.
-3. `collect_observed_ids` does not harvest `idempotency_key`, so citing one — the id
-   S01 is about — reads as fabrication (S01-2001000, frontier).
-
-Plus the known scorer residual: a refutation whose cue *follows* the phrase
-("…are all ruled out") still scores as a forbidden claim (S08-2001007).
+**Suite v3 backlog (documented, not patched):** background settlements never posted in
+S01/S02/S05/S06/S07/S08/S10 (S10's signature is ambient noise; S06 "compound" readings
+are defensible); S08 can draw a declined amount above the available balance (tripped
+the strong arm twice: S08-2003007 in dev R2 and R4); `collect_observed_ids` skips
+`idempotency_key`; forbidden-claim matcher misses a refutation cue that follows the
+phrase. Build them together: implement, regenerate, reachability, invariants, strong
+sanity run, weak + frontier baselines. Never rewrite suite-v2 results.
 
 ## Numbers — the current baseline
 
@@ -128,8 +115,13 @@ purpose, so a run without `--prompt` is still the control.
 weak-pass/strong-pass 16 · weak-fail/strong-pass 28 · weak-pass/strong-fail 1 ·
 both-fail 3 → safe-local 35.4%, rescueable 58.3%, oracle hybrid 93.8% (strong-only
 91.7%), oracle strong-call minimum 64.6%, cascade cost −35%. All four disagreements
-reviewed: two harness defects, two scenario-realism issues (see next task). Details in
-`routing-experiments.md`.
+reviewed: two harness defects, two scenario-realism issues (see next task).
+
+**R4 deterministic cascade (policy `verifier`, frozen on dev):** dev 50.0% all-pass at
+22.9% strong calls; **test 49.0%** (`R4-cascade-verifier-96`) at 21.9%, rescue 19/21,
+0 unnecessary escalations, 47/96 verifier-clean weak failures accepted, cost per
+success $0.046 vs $0.097 strong-only, wall p50 14.5 s vs 38.2 s. Details in
+`routing-experiments.md` § R4.
 
 **Four findings that matter:**
 

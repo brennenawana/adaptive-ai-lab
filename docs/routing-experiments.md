@@ -13,7 +13,7 @@ score a route but never choose it.**
 | **R0.1** | Can the hop be made transparent without touching the suite or the model's reasoning? | **yes — fixed and proven**: key-order-invariant schema rewrite in the adapter; same-session dev re-run **48/48 identical output digests**, 48/48 identical outcomes, tokens identical, +10 ms p50 |
 | R2 | How much routing opportunity exists between weak and strong on dev? | **done** — see below |
 | R3 | Nemotron 3.5 Lightning as candidate weak arm | not started (later milestone) |
-| R4 | Deterministic weak→strong cascade | **in progress** — policy `verifier` selected on dev by replay (pre-registered rule); live dev run and one test confirmation below |
+| R4 | Deterministic weak→strong cascade | **done** — policy `verifier` (dev replay, pre-registered rule); dev live 50.0% all-pass at 22.9% strong calls, **test 49.0% at 21.9%**, 0 unnecessary escalations, rescue 90%; see below |
 | R5 | Predictive / stage routing | not started |
 
 Runs live in `learning.case_scores` / `learning.trajectories`; `make report` lists
@@ -363,4 +363,51 @@ gates see *broken* outputs, not *confidently terse or wrong* ones. That is the r
 a learned or content-aware router (R5) would have to detect — and it is exactly the
 evidence-discipline gap E6b already found prompting cannot close.
 
-**Test confirmation:** `R4-cascade-verifier-96` — see below.
+### Test confirmation — `R4-cascade-verifier-96` (one run, policy frozen on dev)
+
+2026-08-16 14:16–14:57 UTC, session pid 4848, primed. Weak-only column = the run's own
+weak stage (`R4-cascade-verifier-96.weak`, same session); strong-only = `E4-v2-96`.
+
+| metric | weak-only (this session) | **cascade** | strong-only | oracle |
+|---|---|---|---|---|
+| strict all-pass | 29.2% (28) | **49.0% (47)** | 99.0% (95) | 100% (96) |
+| root cause | 60.4% | **75.0%** | 100% | 100% |
+| act \| rc | 100% | 100% | 100% | 100% |
+| evidence recall (mean) | 0.661 | **0.811** | 1.000 | 1.000 |
+| verifier pass | 78.1% | **97.9%** | 100% | 100% |
+| no-output | 9.4% | **0%** | 0% | 0% |
+| wall p50 | 12.4 s | 14.5 s | 38.2 s | 48.2 s |
+| tokens in / out (total) | 234 548 / 117 167 | 234 602 / 186 130 | 226† / 298 456 | 234 710 / 329 719 |
+| reference cost (total) | $0.00 | **$2.18** | $9.24† | $6.59 |
+| cost / attempted case | $0 | **$0.0227** | $0.0963 | $0.0687 |
+| cost / successful case | $0 | **$0.0464** | $0.0973 | $0.0687 |
+
+Routing metrics: weak-local acceptance **78.1%** (75/96); escalation **21.9%** (21/96:
+12 unsupported claims, 9 no-output); rescue rate **90.5%** (19/21); unnecessary
+escalation **0/96**; false negatives **47/96**; strong-call reduction **78.1%**;
+quality delta vs strong-only −48 cases, vs oracle −49. Cells vs `E4-v2-96`: w+s+ 27,
+w−s+ 68, w+s− 1 (S08-3005007, the known scorer false positive on the strong arm —
+kept local, correctly), w−s− 0. Rescueable caught 21/68; safe-local escalated 0/28.
+Dev estimate 50.0% → test 49.0%: the policy did not overfit dev (there was nothing to
+overfit — one nested gate, one pre-registered rule).
+
+The weak stage on test scored all-pass 28/96 = the frozen baseline's 29.2% exactly,
+while differing from it on 42/96 individual outcomes (rc 58 vs 63, evidence 0.662 vs
+0.611): the cross-session effect once more, and a reminder that `weak-baseline-v1` is
+a historical aggregate, not a per-case answer key.
+
+### Interpretation
+
+Simple deterministic escalation recovers **about a quarter of the gap** between the
+weak and strong arms (test: 29.2% → 49.0% of a possible 99.0%; dev: 29.2% → 50.0% of
+91.7%) at **~22% strong-model calls** — 78% fewer than strong-only — with **zero
+unnecessary escalations** and a **90% rescue rate** on what it does escalate. Cost per
+successful investigation halves versus strong-only ($0.046 vs $0.097 on test, strong
+cost being a floor) and median latency is 2.6× lower (14.5 s vs 38.2 s). What it
+cannot recover is the other three quarters: 47/96 test cases (22/48 dev) where the
+weak model returns a schema-valid, well-cited, calibrated answer that is wrong on
+root cause or too terse on evidence — the failure family E6b already showed prompting
+does not move, and one that no production-available deterministic signal exposes.
+Closing that gap needs either a better weak model (R3) or a router that reads
+content, not just structure (R5); the oracle says the ceiling for either is ~92–100%
+at ~65–70% strong calls avoided.

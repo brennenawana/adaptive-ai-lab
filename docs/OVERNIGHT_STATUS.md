@@ -427,3 +427,41 @@ Rule applied: `verifier` costs 0 unnecessary escalations beyond `parse` → **fr
 policy = `verifier`**. 22 rescueable cases stay invisible to the gate (weak result
 verifier-clean but wrong on root cause and/or evidence recall — eval-only
 dimensions). Live dev run `R4-cascade-verifier-dev` started 13:57 UTC.
+
+## M2.5 R4 — live dev run and the one test confirmation
+
+| run | split | all-pass | rc | evidence | verifier | escalated | rescue | unnecessary | false neg | cost/success | wall p50 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `R4-cascade-verifier-dev` (13:57–14:16 UTC) | dev 48 | **50.0%** (weak 29.2 · strong 91.7 · oracle 91.7) | 79.2% | 0.783 | 100% | 11 (22.9%) | 10/11 | 0 | 22 | $0.0471 (strong $0.1172) | 16.9 s (strong 33.2) |
+| `R4-cascade-verifier-96` (14:16–14:57 UTC) | test 96 | **49.0%** (weak 29.2 · strong 99.0 · oracle 100) | 75.0% | 0.811 | 97.9% | 21 (21.9%) | 19/21 | 0 | 47 | $0.0464 (strong $0.0973) | 14.5 s (strong 38.2) |
+
+Both in session pid 4848, primed; the dev cascade's weak stage reproduced
+`R01-direct2-dev` 48/48. Weak stage on test = 29.2% all-pass, equal to the frozen
+baseline's aggregate while differing on 42/96 individual outcomes (cross-session).
+Full tables and interpretation: `routing-experiments.md` § R4; append-only record in
+`experiment-log.md`.
+
+## M2.6 Milestone-2 summary
+
+**Completed:** reconciliation · R0.1 fixed at the adapter (`11ff23f`) and proven
+48/48 same-session (`R01-*`) · R4 implemented (`021890a`), policy selected on dev by
+replay under a pre-registered rule, live dev run, one test confirmation · docs
+(`routing-experiments.md`, `experiment-log.md`, `HANDOFF.md`, `architecture.md`,
+this file) · tests 197 (one live, opt-in) · suite v2, scorer, verifier, generator,
+`weak-baseline-v1` untouched · Nemotron/learned routing/QLoRA not started.
+
+**Surprises:** (1) the fix that restored Switchyard transparency is a schema
+*representation* change that llama.cpp compiles to the identical grammar — no
+middleware patch, no suite change; (2) the live strong stage rescued 10/11 on dev
+where the recorded strong arm would have rescued 8/11 (frontier nondeterminism —
+S06-2003005, the M1 inversion, passed this time); (3) 47/96 test cases are
+verifier-clean weak failures — the deterministic gate's blind spot is exactly the
+evidence-discipline gap from E6b; (4) S08-2003007 tripped the strong arm's forbidden
+claim again (suite-v3 candidate confirmed twice).
+
+**Unresolved (backlog, not blockers):** suite-v3 candidates (4); frontier input-token
+under-reporting makes strong cost a floor; the routed weak arm still runs direct in
+R4 (interchangeable after R0.1, kept direct for one-factor discipline).
+
+**Recommended next experiment (one):** R3 — Nemotron 3.5 Lightning benchmark on
+suite v2 (see HANDOFF). Suite v3 afterwards as a deliberate release.
