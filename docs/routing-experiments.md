@@ -293,3 +293,74 @@ the as-measured figures. Nothing in the scorer, verifier or generator was change
 Three harness candidates recorded for the next suite version (all found by arm
 disagreement, none by aggregate rates): unposted background settlements; S08 declined
 amount vs balance; observed-id collection missing `idempotency_key`.
+
+---
+
+## R4 — deterministic weak→strong cascade
+
+**Implementation (commit `021890a`).** `services/ai_orchestrator/cascade.py`: weak
+model first (`local-specialist`, direct path, prompt `cause_action_directed`);
+escalate to `claude-frontier` (prompt `baseline`, as `E4-v2-*` was baselined) on
+production-available signals only — no schema-valid output, an unsupported claim
+(the scorer's own verifier-violation markers, reused), any other deterministic
+verifier failure. Policies are nested prefixes: `none` ⊂ `parse` ⊂ `verifier`. The
+gate reads nothing the scorer knows (`RouterDecision.features` = produced_output,
+verifier_passed, unsupported_claims; `test_routing_no_gold_leak.py` covers the
+module). Escalated cases re-run the deterministic FIXED_EVIDENCE plan for the strong
+model; the merged trajectory carries both stages' invocations (cost, tokens, wall) and
+the decision on `Trajectory.router`; the weak stage is scored under `<run>.weak`.
+
+**Selection on dev (replay, pre-registered rule).** Weak = `R01-direct2-dev`
+(same-session weak-only run), strong reference = `E4-v2-dev`. Rule, registered before
+any live run: adopt `verifier` unless it costs > 2 unnecessary escalations beyond
+`parse`.
+
+| policy | escalated | rescued | unnecessary | all-pass | rescueable caught (of 30) |
+|---|---|---|---|---|---|
+| parse | 5 (10.4%) | 3 | 0 | 35.4% | 3 |
+| **verifier** | **11 (22.9%)** | 8 | **0** | **45.8%** | 8 |
+
+`verifier` adopted and frozen. Note the pairing cells against this same-session weak
+run are 14 / 30 / 0 / 4 (M1's 16 / 28 / 1 / 3 used the earlier-session
+`E6-C-directed-dev`; the S06 inversion is not present in this session's weak run).
+
+**Live dev run `R4-cascade-verifier-dev`** (2026-08-16 13:57–14:16 UTC, primed, same
+session; the weak stage reproduced `R01-direct2-dev` **48/48** digests):
+
+| metric | weak-only | **cascade** | strong-only | oracle |
+|---|---|---|---|---|
+| strict all-pass | 29.2% (14) | **50.0% (24)** | 91.7% (44) | 91.7% (44) |
+| root cause | 64.6% | **79.2%** | 97.9% | 97.9% |
+| act \| rc | 100% | 100% | 100% | 100% |
+| evidence recall (mean) | 0.606 | **0.783** | 1.000 | 1.000 |
+| verifier pass | 77.1% | **100%** | 97.9% | 97.9% |
+| no-output | 10.4% | **0%** | 0% | 0% |
+| wall p50 | 12.6 s | 16.9 s | 33.2 s | 42.9 s (cascade reading) |
+| tokens in / out (total) | 117 426 / 62 938 | 117 452 / 99 101 | 130† / 164 038 | 117 520 / 179 511 |
+| reference cost (total) | $0.00 | **$1.13** | $5.16† | $3.67 |
+| cost / attempted case | $0 | **$0.0235** | $0.1074 | $0.0764 |
+| cost / successful case | $0 | **$0.0471** | $0.1172 | $0.0833 |
+
+† frontier input tokens under-reported by the CLI (~2/case) — strong cost is a floor.
+
+Routing metrics: weak-local acceptance **77.1%** (37/48); escalation **22.9%** (11/48:
+6 unsupported claims, 5 no-output); rescue rate **90.9%** (10/11 escalations turned a
+weak fail into a pass); unnecessary escalation **0/48**; false negatives **22/48**
+(weak accepted, weak failed, strong-ref would pass); strong-call reduction vs
+strong-only **77.1%**; quality delta vs strong-only −20 cases, vs oracle −20.
+Against the oracle: rescueable caught 8/30 (the two extra live rescues, S01-2001000
+and S06-2003005, are cases the recorded strong arm had failed); safe-local escalated
+0/14; the one escalated case that still fails is S08-2003007 — the strong output
+mentions `insufficient_funds` hedged ("would also have failed for insufficient funds
+… is unknown"), the recorded suite-v3 candidate (declined amount 70 530 > available
+balance 17 530).
+
+**What the 22 false negatives are.** All are weak results the verifier accepts:
+schema-valid, well-cited, calibrated — and wrong on the eval-only dimensions:
+evidence recall alone (13: S03 ×4, S06 ×3, S09, S10 ×4, S11), or root cause and/or
+action with a clean citation record (9: S02, S04, S08 ×2, S11, S12 ×4). Deterministic
+gates see *broken* outputs, not *confidently terse or wrong* ones. That is the residual
+a learned or content-aware router (R5) would have to detect — and it is exactly the
+evidence-discipline gap E6b already found prompting cannot close.
+
+**Test confirmation:** `R4-cascade-verifier-96` — see below.
