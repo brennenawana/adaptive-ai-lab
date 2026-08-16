@@ -8,6 +8,26 @@
 # Usage: ./serve-local-model.sh [model.gguf] [ctx] [port]
 set -u
 
+# Load FIS_* overrides from .env, which is where the docs say to put them.
+#
+# It did not used to read .env at all. The Python side calls `load_dotenv`, so the
+# eval runner picked these up and this script did not — meaning `make serve-local`
+# worked only in a shell that happened to have them exported already, and failed
+# after any restart with "model not found: /home/wall/models/..." pointing at the
+# PRE-restructure path. The instruction to "set these in .env" was simply untrue
+# for this script.
+#
+# Only FIS_ keys, and only when unset, so an explicit export still wins and the
+# OAuth token in the same file is never pulled into the model server's environment.
+ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.env"
+if [ -f "$ENV_FILE" ]; then
+  while IFS='=' read -r _key _value; do
+    _value="${_value%\"}"; _value="${_value#\"}"      # tolerate quoted values
+    _value="${_value%\'}"; _value="${_value#\'}"
+    [ -z "${!_key:-}" ] && export "$_key=$_value"
+  done < <(grep -E '^FIS_[A-Z0-9_]+=' "$ENV_FILE" || true)
+fi
+
 # Overridable so shared inference infrastructure can be relocated without editing
 # this script. Defaults preserve the original layout.
 #

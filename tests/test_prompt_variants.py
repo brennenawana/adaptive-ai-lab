@@ -145,6 +145,29 @@ def test_content_variants_ask_for_eliminative_evidence(ref):
     assert _RULES_CITE_ELIMINATIVE in PROMPTS[ref]
 
 
+def test_subject_variant_is_C_plus_one_line():
+    """H must differ from C by exactly the subject-citation rule. Anything else
+    reintroduces the confound E6b was run to remove."""
+    from services.ai_orchestrator.prompts import _RULES_CITE_SUBJECT
+    h, c = PROMPTS["cite_subject"], PROMPTS["cause_action_directed"]
+    assert _RULES_CITE_SUBJECT in h
+    assert _RULES_CITE_SUBJECT not in c
+    assert _POLICY_BLOCK in h
+    assert h.replace(_RULES_CITE_SUBJECT + "\n", "") == c, (
+        "H differs from C by more than the one rule"
+    )
+
+
+def test_subject_rule_names_no_scenario_specific_record():
+    """The line must be general operations practice, not a description of what the
+    scorer wants for a particular class. Naming an id prefix would be gaming."""
+    from services.ai_orchestrator.prompts import _RULES_CITE_SUBJECT
+    low = _RULES_CITE_SUBJECT.lower()
+    for token in ("acc_", "set_", "ver_", "dlv_", "evt_", "reconciliation_gap",
+                  "kyc_hold", "required", "recall"):
+        assert token not in low, f"subject rule leaks {token!r}"
+
+
 def test_the_2x2_is_actually_a_2x2():
     """Four distinct prompts, one per cell. A duplicate would silently halve the
     experiment and still produce a plausible-looking table."""

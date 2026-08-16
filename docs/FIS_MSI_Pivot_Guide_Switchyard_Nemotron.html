@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>FIS MSI Pivot Guide — Switchyard & Nemotron</title><style>
+:root {
+  --bg:#f6f8fb; --paper:#fff; --ink:#172033; --muted:#5e6b80; --line:#dfe5ed;
+  --navy:#17324d; --navy2:#244662; --teal:#0e7c77; --tealsoft:#e8f4f3;
+  --blue:#386a8b; --bluesoft:#eef4f9; --amber:#a35b17; --ambersoft:#fff4e8;
+  --red:#a34141; --redsoft:#fff0f0; --green:#2e7d5b; --greensoft:#edf8f2;
+  --code:#f4f6f8; --shadow:0 18px 60px rgba(23,50,77,.08); --content:920px;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;color:var(--ink);background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;line-height:1.68;-webkit-font-smoothing:antialiased}
+a{color:var(--teal);text-decoration-thickness:1px;text-underline-offset:2px} a:hover{color:#08625e}
+.shell{max-width:1360px;margin:0 auto;display:grid;grid-template-columns:270px minmax(0,var(--content));gap:44px;padding:36px 28px 72px;justify-content:center}.sidebar{position:sticky;top:24px;align-self:start;max-height:calc(100vh - 48px);overflow:auto;padding:18px 16px}.brand{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--navy);margin-bottom:16px}.toc-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800;margin:0 0 8px}.toc{list-style:none;padding:0;margin:0}.toc li{margin:0}.toc a{display:block;text-decoration:none;color:#526176;border-left:2px solid transparent;padding:5px 10px;font-size:13px;line-height:1.35}.toc a:hover{color:var(--navy);border-left-color:#a8c9c7;background:rgba(255,255,255,.6)}.toc .sub a{padding-left:22px;font-size:12.5px}.document{min-width:0}.paper{background:var(--paper);border:1px solid rgba(214,222,233,.85);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}.hero{padding:58px 64px 50px;color:#fff;background:linear-gradient(135deg,var(--navy) 0%,#1f4965 58%,#246a70 100%);position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:360px;height:360px;right:-130px;top:-180px;border:1px solid rgba(255,255,255,.16);border-radius:50%;box-shadow:0 0 0 50px rgba(255,255,255,.03),0 0 0 100px rgba(255,255,255,.025)}.hero-eyebrow{margin:0 0 10px;font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#b8e2df}.hero h1{margin:0;font-size:clamp(35px,5vw,54px);line-height:1.04;letter-spacing:-.038em;max-width:780px;color:#fff}.hero .subtitle{margin:16px 0 0;max-width:760px;font-size:18px;color:rgba(255,255,255,.84);line-height:1.5}.hero .meta{margin:18px 0 0;font-size:13px;color:rgba(255,255,255,.72)}.body{padding:54px 64px 74px}h1,h2,h3{color:var(--navy);letter-spacing:-.025em;scroll-margin-top:28px}h1{font-size:30px;line-height:1.18;margin:58px 0 18px;padding-top:4px}h1:first-child{margin-top:0}h2{font-size:22px;line-height:1.28;margin:38px 0 12px}h3{font-size:17px;line-height:1.35;margin:28px 0 8px}p{margin:0 0 16px}strong{color:#12263a}ul,ol{margin:12px 0 22px;padding-left:26px}li{margin:6px 0;padding-left:3px}hr{border:0;border-top:1px solid var(--line);margin:36px 0}
+.callout{margin:24px 0;padding:19px 22px 20px;border:1px solid #d7e8e6;border-radius:14px;background:var(--tealsoft)}.callout.note{background:var(--bluesoft);border-color:#dce6ef}.callout.warning{background:var(--ambersoft);border-color:#f0ddc6}.callout.danger{background:var(--redsoft);border-color:#f1d1d1}.callout.success{background:var(--greensoft);border-color:#d2eadc}.callout-title{display:block;margin:0 0 5px;font-weight:800;color:var(--navy)}.callout.warning .callout-title{color:#74400d}.callout.danger .callout-title{color:#7d2d2d}.callout.success .callout-title{color:#245f45}.callout p:last-child{margin-bottom:0}
+pre{position:relative;margin:20px 0 26px;padding:18px 20px;overflow-x:auto;background:var(--code);color:#1f2b3d;border:1px solid #e1e6ec;border-radius:13px;font-family:"SFMono-Regular",Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:12.5px;line-height:1.5;tab-size:2;white-space:pre}pre code{font:inherit}.copy-btn{position:absolute;right:8px;top:8px;border:1px solid #d2d9e2;background:rgba(255,255,255,.92);color:#475569;font:600 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:7px;padding:7px 9px;cursor:pointer;opacity:0;transition:opacity .15s}pre:hover .copy-btn{opacity:1}
+.table-wrap{overflow-x:auto;margin:22px 0 30px;border:1px solid var(--line);border-radius:13px}table.data{width:100%;border-collapse:collapse;font-size:13.4px;line-height:1.45;background:#fff}table.data th{background:#f1f5f8;color:var(--navy);text-align:left;font-weight:800;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}table.data td{padding:12px 14px;border-top:1px solid #e7ebf0;vertical-align:top}table.data tbody tr:nth-child(even){background:#fbfcfd}.metric{font-variant-numeric:tabular-nums;font-weight:700}.small{font-size:13px;color:var(--muted)}.tag{display:inline-block;font-size:11px;line-height:1.5;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:999px;background:#eef2f6;color:#44546a;white-space:nowrap}.tag.keep{background:var(--greensoft);color:#245f45}.tag.change{background:var(--bluesoft);color:#315d7b}.tag.defer{background:var(--ambersoft);color:#7a470f}.tag.stop{background:var(--redsoft);color:#8a3535}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0 30px}.kpi{border:1px solid var(--line);border-radius:14px;padding:16px 17px;background:#fbfcfd}.kpi .n{font-size:26px;line-height:1.1;font-weight:850;color:var(--navy);letter-spacing:-.03em}.kpi .l{font-size:12px;color:var(--muted);margin-top:5px}.footer{padding:20px 64px 30px;color:#7a8798;font-size:12px;border-top:1px solid #edf0f4}
+@media(max-width:1080px){.shell{grid-template-columns:1fr;max-width:980px;gap:0;padding-top:18px}.sidebar{position:static;max-height:none;padding:0 4px 18px}.toc{columns:2;column-gap:24px}.toc li{break-inside:avoid}}@media(max-width:720px){.shell{padding:0;display:block}.sidebar{display:none}.paper{border-radius:0;border-left:0;border-right:0}.hero{padding:40px 24px 34px}.hero h1{font-size:36px}.body{padding:34px 22px 48px}.footer{padding:18px 22px 26px}h1{font-size:27px;margin-top:46px}h2{font-size:21px}pre{margin-left:-4px;margin-right:-4px;font-size:11.3px}.kpi-grid{grid-template-columns:1fr}}
+@media print{@page{size:Letter;margin:.65in}body{background:#fff}.shell{display:block;max-width:none;padding:0}.sidebar,.copy-btn{display:none!important}.paper{box-shadow:none;border:0;border-radius:0}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}.body{padding:36px 0 0}.footer{padding-left:0;padding-right:0}h1,h2,h3{break-after:avoid}pre,.callout,.table-wrap,.kpi{break-inside:avoid}.table-wrap{overflow:visible}a{color:inherit;text-decoration:none}}
+</style></head>
+<body><div class="shell"><nav class="sidebar" aria-label="Table of contents"><div class="brand">Fintech Integration Sandbox</div><div class="toc-title">On this page</div><ul class="toc"><li class=""><a href="#executive-summary">Executive Summary</a></li><li class=""><a href="#status-read">What the Current Results Say</a></li><li class=""><a href="#pivot-decision">The Pivot Decision</a></li><li class=""><a href="#keep-change-defer">Keep / Modify / Defer</a></li><li class=""><a href="#cutover">Cutover Sequence from da35ab3</a></li><li class=""><a href="#architecture">Revised FIS AI Architecture</a></li><li class="sub"><a href="#switchyard-boundary">What Switchyard Owns — and Does Not Own</a></li><li class=""><a href="#routing-track">New Routing Experiment Track</a></li><li class="sub"><a href="#r0">R0 — Freeze the E6b Local Baseline</a></li><li class="sub"><a href="#r1">R1 — Switchyard Passthrough Equivalence</a></li><li class="sub"><a href="#r2">R2 — Paired Strong/Weak Opportunity Map</a></li><li class="sub"><a href="#r3">R3 — Nemotron 3.5 Lightning Candidate Arm</a></li><li class="sub"><a href="#r4">R4 — Deterministic Cascade Routing</a></li><li class="sub"><a href="#r5">R5 — Predictive / Stage Routing</a></li><li class=""><a href="#routing-metrics">Routing Metrics to Add</a></li><li class=""><a href="#trajectory-schema">Trajectory / Run Schema Additions</a></li><li class=""><a href="#experiment-backlog">How the Existing E-Series Changes</a></li><li class=""><a href="#methodology">Methodological Rules to Preserve</a></li><li class=""><a href="#harness">Promote Harness Integrity to a Product Feature</a></li><li class=""><a href="#implementation">Concrete Repository Changes</a></li><li class=""><a href="#hardware">MSI Runtime Strategy</a></li><li class="sub"><a href="#lightning-fit">Nemotron 3.5 Lightning Integration Strategy</a></li><li class=""><a href="#next-commits">Recommended Next Commits</a></li><li class=""><a href="#demo">What the Demonstration Should Eventually Show</a></li><li class=""><a href="#decision-gates">Decision Gates</a></li><li class=""><a href="#sources">Current Primary Sources</a></li><li class=""><a href="#north-star">North Star</a></li></ul></nav><main class="document"><article class="paper"><header class="hero"><div class="hero-eyebrow">MSI Experimentation Pivot Guide</div><h1>FIS → System-of-Models Routing</h1><p class="subtitle">How to pivot the existing Fintech Integration Sandbox toward NeMo Switchyard, Nemotron 3.5 Lightning, and measurable strong/weak routing—without throwing away the work already completed.</p><p class="meta">Status reference: 2026-08-15 · repo <code>~/projects/fintech-integration-sandbox</code> · baseline commit <code>da35ab3</code> · eval suite v2</p></header><div class="body">
+<aside class="callout success"><span class="callout-title">Starting point</span><p>This guide assumes the FIS repository is at commit <code>da35ab3</code>, the event-driven migration is complete, eval suite version 2 is the active comparable suite, E6 is confirmed on test, and E6b is the only experiment currently in flight. The one unconfirmed status figure is the post-E6b full-suite test count; rerun <code>make test</code> before recording the next baseline.</p></aside>
+
+<h1 id="executive-summary">Executive Summary</h1>
+<p>FIS should <strong>pivot toward a system-of-models and routing experiment without restarting the project</strong>. The current implementation is already more valuable than a fresh Switchyard/Nemotron demo because it has deterministic world generation, objective ground truth, model-independent evidence reachability checks, a strict dev/test protocol, per-dimension scoring, and enough arm disagreement to expose harness bugs.</p>
+<p>The immediate change is not “replace the local model with Nemotron” and not “move the platform into NeMo.” The immediate change is to introduce a <strong>thin model-routing boundary</strong>, use NeMo Switchyard as the leading implementation candidate behind that boundary, add Nemotron 3.5 Lightning as a <strong>candidate weak/specialist execution model</strong>, and evaluate hybrid routing with the same causal discipline already used for E6/E6b.</p>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="n">29.2%</div><div class="l">best confirmed local strict all-pass, suite v2 test</div></div>
+  <div class="kpi"><div class="n">99.0%</div><div class="l">frontier strict all-pass, suite v2 test</div></div>
+  <div class="kpi"><div class="n">61.1%</div><div class="l">E6 required-evidence recall — current bottleneck</div></div>
+</div>
+
+<aside class="callout note"><span class="callout-title">Why this is a routing testbed now</span><p>The local and frontier arms have a very large quality gap, but the local arm is no longer uniformly weak: prompt structure moved diagnosis from 16.7% to 65.6% and made action selection perfect conditional on correct diagnosis. That means some cases are already cheap-model-solvable while others still require stronger reasoning. Routing is now a measurable optimization problem rather than an architectural slogan.</p></aside>
+
+<h1 id="status-read">What the Current Results Say</h1>
+<p>The most important result is not simply that E6 improved strict all-pass from 3.1% to 29.2%. It is that the experiment <strong>separated three different failure mechanisms</strong>:</p>
+<ul>
+<li><strong>Hypothesis consideration:</strong> enumerating the 12 cause labels recovered most of the diagnosis gain.</li>
+<li><strong>Policy lookup:</strong> the cause→action map drove <code>act | rc</code> to 100%.</li>
+<li><strong>Evidence discipline:</strong> once diagnosis and action improved, required-evidence recall became the dominant loss.</li>
+</ul>
+<p>This is exactly the behavior expected from a mature learning harness: improvement in one dimension exposes a new bottleneck instead of being flattened into a single aggregate score.</p>
+
+<div class="table-wrap"><table class="data"><thead><tr><th>Signal</th><th>Interpretation</th><th>Architectural consequence</th></tr></thead><tbody>
+<tr><td>E6 diagnosis gain comes mostly from cause enumeration</td><td>The local model needed a better search space, not weight updates.</td><td>Keep context/prompt engineering ahead of QLoRA.</td></tr>
+<tr><td><code>act | rc = 100%</code></td><td>Action selection has become deterministic lookup once diagnosis is correct.</td><td>Do not spend training budget on the action subproblem.</td></tr>
+<tr><td>Evidence recall fell to 61.1%</td><td>The model is frequently right about the cause but fails the evidence contract.</td><td>Finish E6b before changing model/routing layers.</td></tr>
+<tr><td>Frontier = 99% all-pass</td><td>A strong rescue path already exists.</td><td>Measure how often the weak/local path can safely avoid it.</td></tr>
+<tr><td>Harness bugs masqueraded as model weakness</td><td>System diagnosis is at least as important as model selection.</td><td>Reachability and arm-disagreement checks remain mandatory gates.</td></tr>
+</tbody></table></div>
+
+<h1 id="pivot-decision">The Pivot Decision</h1>
+<pre><code>CURRENT FIS
+
+scenario → fixed evidence/tools → AI orchestrator → one selected model → scorer
+
+PIVOTED FIS
+
+scenario → fixed evidence/tools → AI orchestrator
+                                  ↓
+                          company-owned model interface
+                                  ↓
+                              Switchyard
+                           /       |       \
+                     local weak  candidate  strong
+                       model     Nemotron  frontier
+                           \       |       /
+                             route telemetry
+                                  ↓
+                         SAME FIS scorer/evals
+</code></pre>
+<p>The event platform, scenario generator, tools, evidence model, scorer, experiment discipline, and test split remain intact. The pivot is concentrated at the <strong>model invocation boundary</strong> and in the <strong>experiment roadmap</strong>.</p>
+
+<h1 id="keep-change-defer">Keep / Modify / Defer</h1>
+<div class="table-wrap"><table class="data"><thead><tr><th>Component / work</th><th>Decision</th><th>Reason</th></tr></thead><tbody>
+<tr><td>Event-driven migration, deterministic UUID5 envelopes, projection/live parity</td><td><span class="tag keep">KEEP</span></td><td>This is the synthetic world's ground-truth engine. Routing experiments depend on it.</td></tr>
+<tr><td><code>make reachability</code> and evidence ceilings</td><td><span class="tag keep">KEEP</span></td><td>Prevents infrastructure defects from being misclassified as model weakness.</td></tr>
+<tr><td>Suite v2, dev selection / one-shot test confirmation</td><td><span class="tag keep">KEEP</span></td><td>Essential for routing-policy selection as well as prompt selection.</td></tr>
+<tr><td>Versioned prompt registry and factorized sweeps</td><td><span class="tag keep">KEEP</span></td><td>Needed to separate model, prompt, and routing effects.</td></tr>
+<tr><td>AI model invocation path</td><td><span class="tag change">MODIFY</span></td><td>Insert a stable OpenAI-compatible gateway boundary; Switchyard becomes the first routing implementation.</td></tr>
+<tr><td>Run/trajectory metadata</td><td><span class="tag change">MODIFY</span></td><td>Add route decision, backend, escalation, stage latency, token/cost, and router-signal fields.</td></tr>
+<tr><td>E3 knowledge experiment</td><td><span class="tag change">REFRAME</span></td><td>Diagnosis is no longer the principal loss. Recast it around evidence selection or reducing strong-model escalation.</td></tr>
+<tr><td>E8 parse reliability</td><td><span class="tag change">PROMOTE</span></td><td>Parse/schema failure is both a quality issue and a production-available escalation signal.</td></tr>
+<tr><td>E7 QLoRA</td><td><span class="tag defer">DEFER</span></td><td>Prompt changes already removed substantial headroom; first measure model/routing alternatives and residual failure.</td></tr>
+<tr><td>Full NeMo Platform adoption</td><td><span class="tag defer">DEFER</span></td><td>Use standalone Switchyard first. Do not replace a working FIS harness with a broader platform before there is a requirement.</td></tr>
+<tr><td>Custom LLM traffic proxy/router built from scratch</td><td><span class="tag stop">DO NOT BUILD YET</span></td><td>Switchyard already provides passthrough, A/B/random, classifier, stage-router/custom routing, protocol translation, fallback, and stats.</td></tr>
+<tr><td>S12 poison-message capability</td><td><span class="tag defer">SEPARATE BACKLOG</span></td><td>Important event-platform work, but not a blocker to the model-routing experiment.</td></tr>
+</tbody></table></div>
+
+<h1 id="cutover">Cutover Sequence from <code>da35ab3</code></h1>
+<ol>
+<li><strong>Do not interrupt E6b.</strong> Finish the 2×2 dev sweep exactly as designed.</li>
+<li>Select the E6b winner on dev and run the single test confirmation once.</li>
+<li>Rerun <code>make test</code> and record the actual full-suite count; this closes the only unconfirmed figure in the status report.</li>
+<li>Run <code>make reachability</code>; require 96/96 and zero capped classes.</li>
+<li>Freeze the prompt/evidence/model configuration as the <strong>local routing baseline</strong>. Do not modify it during the first Switchyard equivalence test.</li>
+<li>Create a new routing experiment namespace (<code>R0…R5</code>) rather than consuming or renumbering the existing E-series.</li>
+</ol>
+<aside class="callout warning"><span class="callout-title">Do not mix the pivots</span><p>Do not simultaneously change prompt wording, evidence rules, local model, gateway, and router. Your current project has succeeded because it tests factors. Keep that discipline. The first Switchyard experiment must be a zero-semantic-change transport experiment.</p></aside>
+
+<h1 id="architecture">Revised FIS AI Architecture</h1>
+<pre><code>┌──────────────────── FIS GROUND TRUTH / RUNTIME ────────────────────┐
+│                                                                    │
+│ Scenario generator → NATS → consumers → materialized fintech state │
+│                               │                                    │
+│                         investigation tools                         │
+│                               │                                    │
+│                        FIXED_EVIDENCE plan                          │
+└───────────────────────────────┬────────────────────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │   AI ORCHESTRATOR     │
+                    │ prompt / grammar      │
+                    │ tool/context policy   │
+                    └───────────┬───────────┘
+                                │
+                  company-owned model interface
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │   NeMo Switchyard     │
+                    │ routing / translation │
+                    │ fallback / stats      │
+                    └──────┬──────┬─────────┘
+                           │      │
+               ┌───────────┘      └────────────┐
+               ▼                               ▼
+       WEAK / SPECIALIST                  STRONG / RESCUE
+       current local model                frontier model
+       Nemotron candidate                future strong open model
+               │                               │
+               └──────────────┬────────────────┘
+                              ▼
+                    structured FIS response
+                              │
+             ┌────────────────┼──────────────────┐
+             ▼                ▼                  ▼
+        deterministic      evidence           scorer /
+        verifier           contract           eval record
+             └────────────────┬──────────────────┘
+                              ▼
+                      canonical FIS trajectory
+</code></pre>
+
+<h2 id="switchyard-boundary">What Switchyard Owns — and Does Not Own</h2>
+<div class="table-wrap"><table class="data"><thead><tr><th>Switchyard should own</th><th>FIS should continue to own</th></tr></thead><tbody>
+<tr><td>Protocol translation between supported LLM APIs</td><td>Scenario truth and task ontology</td></tr>
+<tr><td>Backend selection inside an approved route profile</td><td>Which evidence/tools the task is allowed to access</td></tr>
+<tr><td>Strong/weak traffic splitting and fallback</td><td>Prompt variants and response grammar</td></tr>
+<tr><td>Per-request backend latency/token/cost statistics</td><td>Required-evidence definitions and reachability ceilings</td></tr>
+<tr><td>Classifier/stage-router/custom routing implementation</td><td>Deterministic scorer, business success metrics, dev/test split</td></tr>
+<tr><td>OpenAI/Anthropic/OpenAI-compatible backend plumbing</td><td>Canonical run/trajectory record and experiment lineage</td></tr>
+</tbody></table></div>
+<p>That boundary keeps Switchyard replaceable. If it proves excellent, it remains. If a future router is better, FIS can swap the routing implementation without rewriting the eval harness or the business system.</p>
+
+<h1 id="routing-track">New Routing Experiment Track</h1>
+<p>Create a separate <strong>R-series</strong> so routing experiments cannot be confused with prompt/context experiments.</p>
+
+<h2 id="r0">R0 — Freeze the E6b Local Baseline</h2>
+<p><strong>Question:</strong> What is the best causally selected local configuration before routing is introduced?</p>
+<ul><li>Finish E6b on dev.</li><li>Confirm the winner on test once.</li><li>Record exact prompt version, model build, quantization/runtime, suite v2, corpus seed/version, evidence mode, and scorer version.</li><li>Freeze this configuration as <code>weak-baseline-v1</code>.</li></ul>
+<p><strong>Exit criterion:</strong> a reproducible baseline run plus a clean <code>make test</code> and <code>make reachability</code>.</p>
+
+<h2 id="r1">R1 — Switchyard Passthrough Equivalence</h2>
+<p><strong>Question:</strong> Can Switchyard sit in the model path without changing semantic outcomes?</p>
+<pre><code>BEFORE
+orchestrator → local model :8082
+
+R1
+orchestrator → Switchyard :4000 → same local model :8082
+</code></pre>
+<ul>
+<li>Use a single-model passthrough profile.</li>
+<li>Keep prompt, evidence, model, decoding parameters, grammar/schema, and scorer unchanged.</li>
+<li>Compare scenario-by-scenario outputs, parsing, scores, latency, and token usage.</li>
+<li>Any quality delta is a transport/configuration bug until proven otherwise.</li>
+</ul>
+<p><strong>Exit criterion:</strong> semantic equivalence within expected nondeterminism, with route/backend metadata captured for every request.</p>
+
+<h2 id="r2">R2 — Paired Strong/Weak Opportunity Map</h2>
+<p><strong>Question:</strong> Before inventing a router, how much routing opportunity actually exists?</p>
+<p>Join weak and strong results by scenario ID on <strong>dev</strong> and calculate the counterfactual outcome matrix:</p>
+<div class="table-wrap"><table class="data"><thead><tr><th>Weak</th><th>Strong</th><th>Meaning</th><th>Routing implication</th></tr></thead><tbody>
+<tr><td>pass</td><td>pass</td><td>Weak is sufficient.</td><td>Ideal cheap-model coverage.</td></tr>
+<tr><td>fail</td><td>pass</td><td>Strong can rescue.</td><td>Router must escalate these cases.</td></tr>
+<tr><td>pass</td><td>fail</td><td>Model diversity / strong regression.</td><td>Do not assume “strong” dominates every class.</td></tr>
+<tr><td>fail</td><td>fail</td><td>Neither model solves it.</td><td>Likely system/context/harness or new capability work.</td></tr>
+</tbody></table></div>
+<p>Add a script such as <code>scripts/routing_oracle.py</code> that reports the <strong>oracle strong-call minimum</strong>: the best possible strong-model utilization if a perfect router knew which cases the weak model would pass. This sets a ceiling for router research and tells you whether the optimization is economically meaningful.</p>
+<aside class="callout note"><span class="callout-title">Do this on dev, not test</span><p>The oracle analysis is a selection tool. Use dev to design the routing policy. The final chosen policy gets one test confirmation, preserving the existing methodology.</p></aside>
+
+<h2 id="r3">R3 — Nemotron 3.5 Lightning Candidate Arm</h2>
+<p><strong>Question:</strong> Does Nemotron 3.5 Lightning improve the weak/specialist frontier before any specialization?</p>
+<ol>
+<li><strong>Compatibility spike first.</strong> Verify the current model card/checkpoint, quantization, license, supported runtime, and healthy VRAM margin for the MSI's 16 GB GPU. Do not infer memory fit from “active parameters” alone.</li>
+<li>If local packaging is not yet mature, run the model through an NVIDIA/hosted endpoint first. This separates <em>model capability</em> from <em>local serving compatibility</em>.</li>
+<li>Run the identical prompt, evidence set, grammar, and scorer used for the frozen weak baseline. Do not tune the prompt for Lightning in this first comparison.</li>
+<li>Compare strict all-pass, root cause, <code>act | rc</code>, evidence recall, verifier, parse rate, unsupported/forbidden claims, latency, tokens, and cost.</li>
+<li>Only after the model-only arm is measured may a separate dev-only Lightning prompt adaptation be tested.</li>
+</ol>
+<aside class="callout warning"><span class="callout-title">Lightning is a candidate, not a dependency</span><p>It was announced only days before this pivot. Switchyard has a documented public implementation surface today; Lightning's exact packaging and local-runtime details are moving quickly. Treat the first integration as a compatibility/evaluation spike, not as a rewrite of FIS around one model.</p></aside>
+
+<h2 id="r4">R4 — Deterministic Cascade Routing</h2>
+<p><strong>Question:</strong> How far can you get without a learned router?</p>
+<pre><code>request
+  ↓
+weak model
+  ↓
+production-available checks
+  ├── parse/schema failure ─────────────→ strong
+  ├── deterministic verifier failure ──→ strong
+  ├── tool/backend failure ─────────────→ strong or retry
+  ├── unsupported-claim detector ──────→ strong
+  └── checks pass ─────────────────────→ accept weak
+</code></pre>
+<p>Use only signals that would exist in a real deployment. <strong>Do not route using gold root cause, scenario ID, or required-evidence recall</strong>; those are eval labels, not production signals. Eval-only evidence recall can measure router regret after the fact, but it cannot be an online routing feature.</p>
+<p>R4 is important because deterministic gates are interpretable and often capture the easiest escalation wins. It also tells you what residual error remains for a learned Switchyard classifier/stage router.</p>
+
+<h2 id="r5">R5 — Predictive / Stage Routing</h2>
+<p><strong>Question:</strong> Can a router predict weak-model insufficiency before or during execution while preserving a pre-registered quality floor?</p>
+<p>Candidate feature families:</p>
+<ul>
+<li><strong>Pre-inference:</strong> evidence volume, services implicated, temporal span, presence of reconciliation mismatch, number/type of provider events, tool availability/failures, task complexity metadata.</li>
+<li><strong>Post-weak:</strong> parse success, deterministic verifier result, unsupported-claim checks, contradiction signals, tool failure state, structured confidence if empirically calibrated.</li>
+<li><strong>Session/history:</strong> only later, if the sandbox evolves into multi-turn investigations; Switchyard's stage-router ecosystem supports signal/history-based routing patterns.</li>
+</ul>
+<p>Compare at least three policies on dev: deterministic cascade, Switchyard LLM-classifier routing, and a simple transparent baseline (for example a logistic model or decision tree over production-available features). Complexity must earn its place.</p>
+
+<h1 id="routing-metrics">Routing Metrics to Add</h1>
+<div class="table-wrap"><table class="data"><thead><tr><th>Metric</th><th>Definition</th><th>Why it matters</th></tr></thead><tbody>
+<tr><td><strong>Weak coverage</strong></td><td>% of final successful cases completed without strong escalation</td><td>Direct measure of cheap/local workload capture.</td></tr>
+<tr><td><strong>Strong-call rate</strong></td><td>% of cases invoking frontier/strong model</td><td>Primary cost/control variable.</td></tr>
+<tr><td><strong>Route regret</strong></td><td>weak chosen/finalized when paired strong would pass and weak fails</td><td>Measures under-escalation.</td></tr>
+<tr><td><strong>Unnecessary escalation</strong></td><td>strong used when paired weak would pass</td><td>Measures wasted strong-model spend.</td></tr>
+<tr><td><strong>Rescue rate</strong></td><td>% of weak failures converted to passes by escalation</td><td>Shows value of the strong path.</td></tr>
+<tr><td><strong>Hard-case rate</strong></td><td>both weak and strong fail</td><td>Separates routing problems from system/capability problems.</td></tr>
+<tr><td><strong>Cost per strict pass</strong></td><td>total model/tool cost ÷ strict successful investigations</td><td>More meaningful than token price.</td></tr>
+<tr><td><strong>Latency per strict pass</strong></td><td>end-to-end latency on successful cases</td><td>Cascades can save cost while adding latency.</td></tr>
+<tr><td><strong>Router overhead</strong></td><td>routing decision latency/cost separate from model calls</td><td>Prevents an expensive router from erasing the benefit.</td></tr>
+<tr><td><strong>Quality delta vs strong</strong></td><td>hybrid all-pass minus strong-only all-pass</td><td>The optimization constraint.</td></tr>
+</tbody></table></div>
+<p>Pre-register the quality floor on dev in <strong>case counts</strong> as well as percentages. With 96 test scenarios, one case is roughly one percentage point, so “no more than one additional strict failure versus strong-only” is more interpretable than a vague percentage target. Choose the actual tolerance before the final test confirmation.</p>
+
+<h1 id="trajectory-schema">Trajectory / Run Schema Additions</h1>
+<p>Switchyard statistics are useful, but they must enrich—not replace—the canonical FIS run record. Add fields similar to:</p>
+<pre><code>{
+  "routing": {
+    "gateway": "switchyard",
+    "gateway_version": "...",
+    "route_profile": "fis-hybrid-v1",
+    "route_mode": "passthrough|random|cascade|classifier|stage",
+    "decision_id": "...",
+    "selected_backend": "...",
+    "router_confidence": null,
+    "router_signals": {},
+    "escalated": false,
+    "escalation_reason": null,
+    "fallback_used": false
+  },
+  "model_stages": [
+    {
+      "stage": "weak",
+      "model": "...",
+      "runtime": "...",
+      "quantization": "...",
+      "latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cost": 0.0,
+      "parse_ok": true,
+      "verifier_ok": true
+    }
+  ],
+  "experiment": {
+    "track": "R4",
+    "suite_version": 2,
+    "prompt_version": "...",
+    "corpus_version": "...",
+    "evidence_mode": "FIXED_EVIDENCE"
+  }
+}
+</code></pre>
+<p>Keep prompt/model/tool/scorer lineage explicit so a quality change can be attributed to the factor that actually changed.</p>
+
+<h1 id="experiment-backlog">How the Existing E-Series Changes</h1>
+<div class="table-wrap"><table class="data"><thead><tr><th>Experiment / item</th><th>New status</th><th>Recommended framing</th></tr></thead><tbody>
+<tr><td><strong>E6b</strong></td><td><span class="tag keep">FINISH NOW</span></td><td>Close evidence-recall prompt placement/content question before routing cutover.</td></tr>
+<tr><td><strong>E3</strong></td><td><span class="tag change">REFRAME</span></td><td>Do not ask “does knowledge improve diagnosis?” Ask whether a compact evidence-selection skill/context lowers weak-model failures or strong escalations while preserving diagnosis.</td></tr>
+<tr><td><strong>E5</strong></td><td><span class="tag defer">HOLD</span></td><td>Re-evaluate after R2/R4 show which residual failure family actually matters.</td></tr>
+<tr><td><strong>E7 QLoRA</strong></td><td><span class="tag defer">DEFER</span></td><td>Training only becomes attractive after prompt/context, model candidate, and routing arms expose persistent model-behavior residuals.</td></tr>
+<tr><td><strong>E8 unparseable outputs</strong></td><td><span class="tag change">PROMOTE AFTER R1</span></td><td>Schema reliability is operationally important and provides a legitimate escalation signal. Diagnose without changing the R1 equivalence baseline.</td></tr>
+<tr><td><strong>Ontology batch</strong></td><td><span class="tag defer">AFTER ROUTING BASELINE</span></td><td>Add genuine novel classes later to test generalization and router behavior, not while calibrating the initial hybrid path.</td></tr>
+<tr><td><strong>S12 poison-message handling</strong></td><td><span class="tag defer">PARALLEL BACKLOG</span></td><td>Useful platform capability, but keep it out of the routing experiment unless it changes scenario evidence.</td></tr>
+</tbody></table></div>
+
+<h1 id="methodology">Methodological Rules to Preserve</h1>
+<ul>
+<li><strong>Selection happens on dev.</strong> This now applies to prompt, model candidate, routing threshold, classifier choice, and quality/cost tradeoff.</li>
+<li><strong>Test factors, not bundles.</strong> Gateway-only, model-only, routing-only, prompt-only changes should have separate arms.</li>
+<li><strong>Do not route using eval-only truth.</strong> Gold labels and required-evidence sets may score a route; they may not choose it.</li>
+<li><strong>Never widen the rubric to accommodate model output.</strong></li>
+<li><strong>Run reachability after every corpus regeneration.</strong></li>
+<li><strong>Preserve prompt-rule wording constraints</strong> during the E6/E6b family so placement/content conclusions remain valid.</li>
+<li><strong>Use arm disagreement as a harness alarm.</strong> A weaker model unexpectedly beating a much stronger model on one class remains a reason to inspect the scenario/tool/scorer ceiling first.</li>
+<li><strong>Version scorer changes.</strong> If the residual forbidden-claim false positive is fixed, do not silently mutate suite-v2 comparisons. Either retain an annotated corrected metric or create a new scorer/suite version and rerun comparable arms.</li>
+</ul>
+
+<h1 id="harness">Promote Harness Integrity to a Product Feature</h1>
+<p>The bugs found in this session are not incidental cleanup; they demonstrate a reusable evaluation discipline that should become part of the project itself.</p>
+<pre><code>BEFORE BELIEVING A MODEL FAILURE
+
+1. Does the scenario actually contain the intended signal?
+2. Can the model reach that signal through allowed tools/evidence?
+3. Does the tool expose the distinguishing field?
+4. Is the scorer polarity/logic correct?
+5. Does the stronger arm behave as expected?
+6. Only then classify the residual as model weakness.
+</code></pre>
+<p>Add a preflight report that combines scenario invariants, projection/live parity, reachability ceilings, scorer smoke tests, and model-arm sanity checks. In a future client implementation, this becomes a major differentiator: it prevents teams from fine-tuning models to compensate for broken data paths.</p>
+
+<h1 id="implementation">Concrete Repository Changes</h1>
+<p>Keep changes additive and small. A reasonable target layout is:</p>
+<pre><code>fintech-integration-sandbox/
+├── services/
+│   └── ai_orchestrator/
+│       ├── prompts.py                  # existing
+│       ├── model_client.py             # stable company-owned interface
+│       └── routing_context.py          # production-available routing signals
+│
+├── infra/
+│   └── switchyard/
+│       ├── routes.yaml                 # route profiles; secrets via env only
+│       └── README.md
+│
+├── scripts/
+│   ├── evidence_reachability.py        # existing
+│   ├── routing_oracle.py               # new paired weak/strong analysis
+│   └── compare_routes.py               # new route metrics/report
+│
+├── tests/
+│   ├── test_switchyard_passthrough.py  # R1 transport equivalence
+│   ├── test_routing_metadata.py
+│   └── test_routing_no_gold_leak.py    # forbid scenario/gold features in routing
+│
+└── docs/
+    ├── HANDOFF.md
+    ├── architecture.md
+    ├── experiment-log.md
+    └── routing-experiments.md           # R-series protocol/results
+</code></pre>
+
+<h2>Switchyard installation spike</h2>
+<p>The current public package supports a server extra and standalone routing profiles. Start in the existing WSL/Python environment or an isolated <code>uv</code> environment:</p>
+<pre><code>pip install "nemo-switchyard[cli,server]"
+
+# First goal: serve a single passthrough route on localhost:4000.
+# Keep backend credentials in environment variables, not in committed YAML.
+</code></pre>
+<p>Before configuring the current local model as a backend, verify that the service on port 8082 exposes a supported OpenAI-compatible chat endpoint. If it does not, add the thinnest possible protocol adapter; do not change the model implementation merely to satisfy the router.</p>
+
+<h1 id="hardware">MSI Runtime Strategy</h1>
+<p>The MSI remains the right experimentation node because FIS services can occupy system RAM while the RTX 5080's dedicated VRAM is reserved for local inference. For the routing phase, prioritize <strong>reproducibility and headroom over maximum model size</strong>.</p>
+<div class="table-wrap"><table class="data"><thead><tr><th>Mode</th><th>What runs locally</th><th>What may be remote</th></tr></thead><tbody>
+<tr><td>R0/R1 baseline</td><td>FIS services, NATS/Postgres, current local model, Switchyard</td><td>Nothing required except existing frontier arm for comparisons</td></tr>
+<tr><td>R2 paired eval</td><td>FIS + weak model</td><td>Strong/frontier calls</td></tr>
+<tr><td>R3 Lightning capability</td><td>FIS; Lightning locally only if validated to fit with healthy margin</td><td>Lightning endpoint if local runtime is immature; frontier comparison</td></tr>
+<tr><td>R4/R5 hybrid</td><td>FIS, router/gateway, weak specialist where practical</td><td>Strong rescue model</td></tr>
+<tr><td>Future QLoRA</td><td>Small-model adapter experiments when memory allows</td><td>Larger or long-running training jobs</td></tr>
+</tbody></table></div>
+
+<h2 id="lightning-fit">Nemotron 3.5 Lightning Integration Strategy</h2>
+<p>Do not make the MSI project dependent on a local Lightning deployment until the exact released checkpoint and serving stack are verified. The model is new enough that the integration plan should deliberately separate three questions:</p>
+<ol>
+<li><strong>Capability:</strong> Does Lightning perform well on FIS with the same evidence and prompt?</li>
+<li><strong>Economics:</strong> Is its latency/token/cost profile attractive relative to the current local model and frontier?</li>
+<li><strong>Placement:</strong> Can the preferred checkpoint run on the 16 GB RTX 5080 with enough free VRAM for KV cache and stable service operation?</li>
+</ol>
+<p>If capability is strong but local placement is poor, that is still a useful result: Switchyard lets the same model remain a cloud-hosted specialist while smaller models run locally. <strong>Model identity and model placement are separate decisions.</strong></p>
+
+<h1 id="next-commits">Recommended Next Commits</h1>
+<p>Do not treat these exact subjects as mandatory naming, but keep the scope this narrow:</p>
+<ol>
+<li><code>Close E6b and record the frozen local routing baseline</code></li>
+<li><code>Confirm full suite and reachability at routing cutover</code></li>
+<li><code>Add model-client boundary without changing model behavior</code></li>
+<li><code>Add Switchyard passthrough and prove R1 equivalence</code></li>
+<li><code>Capture route/backend/stage metrics in eval runs</code></li>
+<li><code>Add paired weak/strong oracle routing report</code></li>
+<li><code>Add Nemotron Lightning as an isolated candidate backend</code></li>
+<li><code>Implement deterministic weak→strong escalation gates</code></li>
+<li><code>Compare deterministic routing with Switchyard classifier/stage routing on dev</code></li>
+<li><code>Confirm one frozen hybrid policy on test</code></li>
+</ol>
+
+<h1 id="demo">What the Demonstration Should Eventually Show</h1>
+<p>The strongest demo is not “FIS can call three models.” It is a controlled economic/quality story:</p>
+<pre><code>STRONG-ONLY BASELINE
+quality: very high
+cost: high
+local ownership: low
+
+WEAK-ONLY BASELINE
+quality: lower
+cost: low
+local ownership: high
+
+HYBRID ROUTE
+quality: close to strong-only
+cost: materially lower
+strong-call rate: reduced
+
+SPECIALIZED HYBRID (later)
+weak model improved from FIS trajectories/corrections
+quality: preserved
+strong-call rate: reduced again
+cost per strict pass: reduced again
+</code></pre>
+<p>The report should show per-scenario outcomes and at minimum:</p>
+<ul>
+<li>strict all-pass and each conjunctive component,</li>
+<li>weak coverage and strong-call rate,</li>
+<li>route regret and unnecessary escalation,</li>
+<li>cost per strict pass,</li>
+<li>latency per strict pass,</li>
+<li>router overhead,</li>
+<li>failure taxonomy after routing,</li>
+<li>which improvements came from prompt/context, routing, model swap, or training.</li>
+</ul>
+<p>That gives you a tangible claim you can later translate to real work: <strong>the platform learned to reserve expensive intelligence for the fraction of tasks that actually needed it, and the eval harness proves the tradeoff.</strong></p>
+
+<h1 id="decision-gates">Decision Gates</h1>
+<div class="table-wrap"><table class="data"><thead><tr><th>Gate</th><th>Proceed when…</th><th>If not…</th></tr></thead><tbody>
+<tr><td>Introduce Switchyard</td><td>E6b is closed and the local baseline is frozen.</td><td>Finish the current causal experiment first.</td></tr>
+<tr><td>Keep Switchyard</td><td>R1 equivalence holds and operational overhead is acceptable.</td><td>Keep the model-client interface and replace the routing implementation.</td></tr>
+<tr><td>Invest in routing</td><td>R2 shows meaningful weak-pass/strong-pass overlap and rescueable cases.</td><td>If nearly every weak case fails, improve/replace the weak model first.</td></tr>
+<tr><td>Adopt Lightning</td><td>It beats the current weak arm on the FIS objective or offers a meaningful cost/latency tradeoff.</td><td>Keep it out; the architecture remains model-agnostic.</td></tr>
+<tr><td>Local-host Lightning</td><td>Validated checkpoint fits with healthy VRAM headroom and stable throughput.</td><td>Host it remotely; do not force local placement.</td></tr>
+<tr><td>Start QLoRA</td><td>Residual failures persist after reachability, prompt/context, model selection, and routing are controlled, with enough clean examples to train.</td><td>Continue system/harness improvement instead.</td></tr>
+<tr><td>Adopt broader NeMo Platform</td><td>FIS needs its evaluation/guardrails/agent lifecycle features enough to justify migration.</td><td>Use standalone Switchyard and existing FIS components.</td></tr>
+</tbody></table></div>
+
+<h1 id="sources">Current Primary Sources</h1>
+<p class="small">Technical capabilities in this pivot were checked against current public sources on 2026-08-16. NVIDIA components are moving quickly; pin versions in the repo and re-check release notes before changing production-like baselines.</p>
+<ol>
+<li><a href="https://github.com/NVIDIA-NeMo/Switchyard">NVIDIA-NeMo / Switchyard — official repository</a>. Current public surface documents OpenAI/Anthropic translation, OpenAI-compatible backends, random routing, LLM-classifier routing, signal-driven stage routing, custom routers, fallback, A/B use, and per-request statistics.</li>
+<li><a href="https://docs.nvidia.com/nemo-platform/documentation/agents/optimize-agents">NVIDIA NeMo Platform — Optimize Agents</a>. Documents strong/weak virtual-model optimization and evaluation-before-promotion patterns.</li>
+<li><a href="https://docs.nvidia.com/nemo-platform/documentation/reference/release-notes/release-0-1-0">NeMo Platform v0.1.0 release notes</a>. Describes provider-agnostic inference gateway, Switchyard middleware, sibling-candidate validation, evaluation, and local-first release scope.</li>
+<li><a href="https://github.com/NVIDIA-NeMo/nemo-platform">NVIDIA-NeMo / NeMo Platform — official repository</a>. Useful later for evaluating broader lifecycle/eval/guardrail components; not required for this pivot.</li>
+<li><a href="https://developer.nvidia.com/blog/nvidia-nemotron-3-ultra-powers-faster-more-efficient-reasoning-for-long-running-agents/">NVIDIA Technical Blog — Nemotron system-of-models framing</a>. NVIDIA explicitly describes frontier reasoning/orchestration models paired with efficient models for high-volume execution, validation, and tool calling.</li>
+<li><a href="https://www.reuters.com/business/nvidia-is-developing-nemotron-4-open-source-models-information-reports-2026-08-11/">Reuters, 2026-08-11 — Lightning/Switchyard release context</a>. Use only as release confirmation while detailed Lightning deployment documentation continues to settle.</li>
+</ol>
+
+<h1 id="north-star">North Star</h1>
+<blockquote><p><strong>FIS should become a laboratory for proving that a heterogeneous company-AI system can preserve near-frontier task success while shifting as much work as safely possible to smaller, cheaper, locally controlled models—and can explain, with scenario-level evidence, why each model or route succeeded or failed.</strong></p></blockquote>
+<p>The current implementation is not being discarded. The event migration, reachability work, scorer fixes, E6 factorization, and E6b experiment are precisely what make the routing pivot scientifically useful. The next stage is to place multiple models behind a replaceable routing layer and let the existing harness determine whether the system-of-models thesis is actually true for this workload.</p>
+</div><footer class="footer">Fintech Integration Sandbox · MSI Pivot Guide · Generated from the 2026-08-15 implementation status and current public NVIDIA documentation.</footer></article></main></div>
+<script>
+document.querySelectorAll('pre').forEach(function(pre){var b=document.createElement('button');b.className='copy-btn';b.textContent='Copy';b.addEventListener('click',async function(){var t=pre.innerText.replace(/^Copy\n?/,'');await navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)});pre.appendChild(b)});
+</script></body></html>

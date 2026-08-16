@@ -228,6 +228,43 @@ Rules:
 {_FOOTER}"""
 
 
+# H: cite the subject, not only the fault.
+#
+# E6b (E/F/G) all failed to beat C, which killed the attention-budget story. The
+# diagnosis from the stored scores is different and much more specific: among cases
+# E6 gets RIGHT but fails on evidence, S10 misses exactly one id in 8 of 8 (the
+# account) and S03 in 8 of 8 (also the account). The model names the settlement that
+# has no posting, concludes `reconciliation_gap` correctly, and never says which
+# account it happened in.
+#
+# So nothing is being forgotten — the model now cites what PROVES its conclusion and
+# drops what merely CORROBORATES it. That is why both citation-rule variants missed:
+# the absent records are not eliminative, they are contextual. E2 cited them more
+# often precisely because it was less decisive.
+#
+# The instruction below is ordinary operations practice — a write-up naming a defect
+# without naming the affected account is not actionable — rather than a description
+# of what the scorer wants. It says nothing about which records any class requires.
+_RULES_CITE_SUBJECT = """- Cite the records that establish the state of the entity under investigation, not
+  only the ones that prove the fault. Name the account, card or customer you
+  examined even when it turned out to be healthy: a finding that does not say which
+  account it happened in cannot be acted on."""
+
+_H_CITE_SUBJECT = f"""{_HEADER}
+
+{_TASK_LINE}
+
+Rules:
+{_RULES_HEAD}
+{_RULES_CITE}
+{_RULES_CITE_SUBJECT}
+{_RULES_TAIL}
+
+{_POLICY_BLOCK}
+
+{_FOOTER}"""
+
+
 PROMPTS: dict[str, str] = {
     "baseline": _A_BASELINE,
     "cause_action_table": _B_TABLE,
@@ -236,6 +273,7 @@ PROMPTS: dict[str, str] = {
     "cite_last": _E_CITE_LAST,
     "cite_eliminative": _F_CITE_ELIMINATIVE,
     "cite_last_eliminative": _G_CITE_LAST_ELIMINATIVE,
+    "cite_subject": _H_CITE_SUBJECT,
 }
 
 DEFAULT_PROMPT = "baseline"
