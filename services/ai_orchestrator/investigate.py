@@ -16,6 +16,7 @@ reasoning difference with a tool-strategy difference and answer neither question
 
 from __future__ import annotations
 
+import hashlib
 import json
 from enum import StrEnum
 from typing import Any
@@ -216,6 +217,7 @@ async def investigate(
             model_id=resp.model_id, canonical_model=resp.canonical_model,
             quantization=manifest.quantization, prompt_version=PROMPT_VERSION,
             usage=resp.usage, cost=resp.cost, latency=resp.latency,
+            stop_reason=resp.stop_reason, routing=resp.routing,
         ))
 
         if resp.is_error:
@@ -243,6 +245,12 @@ async def investigate(
             ))
 
     traj.tool_calls = list(broker.calls)
+
+    # Digest of the model's raw text, so two arms can be compared for exact
+    # equivalence after the fact (R1: direct path vs routed path) without persisting
+    # the output itself. Greedy decoding on the same backend should reproduce this.
+    if resp and resp.text:
+        traj.output_digest = hashlib.sha256(resp.text.encode("utf-8")).hexdigest()
 
     # --- verify -------------------------------------------------------------
     payload: Any = resp.structured if resp and resp.structured else None

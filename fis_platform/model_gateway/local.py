@@ -6,6 +6,7 @@ which makes it the reference point every other arm is compared against.
 
 from __future__ import annotations
 
+import json
 import time
 from typing import Any
 
@@ -35,9 +36,14 @@ class LocalLlamaCppAdapter(ModelAdapter):
         except (httpx.HTTPError, ValueError):
             return False
 
-    async def generate(self, req: GenerationRequest) -> GenerationResponse:
-        self._check_policy(req)
+    # ------------------------------------------------------------------ request
+    def build_body(self, req: GenerationRequest) -> dict[str, Any]:
+        """The exact JSON sent to /chat/completions.
 
+        Kept as its own method so a routed arm (Switchyard passthrough) can be
+        shown to send a byte-identical body — R1's equivalence claim is a claim
+        about this dict, and a test can assert it without a server.
+        """
         messages: list[dict[str, Any]] = []
         if req.system:
             messages.append({"role": "system", "content": req.system})
@@ -71,13 +77,28 @@ class LocalLlamaCppAdapter(ModelAdapter):
                     "strict": True,
                 },
             }
+        return body
+
+    # ------------------------------------------------------------------ transport
+    async def _post(self, body: dict[str, Any]) -> tuple[dict[str, Any], httpx.Headers]:
+        async with httpx.AsyncClient(timeout=self._timeout) as c:
+            r = await c.post(f"{self._base}/chat/completions", json=body)
+            r.raise_for_status()
+            return r.json(), r.headers
+
+    def _annotate(self, resp: GenerationResponse, headers: httpx.Headers) -> GenerationResponse:
+        """Hook for subclasses that learn something from the transport (a routing
+        gateway's headers). The direct path learns nothing and returns as-is."""
+        return resp
+
+    # ------------------------------------------------------------------ generate
+    async def generate(self, req: GenerationRequest) -> GenerationResponse:
+        self._check_policy(req)
+        body = self.build_body(req)
 
         started = time.perf_counter()
         try:
-            async with httpx.AsyncClient(timeout=self._timeout) as c:
-                r = await c.post(f"{self._base}/chat/completions", json=body)
-                r.raise_for_status()
-                payload = r.json()
+            payload, headers = await self._post(body)
         except httpx.HTTPError as exc:
             # Include the server's response body. llama.cpp returns the actual
             # reason (bad grammar, context overflow) in the body; without it a 400
@@ -93,6 +114,14 @@ class LocalLlamaCppAdapter(ModelAdapter):
             )
         wall_ms = int((time.perf_counter() - started) * 1000)
 
+        # llama.cpp reports its own compute time. Recording it as api_ms makes
+        # wall - api the transport overhead, which is the quantity a routing
+        # gateway adds — measurable per request instead of inferred from p50s.
+        timings = payload.get("timings") or {}
+        api_ms = wall_ms
+        if "prompt_ms" in timings and "predicted_ms" in timings:
+            api_ms = int(round(float(timings["prompt_ms"]) + float(timings["predicted_ms"])))
+
         choice = (payload.get("choices") or [{}])[0]
         msg = choice.get("message") or {}
         u = payload.get("usage") or {}
@@ -104,16 +133,15 @@ class LocalLlamaCppAdapter(ModelAdapter):
 
         structured = None
         if req.json_schema is not None and isinstance(msg.get("content"), str):
-            import json as _json
             try:
-                structured = _json.loads(msg["content"])
-            except _json.JSONDecodeError:
+                structured = json.loads(msg["content"])
+            except json.JSONDecodeError:
                 # Grammar-constrained decoding should make this unreachable. If it
                 # fires, the grammar was not applied — worth surfacing loudly rather
                 # than silently degrading to free-form text.
                 structured = None
 
-        return GenerationResponse(
+        resp = GenerationResponse(
             text=msg.get("content") or "",
             structured=structured,
             tool_calls=msg.get("tool_calls") or [],
@@ -123,7 +151,8 @@ class LocalLlamaCppAdapter(ModelAdapter):
             tier=self.manifest.tier,
             usage=usage,
             cost=self._price(usage),
-            latency=LatencyRecord(wall_ms=wall_ms, api_ms=wall_ms),
+            latency=LatencyRecord(wall_ms=wall_ms, api_ms=api_ms),
             stop_reason=choice.get("finish_reason"),
             raw=payload,
         )
+        return self._annotate(resp, headers)
