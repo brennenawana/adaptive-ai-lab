@@ -1,7 +1,8 @@
-# Handoff — 2026-08-15
+# Handoff — 2026-08-16 (routing-foundation milestone: R0–R2 done)
 
 Written deliberately at a context boundary. Everything needed to resume is here or
-in the other four docs. Read `architecture.md` and `task-ontology.md` before coding.
+in the other docs. Read `architecture.md` and `task-ontology.md` before coding, and
+`routing-experiments.md` + `OVERNIGHT_STATUS.md` for what the overnight run found.
 
 **If you read one thing, read this.** Five times now, a number that looked like model
 weakness was a harness or scenario defect instead — unreachable webhook evidence, a
@@ -15,9 +16,10 @@ found.
 
 ---
 
-## State: migration done, E6 done, E6b closed as a negative result
+## State: migration done, E6 done, E6b closed, routing foundation (R0–R2) done
 
-**26 commits, 160 tests green.** `git log --oneline` for the trail.
+**~33 commits, 187 tests green** (`make test`; two of them are live and skip when
+Switchyard/llama.cpp are down). `git log --oneline` for the trail.
 
 | Piece | State |
 |---|---|
@@ -31,6 +33,8 @@ found.
 | **Event layer** | **DONE — all 7 steps. Generator publishes; consumers materialise.** |
 | Prompt registry (`prompts.py`) | done, 8 named variants; `DEFAULT_PROMPT` is the control |
 | Experiments | E2, E4 baselined on suite v2. **E6 done** (variant C is local best). **E6b closed — negative.** E3/E5/E7/E8 open |
+| **Routing track (R-series)** | **R0 frozen** (`weak-baseline-v1` = variant C on `f48039a`), **R1 measured** (Switchyard passthrough is *not* semantically invisible — see below), **R2 done** (oracle map on dev). R3–R5 not started. `routing-experiments.md` |
+| Routing gateway | NeMo Switchyard 0.2.0 on :4000 (`make serve-switchyard`), registry entry `local-specialist-switchyard`, `RoutingRecord` on every routed invocation, gold-leak guards tested |
 
 Infra (all healthy): Postgres+pgvector `:5433`, NATS JetStream `:4222`,
 Qwen3-8B on llama.cpp `:8082`. Start with `make up-core` and `make serve-local`.
@@ -58,33 +62,50 @@ and the live pipeline agree, per scenario.
 
 ---
 
-## THE NEXT TASK — E5 routing, or E3 retrieval. Not more prompt tuning.
+## THE NEXT TASK — R4 deterministic cascade, on dev, against the R2 oracle. Not before reading the R1 caveat.
 
-E6 is done: variant C (`cause_action_directed`) is the local best. E6b then tried
-**four** prompt variants to recover the evidence-recall loss C introduced, and
-**none beat the control** — see `experiment-log.md`. Do not spend more effort there
-without a new idea; the mechanism is understood and prompting does not move it.
+R2 says routing is worth doing: on dev the weak arm passes 35% (safe-local), the
+strong arm rescues another 58%, and a perfect router would reach 93.8% all-pass at
+35% less strong-model cost than strong-only. R4 asks how much of that a
+**production-available** cascade captures: run weak first; escalate on parse/schema
+failure, verifier failure, unsupported claims. Judge on dev with the same
+`routing_oracle.py` framing (route regret, unnecessary escalation, rescue rate), then
+one test confirmation of one frozen policy. Do **not** route on evidence recall or
+any gold field — `RoutingRecord.router_signals` rejects them, and
+`test_routing_no_gold_leak.py` will fail if routing code imports the answer key.
 
-What is understood: the model cites what **proves** its conclusion and drops what
-**corroborates** it. S10 misses exactly one id in 8 of 8 cases (the account); S03 the
-same. E6 made it quicker to commit and terser with it. Telling it otherwise (variant
-H) made recall *worse*.
+**The R1 caveat you must decide on first.** Switchyard 0.2.0 sorts JSON keys; llama.cpp
+compiles the response schema to an order-sensitive grammar; so a routed local run
+generates under a *different grammar* than the direct baseline and its outputs differ
+(`routing-experiments.md` § R1 has the byte-level proof and the measured delta).
+Options, in order of preference: (a) upstream Switchyard issue — preserve key order;
+(b) FIS suite v3 that canonicalises schema property order for every arm and
+re-baselines E2/E4/E6 (a deliberate, versioned change — not a quiet one); (c) run the
+weak stage of R4 on the direct path and use Switchyard only for the strong hop and
+telemetry until (a) or (b) lands. (c) is what the current code supports today.
 
-Why this is not a rubric problem: **E4 scores 100% evidence recall on the same
-bundles.** Every required id is reachable, citable, and cited in practice by a
-stronger model. Do not trim `required_evidence` — that is the `BAD_RUBRIC` trap, and
-the evidence for the rubric being fine is already in hand.
+**Second caveat, bigger than it looks:** the local arm is bit-reproducible only
+**within a llama.cpp server session with the same request order** (38/39 identical
+digests back-to-back). Across a server restart the same 48-case dev run moved
+all-pass 17→14, evidence recall 70.8→60.6, and 23/48 outcomes changed. Any two local
+runs you compare must have been produced in one server session, in the same order —
+or the difference you see is the KV-cache/session, not your intervention. Record
+`system_fingerprint` (llama.cpp `b1-9b05354`) and server start time with every run.
 
-So the remaining local gap is concentrated in exactly the dimension the frontier arm
-saturates, which makes **E5 (hybrid routing)** the most informative next arm: escalate
-on low evidence recall and measure what cloud dependence buys. E3 (retrieval) is
-worth less than it was — it was queued to help *diagnosis*, and diagnosis is no
-longer where the loss is.
+Three harness candidates for the next suite version, all found by **arm disagreement**
+in R2 (none visible in aggregates), all deliberately not fixed mid-baseline:
 
-Rules that still apply: select on dev, confirm on test once, keep variant A as the
-control, and register the decision rule before running the comparison.
+1. Background settlements are never posted to the ledger in S01/S02/S05/S06/S07/S08/S10
+   (only S11 posts). S10's fault signature is therefore present as noise everywhere,
+   and the frontier's two S06 `compound_failure` answers (dev S06-2003005, test
+   S06-3007005) are defensible readings of a world with two anomalies.
+2. S08 can draw a declined amount above the available balance (S08-2003007: 70 530 vs
+   17 530), making the forbidden `insufficient_funds` hypothesis data-consistent.
+3. `collect_observed_ids` does not harvest `idempotency_key`, so citing one — the id
+   S01 is about — reads as fabrication (S01-2001000, frontier).
 
----
+Plus the known scorer residual: a refutation whose cue *follows* the phrase
+("…are all ruled out") still scores as a forbidden claim (S08-2001007).
 
 ## Numbers — the current baseline
 
@@ -102,6 +123,13 @@ local), `E4-v2-96` (frontier ceiling). All 96 test scenarios, `FIXED_EVIDENCE`.
 
 Run with `--prompt cause_action_directed`. `DEFAULT_PROMPT` stays `baseline` on
 purpose, so a run without `--prompt` is still the control.
+
+**Routing numbers (dev, R2, `E6-C-directed-dev` × `E4-v2-dev`, n=48):**
+weak-pass/strong-pass 16 · weak-fail/strong-pass 28 · weak-pass/strong-fail 1 ·
+both-fail 3 → safe-local 35.4%, rescueable 58.3%, oracle hybrid 93.8% (strong-only
+91.7%), oracle strong-call minimum 64.6%, cascade cost −35%. All four disagreements
+reviewed: two harness defects, two scenario-realism issues (see next task). Details in
+`routing-experiments.md`.
 
 **Four findings that matter:**
 
@@ -228,7 +256,7 @@ written spec, which is cheaper than it looks.
 |---|---|---|---|---|
 | ~~Steps 5-7: generator port~~ | — | — | — | **Done 2026-08-15.** The prediction held: sequential, no fan-out warranted. What cost the time was not the port but four latent harness bugs it exposed. |
 | ~~E6: cause->action prompt variants~~ | Opus 5 | `high` | off in practice | **Done.** Predicted as the first place a workflow would pay. It was not: four variants run **sequentially** against one local model, ~10 min each, and each variant's design depended on the previous result — D exists because B/C were confounded, H exists because E/F/G failed. A fan-out would have run the wrong variants in parallel. Fan-out suits independent work; this was a chain. |
-| **E5 router** (next) | Opus 5 | `high` | off | Sequential build-and-measure. The escalation signal is already identified — evidence recall, the one dimension E4 saturates and the local arm does not. |
+| ~~E5 router~~ → **R4 deterministic cascade** (next) | Opus 5 | `high` | off | Sequential build-and-measure. R2 has already sized the opportunity; R4 uses only production-available signals (parse, verifier, unsupported claims) — evidence recall is eval-only and may score a route, never choose it. |
 | **E3 retrieval** | Opus 5 | `high` | off | Demoted. It was queued to help diagnosis; diagnosis is no longer the loss. |
 | **E7: QLoRA** | Opus 5 | `xhigh` | off | Training config is unforgiving and failures are slow to surface. **Do not start it yet** — two prompt changes moved the local arm 18.8% → 65.6% on root cause, and the remaining headroom is much smaller than it was. |
 | **E8: failure diagnosis** | Opus 5 | `high` | **on** | The one place fan-out still looks right: classifying failed cases into the Discovery Controller taxonomy is genuinely independent per case. |
@@ -345,7 +373,9 @@ cd ~/projects/fintech-integration-sandbox
 make ps                # fis-postgres + fis-nats healthy
 make serve-local       # reads FIS_* from .env; prints "UP model=... port=8082"
 make model-health      # {"status":"ok"}
-make test              # 160 passed
+make serve-switchyard  # Switchyard on 4000, passthrough to 8082 (optional)
+make switchyard-health # {"status":"ok"} + routes: ['fis-local-specialist']
+make test              # 187 passed (185 if the two live tests skip)
 make reachability      # 96 cases, 0 classes with an unreachable-evidence cap
 make report            # persisted cross-arm comparison
 ```
@@ -360,7 +390,7 @@ that failure mode has now cost this project four separate times.
 | | |
 |---|---|
 | Corpus | 288 scenarios — 96 test / 48 dev / 144 train, suite v2 |
-| Runs | `E2-local-96` (**suite v1, do not compare**), `E2-v2-96`, `E4-v2-96`, `E6-cause_action_directed-96`, plus eight E6/E6b dev runs |
+| Runs | `E2-local-96` (**suite v1, do not compare**), `E2-v2-96`, `E4-v2-96`, `E6-cause_action_directed-96`, eight E6/E6b dev runs, `E4-v2-dev` (strong arm on dev, R2), `R1-direct-dev`, `R1-direct2-dev`, `R1-switchyard-dev` (R1) |
 | Preserved | `learning.*` is never truncated by `make corpus`; prior run scores survive a regeneration |
 
 Regenerating is `make corpus`, which passes `--reset` on the first split only. It

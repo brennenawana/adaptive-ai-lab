@@ -590,3 +590,75 @@ inheriting an intervention.
   failure is concentrated in a dimension E4 saturates.
 - Is the residual local failure evidence-selection or reasoning? The fixed-evidence
   mode isolates this: with evidence held constant, remaining errors are reasoning.
+
+---
+
+## 2026-08-16 — Routing foundation: R0 frozen, R1 measured (not equivalent), R2 oracle on dev
+
+Full protocol and tables in `routing-experiments.md`; this entry records what was
+found and what was deliberately not changed.
+
+### R0 — `weak-baseline-v1`
+
+Variant C on `f48039a`, run `E6-cause_action_directed-96` (test): rc 65.6%, act|rc
+100%, evidence 61.1%, verifier 78.1%, all-pass 29.2%, no-output 12/96 (4 raw
+`length` + 8 schema-invalid), wall p50 13.8 s / p95 50.4 s, 2 443 in / 1 194 out
+tokens per case. E6b closed on the recorded dev cells (none beat C under the
+pre-registered rule); no second test run. `make test` 160 → 187 after this work;
+reachability 96/96 test and 48/48 dev, 0 capped classes.
+
+### R1 — Switchyard passthrough is *not* semantically invisible for the local arm
+
+Switchyard 0.2.0 re-serialises JSON with sorted keys; llama.cpp compiles the response
+schema to an order-sensitive GBNF grammar; the model is forced to emit properties in
+alphabetical order and its greedy output changes. Proven with a byte tap and by
+reproducing Switchyard's exact output on the direct path with only the schema keys
+sorted. On dev (same server session, same order): 0/48 identical outputs, 34/48
+identical scored outcomes, all-pass 14→11, rc 31→28, evidence 0.606→0.655, verifier
+37→39, no-output 5→4; transport overhead +4 ms mean on 12.7 s calls; token accounting
+reconciles to the token (117 426 / 62 627). A client-side GBNF string restores
+transport equivalence but removes the model's `<think>` phase (llama.cpp applies
+`response_format` lazily after reasoning) — **not adopted**; the frozen baseline is
+untouched. Decision: keep the boundary and telemetry, do not put the weak stage
+behind Switchyard until key order is preserved upstream or the schema order is
+canonicalised in a versioned suite bump.
+
+### R0 caveat found by R1 — "greedy + seed" is reproducible only within a server session
+
+`R1-direct-dev` vs `R1-direct2-dev`, back-to-back: 47/48 identical digests, 48/48
+identical outcomes (the first case in run order differs — different prompt-cache
+predecessor). But `E6-C-directed-dev` (earlier server process) vs `R1-direct-dev`:
+identical prompt tokens, output tokens different 48/48, outcomes different **23/48**,
+all-pass 17 vs 14, evidence recall 70.8% vs 60.6%. The E6b decision rule (+5 pts
+evidence) was, in hindsight, of the same order as this cross-session noise; the E6
+test confirmation (65.6% rc, n=96) is unaffected in kind but every case-level
+comparison between local runs must now be made within one server session and one
+request order. Recorded `system_fingerprint b1-9b05354` and server start time on the
+R0 record.
+
+### R2 — paired weak/strong oracle on dev (`E6-C-directed-dev` × `E4-v2-dev`)
+
+`E4-v2-dev` run once (48 frontier calls, all-pass 91.7%). Cells: weak-pass/strong-pass
+16, weak-fail/strong-pass 28, weak-pass/strong-fail 1, both-fail 3 → safe-local 35.4%,
+rescueable 58.3%, oracle hybrid 93.8%, oracle strong-call minimum 64.6%, hard-case
+6.2%; cascade reference cost −35% vs strong-only. Every disagreement was reviewed
+against the harness before being read as model behaviour:
+
+- S06-2003005 (weak>strong): all S06 worlds carry three unposted background
+  settlements — S10's signature — so `compound_failure` is a defensible reading;
+  background settlements are unposted in 7 of 12 classes (only S11 posts).
+- S08-2001007: scorer false positive (refutation cue after the phrase).
+- S08-2003007: declined amount 70 530 > available balance 17 530, so the forbidden
+  `insufficient_funds` hypothesis is data-consistent; the model hedged it.
+- S01-2001000: verifier's observed-id collector does not harvest `idempotency_key`,
+  so citing one reads as fabrication.
+
+### Deliberately NOT changed
+
+- Scorer, verifier and generator: all four harness candidates are recorded for a
+  versioned suite bump, not patched mid-baseline.
+- The frozen local baseline and `DEFAULT_PROMPT`.
+- The schema property order (canonicalising it would silently re-baseline the local
+  arm; `test_schema_property_order_is_not_alphabetical…` guards the record).
+- The alphabetical-grammar variant was neither adopted nor rejected on the R1
+  numbers — it is an unpre-registered prompt-format factor on n=48.

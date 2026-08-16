@@ -9,7 +9,7 @@ score a route but never choose it.**
 | Track | Question | Status |
 |---|---|---|
 | R0 | What is the causally selected local configuration before routing? | **done** — `weak-baseline-v1` below |
-| R1 | Can Switchyard sit in the model path without changing outcomes? | **measured** — no, not for the grammar-constrained local arm as shipped; see below |
+| R1 | Can Switchyard sit in the model path without changing outcomes? | **measured** — no for the grammar-constrained local arm as shipped (14/48 dev outcomes change; +4 ms overhead; tokens reconcile exactly); root cause identified; see below |
 | R2 | How much routing opportunity exists between weak and strong on dev? | **done** — see below |
 | R3 | Nemotron 3.5 Lightning as candidate weak arm | not started (later milestone) |
 | R4 | Deterministic weak→strong cascade | not started |
@@ -108,9 +108,78 @@ either an upstream fix (preserve key order) or a FIS suite bump that canonicalis
 schema property order for *every* arm and re-baselines. R1 therefore measures the
 delta rather than assuming zero.
 
-### Results
+### Results (2026-08-16, all three runs in one llama.cpp server session, back-to-back, same case order)
 
-_(filled from `make r1-compare` when the runs complete — see OVERNIGHT_STATUS.md)_
+Runs: `R1-direct-dev` 09:26–09:47 UTC (overlapped with the E4 dev run on CPU),
+`R1-direct2-dev` 09:47–10:01, `R1-switchyard-dev` 10:01–10:15 (both alone).
+
+**Reproducibility floor first (direct vs direct, same session):**
+
+| `R1-direct-dev` vs `R1-direct2-dev` | |
+|---|---|
+| exact output digest equal | **47/48** — the one difference is the first case in run order (S01-2000000, 657 vs 662 tokens), whose prompt-cache predecessor differed |
+| identical scored outcome | **48/48** |
+| identical token counts | 47/48 |
+| aggregates | identical: all-pass 14, rc 31, verifier 37, evidence 0.606, no-output 5 |
+
+So within one server session, with the same request order, the local arm is
+reproducible; the only nondeterminism is the KV prompt-cache state left by the
+previous request. **Across a server restart it is not**: the recorded control
+`E6-C-directed-dev` (00:25 UTC, earlier server process) vs `R1-direct-dev` — same
+prompt bytes (input tokens identical 48/48), output tokens different 48/48, scored
+outcome different **23/48**, all-pass 17 vs 14, evidence recall 70.8% vs 60.6%,
+verifier 40 vs 37. Nothing above the model changed (`test_request_body_is_byte…`,
+identical prompt tokens). Consequence, recorded as an R0 caveat: two local runs are
+comparable case-by-case only if produced in one server session in the same order.
+
+**Switchyard vs same-session direct (`R1-direct2-dev` → `R1-switchyard-dev`):**
+
+| quantity | direct2 (control) | via Switchyard | Δ |
+|---|---|---|---|
+| exact output digest equal | — | **0/48** | as predicted by the key-order finding |
+| identical scored outcome | — | **34/48 (70.8%)** | 14 cases differ |
+| identical token counts | — | 1/48 | |
+| strict all-pass | 14 (29.2%) | 11 (22.9%) | −3 |
+| root cause correct | 31 (64.6%) | 28 (58.3%) | −3 |
+| act \| rc | 100% | 100% | 0 |
+| verifier pass | 37 (77.1%) | 39 (81.2%) | +2 |
+| evidence recall mean | 0.606 | 0.655 | +0.049 |
+| no scoreable output (parse/schema) | 5 | 4 | −1 |
+| unsupported claims (cases) | 6 | 5 | −1 |
+| forbidden claims | 0 | 0 | 0 |
+| input tokens / case | 2 446.4 | 2 446.4 | 0 (same prompt) |
+| output tokens / case | 1 311.3 | 1 304.7 | −6.6 |
+| model latency p50 / p95 | 12 619 / 39 558 ms | 12 691 / 39 818 ms | +72 / +260 |
+| transport overhead = wall − llama.cpp compute (p50 / mean / max) | 132 / 138.9 / 244 ms | 132 / 142.7 / 248 ms | **+0 / +3.8 / +4 ms** |
+| gateway-reported routing overhead (`/v1/stats`) | — | p50 0.89 ms, max 1.34 ms | |
+| RoutingRecord present | 0/48 | **48/48** (`switchyard 0.2.0`, `passthrough`, `upstream_model=fis-local-specialist`, `selected_backend=None`) | |
+| stop reasons | stop ×48 | stop ×48 | |
+
+**Token accounting reconciles exactly**: Switchyard's routing log for the run's 48
+requests sums to prompt 117 426 / completion 62 627 — identical to the FIS
+trajectories for `R1-switchyard-dev` (and prompt 117 426 for the direct runs).
+`/v1/stats` per-model counters agree once the smoke requests are subtracted.
+
+**Reading.** Behaviour: *not equivalent* — every output differs and 14/48 scored
+outcomes change, in both directions (rc −3, evidence +5 pts, verifier +2). This is
+the alphabetical-grammar effect measured on dev; note it is a *prompt-format*
+factor and must not be adopted or rejected on these numbers (n=48, unpre-registered,
+and it would be a change to the frozen baseline). Parse rate: 4 vs 5 no-output —
+equivalent within noise. Latency: +4 ms mean transport overhead, ~0.03% of a
+12.7 s call — negligible; gateway's own routing overhead < 1.5 ms. Token accounting:
+identical to the token. Metadata: every routed invocation carries a RoutingRecord
+that names the gateway, version, route, mode and the upstream model llama.cpp
+served, and honestly leaves `selected_backend` empty because a passthrough chain
+reports none.
+
+**Decision-gate outcome (guide: "Keep Switchyard if R1 equivalence holds").**
+Equivalence does **not** hold as shipped for the grammar-constrained local arm; the
+model-client boundary, RoutingRecord and route bundle are kept (they are the
+replaceable interface the guide asks for), and the routing implementation is
+retained *for the strong hop and telemetry only* until one of: (a) upstream
+Switchyard preserves JSON key order; (b) FIS suite v3 canonicalises the schema
+property order for every arm and re-baselines. The weak stage of R4 should run on
+the direct path in the meantime — that is what the current registry supports.
 
 ---
 

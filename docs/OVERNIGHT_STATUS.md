@@ -93,9 +93,9 @@ $9.24 total reference cost. (CLI input-token accounting is known to be unreliabl
 | Run id | Arm | Model | Split | Prompt | Purpose | Status |
 |---|---|---|---|---|---|---|
 | `E4-v2-dev` | E4 | claude-frontier | dev | baseline | strong arm on dev for R2 pairing | **done** 09:07–09:41 UTC, 48/48 |
-| `R1-direct-dev` | R1 | local-specialist | dev | cause_action_directed | direct-path control under the new adapter code (nondeterminism floor vs `E6-C-directed-dev`) | started turn 1 |
-| `R1-direct2-dev` | R1 | local-specialist | dev | cause_action_directed | second same-session direct run: within-session determinism floor with digests | queued (chain.sh) |
-| `R1-switchyard-dev` | R1 | local-specialist-switchyard | dev | cause_action_directed | routed arm | queued after R1-direct2-dev (GPU is `--parallel 1`) |
+| `R1-direct-dev` | R1 | local-specialist | dev | cause_action_directed | direct-path control under the new adapter code (cross-session floor vs `E6-C-directed-dev`) | **done** 09:26–09:47 UTC, 48/48 |
+| `R1-direct2-dev` | R1 | local-specialist | dev | cause_action_directed | second same-session direct run: within-session determinism floor with digests | **done** 09:47–10:01 UTC, 48/48 |
+| `R1-switchyard-dev` | R1 | local-specialist-switchyard | dev | cause_action_directed | routed arm | **done** 10:01–10:15 UTC, 48/48 |
 
 ## 4b. R1 finding — Switchyard 0.2.0 is NOT semantically invisible for grammar-constrained llama.cpp (turn 1)
 
@@ -205,6 +205,32 @@ never posted in 7 classes → S06 legitimately looks compound; S08 declined amou
 available balance). Corrected matrix: 16 / 30 / 2 ambiguous / 0. **No scorer,
 verifier or generator change made** — recorded for a versioned suite bump.
 
+## 4e. R1 results (criterion 5) — DONE
+
+`make r1-compare` equivalents (`scripts/compare_routes.py`), full tables in
+`docs/routing-experiments.md` § R1:
+
+| pair | digest equal | outcome equal | all-pass | rc | evidence | verifier | no-output |
+|---|---|---|---|---|---|---|---|
+| direct vs direct2 (same session) | **47/48** (first case only differs) | **48/48** | 14 = 14 | 31 = 31 | 0.606 = 0.606 | 37 = 37 | 5 = 5 |
+| E6-C (earlier server) vs direct | n/a (no digests then) | 25/48 | 17 → 14 | 30 → 31 | 0.708 → 0.606 | 40 → 37 | 4 → 5 |
+| **direct2 vs Switchyard** | **0/48** | **34/48** | 14 → 11 | 31 → 28 | 0.606 → 0.655 | 37 → 39 | 5 → 4 |
+
+Latency: model p50 12 619 → 12 691 ms (+72), p95 +260; transport overhead
+(wall − llama.cpp compute) mean 138.9 → 142.7 ms (**+3.8 ms**), p50 unchanged 132 ms;
+Switchyard's own reported routing overhead p50 0.89 ms. Tokens: input identical
+(2 446.4/case), output 1 311.3 vs 1 304.7; **gateway routing-log totals for the 48
+requests = FIS trajectory totals exactly** (117 426 prompt / 62 627 completion).
+RoutingRecord on 48/48 routed invocations (`switchyard 0.2.0`, `passthrough`,
+`upstream_model fis-local-specialist`, `selected_backend None`).
+
+Verdict: **behaviour not equivalent** (every output differs; 14/48 outcomes change,
+both directions) — fully explained by the key-order → grammar mechanism in §4b;
+**parse rate equivalent** (4 vs 5); **latency equivalent** (+4 ms on 12.7 s);
+**token accounting identical**. Decision-gate: keep the boundary/telemetry, keep the
+weak stage on the direct path until key order is preserved upstream or the schema is
+canonicalised in a versioned suite bump.
+
 ## 5. Work log
 
 - turn 1: reconciliation; `make test` 160/160; reachability test+dev clean; E4-v2-dev
@@ -212,6 +238,15 @@ verifier or generator change made** — recorded for a versioned suite bump.
   "nemo-switchyard[cli,server]==0.2.0"`) — pure-python server with a Rust extension,
   CLI `switchyard serve --routing-profiles <yaml>`; passthrough profile exists
   (`switchyard/lib/profiles/passthrough.py`).
+- turn 1 (cont.): commits `8a93eda` routing schema + gold-leak guards · `b509b10` local
+  adapter split + telemetry (`api_ms` from llama.cpp timings, `stop_reason`,
+  `output_digest`) · `c72f5e7` Switchyard passthrough (adapter, registry entry,
+  `infra/switchyard/{routes.yaml,serve.sh,README.md}`, make targets, tests) ·
+  `3490b25` `scripts/compare_routes.py`, `scripts/routing_oracle.py`, make targets ·
+  `fd4643c` docs (R2 results, protocol). Runs: E4-v2-dev, R1-direct-dev,
+  R1-direct2-dev, R1-switchyard-dev, all 48/48. Docs updated: `routing-experiments.md`
+  (new), `experiment-log.md` (appended), `architecture.md`, `HANDOFF.md`,
+  `infra/switchyard/README.md`.
 
 ## 6. Blockers
 
@@ -219,12 +254,86 @@ None so far.
 
 ## 7. Next action
 
-Build the model-client boundary + Switchyard passthrough config (R1), run
-`R1-direct-dev` then `R1-switchyard-dev`, then `scripts/routing_oracle.py` once
-`E4-v2-dev` completes.
+Milestone criteria all addressed (see morning summary). Next milestone: R4
+deterministic cascade on dev (weak stage on the direct path; escalate on
+parse/schema failure, verifier failure, unsupported claims), after the human decides
+between the two ways to make the routed weak stage equivalent (upstream key-order
+fix vs suite-v3 schema canonicalisation).
 
 ---
 
 ## Morning summary
 
-_(written at the end of the run)_
+### What was accomplished (all 7 criteria)
+
+1. **E6b closed correctly** — on the recorded dev sweep (E/F/G/H all n=48); winner is
+   the control C, whose single test confirmation already existed. No new test run.
+2. **Post-E6b baseline frozen** as `weak-baseline-v1` (§3 above and
+   `routing-experiments.md` § R0): commit `f48039a`, suite v2, Qwen3-8B Q4_K_M on
+   llama.cpp `b1-9b05354`, prompt `cause_action_directed`, test split, rc 65.6%,
+   act|rc 100%, evidence 61.1%, verifier 78.1%, all-pass 29.2%, no-output 12/96
+   (4 raw + 8 schema), p50 13.8 s / p95 50.4 s, 2 443 in / 1 194 out tokens per case.
+3. **Full test suite run and recorded**: 160/160 at `8599326` before any change;
+   **187/187** at the end (`.venv/bin/python -m pytest tests -q`, incl. two live tests
+   that skip when the servers are down). Reachability 96/96 test, 48/48 dev, 0 caps.
+4. **Switchyard integrated as middleware only** — a registry entry + adapter beneath
+   the FIS gateway contract; ground truth, scoring, evidence plan, trajectory record
+   and lineage untouched; `RoutingRecord` is additive; gold-leak guards are tests.
+5. **Passthrough evaluated vs direct on dev, n=48, one server session** — behaviour
+   NOT equivalent (0/48 identical outputs, 34/48 identical outcomes, all-pass 14→11,
+   rc 31→28, evidence +5 pts, verifier +2), root cause proven (sorted JSON keys →
+   alphabetical GBNF property order); parse rate, latency (+4 ms) and token
+   accounting (exact reconciliation) equivalent.
+6. **Paired weak/strong oracle on dev**: 16 / 28 / 1 / 3; safe-local 35.4%,
+   rescueable 58.3%, oracle quality 93.8%, strong-call minimum 64.6%; all four
+   disagreements harness-reviewed (1 scorer FP, 1 verifier gap, 2 scenario-realism
+   issues) — recorded, not patched.
+7. Nothing from R3+ started; no scorer/rubric/corpus/model change.
+
+### Measured results — headline table (dev, n=48 unless noted)
+
+| arm | all-pass | rc | evidence | verifier | notes |
+|---|---|---|---|---|---|
+| E6-C-directed-dev (recorded control, earlier server) | 35.4% | 62.5% | 70.8% | 83.3% | weak arm for R2 |
+| R1-direct-dev / R1-direct2-dev (same session) | 29.2% / 29.2% | 64.6% | 60.6% | 77.1% | 47/48 identical digests |
+| R1-switchyard-dev | 22.9% | 58.3% | 65.5% | 81.2% | 0/48 identical digests; +4 ms |
+| E4-v2-dev (strong) | 91.7% | 97.9% | 100% | 97.9% | $5.16, 2 forbidden = FPs |
+| Oracle hybrid (R2) | 93.8% | — | — | — | −35% strong cost |
+
+### Surprises
+
+- **Switchyard is not a transparent hop for grammar-constrained llama.cpp**: its Rust
+  core sorts JSON keys and llama.cpp's grammar compiler is order-sensitive. The thin
+  fix (client-side GBNF) trades away the model's thinking phase, so it was not taken.
+- **The local arm is reproducible only within a server session**: back-to-back runs
+  agree 47/48; across the overnight server restart the same config moved 23/48
+  outcomes and 10 pts of evidence recall. Every past case-level local comparison
+  should be read with that in mind (E6b's +5 pt rule was of that order).
+- **Background settlements are never posted in 7 of 12 classes**, so S10's fault
+  signature is ambient noise; the frontier's two S06 `compound_failure` answers are
+  defensible. Found only because R2 flagged a weak>strong inversion.
+
+### Unresolved
+
+- Choice between upstream Switchyard fix and a suite-v3 schema canonicalisation
+  (both re-baseline the routed weak arm; the latter re-baselines everything).
+- Four harness candidates for the next suite version (unposted background
+  settlements; S08 amount vs balance; `idempotency_key` not an observed id;
+  post-positioned refutation cue) — all versioned, none applied.
+- Latency of `R1-direct-dev` overlapped the E4 CLI run; `R1-direct2-dev` and
+  `R1-switchyard-dev` ran alone and are the pair used for overhead.
+
+### Recommended next experiment
+
+**R4 deterministic cascade on dev**: weak stage on the direct path (until the R1
+caveat is resolved), escalate to `claude-frontier` on no-output / schema-invalid,
+verifier failure, or any unsupported claim; report weak coverage, strong-call rate,
+route regret, unnecessary escalation, rescue rate, cost and latency per strict pass
+against the R2 oracle; pre-register the quality floor in case counts; one test
+confirmation of one frozen policy. Do not use evidence recall as an online signal.
+
+### Working tree
+
+Clean after the final commit; generated artefacts (`evals/reports/*.json`) are
+gitignored by design and reproducible from `learning.*` via `make report`,
+`make r1-compare`, `make routing-oracle`.
