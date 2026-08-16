@@ -198,7 +198,18 @@ def test_schema_property_order_is_not_alphabetical__why_r0_1_exists():
         "schema property order became alphabetical: re-baseline the local arm, re-run R1")
 
 
-def _both_servers_up() -> bool:
+def _live_ok() -> bool:
+    """Opt-in (FIS_LIVE_TESTS=1) AND both servers up.
+
+    Opt-in on purpose: a request to the local model perturbs its prompt-cache state,
+    and case-level local results reproduce only within one server session with the
+    same request order — so a stray `make test` during a paired run would silently
+    change one case of the arm it interrupted. The default suite must never touch
+    :8082.
+    """
+    import os
+    if os.environ.get("FIS_LIVE_TESTS") != "1":
+        return False
     try:
         return all(httpx.get(u, timeout=1.0).status_code == 200 for u in
                    ("http://127.0.0.1:4000/health", "http://127.0.0.1:8082/health"))
@@ -206,7 +217,7 @@ def _both_servers_up() -> bool:
         return False
 
 
-@pytest.mark.skipif(not _both_servers_up(), reason="needs Switchyard on 4000 and llama.cpp on 8082")
+@pytest.mark.skipif(not _live_ok(), reason="set FIS_LIVE_TESTS=1 with Switchyard on 4000 and llama.cpp on 8082")
 def test_live_passthrough_reaches_llamacpp():
     import asyncio
     gw = ModelGateway(default_registry())

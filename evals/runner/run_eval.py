@@ -30,7 +30,8 @@ from evals.scorers.score import score_case  # noqa: E402
 from fis_platform.model_gateway import ModelGateway, default_registry  # noqa: E402
 from fis_platform.tool_broker.broker import ToolBroker  # noqa: E402
 from schemas.scenario import EvalRun, SeedSplit  # noqa: E402
-from services.ai_orchestrator.investigate import EvidenceMode, investigate
+from services.ai_orchestrator.cascade import EscalationPolicy, investigate_cascade  # noqa: E402
+from services.ai_orchestrator.investigate import EvidenceMode, investigate  # noqa: E402
 from services.ai_orchestrator.prompts import DEFAULT_PROMPT, PROMPTS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -147,6 +148,15 @@ async def main() -> None:
                          "stay distinguishable in the persisted run.")
     ap.add_argument("--resume", action="store_true",
                     help="Skip scenarios already scored under this run-id.")
+    # R4 — deterministic cascade. --model-ref is the WEAK stage; these add the strong one.
+    ap.add_argument("--escalate-to", metavar="MODEL_REF",
+                    help="R4: run --model-ref first and escalate to this model when the "
+                         "escalation policy fires. The weak stage is also scored under "
+                         "'<run-id>.weak' so unnecessary escalations can be counted.")
+    ap.add_argument("--escalation-policy", default=EscalationPolicy.VERIFIER.value,
+                    choices=[p.value for p in EscalationPolicy])
+    ap.add_argument("--strong-prompt", default=DEFAULT_PROMPT, choices=sorted(PROMPTS),
+                    help="Prompt for the strong stage (default: the control, as E4 was baselined).")
     args = ap.parse_args()
 
     run_id = args.run_id or f"{args.arm}-{args.model_ref}-{args.split}"
@@ -154,6 +164,10 @@ async def main() -> None:
 
     manifest = gateway.registry.resolve(args.model_ref)
     runtime_context = {"run_id": run_id, "model_ref": args.model_ref, "prompt": args.prompt}
+    if args.escalate_to:
+        gateway.registry.resolve(args.escalate_to)   # fail loudly before any case runs
+        runtime_context["escalate_to"] = args.escalate_to
+        runtime_context["strong_prompt"] = args.strong_prompt
     if manifest.routing is not None:
         runtime_context["gateway"] = f"{manifest.routing.gateway} {manifest.routing.gateway_version}"
     # The local backend's session, whether reached directly or through the gateway.
@@ -177,19 +191,36 @@ async def main() -> None:
         # tool set gained the vendor-window form of get_verifications. Neither the
         # root-cause set nor the cause->action mapping changed, but the suite a score
         # was measured against did — v1 numbers are not comparable to v2 numbers.
+        digest = f"{args.model_ref}|{args.mode}|{args.prompt}"
+        if args.escalate_to:
+            digest += f"|cascade:{args.escalation_policy}->{args.escalate_to}|{args.strong_prompt}"
         run = EvalRun(run_id=run_id, suite="fis-eval", suite_version="2",
                       experiment_arm=args.arm, split=SeedSplit(args.split),
-                      config_digest=f"{args.model_ref}|{args.mode}|{args.prompt}")
+                      config_digest=digest)
+        escalations = 0
 
         for i, m in enumerate(pending, 1):
             with ToolBroker(TOOLS_DSN) as broker:
                 try:
-                    result, traj = await investigate(
-                        m["case_id"], gateway=gateway, broker=broker,
-                        model_ref=args.model_ref, experiment_arm=args.arm,
-                        mode=EvidenceMode(args.mode), scenario_id=m["scenario_id"],
-                        prompt_ref=args.prompt, runtime_context=runtime_context,
-                    )
+                    if args.escalate_to:
+                        out = await investigate_cascade(
+                            m["case_id"], gateway=gateway, broker=broker,
+                            weak_ref=args.model_ref, strong_ref=args.escalate_to,
+                            policy=EscalationPolicy(args.escalation_policy),
+                            experiment_arm=args.arm, mode=EvidenceMode(args.mode),
+                            scenario_id=m["scenario_id"], weak_prompt_ref=args.prompt,
+                            strong_prompt_ref=args.strong_prompt,
+                            runtime_context=runtime_context,
+                        )
+                        result, traj = out.result, out.trajectory
+                    else:
+                        out = None
+                        result, traj = await investigate(
+                            m["case_id"], gateway=gateway, broker=broker,
+                            model_ref=args.model_ref, experiment_arm=args.arm,
+                            mode=EvidenceMode(args.mode), scenario_id=m["scenario_id"],
+                            prompt_ref=args.prompt, runtime_context=runtime_context,
+                        )
                 except Exception as exc:  # noqa: BLE001 — one bad case must not kill the run
                     print(f"[{i}/{len(pending)}] {m['scenario_id']}  EXCEPTION {exc}")
                     continue
@@ -198,6 +229,20 @@ async def main() -> None:
             run.scores.append(score)
             persist(owner, run_id, score, traj)   # commit per case: resume stays exact
 
+            route = ""
+            if out is not None:
+                # The weak stage is scored and persisted under its own run id so the
+                # eval can count unnecessary escalations and false accepts later.
+                # Same trajectory when the weak result was accepted; a separate one
+                # (its own trace_id) when the cascade escalated.
+                weak_score = score_case(result=out.weak_result, trajectory=out.weak_trajectory,
+                                        manifest=m, run_id=f"{run_id}.weak")
+                persist(owner, f"{run_id}.weak", weak_score, out.weak_trajectory)
+                if out.decision.escalated:
+                    escalations += 1
+                route = (f" -> {out.decision.escalation_reason}" if out.decision.escalated
+                         else " -> weak accepted")
+
             mark = "PASS" if score.all_pass else "fail"
             said = result.root_cause.label.value if result else "-"
             print(f"[{i}/{len(pending)}] {m['scenario_id']:<12} {mark:<4} "
@@ -205,12 +250,13 @@ async def main() -> None:
                   f"ev={score.required_evidence_recall:.2f} "
                   f"act={'ok' if score.next_action_acceptable else 'X'} "
                   f"ver={'ok' if score.verifier_passed else 'X'} "
-                  f"{score.wall_ms:>6}ms  ${score.reference_cost_usd:.4f}  {said}")
+                  f"{score.wall_ms:>6}ms  ${score.reference_cost_usd:.4f}  {said}{route}")
 
     print("\n" + "=" * 78)
     print(f"strict all-pass    : {_pct(run.strict_all_pass_rate)}")
     print(f"root-cause accuracy: {_pct(run.root_cause_accuracy)}")
-    print(f"cloud escalation   : {_pct(run.cloud_escalation_rate)}")
+    print(f"cloud escalation   : {_pct(run.cloud_escalation_rate)}"
+          + (f"  ({escalations} escalated by policy '{args.escalation_policy}')" if args.escalate_to else ""))
     print(f"P95 latency        : {run.p95_latency_ms()} ms")
     cps = run.cost_per_successful_case
     print(f"cost / success     : {'n/a' if cps is None else f'${cps:.4f}'}")

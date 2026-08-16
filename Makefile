@@ -124,6 +124,25 @@ r1-compare: ## R1 — per-scenario equivalence report (direct vs Switchyard, plu
 	$(PY) scripts/compare_routes.py --a R1-direct-dev --b R1-switchyard-dev
 	$(PY) scripts/compare_routes.py --a E6-C-directed-dev --b R1-direct-dev
 
+# R0.1: after the key-order fix, prove direct ~= passthrough in ONE llama.cpp session,
+# same case order. `prime-local` sends the same fixed request before each arm so even
+# the first case sees the same prompt-cache predecessor (the only within-session
+# nondeterminism found). Do not touch :8082 with anything else while this runs.
+.PHONY: prime-local eval-r01-dev r01-compare
+prime-local: ## Send one fixed request to the local server so both arms start from the same cache state
+	@curl -s --max-time 120 http://127.0.0.1:8082/v1/chat/completions -H 'content-type: application/json' \
+	  -d '{"model":"fis-local-specialist","messages":[{"role":"user","content":"prime"}],"max_tokens":8,"temperature":0,"seed":42}' \
+	  | $(PY) -c 'import sys,json; d=json.load(sys.stdin); print("primed:", d.get("system_fingerprint"), d["usage"])'
+eval-r01-dev: ## R0.1 — same-session direct vs Switchyard passthrough on DEV (run with nothing else on 8082)
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm R01 --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --run-id R01-direct-dev --resume
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm R01 --model-ref local-specialist-switchyard --split dev \
+	  --prompt cause_action_directed --run-id R01-switchyard-dev --resume
+r01-compare: ## R0.1 — per-scenario equivalence report
+	$(PY) scripts/compare_routes.py --a R01-direct-dev --b R01-switchyard-dev
+
 # R2 pairs the frozen weak arm with the strong arm ON DEV. The oracle map is a
 # selection tool; the script refuses the test split without --allow-test.
 .PHONY: eval-e4-dev routing-oracle
