@@ -429,6 +429,50 @@ policy triples diagnostic accuracy", which is false.**
   `acceptable_next_actions`. If they drift, a variant is penalised for correctly
   applying what it was told, and the natural reading is "the intervention failed".
 
+### Confirmed on test (`E6-cause_action_directed-96`), and it moved the bottleneck
+
+Variant C, test split, run once:
+
+| Metric | E2-v2-96 | **E6 (variant C)** |
+|---|---|---|
+| Root-cause accuracy | 16.7% | **65.6%** |
+| act \| rc | 18.8% | **100%** |
+| Strict all-pass | 3.1% | **29.2%** |
+| Verifier pass | 77.1% | 78.1% |
+| Forbidden claims | 0 | 0 |
+| **Required-evidence recall** | **74.6%** | **61.1%** ⚠ |
+
+Root cause 3.9× and all-pass 9.4×, with test (65.6%) slightly *above* the dev
+estimate (62.5%) — so the variant was not overfitted to dev by the selection.
+
+**But evidence recall fell 13.5 points, and that is now the binding constraint.**
+
+| | E2-v2-96 | E6 |
+|---|---|---|
+| Cases clearing the 0.8 evidence threshold | 51 | **34** |
+| Cases with root cause correct | 16 | 63 |
+| **Correct diagnosis, failed on evidence** | 5 | **35** |
+| Passed everything | 3 | 28 |
+
+E6 diagnoses 63 of 96 cases correctly and loses **35 of them** on evidence recall
+alone. Before the intervention, evidence was abundant and diagnosis was the
+bottleneck; now diagnosis is largely solved and citation is the bottleneck. The
+all-pass metric is conjunctive, so this single dimension is holding back roughly a
+third of the suite.
+
+The likely mechanism is attention budget: the variant C prompt is substantially
+longer, and the citation rules — unchanged and verbatim — now compete with a policy
+table for the model's attention. A model that reaches its conclusion faster also
+appears to feel less need to enumerate what it read. This is a cost of the
+intervention, not a separate regression, and it was invisible on the aggregate
+figures that improved.
+
+**This is the next thing to work on, and it reframes E3.** Retrieval was queued to
+answer "does explicit company knowledge help diagnosis". Diagnosis is no longer where
+the loss is. The open question is now whether evidence citation can be recovered
+without giving back the diagnostic gain — a prompt-level question that should be
+tried before E3 or E5.
+
 ### What this implies for the ladder
 
 The specialization ladder puts prompt/context work above retrieval above training.

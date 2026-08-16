@@ -46,72 +46,77 @@ and the live pipeline agree, per scenario.
 
 ---
 
-## THE NEXT TASK — E6, the cause→action intervention
+## THE NEXT TASK — recover evidence recall without giving back E6's gain
 
-The action gap is confirmed and is the largest addressable failure. The intervention
-is already written: the cause→action table in `task-ontology.md` §3. Put it in the
-investigator system prompt and re-run E2 against suite v2.
+E6 is done and it worked (see below), but it **moved the bottleneck rather than
+removing it**. Evidence recall fell 74.6% -> 61.1%, and that single dimension now
+fails 35 of the 63 cases E6 diagnoses correctly. all-pass is conjunctive, so it is
+holding back about a third of the suite on its own.
 
-E6 sits **above** LoRA on the specialization ladder — run it before considering any
-training. It is also the first genuinely fan-out-shaped work in this project (several
-prompt variants scored blind against the same frozen suite is a judge panel), so it
-is the first place `ultracode` is warranted. See the per-stage table below.
+Likely mechanism: attention budget. Variant C's prompt is much longer, and the
+citation rules — unchanged and verbatim — now compete with a policy table. Cheapest
+things to try first, all prompt-level and all on **dev**:
 
-While writing that table: **`replay_webhook` is sanctioned for no current root
-cause** — a genuinely-lost-event scenario belongs in the ontology and is not
-generated yet. It is therefore a pure distractor, which is very likely why a
-name-anchoring model reached for it across three unrelated scenarios. Note that S10
-is now *literally* a lost event (never published), but its correct remedy is still
-reconciliation, not replay.
+1. Move the citation rules *after* the policy table, or restate them below it.
+2. Compress the table (drop the second sanctioned action per row, keep the first).
+3. An explicit "cite every record id you relied on, including ones that only ruled
+   something out" line — much of the lost recall may be evidence the model read and
+   silently discarded.
+
+Do not reach for E3 retrieval yet. It was queued to answer "does explicit company
+knowledge help diagnosis", and **diagnosis is no longer where the loss is**.
+
+Rules that still apply: select on dev, confirm on test once, and keep variant A as
+the same-run control.
 
 ---
 
 ## Numbers — the current baseline
 
-**Suite v2, both arms on the final event-sourced corpus.** `E2-v2-96`, `E4-v2-96`.
+**Suite v2.** `E2-v2-96` (control), `E6-cause_action_directed-96` (current best
+local), `E4-v2-96` (frontier ceiling). All 96 test scenarios, `FIXED_EVIDENCE`.
 
-| Metric | E2 local 8B | E4 frontier |
-|---|---|---|
-| Strict all-pass | 3.1% | 91.7% (**99.0% corrected**) |
-| Root-cause accuracy | 16.7% | 99.0% |
-| Next-action accuracy | 17.7% | 100% |
-| Evidence recall | 74.6% | 100% |
-| Verifier pass | 77.1% | 100% |
-| Unsupported claims | 13 | 0 |
-| Forbidden claims | 0 | 7 — all **false positives** |
+| Metric | E2 local | **E6 local** | E4 frontier |
+|---|---|---|---|
+| Strict all-pass | 3.1% | **29.2%** | 99.0% |
+| Root-cause accuracy | 16.7% | **65.6%** | 100% |
+| act \| rc | 18.8% | **100%** | 100% |
+| Required-evidence recall | 74.6% | **61.1%** ⚠ | 100% |
+| Verifier pass | 77.1% | 78.1% | 100% |
+| Forbidden claims | 0 | 0 | 1 (a false positive) |
 
-**Three findings that matter:**
+**Four findings that matter:**
 
-1. **The local model's action choice is independent of its own diagnosis.** Action
-   accuracy is 18.8% when its root cause was right and 17.5% when it was wrong —
-   identical. It is not reasoning cause → remedy badly; it is not doing it at all.
-   **Evaluate E6 on this conditional, not on aggregate action accuracy**, which
-   rises if a model simply guesses common actions.
-2. **Evidence is no longer the bottleneck.** E2 sees 74.6% of required evidence and
-   still diagnoses 16.7%. E4 reaches 100% on the same bundles, so the ceiling is
-   real and the remainder is reasoning.
-3. **E4's 7 forbidden claims are a scorer bug, not model behaviour** — the detector
-   substring-matches, so "the decline was **not** caused by insufficient funds"
-   scores as the claim `insufficient_funds`. Verified by reproduction. Left unfixed
-   deliberately; see `experiment-log.md` harness bug #8. **Decide before E6.**
+1. **Enumerating the hypothesis space is what fixed diagnosis, not the remedy
+   table.** Variant D (the twelve cause labels, no actions) recovered essentially all
+   the diagnostic gain — 60.4% against a control's 18.8% — and none of the action
+   gain. The label set was already enforced by the response grammar, so an invalid
+   cause could never be *emitted*; a grammar does nothing for what is *considered*.
+   Without variant D this would have been recorded as "the cause→action table triples
+   diagnosis", which is false.
+2. **The cause→action mapping fixed the action gap completely.** `act | rc` went
+   18.8% → 100%: every case E6 diagnoses correctly now gets a sanctioned remedy.
+   Note this metric now measures lookup compliance rather than judgement — by
+   design — so it is not comparable to E2's.
+3. **Evidence recall is now the binding constraint.** It *fell* 74.6% → 61.1%, and
+   35 of the 63 cases E6 diagnoses correctly fail on evidence alone. Diagnosis was
+   the bottleneck this morning; citation is the bottleneck now. See the next task.
+4. **Zero forbidden claims from the local model at any accuracy**, across every run.
+   Frequently wrong, never dangerous.
 
-> The earlier "~2× better at diagnosis than remedy" (29.2% vs 13.5%) framing came
-> from `E2-local-96`, which is **suite v1 and not comparable** — five classes could
-> not be passed by any model. `compare.py` marks it with a †. Do not subtract across
-> that line.
-
----
+> The old "~2× better at diagnosis than remedy" (29.2% vs 13.5%) framing came from
+> `E2-local-96`, which is **suite v1 and not comparable** — five classes could not be
+> passed by any model. `compare.py` marks it with a †. Do not subtract across it.
 
 ## Deliberately NOT done (do not silently undo these)
 
-1. **The action rubric was not widened** despite two arguably-defensible E4 answers
-   (S09 `contact_identity_vendor`, S10 `inspect_mapping_version`). It was written
-   on the merits *before* results existed; changing it after seeing model answers
-   is tuning against the test set. Logged as `BAD_RUBRIC` candidates in
-   `task-ontology.md` §3 — decide before the next frozen suite version, not after
-   seeing more scores. **Still open, and now more tempting**, because the v2
-   corpus makes both answers marginally more defensible. Decide it on the merits or
-   not at all.
+1. **The action rubric was not widened, and the review is CLOSED.** Two E4 answers
+   on suite v1 looked defensible but scored wrong (S09 `contact_identity_vendor`,
+   S10 `inspect_mapping_version`). On v2 neither recurred — E4 chose a sanctioned
+   action in 96/96 — so both were artefacts of the v1 corpus, where those classes had
+   unreachable evidence. Closed as no change in `task-ontology.md` §3. Note what did
+   not happen: it was not widened because a model disagreed, and it was not narrowed
+   because one later agreed.
 2. **S12's retry storm was not made event-driven.** It needs poison-message handling
    in the bus, which is a new capability rather than a port. `add_failed_delivery`
    rejects non-failure statuses so the gap stays visible instead of quietly widening.
@@ -169,10 +174,14 @@ Each was initially mistakable for model weakness:
    race lives entirely in posting order — and the tool sorted by `posted_at` and
    never returned the sequence. The model saw a chronological, net-zero ledger and
    correctly concluded nothing was wrong. E4: **0.125 → 1.000** once exposed.
-9. **The forbidden-claim detector counts refutations as assertions** (substring
-   match). E4's "the decline was *not* caused by insufficient funds" scores as the
-   forbidden claim. **Still open — deliberately.** It is a metric about harm; see
-   `experiment-log.md`.
+9. **The forbidden-claim detector counted refutations as assertions** (substring
+   match). E4's "the decline was *not* caused by insufficient funds" scored as the
+   forbidden claim `insufficient_funds`, costing 8 points of all-pass for being
+   right. Now polarity-aware, with the lookback stopping at a sentence boundary so a
+   refutation cannot launder a later assertion. E4 re-ran at **99.0%**, exactly the
+   corrected figure predicted. **One residual false positive remains** (1 of 96); the
+   scorer now logs an excerpt of the matched text so the next one is auditable
+   without re-running a non-deterministic case.
 
 > The pattern in (2), (5), (6), (7) and (8) is one bug wearing five costumes:
 > **evidence that exists but cannot be reached, or a signal the scenario never
