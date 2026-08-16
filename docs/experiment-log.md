@@ -503,9 +503,85 @@ re-running a case and hoping for the same phrasing.
 E2 is unaffected by the fix: it scored 0 forbidden claims before and after, and the
 change can only remove hits.
 
-- Does showing the model a category→plausible-actions table fix the action gap? (E6)
+---
+
+## 2026-08-15 — E6b: citation recovery failed, four ways. Negative result.
+
+E6 moved the bottleneck onto evidence recall (74.6% -> 61.1%, with 35 of the 63
+correctly-diagnosed cases failing on evidence alone). Four prompt variants were run
+on **dev** against variant C as control. **None beat it.**
+
+| Variant | Change from C | Root cause | Evidence | >=0.8 | All-pass |
+|---|---|---|---|---|---|
+| **C** control | — | **62.5%** | **70.8%** | **22** | 35.4% |
+| E recency | citation rules moved after the policy table | 56.3% | 60.1% | 15 | 27.1% |
+| F eliminative | + cite records that ruled things out | 54.2% | 67.5% | 20 | 31.3% |
+| G both | E + F | 62.5% | 67.4% | 22 | 35.4% |
+| H subject | + cite the entity's state, not only the fault | 56.3% | 64.9% | 21 | 39.6% |
+
+### What was learned, in order
+
+**1. The attention-budget hypothesis is wrong, and backwards.** Moving the citation
+rules later *cost* 10.7 points of recall (E vs C). They work better as part of the
+task framing than as a closing reminder. That killed the original explanation.
+
+**2. The real mechanism, read off the stored scores rather than guessed.** Among
+cases E6 gets *right* but fails on evidence:
+
+- **S10 misses exactly one id in 8 of 8 cases — the account.** It names the
+  settlement that has no posting, concludes `reconciliation_gap` correctly, and never
+  says which account it happened in. 1 of 2 required ids = 0.50.
+- **S03 misses the account in 8 of 8.** Cites the pending verification and the card;
+  2 of 3 = 0.667.
+
+Nothing is being forgotten. The model cites what **proves** its conclusion and drops
+what merely **corroborates** it. E2 cited those records more often precisely because
+it was less decisive — E6 made the model quicker to commit, and terser with it.
+
+**3. That diagnosis was then tested, and still failed.** Variant H asked, in general
+operations terms, for the records establishing the entity's state. Recall went
+*down*. The behaviour is not reachable by telling the model to do otherwise.
+
+### The decision rule, fixed before H was run
+
+With four dev cells already in hand, choosing a winner post hoc is fishing.
+Registered in advance: **adopt H only if evidence recall >= C + 5 points AND root
+cause >= C - 3 points.** H returned -5.9 and -6.3. Rejected.
+
+H's all-pass (39.6%) is *higher* than C's (35.4%) and is precisely the number that
+would have been cherry-picked without the rule — two cases on n=48, against declines
+in both pre-registered metrics.
+
+### Why this is a capability finding, not a rubric problem
+
+The tempting move is to decide `account_id` was never really required evidence for
+`kyc_hold` and trim the manifests. That is the `BAD_RUBRIC` trap — altering a rubric
+after seeing model answers — and it is ruled out by a fact already in hand:
+
+> **E4 scores 100% evidence recall on the same bundles.** Every required id is
+> reachable, citable, and in practice cited by a stronger model.
+
+The requirement is satisfiable; the gap is a real difference in thoroughness.
+**Prompting has now failed four times to close it.** Recommendation: stop
+prompt-tuning citation. Variant C stands as the E6 result.
+
+`DEFAULT_PROMPT` stays `baseline` deliberately — the winner is invoked by explicit
+run-id, so a future run without `--prompt` is still the control rather than silently
+inheriting an intervention.
+
+---
+
+## Open questions
+
+- ~~Does showing the model a category→plausible-actions table fix the action gap?~~
+  **Answered (E6):** yes, completely — `act | rc` 18.8% -> 100%. But the larger
+  effect was enumerating the hypothesis space, which is a different intervention.
+- **Can the local model be made to cite corroborating evidence?** Four prompt
+  variants say no (E6b). Open whether this is reachable at all below fine-tuning.
 - Does runbook retrieval help, or is the evidence bundle already sufficient? (E3)
+  Note E6 reframes this: diagnosis is no longer the main loss.
 - At what escalation threshold does hybrid routing retain E4 accuracy at materially
-  lower cloud dependence? (E5)
+  lower cloud dependence? (E5) — now more attractive, since the local arm's residual
+  failure is concentrated in a dimension E4 saturates.
 - Is the residual local failure evidence-selection or reasoning? The fixed-evidence
   mode isolates this: with evidence held constant, remaining errors are reasoning.

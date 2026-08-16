@@ -5,9 +5,9 @@ in the other four docs. Read `architecture.md` and `task-ontology.md` before cod
 
 ---
 
-## State: the event migration is DONE
+## State: migration done, E6 done, E6b closed as a negative result
 
-**6 commits, 132 tests green.** `git log --oneline` for the trail.
+**11 commits, 160 tests green.** `git log --oneline` for the trail.
 
 | Piece | State |
 |---|---|
@@ -46,28 +46,31 @@ and the live pipeline agree, per scenario.
 
 ---
 
-## THE NEXT TASK — recover evidence recall without giving back E6's gain
+## THE NEXT TASK — E5 routing, or E3 retrieval. Not more prompt tuning.
 
-E6 is done and it worked (see below), but it **moved the bottleneck rather than
-removing it**. Evidence recall fell 74.6% -> 61.1%, and that single dimension now
-fails 35 of the 63 cases E6 diagnoses correctly. all-pass is conjunctive, so it is
-holding back about a third of the suite on its own.
+E6 is done: variant C (`cause_action_directed`) is the local best. E6b then tried
+**four** prompt variants to recover the evidence-recall loss C introduced, and
+**none beat the control** — see `experiment-log.md`. Do not spend more effort there
+without a new idea; the mechanism is understood and prompting does not move it.
 
-Likely mechanism: attention budget. Variant C's prompt is much longer, and the
-citation rules — unchanged and verbatim — now compete with a policy table. Cheapest
-things to try first, all prompt-level and all on **dev**:
+What is understood: the model cites what **proves** its conclusion and drops what
+**corroborates** it. S10 misses exactly one id in 8 of 8 cases (the account); S03 the
+same. E6 made it quicker to commit and terser with it. Telling it otherwise (variant
+H) made recall *worse*.
 
-1. Move the citation rules *after* the policy table, or restate them below it.
-2. Compress the table (drop the second sanctioned action per row, keep the first).
-3. An explicit "cite every record id you relied on, including ones that only ruled
-   something out" line — much of the lost recall may be evidence the model read and
-   silently discarded.
+Why this is not a rubric problem: **E4 scores 100% evidence recall on the same
+bundles.** Every required id is reachable, citable, and cited in practice by a
+stronger model. Do not trim `required_evidence` — that is the `BAD_RUBRIC` trap, and
+the evidence for the rubric being fine is already in hand.
 
-Do not reach for E3 retrieval yet. It was queued to answer "does explicit company
-knowledge help diagnosis", and **diagnosis is no longer where the loss is**.
+So the remaining local gap is concentrated in exactly the dimension the frontier arm
+saturates, which makes **E5 (hybrid routing)** the most informative next arm: escalate
+on low evidence recall and measure what cloud dependence buys. E3 (retrieval) is
+worth less than it was — it was queued to help *diagnosis*, and diagnosis is no
+longer where the loss is.
 
-Rules that still apply: select on dev, confirm on test once, and keep variant A as
-the same-run control.
+Rules that still apply: select on dev, confirm on test once, keep variant A as the
+control, and register the decision rule before running the comparison.
 
 ---
 
@@ -76,7 +79,7 @@ the same-run control.
 **Suite v2.** `E2-v2-96` (control), `E6-cause_action_directed-96` (current best
 local), `E4-v2-96` (frontier ceiling). All 96 test scenarios, `FIXED_EVIDENCE`.
 
-| Metric | E2 local | **E6 local** | E4 frontier |
+| Metric | E2 local | **E6 local (C)** | E4 frontier |
 |---|---|---|---|
 | Strict all-pass | 3.1% | **29.2%** | 99.0% |
 | Root-cause accuracy | 16.7% | **65.6%** | 100% |
@@ -84,6 +87,9 @@ local), `E4-v2-96` (frontier ceiling). All 96 test scenarios, `FIXED_EVIDENCE`.
 | Required-evidence recall | 74.6% | **61.1%** ⚠ | 100% |
 | Verifier pass | 77.1% | 78.1% | 100% |
 | Forbidden claims | 0 | 0 | 1 (a false positive) |
+
+Run with `--prompt cause_action_directed`. `DEFAULT_PROMPT` stays `baseline` on
+purpose, so a run without `--prompt` is still the control.
 
 **Four findings that matter:**
 
@@ -136,6 +142,12 @@ local), `E4-v2-96` (frontier ceiling). All 96 test scenarios, `FIXED_EVIDENCE`.
 - **`command -v python3` succeeds on Windows but the binary is a Store stub** that
   refuses to run. Existence ≠ executability; `.claude/hooks/_resolve-python.sh`
   executes each candidate to check.
+- **`make serve-local` did not read `.env`** until 2026-08-15. The script honours
+  `FIS_LLAMA_DIR`/`FIS_MODELS_DIR`/`FIS_CUDA_LIB` but never loaded the file this
+  doc tells you to put them in, so it worked only in a shell that already had them
+  exported and failed after any restart with `model not found: /home/wall/models/...`
+  — naming the PRE-restructure path, which points nowhere near the cause. Fixed; it
+  now reads `FIS_` keys only, and only when unset.
 - **llama.cpp's GBNF compiler rejects `minLength`/`maxLength`** → 400. Stripped in
   `model_gateway/schema_compat.py`; the verifier still enforces them.
 - **`npm -g` from WSL installs to the *Windows* prefix** if WSL has no native node.
