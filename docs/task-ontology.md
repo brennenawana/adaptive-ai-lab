@@ -91,10 +91,21 @@ Closed set, scored by membership in the scenario's `acceptable_next_actions`.
 
 ### Cause → sanctioned action
 
-**This table is the E6 intervention.** The measured E2 failure is here, not in
-root-cause identification: the local 8B scored 41.7% on cause but 8.3% on action,
-selecting `replay_webhook` for a mapping error, a risk hold, and a KYC failure.
-It has no model of which remedies attach to which defects.
+**This table was the E6 intervention, and it worked.** The measured failure was here
+rather than in root-cause identification: action accuracy was 18.8% when the local
+model's own root cause was *correct* and 17.5% when it was *wrong* — identical, so
+the remedy was not derived from the diagnosis at all. Putting this table in the
+investigator prompt took that conditional to **100%**.
+
+> ⚠ **This table now exists in two places.** `services/ai_orchestrator/prompts.py`
+> holds `CAUSE_TO_ACTION`, which is shown to the model, while the manifests'
+> `acceptable_next_actions` is what the scorer grades. `test_prompt_table_matches_the_rubric`
+> fails if they drift.
+>
+> A change here is therefore no longer only an eval change — **it changes what the
+> model is told.** Update the generator, this table, and `prompts.py` together, or a
+> variant will be penalised for correctly applying what it was taught, and the
+> natural reading of that result is "the intervention failed".
 
 | Root cause | Sanctioned actions |
 |---|---|
@@ -213,7 +224,31 @@ the timeline. See `architecture.md` § Evidence reachability.
 Any change to the root-cause set, action set, or cause→action mapping is a
 **breaking change to the eval suite**:
 
-1. Bump the suite version (`EvalRun.suite_version`)
-2. Record the change and its rationale in `experiment-log.md`
-3. Do not compare results across suite versions without saying so
-4. Never change a mapping in response to a specific model's answers
+1. Bump the suite version (`EvalRun.suite_version`, currently `2`)
+2. Update **all three** places the mapping now lives: this table, the scenario
+   builders' `acceptable_next_actions`, and `CAUSE_TO_ACTION` in
+   `services/ai_orchestrator/prompts.py`. `test_prompt_table_matches_the_rubric`
+   enforces the last two; nothing enforces this document, so update it first.
+3. Check reachability for any new class — `make reachability`, not reasoning about
+   the generator. §5 invariant 3.
+4. Record the change and its rationale in `experiment-log.md`
+5. Do not compare results across suite versions without saying so
+6. Never change a mapping in response to a specific model's answers
+
+### The closed set is now model-facing
+
+Until E6 the root-cause vocabulary reached the model only through the response
+grammar, which constrains what may be *emitted* and does nothing for what is
+*considered*. The winning prompt lists the twelve causes outright, and that alone —
+with no remedy information — tripled diagnostic accuracy (18.8% → 60.4%, variant D).
+
+Two consequences:
+
+- **Adding a root cause changes the prompt, not just the scorer.** It becomes another
+  hypothesis the model actively weighs.
+- **A cause with no scenario class is not free.** `replay_webhook` is retained as a
+  deliberate distractor in the *action* set precisely because a model reaching for an
+  unusable option is a measurable name-anchoring signal. A root cause with no
+  generated class would be the same thing in the more damaging direction — a label
+  the model can select and never be right about. There are none, and
+  `test_table_has_no_causes_the_corpus_never_generates` keeps it that way.

@@ -1,9 +1,9 @@
 """Forbidden-claim scoring must distinguish asserting a claim from ruling it out.
 
-Harness bug #8. The detector was a bare substring match, so E4's correct S08
-finding — "the decline was not caused by insufficient funds" — scored as the
-forbidden claim `insufficient_funds` in every case, costing 8 points of all-pass
-for being right.
+Harness bug #9 (see `docs/HANDOFF.md`). The detector was a bare substring match, so
+E4's correct S08 finding — "the decline was not caused by insufficient funds" —
+scored as the forbidden claim `insufficient_funds` in every case, costing 8 points
+of all-pass for being right.
 
 Both directions are pinned here. A metric about harm can fail two ways, and the
 false-negative direction (missing a real assertion) is the dangerous one.

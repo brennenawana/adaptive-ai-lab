@@ -211,6 +211,22 @@ Eight narrow, typed, read-only tools. Parameterised SQL only.
 Python, and the `fis_tools` Postgres role which holds no grant on `ground_truth` or
 `learning`. A leak requires defeating both. Tests assert the database refuses.
 
+**A tool's ordering and column list are part of its contract, not an implementation
+detail.** Two classes were unsolvable because of this, and neither looked like a tool
+problem:
+
+- `get_ledger_entries` sorted by `posted_at` and did not return `posting_seq`. S07's
+  reversal race lives *entirely* in the disagreement between the two — the consumer
+  stamps `posted_at` from `occurred_at` on purpose — so the model saw a perfectly
+  chronological, net-zero ledger and correctly concluded nothing was wrong. Entries
+  are now returned in posting order with `posting_seq` included.
+- `get_verifications` was keyed only by `customer_id`, which made `provider_outage`
+  undiagnosable in principle: the class is *defined* by clustering across customers.
+  v2 takes an optional `vendor` + `window_hours`.
+
+Before adding a scenario class, ask not only whether the evidence exists but whether
+any tool call returns it, **in a form that shows the property the class is about**.
+
 ### Verifier (`fis_platform/verification/`)
 Deterministic only — schema, citation format, citation resolves to a call actually
 made, cited IDs actually observed, action code known, confidence calibrated against
@@ -221,6 +237,27 @@ the verifier must work in production where no answer key exists.
 Two evidence modes, and the distinction is the backbone of the matrix:
 `FIXED_EVIDENCE` (identical bundle to every arm — isolates reasoning) and `AGENTIC`
 (model picks its own tools — measures tool strategy plus reasoning).
+
+The fixed-evidence plan is two-phase. Phase one is everything reachable from the
+case's subject ids; phase two follows `provider_ref` and `vendor` values discovered
+in phase one into the webhook/integration trail and the vendor-clustering query.
+Phase two exists because that evidence is not *addressable* until phase one has run —
+see § Evidence reachability.
+
+### Prompt registry (`services/ai_orchestrator/prompts.py`)
+System prompts are **named, versioned entries in a registry**, selected per run with
+`--prompt` and recorded in the run's `config_digest`. Two arms that differ only by
+prompt therefore stay distinguishable in the persisted results.
+
+`DEFAULT_PROMPT` is `baseline` and should stay that way: it is byte-identical to the
+prompt E2 was baselined with, so a run that forgets `--prompt` is the *control*
+rather than silently inheriting whichever intervention won last. The current best
+local prompt (`cause_action_directed`) is invoked explicitly.
+
+`CAUSE_TO_ACTION` here mirrors `task-ontology.md` §3 and is pinned to the scorer by
+`test_prompt_table_matches_the_rubric` — a prompt that teaches a policy the scorer
+does not grade would make its experiment unreadable in the most misleading way: the
+variant gets penalised for correctly applying what it was told.
 
 ### Scenario generator (`scenarios/generator/`)
 Deterministic: no global `random`, no `datetime.now()`. Splits are disjoint seed
@@ -269,3 +306,6 @@ Two decisions that keep the KPI honest:
 | NATS for events | **in use** | migration landed 2026-08-15; corpus is suite v2 |
 | `get_verifications(customer_id)` | v2 also takes `vendor` + `window_hours` | `provider_outage` is *defined* by clustering across customers. With only customer-keyed tools the class was not hard but impossible — 0% root-cause accuracy, 0.333 recall ceiling. Applies identically to every arm, so E2/E4 stay a controlled comparison |
 | One clock base for all scenarios | one 48h slot per scenario | a time-scoped tool would otherwise sweep all 288 scenarios into one answer |
+| `get_ledger_entries` ordered by `posted_at` | ordered by `posting_seq`, which is also returned | the consumer stamps `posted_at` from `occurred_at`, so S07's reversal race lives only in posting order. Sorting by event time showed a chronological, net-zero ledger and made `reversal_race` unreachable by correct reasoning — E4 went 0.125 → 1.000 on the class once exposed |
+| One system prompt | a versioned registry (`prompts.py`), selected per run | E6 compares prompt variants; the prompt has to be part of `config_digest` or two arms differing only by prompt are indistinguishable in the persisted results |
+| Forbidden claims matched by substring | polarity-aware match | a bare substring counted a *refutation* as an assertion — "the decline was not caused by insufficient funds" scored as the claim `insufficient_funds`, costing the frontier arm 8 points of all-pass for being right |

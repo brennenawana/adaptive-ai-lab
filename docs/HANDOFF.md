@@ -3,11 +3,21 @@
 Written deliberately at a context boundary. Everything needed to resume is here or
 in the other four docs. Read `architecture.md` and `task-ontology.md` before coding.
 
+**If you read one thing, read this.** Five times now, a number that looked like model
+weakness was a harness or scenario defect instead — unreachable webhook evidence, a
+clustering signal generated a month apart, an ordering hazard no tool returned, a
+scorer that counted refutations as assertions. Each was invisible in the aggregate
+and obvious once the *ceiling* was measured. Before believing any low score, run
+`make reachability` and check whether the case was winnable at all. The strongest
+tell is an **inversion**: if the weaker arm outscores the frontier arm on a class,
+the scenario is rewarding guessing, not measuring skill. That is how the S07 bug was
+found.
+
 ---
 
 ## State: migration done, E6 done, E6b closed as a negative result
 
-**11 commits, 160 tests green.** `git log --oneline` for the trail.
+**26 commits, 160 tests green.** `git log --oneline` for the trail.
 
 | Piece | State |
 |---|---|
@@ -17,8 +27,10 @@ in the other four docs. Read `architecture.md` and `task-ontology.md` before cod
 | Deterministic verifier | done |
 | Orchestrator (`investigate`) | done, two evidence modes |
 | Scenario generator, 12 classes | done, deterministic, 288 scenarios |
-| Eval runner + scorers | done, checkpointed/resumable |
+| Eval runner + scorers | done, checkpointed/resumable; `--prompt` selects a variant and lands in `config_digest` |
 | **Event layer** | **DONE — all 7 steps. Generator publishes; consumers materialise.** |
+| Prompt registry (`prompts.py`) | done, 8 named variants; `DEFAULT_PROMPT` is the control |
+| Experiments | E2, E4 baselined on suite v2. **E6 done** (variant C is local best). **E6b closed — negative.** E3/E5/E7/E8 open |
 
 Infra (all healthy): Postgres+pgvector `:5433`, NATS JetStream `:4222`,
 Qwen3-8B on llama.cpp `:8082`. Start with `make up-core` and `make serve-local`.
@@ -214,12 +226,19 @@ written spec, which is cheaper than it looks.
 
 | Stage | Model | Effort | Ultracode | Why |
 |---|---|---|---|---|
-| **Steps 5-7: generator port, regenerate, re-baseline** | Opus 5 | `high` | **off** | Execution against a spec already written here and in `bus.py`. Inherently sequential — fanning out agents risks parallel edits to the same files with no upside. Raise to `xhigh` if the determinism logic stalls; that is the one expensive failure mode. |
-| **E6: cause->action prompt variants** | Opus 5 | `high` | **on** | Genuinely fan-out shaped: several prompt variants scored blind against the same frozen suite is a judge panel. This is what workflows are for. |
-| **E3 retrieval, E5 router** | Opus 5 | `high` | off | Sequential build-and-measure, same as the migration. |
-| **E7: QLoRA** | Opus 5 | `xhigh` | off | Training config is unforgiving and failures are slow to surface. Worth the extra depth. |
-| **E8: failure diagnosis** | Opus 5 | `high` | **on** | Classifying ~90 failed cases into the Discovery Controller taxonomy is embarrassingly parallel. |
+| ~~Steps 5-7: generator port~~ | — | — | — | **Done 2026-08-15.** The prediction held: sequential, no fan-out warranted. What cost the time was not the port but four latent harness bugs it exposed. |
+| ~~E6: cause->action prompt variants~~ | Opus 5 | `high` | off in practice | **Done.** Predicted as the first place a workflow would pay. It was not: four variants run **sequentially** against one local model, ~10 min each, and each variant's design depended on the previous result — D exists because B/C were confounded, H exists because E/F/G failed. A fan-out would have run the wrong variants in parallel. Fan-out suits independent work; this was a chain. |
+| **E5 router** (next) | Opus 5 | `high` | off | Sequential build-and-measure. The escalation signal is already identified — evidence recall, the one dimension E4 saturates and the local arm does not. |
+| **E3 retrieval** | Opus 5 | `high` | off | Demoted. It was queued to help diagnosis; diagnosis is no longer the loss. |
+| **E7: QLoRA** | Opus 5 | `xhigh` | off | Training config is unforgiving and failures are slow to surface. **Do not start it yet** — two prompt changes moved the local arm 18.8% → 65.6% on root cause, and the remaining headroom is much smaller than it was. |
+| **E8: failure diagnosis** | Opus 5 | `high` | **on** | The one place fan-out still looks right: classifying failed cases into the Discovery Controller taxonomy is genuinely independent per case. |
 | **Phase 6: Discovery Controller design** | **Fable 5** | `xhigh` | off | The one genuinely novel design problem left. Not execution — this is where the premium buys something. |
+
+**Revised view on ultracode, from having done E6.** The old note said prompt variants
+were "a judge panel — what workflows are for". Running it showed otherwise: the value
+was in *reading each result and choosing the next variant*, which is serial by
+construction. Fan-out is for work that is independent in advance. An experiment where
+each cell is designed from the last one is not, however parallel the runs look.
 
 ### Reasoning worth keeping
 
@@ -261,7 +280,8 @@ Claude Code project key is now
 (memories live there).
 
 Verified after the move: model UP on 8082, both containers healthy, **102 tests
-passing**, git clean, `.env.bak` removed.
+passing** (that was the count on 2026-08-15 before the event migration; it is 160
+now), git clean, `.env.bak` removed.
 
 Three things the move broke, all fixed — each failed in a way that did not point
 at relocation:
@@ -321,12 +341,32 @@ Also relocated: `~/ollama` sets `OLLAMA_MODELS=$HOME/ollama/models` in its own
 ## Verify everything is alive
 
 ```bash
-cd ~/fintech-integration-sandbox
+cd ~/projects/fintech-integration-sandbox
 make ps                # fis-postgres + fis-nats healthy
+make serve-local       # reads FIS_* from .env; prints "UP model=... port=8082"
 make model-health      # {"status":"ok"}
-make test              # 102 passed
+make test              # 160 passed
+make reachability      # 96 cases, 0 classes with an unreachable-evidence cap
 make report            # persisted cross-arm comparison
 ```
+
+`make reachability` is the one that is easy to skip and expensive to skip. It replays
+the real evidence plan through the real broker and prints the recall **ceiling** per
+class. Anything below the 0.8 threshold is a harness bug wearing a model's clothes —
+that failure mode has now cost this project four separate times.
+
+### What is in the database
+
+| | |
+|---|---|
+| Corpus | 288 scenarios — 96 test / 48 dev / 144 train, suite v2 |
+| Runs | `E2-local-96` (**suite v1, do not compare**), `E2-v2-96`, `E4-v2-96`, `E6-cause_action_directed-96`, plus eight E6/E6b dev runs |
+| Preserved | `learning.*` is never truncated by `make corpus`; prior run scores survive a regeneration |
+
+Regenerating is `make corpus`, which passes `--reset` on the first split only. It
+truncates the scenario tables and purges the JetStream streams — required, because
+re-running over an existing corpus collides primary keys and a surviving dedupe
+ledger would make S01's *first* delivery look like a duplicate.
 
 ## Loose end for the human
 

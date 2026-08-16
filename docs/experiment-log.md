@@ -293,6 +293,11 @@ model can raise by guessing common actions.
 
 ### Finding 3 — evidence is no longer the bottleneck
 
+> **Superseded by E6 (below), same day.** This held for `E2-v2-96`. E6 raised
+> diagnosis to 65.6% and *dropped* evidence recall to 61.1%, making citation the
+> binding constraint again. Left as written because the log is append-only and the
+> reasoning was correct for the run it described.
+
 E2 recalls 74.6% of required evidence and still identifies the root cause 16.7% of
 the time. The "it fails because it cannot see the evidence" explanation is now
 excluded by construction — the ceiling is 1.000 everywhere and the frontier arm
@@ -304,7 +309,7 @@ E2 made 13 unsupported claims and **0 forbidden** ones across 96 cases, holding 
 v1 result. Frequently wrong, never dangerous. Different failure modes, different
 remedies.
 
-### Harness bug #8 — the forbidden-claim detector counts refutations as assertions
+### Harness bug #9 — the forbidden-claim detector counts refutations as assertions
 
 **E4's 7 forbidden claims are all false positives, verified by reproduction.** The
 detector is a bare substring match:
