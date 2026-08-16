@@ -6,7 +6,7 @@ PSQL := sudo -n docker exec -i fis-postgres psql -U fis -d fis
 
 .PHONY: help
 help: ## Show this help
-	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
+	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \
 	  awk -F':.*?## ' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 # ---------------------------------------------------------------- infra
@@ -41,6 +41,22 @@ stop-local: ## Stop it
 	@pkill -f 'llama-serve[r] .*--port 8082' && echo stopped || echo "not running"
 model-health: ## Is the local endpoint up?
 	@curl -s --max-time 3 http://127.0.0.1:8082/health || echo "DOWN"
+
+# ---------------------------------------------------------------- routing gateway (R1+)
+# NeMo Switchyard sits BENEATH the FIS gateway contract: an OpenAI-compatible hop
+# on 4000 in front of the same llama.cpp on 8082. It owns transport, backend
+# selection inside a profile, and per-request stats. It does not own scenario truth,
+# evidence rules, scoring, or the trajectory record — see infra/switchyard/README.md.
+.PHONY: serve-switchyard stop-switchyard switchyard-health switchyard-stats
+serve-switchyard: ## Start Switchyard on 4000 with infra/switchyard/routes.yaml (passthrough to 8082)
+	bash ./infra/switchyard/serve.sh
+stop-switchyard: ## Stop it
+	@pkill -f 'switchyard serv[e] .*--port 4000' && echo stopped || echo "not running"
+switchyard-health: ## Listener up, and which route ids it serves
+	@curl -s --max-time 3 http://127.0.0.1:4000/health || echo "DOWN"; echo
+	@curl -s --max-time 3 http://127.0.0.1:4000/v1/models | $(PY) -c 'import sys,json; print("routes:", [m["id"] for m in json.load(sys.stdin)["data"]])' 2>/dev/null || true
+switchyard-stats: ## Gateway-side per-model counters (requests, tokens, latency)
+	@curl -s --max-time 3 http://127.0.0.1:4000/v1/stats | $(PY) -m json.tool
 
 # ---------------------------------------------------------------- data
 .PHONY: scenarios scenarios-dry corpus
@@ -91,6 +107,31 @@ eval-e6-confirm: ## E6 — run the winning variant on TEST once (set PROMPT=...)
 	@test -n "$(PROMPT)" || { echo "usage: make eval-e6-confirm PROMPT=cause_action_directed"; exit 1; }
 	$(PY) -m evals.runner.run_eval --arm E6 --model-ref local-specialist --split test \
 	  --prompt $(PROMPT) --run-id E6-$(PROMPT)-96 --resume
+
+# ---------------------------------------------------------------- R-series (routing)
+# R1 is a zero-semantic-change TRANSPORT experiment: same prompt (the frozen E6
+# winner), same evidence, same model, same decoding, same grammar, same scorer —
+# only the path differs. The direct arm is re-run alongside rather than borrowed
+# from E6-C-directed-dev so that direct-vs-direct measures the nondeterminism floor
+# under the SAME code, and direct-vs-switchyard is judged against that floor.
+.PHONY: eval-r1-dev r1-compare
+eval-r1-dev: ## R1 — frozen weak baseline on DEV, direct path then Switchyard passthrough
+	$(PY) -m evals.runner.run_eval --arm R1 --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --run-id R1-direct-dev --resume
+	$(PY) -m evals.runner.run_eval --arm R1 --model-ref local-specialist-switchyard --split dev \
+	  --prompt cause_action_directed --run-id R1-switchyard-dev --resume
+r1-compare: ## R1 — per-scenario equivalence report (direct vs Switchyard, plus direct vs E6-C control)
+	$(PY) scripts/compare_routes.py --a R1-direct-dev --b R1-switchyard-dev
+	$(PY) scripts/compare_routes.py --a E6-C-directed-dev --b R1-direct-dev
+
+# R2 pairs the frozen weak arm with the strong arm ON DEV. The oracle map is a
+# selection tool; the script refuses the test split without --allow-test.
+.PHONY: eval-e4-dev routing-oracle
+eval-e4-dev: ## Strong arm on DEV (needed once for R2 pairing)
+	$(PY) -m evals.runner.run_eval --arm E4 --model-ref claude-frontier --split dev \
+	  --run-id E4-v2-dev --resume
+routing-oracle: ## R2 — paired weak/strong opportunity map on DEV
+	$(PY) scripts/routing_oracle.py --weak E6-C-directed-dev --strong E4-v2-dev --split dev
 
 .PHONY: reachability
 reachability: ## Can the fixed-evidence plan reach every case's required evidence?

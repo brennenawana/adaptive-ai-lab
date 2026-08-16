@@ -8,9 +8,10 @@ from .base import (
 from .claude_cli import ClaudeCliAdapter
 from .gateway import ModelGateway, default_registry
 from .local import LocalLlamaCppAdapter
+from .switchyard import SwitchyardAdapter
 
 __all__ = [
     "GenerationRequest", "GenerationResponse", "Message", "ModelAdapter",
     "PolicyViolation", "ModelGateway", "default_registry",
-    "LocalLlamaCppAdapter", "ClaudeCliAdapter",
+    "LocalLlamaCppAdapter", "ClaudeCliAdapter", "SwitchyardAdapter",
 ]

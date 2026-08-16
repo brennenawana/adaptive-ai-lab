@@ -17,6 +17,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.3", "ruff>=0.7"]
+# Routing gateway (R-series). Pinned: the R1 equivalence result is a statement
+# about this exact build's JSON handling — see infra/switchyard/README.md.
+routing = ["nemo-switchyard[cli,server]==0.2.0", "pyyaml>=6.0"]
 
 [build-system]
 requires = ["hatchling"]

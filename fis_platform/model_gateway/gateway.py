@@ -9,15 +9,24 @@ import os
 
 from schemas.common import ModelTier, Provider
 from schemas.model_manifest import CliInvocation, ModelManifest, ModelRegistry, PriceTable
+from schemas.routing import RouteMode, RoutingProfile
 
 from .base import GenerationRequest, GenerationResponse, ModelAdapter
 from .claude_cli import ClaudeCliAdapter
 from .local import LocalLlamaCppAdapter
+from .switchyard import SwitchyardAdapter, installed_switchyard_version
 
 _ADAPTERS: dict[Provider, type[ModelAdapter]] = {
     Provider.LOCAL_LLAMACPP: LocalLlamaCppAdapter,
     Provider.CLAUDE_CLI: ClaudeCliAdapter,
+    Provider.SWITCHYARD: SwitchyardAdapter,
 }
+
+# The Switchyard route id for the R1 passthrough. Equal to the local model_id on
+# purpose: the request body the orchestrator sends is then byte-identical on both
+# paths, and Switchyard's one rewrite (model -> target model) is a no-op.
+SWITCHYARD_PASSTHROUGH_ROUTE = "fis-local-specialist"
+SWITCHYARD_ROUTES_YAML = "infra/switchyard/routes.yaml"
 
 
 class ModelGateway:
@@ -72,6 +81,10 @@ _CLAUDE_BASE_ARGS = [
 
 def default_registry() -> ModelRegistry:
     local_url = os.environ.get("FIS_LOCAL_MODEL_BASE_URL", "http://127.0.0.1:8082/v1")
+    switchyard_url = os.environ.get("FIS_SWITCHYARD_BASE_URL", "http://127.0.0.1:4000/v1")
+
+    local_price = PriceTable(basis="local-marginal-zero", input_per_mtok=0.0,
+                             output_per_mtok=0.0)
 
     return ModelRegistry(models={
         "local-specialist": ModelManifest(
@@ -87,9 +100,38 @@ def default_registry() -> ModelRegistry:
             supports_structured_output=True,   # GBNF-constrained decoding
             supports_seed=True,                # the reproducible baseline arm
             base_url=local_url,
-            price=PriceTable(basis="local-marginal-zero", input_per_mtok=0.0,
-                             output_per_mtok=0.0),
+            price=local_price,
             notes="Primary local worker. Greedy, --parallel 1, for eval determinism.",
+        ),
+
+        # R1: the same local model, reached through NeMo Switchyard in passthrough.
+        # Every field that describes the MODEL is identical to local-specialist;
+        # only the transport differs. This is the arm that has to prove the gateway
+        # is semantically invisible before any routing decision is allowed in.
+        "local-specialist-switchyard": ModelManifest(
+            ref="local-specialist-switchyard",
+            tier=ModelTier.SPECIALIST,
+            provider=Provider.SWITCHYARD,
+            model_id=SWITCHYARD_PASSTHROUGH_ROUTE,
+            canonical_model="qwen3-8b",
+            quantization="Q4_K_M",
+            context_window=16_384,
+            max_output_tokens=4096,
+            supports_tool_calling=True,
+            supports_structured_output=True,
+            supports_seed=True,
+            base_url=switchyard_url,
+            price=local_price,
+            routing=RoutingProfile(
+                gateway="switchyard",
+                gateway_version=installed_switchyard_version(),
+                route_profile=SWITCHYARD_PASSTHROUGH_ROUTE,
+                route_mode=RouteMode.PASSTHROUGH,
+                backends=["llamacpp-8082"],
+                all_backends_local=True,
+                config_path=SWITCHYARD_ROUTES_YAML,
+            ),
+            notes="R1 passthrough. Same model, same decoding, one extra hop on 4000.",
         ),
 
         "claude-frontier": ModelManifest(
