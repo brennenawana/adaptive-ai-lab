@@ -308,8 +308,8 @@ Claude Code project key is now
 (memories live there).
 
 Verified after the move: model UP on 8082, both containers healthy, **102 tests
-passing** (that was the count on 2026-08-15 before the event migration; it is 160
-now), git clean, `.env.bak` removed.
+passing** (that was the count on 2026-08-15 before the event migration; 160 after it,
+187 after the routing foundation on 2026-08-16), git clean, `.env.bak` removed.
 
 Three things the move broke, all fixed — each failed in a way that did not point
 at relocation:
