@@ -337,3 +337,67 @@ confirmation of one frozen policy. Do not use evidence recall as an online signa
 Clean after the final commit; generated artefacts (`evals/reports/*.json`) are
 gitignored by design and reproducible from `learning.*` via `make report`,
 `make r1-compare`, `make routing-oracle`.
+
+---
+---
+
+# Milestone 2 — R0.1 (Switchyard transparency) → R4 (deterministic cascade)
+
+Started 2026-08-16 ~12:45 UTC from HEAD `5d67804` (clean, 187 tests, servers up:
+llama.cpp pid 4848 = the same session as the R1 runs, Switchyard 4000).
+
+## M2.0 Reconciliation
+
+`git status` clean at `5d67804`; `pytest` 187 passed; `fis-postgres`/`fis-nats`
+healthy; llama.cpp `/health` ok (`b1-9b05354`, pid 4848, same session as R1);
+Switchyard `/health` ok. Prose in `HANDOFF.md`/`OVERNIGHT_STATUS.md` matched the
+artefacts (runs `R1-*`, `E4-v2-dev` present with the recorded counts). No stale
+claims found beyond what M1 already corrected.
+
+## M2.1 R0.1 — fix: key-order-invariant schema on the routed path (commit `11ff23f`)
+
+Mechanism recap: Switchyard 0.2.0's Rust core sorts JSON keys; llama.cpp's
+schema→GBNF converter enforces `properties` order. Fix at the adapter boundary, no
+eval-suite change, no loss of reasoning behaviour: `SwitchyardAdapter.build_body`
+rewrites every object schema into `allOf` components — one property per component,
+optional properties wrapped in `anyOf` — which llama.cpp's converter (C++
+`common/json-schema-to-grammar.cpp` `allOf` branch, mirrored by the reference
+Python) compiles to the **byte-identical grammar text** as the plain schema, and
+which survives key sorting because arrays are ordered. `additionalProperties` is
+dropped from rewritten objects (the converter's `allOf` branch forbids extras
+anyway; leaving it would route the object to the `properties` branch with an empty
+list). Direct path untouched.
+
+Evidence before the paired run:
+- `test_grammar_through_switchyard_equals_grammar_on_the_direct_path`: with
+  llama.cpp's own `examples/json_schema_to_grammar.py`, `grammar(sorted(rewritten))
+  == grammar(plain)` and `grammar(sorted(plain)) != grammar(plain)`.
+- `test_key_order_invariant_preserves_property_order_and_requiredness_under_sorting`
+  (root, Fact, RootCause; idempotent).
+- Live smoke, one request, six calls in sequence: direct plain `ec965b29…` (1031 tok,
+  3456 reasoning chars) ×3, Switchyard+rewritten `ec965b29…`, direct+rewritten
+  `ec965b29…`, Switchyard+plain `b536f509…` (the bug). Thinking preserved.
+- Session telemetry added: `ModelInvocation.runtime_fingerprint` (llama.cpp
+  `system_fingerprint`), `Trajectory.runtime_context` (local server pid/start-ticks/
+  boot-id, build, model path, gateway version, cascade stage) written by the runner.
+
+Paired verification (in flight): `make eval-r01-dev` — `prime-local` (one fixed
+request so both arms' first case has the same prompt-cache predecessor) →
+`R01-direct-dev` → `prime-local` → `R01-switchyard-dev`; nothing else on 8082.
+**Caveat recorded:** a `pytest` run at ~13:12 UTC (before live tests were made opt-in
+in `021890a`) sent one 1-token request to 8082 during `R01-direct-dev` case ~15; a
+primed `R01-direct2-dev` will follow so the Switchyard arm can be judged against an
+unperturbed same-session direct run.
+
+## M2.2 R4 — implementation (commit `021890a`)
+
+`services/ai_orchestrator/cascade.py`, `run_eval --escalate-to`, weak stage persisted
+under `<run>.weak`, `scripts/routing_cascade_report.py` (replay + live). Signals:
+no-output / unsupported claim / verifier failure — nested, so policies are `none` ⊂
+`parse` ⊂ `verifier`.
+
+**Pre-registered selection rule (dev, replay on the same-session weak run, before
+any live cascade run):** adopt `verifier` unless it costs more than 2 unnecessary
+escalations (weak would have passed) beyond `parse` on dev; otherwise `parse`. No
+other trigger will be added in this milestone whatever the oracle gap turns out to
+be. Then: one live dev run to validate the implementation, freeze, one test run.
