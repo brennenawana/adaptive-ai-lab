@@ -223,12 +223,23 @@ the scorer, the split and the trajectory. `router_signals` rejects every manifes
 field, and routing code may not import the scorer or the manifest schema
 (`test_routing_no_gold_leak.py`).
 
-**Known, measured non-equivalence (R1, 2026-08-16):** Switchyard 0.2.0 re-serialises
-JSON with sorted keys; llama.cpp's schema→GBNF compiler enforces property *order*; so
-the routed local arm generates under a different grammar than the direct arm and its
-greedy output differs on identical requests. See `routing-experiments.md` § R1 and
-`infra/switchyard/README.md`. Until fixed upstream or canonicalised in a suite bump,
-routed local runs are compared to direct runs, not assumed equal.
+**Measured non-equivalence (R1) and its fix (R0.1), both 2026-08-16:** Switchyard 0.2.0
+re-serialises JSON with sorted keys; llama.cpp's schema→GBNF compiler enforces
+property *order*; so a plain passthrough changed the grammar and the greedy output
+(0/48 identical). `SwitchyardAdapter.build_body` now rewrites every object schema into
+an `allOf` form (`schema_compat.key_order_invariant`) that compiles to the identical
+grammar text and survives sorting; same-session dev re-run: 48/48 identical output
+digests, +11 ms. The direct path is unchanged. See `routing-experiments.md` § R1/R0.1
+and `infra/switchyard/README.md`. The routed local arm is interchangeable with the
+direct one for routing experiments; case-level comparisons still require one server
+session and one request order.
+
+### Deterministic cascade (`services/ai_orchestrator/cascade.py`)
+R4. Weak model first; escalate to the strong model on production-available signals
+only (no schema-valid output, unsupported claim, any verifier failure — nested policies
+`none` ⊂ `parse` ⊂ `verifier`). The decision and its features live on
+`Trajectory.router`; the weak stage is scored under `<run>.weak`. Business policy stays
+in FIS; the gateway is transport.
 
 ### Tool broker (`fis_platform/tool_broker/`)
 Eight narrow, typed, read-only tools. Parameterised SQL only.
@@ -334,5 +345,6 @@ Two decisions that keep the KPI honest:
 | One clock base for all scenarios | one 48h slot per scenario | a time-scoped tool would otherwise sweep all 288 scenarios into one answer |
 | `get_ledger_entries` ordered by `posted_at` | ordered by `posting_seq`, which is also returned | the consumer stamps `posted_at` from `occurred_at`, so S07's reversal race lives only in posting order. Sorting by event time showed a chronological, net-zero ledger and made `reversal_race` unreachable by correct reasoning — E4 went 0.125 → 1.000 on the class once exposed |
 | One system prompt | a versioned registry (`prompts.py`), selected per run | E6 compares prompt variants; the prompt has to be part of `config_digest` or two arms differing only by prompt are indistinguishable in the persisted results |
-| Switchyard as an invisible transport hop | routed local arm is a **measured** arm, not an assumed-equal one | 0.2.0 sorts JSON keys; llama.cpp's grammar compiler is order-sensitive; the model's output changes under the reordered grammar (R1). The frozen baseline stays on the direct path |
+| Switchyard as an invisible transport hop | invisible **after** the adapter's key-order-invariant schema rewrite (R0.1: 48/48 identical) | 0.2.0 sorts JSON keys; llama.cpp's grammar compiler is order-sensitive (R1: 0/48 identical as shipped). Fixed on the FIS side without touching the suite or the direct path |
+| Routing owned by the gateway (strong/weak splitting) | R4's cascade is FIS business policy in the orchestrator; Switchyard fronts the local model only | the frontier is a subscription CLI with no OpenAI endpoint, and the gate must read FIS's verifier — a learned/Switchyard router is R5 |
 | Forbidden claims matched by substring | polarity-aware match | a bare substring counted a *refutation* as an assertion — "the decline was not caused by insufficient funds" scored as the claim `insufficient_funds`, costing the frontier arm 8 points of all-pass for being right |

@@ -58,22 +58,25 @@ adapter: `fis_platform/model_gateway/switchyard.py`.
 - Endpoints besides `/v1/chat/completions`: `/health`, `/v1/models`, `/v1/stats`,
   `/v1/routing/stats`, `/metrics`, `/v1/messages`, `/v1/responses`.
 
-## The R1 finding you need to know before trusting any routed local run
+## The R1 finding, and the R0.1 fix
 
 Switchyard 0.2.0's Rust core re-serialises JSON with **sorted object keys**. The
 body reaching llama.cpp is semantically equal to what FIS sent, but the response
 schema's `properties` arrive in alphabetical order — and llama.cpp compiles a JSON
-schema to a GBNF grammar that enforces property **order**. The model is therefore
-forced to write, e.g., `facts` before `root_cause`, and its greedy output differs
-from the direct path on the identical request. Proven with a byte tap and by
-reproducing Switchyard's exact output on the direct path with only the schema keys
-sorted (see `docs/routing-experiments.md`, R1). Sending a client-side GBNF string
-instead restores transport equivalence but disables the model's `<think>` phase
-(llama.cpp applies `response_format` grammars lazily after reasoning, raw
-`grammar` from token one) — so it is *not* used for the frozen baseline.
+schema to a GBNF grammar that enforces property **order**. A plain passthrough
+therefore forced the model to write, e.g., `facts` before `root_cause`, and its
+greedy output differed from the direct path on identical requests (R1: 0/48
+identical). Proven with a byte tap and by reproducing Switchyard's exact output on
+the direct path with only the schema keys sorted.
 
-Until either Switchyard preserves key order or FIS bumps the suite with a
-canonical (sorted) schema order for every arm, **a routed local run is a different
-grammar from the direct run** and must be compared, not assumed equal.
-`test_schema_property_order_is_not_alphabetical__the_known_r1_difference` keeps
-this on the record.
+**Fix (R0.1, `fis_platform/model_gateway/schema_compat.key_order_invariant`):**
+`SwitchyardAdapter.build_body` rewrites every object schema into an `allOf` list —
+one property per component, optional properties under `anyOf`, `additionalProperties`
+dropped. llama.cpp's converter builds the object rule from `allOf` in array order and
+treats "no additionalProperties" as `false`, so the grammar text is byte-identical to
+the plain schema's — and arrays survive key sorting. Same-session dev re-run: **48/48
+identical output digests**, tokens identical, +11 ms p50. The direct path still sends
+the plain schema it was baselined with. (A client-side `grammar` string would also
+have restored equivalence but disables the model's `<think>` phase — rejected.)
+`test_schema_property_order_is_not_alphabetical__why_r0_1_exists` records why the
+rewrite exists.
