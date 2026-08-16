@@ -31,6 +31,7 @@ from .common import (
     new_trace_id,
     utc_now,
 )
+from .routing import RoutingRecord
 from .tool import ToolCall
 
 
@@ -85,6 +86,15 @@ class ModelInvocation(Base):
     usage: TokenUsage = Field(default_factory=TokenUsage)
     cost: CostRecord = Field(default_factory=CostRecord)
     latency: LatencyRecord
+    stop_reason: str | None = Field(
+        default=None,
+        description="Provider finish reason (e.g. 'stop', 'length'). Two arms that "
+        "truncate on different cases are not equivalent even if their scores agree.",
+    )
+
+    # Present only when a routing gateway sat between the orchestrator and the model.
+    # None means the direct path — the control every routed arm is compared with.
+    routing: RoutingRecord | None = None
 
 
 class RetrievalRef(FrozenBase):

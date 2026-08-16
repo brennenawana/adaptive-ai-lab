@@ -12,6 +12,7 @@ from datetime import datetime
 from pydantic import Field, model_validator
 
 from .common import Base, ModelTier, Provider, utc_now
+from .routing import RoutingProfile
 
 
 class PriceTable(Base):
@@ -94,6 +95,11 @@ class ModelManifest(Base):
     cli: CliInvocation | None = None
     price: PriceTable | None = None
 
+    # Set when this entry is served through a routing gateway rather than a model
+    # endpoint. The gateway is a transport detail: an entry with a profile is still
+    # resolved, priced and recorded like any other model.
+    routing: RoutingProfile | None = None
+
     registered_at: datetime = Field(default_factory=utc_now)
     notes: str | None = None
 
@@ -101,6 +107,19 @@ class ModelManifest(Base):
     def _needs_a_transport(self) -> "ModelManifest":
         if self.base_url is None and self.cli is None:
             raise ValueError(f"model '{self.ref}' declares neither base_url nor cli — unreachable")
+        return self
+
+    @model_validator(mode="after")
+    def _routed_entries_name_their_gateway_provider(self) -> "ModelManifest":
+        # A routing profile without the SWITCHYARD provider (or vice versa) would be
+        # a manifest that lies about its transport, and the R1 equivalence claim
+        # rests on knowing exactly which path a run took.
+        routed = self.provider is Provider.SWITCHYARD
+        if routed != (self.routing is not None):
+            raise ValueError(
+                f"model '{self.ref}': provider {self.provider.value!r} and routing "
+                f"profile {'present' if self.routing else 'absent'} disagree"
+            )
         return self
 
     @model_validator(mode="after")

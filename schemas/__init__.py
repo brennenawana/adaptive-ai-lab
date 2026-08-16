@@ -21,6 +21,7 @@ from .common import (
 )
 from .investigator import Fact, InvestigationResult, NextAction, RootCause, RootCauseLabel
 from .model_manifest import CliInvocation, ModelManifest, ModelRegistry, PriceTable
+from .routing import GOLD_FEATURE_NAMES, RouteMode, RoutingProfile, RoutingRecord
 from .scenario import CaseScore, DimensionScore, EvalRun, ScenarioManifest, SeedSplit
 from .specialist import ContextPolicy, ModelBinding, RoutingPolicy, Specialist, TaskState
 from .tool import ToolCall, ToolDefinition, ToolKind
@@ -43,6 +44,7 @@ __all__ = [
     "Trajectory", "ModelInvocation", "RouterDecision", "RetrievalRef",
     "VerificationResult", "HumanFeedback", "FailureClass",
     "ModelManifest", "ModelRegistry", "PriceTable", "CliInvocation",
+    "RoutingProfile", "RoutingRecord", "RouteMode", "GOLD_FEATURE_NAMES",
     "InvestigationResult", "Fact", "RootCause", "RootCauseLabel", "NextAction",
     "ScenarioManifest", "SeedSplit", "CaseScore", "DimensionScore", "EvalRun",
 ]

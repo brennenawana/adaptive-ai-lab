@@ -93,6 +93,7 @@ class Provider(StrEnum):
     CODEX_CLI = "codex_cli"            # subscription auth via `codex exec`
     ANTHROPIC_API = "anthropic_api"    # kept so an API key is a config change, not a rewrite
     OPENAI_API = "openai_api"
+    SWITCHYARD = "switchyard"          # NeMo Switchyard routing gateway (OpenAI-compatible)
 
 
 # --------------------------------------------------------------------------------------

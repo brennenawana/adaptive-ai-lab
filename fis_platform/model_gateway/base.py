@@ -27,6 +27,7 @@ from schemas.common import (
     TokenUsage,
 )
 from schemas.model_manifest import ModelManifest
+from schemas.routing import RoutingRecord
 
 
 class Message(Base):
@@ -77,6 +78,10 @@ class GenerationResponse(Base):
     stop_reason: str | None = None
     is_error: bool = False
     error: str | None = None
+
+    # Set only by adapters that sit behind a routing gateway, from what the gateway
+    # actually reported. The direct path leaves it None.
+    routing: RoutingRecord | None = None
 
     raw: dict[str, Any] | None = Field(
         default=None, description="Provider-native response, for diagnosis and replay."
