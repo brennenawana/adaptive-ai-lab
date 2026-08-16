@@ -75,6 +75,18 @@ eval-e6-dev: ## E6 — score all three prompt variants on the DEV split
 	  --prompt cause_action_table    --run-id E6-B-table-dev     --resume
 	$(PY) -m evals.runner.run_eval --arm E6 --model-ref local-specialist --split dev \
 	  --prompt cause_action_directed --run-id E6-C-directed-dev  --resume
+.PHONY: eval-e6b-dev
+eval-e6b-dev: ## E6b — citation-recovery 2x2 on DEV (C already run, is the control)
+	# E6 raised diagnosis but dropped evidence recall to 61.1%, which is now the
+	# binding constraint. Two factors: WHERE the citation rules sit (recency) and
+	# WHAT they ask for (eliminative evidence). E6-C-directed-dev is cell 1.
+	$(PY) -m evals.runner.run_eval --arm E6b --model-ref local-specialist --split dev \
+	  --prompt cite_last             --run-id E6b-E-citelast-dev   --resume
+	$(PY) -m evals.runner.run_eval --arm E6b --model-ref local-specialist --split dev \
+	  --prompt cite_eliminative      --run-id E6b-F-elim-dev       --resume
+	$(PY) -m evals.runner.run_eval --arm E6b --model-ref local-specialist --split dev \
+	  --prompt cite_last_eliminative --run-id E6b-G-both-dev       --resume
+
 eval-e6-confirm: ## E6 — run the winning variant on TEST once (set PROMPT=...)
 	@test -n "$(PROMPT)" || { echo "usage: make eval-e6-confirm PROMPT=cause_action_directed"; exit 1; }
 	$(PY) -m evals.runner.run_eval --arm E6 --model-ref local-specialist --split test \

@@ -54,22 +54,48 @@ def _render_table() -> str:
     )
 
 
-_BASE_RULES = """Given a case, determine the most likely root cause from the evidence available.
+# The rules block, split at its seams so later variants can MOVE the citation rules
+# without REWORDING them. Reordering is the experiment; rewording would confound it.
+#
+# The three parts concatenate back to the original block byte-for-byte —
+# `test_rule_fragments_reconstruct_the_original_block` pins that, so variant A stays
+# the exact prompt E2 was baselined with.
+_TASK_LINE = """Given a case, determine the most likely root cause from the evidence available."""
 
-Rules:
-- Separate facts from hypotheses. A fact is something a tool result directly shows;
-  anything inferred, suspected or probable is a hypothesis, not a fact.
-- Every fact must cite its source as tool://<tool_name>/<entity_id>, where
+_RULES_HEAD = """- Separate facts from hypotheses. A fact is something a tool result directly shows;
+  anything inferred, suspected or probable is a hypothesis, not a fact."""
+
+_RULES_CITE = """- Every fact must cite its source as tool://<tool_name>/<entity_id>, where
   <tool_name> is the tool the evidence came from and <entity_id> is the specific
   record id. For example: tool://get_ledger_entries/le_001539
-- Put the specific record ids you relied on in each fact's entity_ids list.
-- Do not assert customer fraud, or any conclusion the evidence does not directly
+- Put the specific record ids you relied on in each fact's entity_ids list."""
+
+_RULES_TAIL = """- Do not assert customer fraud, or any conclusion the evidence does not directly
   support. An open alert is a pattern match, not a finding.
 - The surface symptom is often not the root cause. A decline may be caused by an
   upstream risk hold; an inactive card may be waiting on identity verification.
 - "Nothing is wrong" is a legitimate conclusion when the authoritative systems agree.
 - Set confidence honestly. Low confidence with correct reasoning is better than
   high confidence you cannot support."""
+
+_BASE_RULES = f"""{_TASK_LINE}
+
+Rules:
+{_RULES_HEAD}
+{_RULES_CITE}
+{_RULES_TAIL}"""
+
+# The citation instruction E6 made necessary.
+#
+# E6 raised diagnosis to 65.6% but dropped evidence recall to 61.1%, and 35 of the
+# 63 cases it diagnoses correctly now fail on evidence alone. A model that reaches
+# its conclusion quickly stops enumerating what it read — and much of what it read
+# was eliminative. Nothing in the original rules asks for the records that ruled
+# something OUT, yet several classes (S05, S11, S01) are precisely the conclusion
+# that nothing is wrong, which can only be supported by what was excluded.
+_RULES_CITE_ELIMINATIVE = """- Cite every record you relied on, including records that only allowed you to RULE
+  OUT an explanation. Evidence that eliminated a hypothesis is evidence you used:
+  if a balance told you the decline was not a funding problem, cite that balance."""
 
 _HEADER = "You are an operations investigator for Northstar Bank."
 _FOOTER = "Respond only via the provided schema."
@@ -145,11 +171,71 @@ The possible root causes are:
 {_FOOTER}"""
 
 
+# ------------------------------------------------------- citation recovery (E6b)
+# C won E6 but moved the bottleneck onto evidence recall. These three isolate the
+# two plausible remedies and their combination, with C as the control:
+#
+#   E  recency  — the citation rules last, after the policy table, unchanged
+#   F  content  — the citation rules in place, plus the eliminative-evidence line
+#   G  both
+#
+# Two factors, so the 2x2 says whether it is WHERE the citation rules sit, WHAT they
+# ask for, or both. Testing only the combination would answer none of those.
+_POLICY_BLOCK = f"""Operational response policy. Each root cause has a fixed set of sanctioned
+responses:
+
+{_render_table()}
+
+Choose the recommended_next_action by looking up the root cause you concluded, in
+the table above, and selecting from that row. Do not choose an action because it
+matches words in the case summary. If your chosen action does not appear on the row
+for your chosen root cause, one of the two is wrong — revisit them before answering."""
+
+
+def _cite_last_variant(cite_block: str) -> str:
+    """C, with the citation rules relocated to the end of the prompt."""
+    return f"""{_HEADER}
+
+{_TASK_LINE}
+
+Rules:
+{_RULES_HEAD}
+{_RULES_TAIL}
+
+{_POLICY_BLOCK}
+
+Citing your evidence:
+{cite_block}
+
+{_FOOTER}"""
+
+
+_E_CITE_LAST = _cite_last_variant(_RULES_CITE)
+_G_CITE_LAST_ELIMINATIVE = _cite_last_variant(f"{_RULES_CITE}\n{_RULES_CITE_ELIMINATIVE}")
+
+_F_CITE_ELIMINATIVE = f"""{_HEADER}
+
+{_TASK_LINE}
+
+Rules:
+{_RULES_HEAD}
+{_RULES_CITE}
+{_RULES_CITE_ELIMINATIVE}
+{_RULES_TAIL}
+
+{_POLICY_BLOCK}
+
+{_FOOTER}"""
+
+
 PROMPTS: dict[str, str] = {
     "baseline": _A_BASELINE,
     "cause_action_table": _B_TABLE,
     "cause_action_directed": _C_TABLE_DIRECTED,
     "causes_only": _D_CAUSES_ONLY,
+    "cite_last": _E_CITE_LAST,
+    "cite_eliminative": _F_CITE_ELIMINATIVE,
+    "cite_last_eliminative": _G_CITE_LAST_ELIMINATIVE,
 }
 
 DEFAULT_PROMPT = "baseline"

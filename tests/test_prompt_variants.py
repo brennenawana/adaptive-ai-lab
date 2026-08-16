@@ -12,10 +12,18 @@ import pytest
 from scenarios.generator.catalog import BUILDERS
 from scenarios.generator.run import build
 from services.ai_orchestrator.prompts import (
+    _BASE_RULES,
+    _POLICY_BLOCK,
+    _RULES_CITE,
+    _RULES_CITE_ELIMINATIVE,
+    _RULES_HEAD,
+    _RULES_TAIL,
     CAUSE_TO_ACTION,
     DEFAULT_PROMPT,
     PROMPTS,
 )
+
+CITATION_RECOVERY = ["cite_last", "cite_eliminative", "cite_last_eliminative"]
 
 CODES = sorted(BUILDERS)
 
@@ -88,13 +96,61 @@ def test_intervention_variants_carry_the_whole_table(ref):
             assert action in prompt, f"{ref} omits {action} for {cause}"
 
 
-def test_variants_differ_only_by_the_intervention():
-    """The control's rules must survive verbatim in every variant. A variant that
-    also reworded the citation rules would confound the measurement."""
-    baseline = PROMPTS["baseline"]
-    rules = baseline[baseline.index("Rules:"):baseline.index("Respond only")].strip()
+def test_rule_fragments_reconstruct_the_original_block():
+    """The split is for MOVING the citation rules, not editing them. If the three
+    fragments stop concatenating back to the original, variant A is silently no
+    longer the prompt E2 was baselined with and the control is void."""
+    assert _BASE_RULES.endswith(_RULES_TAIL)
+    assert f"{_RULES_HEAD}\n{_RULES_CITE}\n{_RULES_TAIL}" in _BASE_RULES
+
+
+def test_every_variant_carries_all_rules_verbatim():
+    """Rules may be reordered; they may never be reworded. A variant that also
+    rephrased the citation rules would confound where-vs-what."""
     for ref, prompt in PROMPTS.items():
-        assert rules in prompt, f"{ref} altered the shared rules block"
+        for name, fragment in (("head", _RULES_HEAD), ("cite", _RULES_CITE),
+                               ("tail", _RULES_TAIL)):
+            assert fragment in prompt, f"{ref} altered or dropped the {name} rules"
+
+
+def test_citation_recovery_variants_reuse_C_policy_text_exactly():
+    """E/F/G must differ from C only in citation handling. If the policy block were
+    retyped rather than shared, the 2x2 would be measuring a prompt rewrite."""
+    assert _POLICY_BLOCK in PROMPTS["cause_action_directed"], (
+        "the shared policy block drifted from variant C, which has already been run "
+        "on test — E/F/G would no longer be comparable to it"
+    )
+    for ref in CITATION_RECOVERY:
+        assert _POLICY_BLOCK in PROMPTS[ref], f"{ref} does not carry C's policy block"
+
+
+@pytest.mark.parametrize("ref", ["cite_last", "cite_last_eliminative"])
+def test_recency_variants_put_citation_rules_after_the_policy(ref):
+    prompt = PROMPTS[ref]
+    assert prompt.index(_RULES_CITE) > prompt.index(_POLICY_BLOCK), (
+        f"{ref} is supposed to test RECENCY — the citation rules must come last"
+    )
+
+
+@pytest.mark.parametrize("ref", ["cause_action_directed", "cite_last"])
+def test_recency_only_variants_do_not_change_what_is_asked(ref):
+    assert _RULES_CITE_ELIMINATIVE not in PROMPTS[ref], (
+        f"{ref} isolates WHERE the rules sit; adding the eliminative line would "
+        "confound it with WHAT they ask for"
+    )
+
+
+@pytest.mark.parametrize("ref", ["cite_eliminative", "cite_last_eliminative"])
+def test_content_variants_ask_for_eliminative_evidence(ref):
+    assert _RULES_CITE_ELIMINATIVE in PROMPTS[ref]
+
+
+def test_the_2x2_is_actually_a_2x2():
+    """Four distinct prompts, one per cell. A duplicate would silently halve the
+    experiment and still produce a plausible-looking table."""
+    cells = ["cause_action_directed", "cite_last", "cite_eliminative",
+             "cite_last_eliminative"]
+    assert len({PROMPTS[c] for c in cells}) == 4
 
 
 def test_directed_variant_tells_the_model_to_use_its_own_conclusion():
