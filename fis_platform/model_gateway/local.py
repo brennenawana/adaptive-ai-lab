@@ -153,6 +153,7 @@ class LocalLlamaCppAdapter(ModelAdapter):
             cost=self._price(usage),
             latency=LatencyRecord(wall_ms=wall_ms, api_ms=api_ms),
             stop_reason=choice.get("finish_reason"),
+            runtime_fingerprint=payload.get("system_fingerprint"),
             raw=payload,
         )
         return self._annotate(resp, headers)

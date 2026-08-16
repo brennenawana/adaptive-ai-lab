@@ -10,9 +10,17 @@ backend and forwards the body.
 Deliberately a subclass of the local llama.cpp adapter rather than a new transport:
 the pivot guide's first Switchyard experiment (R1) is a *zero-semantic-change*
 transport experiment, and the cleanest way to guarantee the routed arm sends the
-same request as the direct arm is to build it with the same code. `build_body` is
-inherited untouched; `test_switchyard_passthrough.py` asserts the two bodies are
-byte-identical.
+same request as the direct arm is to build it with the same code.
+
+One deliberate deviation, found by R1 and fixed in R0.1: Switchyard 0.2.0 re-serialises
+JSON with sorted keys, and llama.cpp compiles a response schema into a grammar that
+enforces property ORDER — so a schema forwarded through the gateway produced a
+different grammar and different outputs (0/48 identical on dev). `build_body` here
+therefore rewrites every JSON schema in the request into the key-order-invariant
+`allOf` form (`schema_compat.key_order_invariant`), which compiles to the identical
+grammar text and survives sorting. Nothing else in the body changes;
+`test_switchyard_passthrough.py` asserts body equality modulo that rewrite and
+grammar equality with llama.cpp's own converter. The direct path is untouched.
 
 Boundary, stated once: this module records what the gateway *reported* into the
 FIS `RoutingRecord`. It never reads scenario truth, never scores, never decides
@@ -22,6 +30,7 @@ whether an answer was good. If Switchyard is replaced, this file is what changes
 from __future__ import annotations
 
 from importlib import metadata as _md
+from typing import Any
 
 import httpx
 
@@ -29,6 +38,7 @@ from schemas.routing import RoutingRecord
 
 from .base import GenerationRequest, GenerationResponse
 from .local import LocalLlamaCppAdapter
+from .schema_compat import key_order_invariant
 
 # Response headers Switchyard sets when a routing backend recorded a selection.
 # A passthrough route records none — that is expected and is written down as
@@ -63,6 +73,18 @@ class SwitchyardAdapter(LocalLlamaCppAdapter):
                 f"request is LOCAL_ONLY but route '{self.manifest.ref}' may reach a "
                 f"non-local backend ({profile.backends if profile else 'unknown'})"
             )
+
+    def build_body(self, req: GenerationRequest) -> dict[str, Any]:
+        body = super().build_body(req)
+        rf = body.get("response_format")
+        if isinstance(rf, dict) and isinstance(rf.get("json_schema"), dict) \
+                and isinstance(rf["json_schema"].get("schema"), dict):
+            rf["json_schema"]["schema"] = key_order_invariant(rf["json_schema"]["schema"])
+        for tool in body.get("tools") or []:
+            fn = tool.get("function") if isinstance(tool, dict) else None
+            if isinstance(fn, dict) and isinstance(fn.get("parameters"), dict):
+                fn["parameters"] = key_order_invariant(fn["parameters"])
+        return body
 
     async def health(self) -> bool:
         """Listener up AND the route this entry names is registered.

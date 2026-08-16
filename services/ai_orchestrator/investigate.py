@@ -138,6 +138,7 @@ async def investigate(
     max_tool_rounds: int = 8,
     prompt_ref: str = DEFAULT_PROMPT,
     user: str = "eval-runner",
+    runtime_context: dict[str, str] | None = None,
 ) -> tuple[InvestigationResult | None, Trajectory]:
     traj = Trajectory(
         trace_id=new_trace_id(),
@@ -149,6 +150,7 @@ async def investigate(
         scenario_id=scenario_id,
         experiment_arm=experiment_arm,
         permissions_snapshot={"read_only": True},
+        runtime_context=dict(runtime_context or {}),
     )
 
     # Resolved here rather than defaulted in the signature so an unknown ref fails
@@ -218,6 +220,7 @@ async def investigate(
             quantization=manifest.quantization, prompt_version=PROMPT_VERSION,
             usage=resp.usage, cost=resp.cost, latency=resp.latency,
             stop_reason=resp.stop_reason, routing=resp.routing,
+            runtime_fingerprint=resp.runtime_fingerprint,
         ))
 
         if resp.is_error:

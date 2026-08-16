@@ -76,6 +76,8 @@ class GenerationResponse(Base):
     latency: LatencyRecord
 
     stop_reason: str | None = None
+    runtime_fingerprint: str | None = Field(
+        default=None, description="Backend build id as the backend reports it (llama.cpp system_fingerprint).")
     is_error: bool = False
     error: str | None = None
 

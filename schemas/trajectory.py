@@ -96,6 +96,11 @@ class ModelInvocation(Base):
     # None means the direct path — the control every routed arm is compared with.
     routing: RoutingRecord | None = None
 
+    # The backend's own build fingerprint (llama.cpp `system_fingerprint`, e.g.
+    # `b1-9b05354`). Case-level local results were found to reproduce only within one
+    # server session; the build is the first thing to compare when two runs disagree.
+    runtime_fingerprint: str | None = None
+
 
 class RetrievalRef(FrozenBase):
     document_id: str
@@ -182,6 +187,12 @@ class Trajectory(Base):
     training_recommended: bool = False
 
     error: str | None = None
+
+    # Free-form context the runner knew and the model did not: local model-server
+    # session (pid / start ticks / build), gateway version, run id. Enough to tell
+    # whether two case-level local results are comparable (same server session,
+    # same order) — no more. Never read by the model or the router.
+    runtime_context: dict[str, str] = Field(default_factory=dict)
 
     # ---------------------------------------------------------------------------
     # Derived metrics. Computed rather than stored so they can never drift out of

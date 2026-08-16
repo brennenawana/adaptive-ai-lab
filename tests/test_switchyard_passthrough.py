@@ -17,6 +17,9 @@ from fis_platform.model_gateway import (
 )
 from fis_platform.model_gateway.gateway import SWITCHYARD_PASSTHROUGH_ROUTE, SWITCHYARD_ROUTES_YAML
 from fis_platform.model_gateway.local import LocalLlamaCppAdapter
+from fis_platform.model_gateway.schema_compat import (
+    key_order_invariant, property_order, to_gbnf_safe,
+)
 from schemas import DataPolicy, LatencyRecord, ModelTier, Provider, RouteMode
 from schemas.investigator import InvestigationResult
 
@@ -51,17 +54,89 @@ def test_routed_adapter_is_the_local_adapter_with_a_different_base_url():
     a, b = gw.adapter(DIRECT), gw.adapter(ROUTED)
     assert type(a) is LocalLlamaCppAdapter and isinstance(b, SwitchyardAdapter)
     assert isinstance(b, LocalLlamaCppAdapter)          # inherits, does not reimplement
-    assert b.build_body.__func__ is LocalLlamaCppAdapter.build_body  # not overridden
+    assert b._post.__func__ is LocalLlamaCppAdapter._post   # same transport code
     assert a.manifest.base_url != b.manifest.base_url
     assert ":4000" in b.manifest.base_url
 
 
-def test_request_body_is_byte_identical_on_both_paths():
-    """This is the R1 premise. If it fails, the routed arm is a different experiment."""
+def _sorted_keys(o):
+    """What Switchyard 0.2.0's Rust core does to every object on the way through."""
+    if isinstance(o, dict):
+        return {k: _sorted_keys(o[k]) for k in sorted(o)}
+    if isinstance(o, list):
+        return [_sorted_keys(x) for x in o]
+    return o
+
+
+def test_request_body_is_identical_on_both_paths_except_the_schema_rewrite():
+    """R1 premise, restated after R0.1: everything but the schema representation is
+    byte-identical, and the schema differs only by the key-order-invariant rewrite."""
     gw = ModelGateway(default_registry())
     body_a = gw.adapter(DIRECT).build_body(_req(DIRECT))
     body_b = gw.adapter(ROUTED).build_body(_req(ROUTED))
+    sa, sb = body_a["response_format"]["json_schema"]["schema"], body_b["response_format"]["json_schema"]["schema"]
+    assert sb == key_order_invariant(sa)
+    body_a["response_format"]["json_schema"]["schema"] = None
+    body_b["response_format"]["json_schema"]["schema"] = None
     assert json.dumps(body_a) == json.dumps(body_b)
+
+
+def test_key_order_invariant_preserves_property_order_and_requiredness_under_sorting():
+    """The whole point: after Switchyard sorts every key, the property order the
+    grammar will enforce is still the declared one, for every object in the schema."""
+    schema = to_gbnf_safe(InvestigationResult.model_json_schema())
+    routed = _sorted_keys(key_order_invariant(schema))
+    objects = {"root": (schema, routed)}
+    for name in schema["$defs"]:
+        objects[name] = (schema["$defs"][name], routed["$defs"][name])
+    for name, (orig, after) in objects.items():
+        if "properties" not in orig:
+            continue                                     # enums etc.
+        assert property_order(after) == list(orig["properties"]), name
+        assert property_order(_sorted_keys(orig)) != list(orig["properties"]) or len(orig["properties"]) < 2, (
+            f"{name}: fixture no longer demonstrates the problem")
+        req_after = {p for comp in after["allOf"] if "anyOf" not in comp for p in comp["properties"]}
+        assert req_after == set(orig.get("required", [])), name
+        assert "additionalProperties" not in after and "properties" not in after
+    # Idempotent: applying it to an already-rewritten schema changes nothing.
+    assert key_order_invariant(key_order_invariant(schema)) == key_order_invariant(schema)
+
+
+def _llamacpp_converter():
+    """llama.cpp's reference JSON-schema->GBNF converter (examples/), if the build
+    the model server runs from is on this machine. Skipped otherwise."""
+    import importlib.util
+    import os
+    from dotenv import dotenv_values
+    env = {**dotenv_values(ROOT / ".env"), **os.environ}
+    llama_dir = Path(env.get("FIS_LLAMA_DIR") or Path.home() / "llama.cpp-upstream").expanduser()
+    src = llama_dir / "examples" / "json_schema_to_grammar.py"
+    if not src.exists():
+        pytest.skip(f"llama.cpp converter not found at {src}")
+    spec = importlib.util.spec_from_file_location("llama_j2g", src)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    def grammar(schema):
+        import copy
+        conv = mod.SchemaConverter(prop_order={}, allow_fetch=False, dotall=False, raw_pattern=False)
+        resolved = conv.resolve_refs(copy.deepcopy(schema), "fis")
+        conv.visit(resolved, "")
+        return conv.format_grammar()
+    return grammar
+
+
+def test_grammar_through_switchyard_equals_grammar_on_the_direct_path():
+    """The R0.1 claim, checked with llama.cpp's own converter: the schema the gateway
+    forwards (rewritten, then key-sorted) compiles to the byte-identical grammar text
+    the direct path's plain schema compiles to — while the plain schema, key-sorted,
+    does not. Live confirmation: identical output digests through the gateway."""
+    grammar = _llamacpp_converter()
+    gw = ModelGateway(default_registry())
+    direct = gw.adapter(DIRECT).build_body(_req(DIRECT))["response_format"]["json_schema"]["schema"]
+    routed = gw.adapter(ROUTED).build_body(_req(ROUTED))["response_format"]["json_schema"]["schema"]
+    assert grammar(_sorted_keys(routed)) == grammar(direct)
+    assert grammar(_sorted_keys(direct)) != grammar(direct), "fixture no longer shows the bug"
 
 
 def test_local_only_policy_is_honoured_through_the_gateway():
@@ -109,26 +184,18 @@ def test_route_bundle_loads_in_switchyard_itself():
     assert list(table.registered_models()) == [SWITCHYARD_PASSTHROUGH_ROUTE]
 
 
-def test_schema_property_order_is_not_alphabetical__the_known_r1_difference():
-    """Executable note on the one thing that does NOT survive the hop.
-
-    Switchyard 0.2.0's Rust core re-serialises every JSON object with sorted keys
-    (serde_json without preserve_order). The request that reaches llama.cpp is
-    semantically equal but the `properties` of the response schema arrive in
-    alphabetical order — and llama.cpp compiles the JSON schema to a GBNF grammar
-    that enforces property ORDER, so the model is forced to emit e.g. `facts`
-    before `root_cause` and its output changes. Verified byte-for-byte with a tap
-    on 2026-08-16 (docs/routing-experiments.md, R1).
-
-    While this assertion holds, exact equivalence through Switchyard 0.2.0 is not
-    achievable for the grammar-constrained local arm, and every R1 report must
-    carry the measured delta. If someone canonicalises the schema order (a suite
-    bump — it changes the frozen local baseline), this test fails to remind them
-    that the R1 result and the baseline both need re-measuring.
-    """
+def test_schema_property_order_is_not_alphabetical__why_r0_1_exists():
+    """Executable note. Switchyard 0.2.0's Rust core re-serialises every JSON object
+    with sorted keys; llama.cpp compiles the response schema to a GBNF grammar that
+    enforces property ORDER. With a non-alphabetical schema a plain passthrough
+    changed the grammar and the model's output (R1: 0/48 identical). R0.1 fixed it in
+    the adapter (`key_order_invariant`), which is only worth its existence while this
+    assertion holds. If the schema is ever canonicalised alphabetically (a suite bump
+    — it re-baselines the local arm), this fails to say the rewrite can go, and the
+    R1/R0.1 numbers need re-measuring."""
     props = list(InvestigationResult.model_json_schema()["properties"])
     assert props != sorted(props), (
-        "schema property order became alphabetical: re-baseline the local arm and re-run R1")
+        "schema property order became alphabetical: re-baseline the local arm, re-run R1")
 
 
 def _both_servers_up() -> bool:

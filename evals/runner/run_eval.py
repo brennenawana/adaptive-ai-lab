@@ -41,6 +41,51 @@ TOOLS_DSN = os.environ.get("FIS_TOOLS_DSN",
                            "postgresql://fis_tools:fis_tools_local_dev@127.0.0.1:5433/fis")
 
 
+def local_server_session(base_url: str) -> dict[str, str]:
+    """Best-effort identity of the local llama.cpp server this run talks to.
+
+    Case-level local results were found to reproduce only within ONE server session
+    (same process, same request order): across a restart the same 48 dev cases moved
+    23 scored outcomes with identical prompts. So a run has to say which session it
+    ran in, or two runs cannot be told comparable. Recorded on every trajectory as
+    `runtime_context`; never shown to the model.
+
+    Sources: llama.cpp `/props` (build id, model path, slots) and, when the server is
+    on this machine, /proc (pid + start ticks + boot id — stable within a boot, unlike
+    `ps lstart` under WSL). Empty on failure rather than blocking a run.
+    """
+    import re
+    import urllib.request
+    ctx: dict[str, str] = {}
+    root = base_url.rstrip("/").removesuffix("/v1")
+    try:
+        with urllib.request.urlopen(f"{root}/props", timeout=3) as r:
+            props = json.load(r)
+        ctx["llamacpp_build"] = str(props.get("build_info", ""))
+        ctx["model_path"] = str(props.get("model_path", ""))
+        ctx["model_alias"] = str(props.get("model_alias", ""))
+        ctx["total_slots"] = str(props.get("total_slots", ""))
+    except Exception:  # noqa: BLE001 — telemetry only
+        pass
+    port = (re.search(r":(\d+)", root) or [None, "8082"])[1]
+    try:
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                cmd = f.read().replace(b"\0", b" ").decode(errors="replace")
+            if "llama-server" in cmd and f"--port {port}" in cmd:
+                with open(f"/proc/{pid}/stat") as f:
+                    start_ticks = f.read().rsplit(")", 1)[1].split()[19]
+                with open("/proc/sys/kernel/random/boot_id") as f:
+                    boot = f.read().strip()
+                ctx["local_server_session"] = f"pid={pid} start_ticks={start_ticks} boot={boot[:8]}"
+                break
+    except Exception:  # noqa: BLE001
+        pass
+    return ctx
+
+
 def load_manifests(conn, split: str, limit: int | None) -> list[dict]:
     sql = """
         SELECT scenario_id, seed, split, category, root_cause, required_evidence,
@@ -107,6 +152,15 @@ async def main() -> None:
     run_id = args.run_id or f"{args.arm}-{args.model_ref}-{args.split}"
     gateway = ModelGateway(default_registry())
 
+    manifest = gateway.registry.resolve(args.model_ref)
+    runtime_context = {"run_id": run_id, "model_ref": args.model_ref, "prompt": args.prompt}
+    if manifest.routing is not None:
+        runtime_context["gateway"] = f"{manifest.routing.gateway} {manifest.routing.gateway_version}"
+    # The local backend's session, whether reached directly or through the gateway.
+    local_url = os.environ.get("FIS_LOCAL_MODEL_BASE_URL", "http://127.0.0.1:8082/v1")
+    if manifest.provider.value in ("local_llamacpp", "switchyard"):
+        runtime_context.update(local_server_session(local_url))
+
     with psycopg.connect(OWNER_DSN) as owner:
         manifests = load_manifests(owner, args.split, args.limit)
         done = already_done(owner, run_id) if args.resume else set()
@@ -114,7 +168,9 @@ async def main() -> None:
 
         print(f"run_id={run_id}  arm={args.arm}  model={args.model_ref}  mode={args.mode}")
         print(f"{len(manifests)} scenarios in split, {len(done)} already scored, "
-              f"{len(pending)} to run\n")
+              f"{len(pending)} to run")
+        print("runtime: " + "  ".join(f"{k}={v}" for k, v in runtime_context.items()
+                                     if k not in ("run_id", "model_ref", "prompt")) + "\n")
 
         # v2: the event migration. The corpus is regenerated (failures are now
         # produced by the consumers rather than written by the generator) and the
@@ -132,7 +188,7 @@ async def main() -> None:
                         m["case_id"], gateway=gateway, broker=broker,
                         model_ref=args.model_ref, experiment_arm=args.arm,
                         mode=EvidenceMode(args.mode), scenario_id=m["scenario_id"],
-                        prompt_ref=args.prompt,
+                        prompt_ref=args.prompt, runtime_context=runtime_context,
                     )
                 except Exception as exc:  # noqa: BLE001 — one bad case must not kill the run
                     print(f"[{i}/{len(pending)}] {m['scenario_id']}  EXCEPTION {exc}")
