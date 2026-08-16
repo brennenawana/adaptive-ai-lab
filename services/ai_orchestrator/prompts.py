@@ -120,10 +120,36 @@ for your chosen root cause, one of the two is wrong — revisit them before answ
 {_FOOTER}"""
 
 
+# D: the deconfounder, added after the first dev sweep.
+#
+# B and C tripled ROOT-CAUSE accuracy (18.8% -> 56.3% / 62.5%), which the
+# cause→action intervention has no business doing. They changed two things at once:
+# they taught the mapping, and they enumerated the twelve valid root causes in the
+# prompt for the first time. The label set was previously only in the response
+# grammar, which constrains what the model may *emit* but never puts the hypothesis
+# space in front of its reasoning.
+#
+# D lists exactly the same causes in the same order and format, with the action
+# column removed and nothing else changed. If D recovers most of the diagnostic
+# gain, the headline is "enumerate the hypothesis space" — a far cheaper and more
+# general finding than "teach the remedy policy", and it would mean B/C's diagnostic
+# lift should not be credited to E6's intervention at all.
+_D_CAUSES_ONLY = f"""{_HEADER}
+
+{_BASE_RULES}
+
+The possible root causes are:
+
+{chr(10).join(f"  {cause}" for cause in CAUSE_TO_ACTION)}
+
+{_FOOTER}"""
+
+
 PROMPTS: dict[str, str] = {
     "baseline": _A_BASELINE,
     "cause_action_table": _B_TABLE,
     "cause_action_directed": _C_TABLE_DIRECTED,
+    "causes_only": _D_CAUSES_ONLY,
 }
 
 DEFAULT_PROMPT = "baseline"

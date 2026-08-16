@@ -369,7 +369,95 @@ why `make reachability` exists.
 
 ---
 
-## Open questions
+## 2026-08-15 — E6: two interventions, and they are not the same one
+
+Four prompt variants, local Qwen3-8B, `FIXED_EVIDENCE`. **Selection on the dev split**
+(48 scenarios) — choosing a variant on test would be tuning against the test set,
+which is the one rule the frozen-suite design exists to enforce. The winner then runs
+on test exactly once.
+
+| Variant | What it adds | Root cause | **act \| rc** | Verifier | All-pass |
+|---|---|---|---|---|---|
+| **A** baseline | nothing (control) | 18.8% | 44.4% *(n=9)* | 77.1% | 4.2% |
+| **B** policy table | cause→action mapping | 56.3% | **100%** *(n=27)* | 77.1% | 37.5% |
+| **C** table + directed | mapping + "look up the cause you concluded" | **62.5%** | **100%** *(n=30)* | **83.3%** | 35.4% |
+| **D** causes only | the twelve labels, no actions | 60.4% | 34.5% *(n=29)* | 77.1% | 8.3% |
+
+`act | rc` is action accuracy among cases whose root cause was correct — the metric
+E6 is about. Aggregate action accuracy rises if a model merely guesses common
+actions; this does not.
+
+### The result: the diagnostic gain and the action gain have different causes
+
+B and C tripled **root-cause** accuracy, which the cause→action intervention has no
+business doing. They changed two things at once: they taught the mapping, and they
+enumerated the twelve valid root causes in the prompt for the first time. Variant D
+was added to separate them — same causes, same order, action column deleted.
+
+D recovers **essentially all of the diagnostic gain and none of the action gain**:
+
+- **Diagnosis 18.8% → ~60% comes from enumerating the hypothesis space.** Nothing to
+  do with remedies. The label set was already enforced by the response grammar, so
+  the model could never emit an invalid cause — but a grammar constrains what may be
+  *emitted*, and does nothing for what is *considered*. Naming the candidates in the
+  prompt is what let it reason over them.
+- **Action 44.4% → 100% comes from the mapping.** D, without it, stays at 34.5% —
+  indistinguishable from the control.
+
+The original E6 hypothesis was that the model "has no model of which remedies attach
+to which defects". That is confirmed, and the fix is complete: `act | rc` is 100%,
+i.e. every case it diagnoses correctly now gets a sanctioned action. But the *larger*
+effect was hiding underneath it and is a different, cheaper, more general finding —
+one that would have been mis-attributed to the remedy table if D had not been run.
+
+**Had E6 stopped at B or C, the log would have recorded "teaching the cause→action
+policy triples diagnostic accuracy", which is false.**
+
+### Reading the numbers honestly
+
+- **`next_action_accuracy` is no longer a measure of judgement** in B and C. With the
+  policy table in the prompt it measures lookup compliance — by design, not by leak.
+  It is not comparable to E2's. Judge these variants on `act | rc` and on root cause.
+- **B vs C is within noise.** 56.3% vs 62.5% on n=48 is three cases. C was chosen for
+  the confirm run on the strength of root cause *and* verifier pass (83.3% vs 77.1%),
+  and because its directive is the theoretically motivated one, not because the
+  difference is significant.
+- **The control reproduces.** Variant A on dev scored 18.8% root cause against
+  `E2-v2-96`'s 16.7% on test — so dev and test are comparable in difficulty and A is
+  a valid same-run control rather than a comparison against another day's number.
+- `test_prompt_table_matches_the_rubric` pins the taught policy to the scorer's
+  `acceptable_next_actions`. If they drift, a variant is penalised for correctly
+  applying what it was told, and the natural reading is "the intervention failed".
+
+### What this implies for the ladder
+
+The specialization ladder puts prompt/context work above retrieval above training.
+This is a strong argument for staying on the low rungs: two prompt changes moved the
+local 8B's root-cause accuracy from 18.8% to ~60% and closed the action gap
+completely, with no retrieval, no routing and no training. **E7 (QLoRA) should not be
+considered until E3 and E5 have been run against this new baseline** — the headroom
+that remains is much smaller than it was this morning.
+
+### E4 re-run under the corrected scorer
+
+E4 was re-run after the forbidden-claim detector was made polarity-aware:
+
+| | before fix | after fix |
+|---|---|---|
+| Strict all-pass | 91.7% | **99.0%** |
+| Root cause | 99.0% | 100% |
+| Forbidden claims | 7 | 1 |
+
+99.0% is exactly the corrected figure predicted when the false positives were first
+identified, which validates both the diagnosis and the fix. Seven of eight phrasings
+are now handled; **one residual false positive remains** (S08-3005007, again
+`insufficient_funds`), whose wording was not captured — the frontier arm is not
+reproducible and raw output is not persisted. The scorer now records an excerpt of
+the matched text alongside the label, so the next occurrence is auditable without
+re-running a case and hoping for the same phrasing.
+
+E2 is unaffected by the fix: it scored 0 forbidden claims before and after, and the
+change can only remove hits.
 
 - Does showing the model a category→plausible-actions table fix the action gap? (E6)
 - Does runbook retrieval help, or is the evidence bundle already sufficient? (E3)

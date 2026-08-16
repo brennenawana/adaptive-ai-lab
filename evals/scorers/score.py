@@ -46,6 +46,18 @@ _EXCLUSION_WINDOW = 80
 _SENTENCE_BOUNDARIES = ('. ', '; ', '? ', '! ', '", ', '"}', '":')
 
 
+def _excerpt(text: str, claim: str, pad: int = 90) -> str:
+    """Text around the first asserted occurrence, for auditing a failed case."""
+    low = text.lower()
+    for phrase in (claim.replace("_", " "), claim):
+        i = low.find(phrase.lower())
+        while i != -1:
+            if _asserts(text[max(0, i - _EXCLUSION_WINDOW):i + len(phrase)], phrase):
+                return text[max(0, i - pad):i + len(phrase) + pad].replace("\n", " ")
+            i = low.find(phrase.lower(), i + len(phrase))
+    return "(no asserted occurrence located)"
+
+
 def _asserts(text: str, phrase: str) -> bool:
     """Does `text` ASSERT `phrase`, as opposed to ruling it out?
 
@@ -150,7 +162,12 @@ def score_case(
             if _asserts(text, c.replace("_", " ")) or _asserts(text, c)]
     dims.append(DimensionScore(
         name="forbidden_claims", value=float(len(hits)), passed=not hits,
-        detail=", ".join(hits) if hits else None,
+        # The matched text, not just the label. A forbidden claim fails the whole
+        # case, so it has to be auditable after the fact — and every one seen so far
+        # has been a refutation the matcher misread. Without the excerpt the only way
+        # to tell a real one from a false positive was to re-run the case against a
+        # non-deterministic frontier model and hope for the same phrasing.
+        detail="; ".join(f"{c}: …{_excerpt(text, c)}…" for c in hits) if hits else None,
     ))
 
     # --- next action --------------------------------------------------------

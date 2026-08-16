@@ -66,6 +66,19 @@ def test_baseline_is_the_control():
     assert DEFAULT_PROMPT == "baseline"
 
 
+def test_deconfounder_lists_causes_without_teaching_actions():
+    """Variant D isolates the confound found in the first dev sweep: B and C both
+    taught the mapping AND enumerated the hypothesis space, and diagnosis tripled.
+    D must contain every cause and none of the action vocabulary."""
+    d = PROMPTS["causes_only"]
+    for cause in CAUSE_TO_ACTION:
+        assert cause in d, f"causes_only omits {cause}"
+    taught = {a for actions in CAUSE_TO_ACTION.values() for a in actions}
+    for action in taught:
+        assert action not in d, f"causes_only leaks the action {action}"
+    assert "->" not in d
+
+
 @pytest.mark.parametrize("ref", ["cause_action_table", "cause_action_directed"])
 def test_intervention_variants_carry_the_whole_table(ref):
     prompt = PROMPTS[ref]
