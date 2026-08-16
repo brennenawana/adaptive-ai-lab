@@ -401,3 +401,29 @@ any live cascade run):** adopt `verifier` unless it costs more than 2 unnecessar
 escalations (weak would have passed) beyond `parse` on dev; otherwise `parse`. No
 other trigger will be added in this milestone whatever the oracle gap turns out to
 be. Then: one live dev run to validate the implementation, freeze, one test run.
+
+## M2.3 R0.1 — result: SOLVED (runs `R01-direct-dev`, `R01-switchyard-dev`, `R01-direct2-dev`, all n=48, session pid 4848)
+
+| pair | digest equal | outcome equal | all-pass | model p50 Δ |
+|---|---|---|---|---|
+| direct2 (unperturbed, primed) → Switchyard | **48/48** | **48/48** | 14 = 14 | +11 ms |
+| direct (one case perturbed by the 13:12 pytest request) → Switchyard | 47/48 (S04-2003003) | 47/48 | 14 = 14 | +421 ms (load-confounded) |
+
+Tokens 117 426 / 62 938 identical on both arms and in Switchyard's routing log;
+transport overhead p50 136 ms vs 120–139 ms direct. Full table in
+`routing-experiments.md` § R0.1. Same-session stability over 3 h confirmed
+(`R1-direct2-dev` 10:01 UTC vs `R01-direct-dev` 13:00 UTC: 46/48 digests, the two
+differences being the first case's predecessor and the perturbed case).
+
+## M2.4 R4 — selection on dev by replay (weak = `R01-direct2-dev`, strong-ref = `E4-v2-dev`)
+
+| policy | escalated | rescued (weak fail→pass) | unnecessary | all-pass | rescueable caught |
+|---|---|---|---|---|---|
+| parse | 5/48 (10.4%) | 3 | 0 | 35.4% | 3/30 |
+| verifier | 11/48 (22.9%) | 8 | 0 | 45.8% | 8/30 |
+| weak-only / strong-only / oracle | — | — | — | 29.2% / 91.7% / 91.7% | cells 14 / 30 / 0 / 4 |
+
+Rule applied: `verifier` costs 0 unnecessary escalations beyond `parse` → **frozen
+policy = `verifier`**. 22 rescueable cases stay invisible to the gate (weak result
+verifier-clean but wrong on root cause and/or evidence recall — eval-only
+dimensions). Live dev run `R4-cascade-verifier-dev` started 13:57 UTC.

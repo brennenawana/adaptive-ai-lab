@@ -143,6 +143,28 @@ eval-r01-dev: ## R0.1 — same-session direct vs Switchyard passthrough on DEV (
 r01-compare: ## R0.1 — per-scenario equivalence report
 	$(PY) scripts/compare_routes.py --a R01-direct-dev --b R01-switchyard-dev
 
+# R4 — deterministic weak->strong cascade. Selection (which policy) on DEV by replay
+# over the same-session weak run, then ONE live dev run to validate the implementation,
+# then ONE test confirmation of the frozen policy. Weak stage on the direct path.
+.PHONY: r4-replay eval-r4-dev r4-report eval-r4-confirm
+r4-replay: ## R4 — apply each policy offline to WEAK (default R01-direct-dev) against E4-v2-dev
+	@for p in parse verifier; do echo "=== policy $$p"; \
+	  $(PY) scripts/routing_cascade_report.py --weak $(or $(WEAK),R01-direct-dev) --strong E4-v2-dev --policy $$p | head -40; done
+eval-r4-dev: ## R4 — live cascade on DEV (set POLICY=verifier|parse)
+	@test -n "$(POLICY)" || { echo "usage: make eval-r4-dev POLICY=verifier"; exit 1; }
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm R4 --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --escalate-to claude-frontier --escalation-policy $(POLICY) \
+	  --strong-prompt baseline --run-id R4-cascade-$(POLICY)-dev --resume
+r4-report: ## R4 — live cascade report (set RUN=R4-cascade-verifier-dev STRONG=E4-v2-dev)
+	$(PY) scripts/routing_cascade_report.py --cascade $(or $(RUN),R4-cascade-verifier-dev) --strong $(or $(STRONG),E4-v2-dev)
+eval-r4-confirm: ## R4 — the frozen policy on TEST, once (set POLICY=...)
+	@test -n "$(POLICY)" || { echo "usage: make eval-r4-confirm POLICY=verifier"; exit 1; }
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm R4 --model-ref local-specialist --split test \
+	  --prompt cause_action_directed --escalate-to claude-frontier --escalation-policy $(POLICY) \
+	  --strong-prompt baseline --run-id R4-cascade-$(POLICY)-96 --resume
+
 # R2 pairs the frozen weak arm with the strong arm ON DEV. The oracle map is a
 # selection tool; the script refuses the test split without --allow-test.
 .PHONY: eval-e4-dev routing-oracle

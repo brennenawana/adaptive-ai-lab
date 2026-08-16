@@ -10,9 +10,10 @@ score a route but never choose it.**
 |---|---|---|
 | R0 | What is the causally selected local configuration before routing? | **done** — `weak-baseline-v1` below |
 | R1 | Can Switchyard sit in the model path without changing outcomes? | **measured** — no for the grammar-constrained local arm as shipped (14/48 dev outcomes change; +4 ms overhead; tokens reconcile exactly); root cause identified; see below |
+| **R0.1** | Can the hop be made transparent without touching the suite or the model's reasoning? | **yes — fixed and proven**: key-order-invariant schema rewrite in the adapter; same-session dev re-run **48/48 identical output digests**, 48/48 identical outcomes, tokens identical, +10 ms p50 |
 | R2 | How much routing opportunity exists between weak and strong on dev? | **done** — see below |
 | R3 | Nemotron 3.5 Lightning as candidate weak arm | not started (later milestone) |
-| R4 | Deterministic weak→strong cascade | not started |
+| R4 | Deterministic weak→strong cascade | **in progress** — policy `verifier` selected on dev by replay (pre-registered rule); live dev run and one test confirmation below |
 | R5 | Predictive / stage routing | not started |
 
 Runs live in `learning.case_scores` / `learning.trajectories`; `make report` lists
@@ -180,6 +181,53 @@ retained *for the strong hop and telemetry only* until one of: (a) upstream
 Switchyard preserves JSON key order; (b) FIS suite v3 canonicalises the schema
 property order for every arm and re-baselines. The weak stage of R4 should run on
 the direct path in the meantime — that is what the current registry supports.
+
+---
+
+## R0.1 — Switchyard transparency restored at the adapter boundary
+
+**Fix (commit `11ff23f`).** `SwitchyardAdapter.build_body` rewrites every object
+schema in the request (`response_format.json_schema.schema`, and tool parameter
+schemas) into an `allOf` list — one property per component, optional properties
+wrapped in `anyOf`, `additionalProperties` dropped. llama.cpp's converter builds an
+object rule from `allOf` by appending each component's properties in array order and
+treats "no additionalProperties" exactly like `false`, so this compiles to the
+**byte-identical grammar text** as the plain schema — and arrays survive Switchyard's
+key sorting. Not a suite change, not a contract change: the direct path still sends
+the plain schema it was baselined with, and the model's `<think>` phase is untouched
+(unlike the rejected client-side `grammar` string).
+
+**Static evidence.** With llama.cpp's own `examples/json_schema_to_grammar.py`:
+`grammar(sorted(rewritten)) == grammar(plain)`; `grammar(sorted(plain)) != grammar(plain)`
+(`test_grammar_through_switchyard_equals_grammar_on_the_direct_path`). Property order
+and required-ness preserved for root/Fact/RootCause; idempotent.
+
+**Paired verification (2026-08-16, one llama.cpp session pid 4848 / `b1-9b05354`, same
+case order, `prime-local` before each arm, nothing else on 8082):**
+
+| pair | digest equal | outcome equal | tokens equal | all-pass | rc | verifier | evidence | no-output | model p50 |
+|---|---|---|---|---|---|---|---|---|---|
+| `R01-direct2-dev` → `R01-switchyard-dev` (unperturbed) | **48/48** | **48/48** | **48/48** | 14 = 14 | 31 = 31 | 37 = 37 | 0.606 = 0.606 | 5 = 5 | 12 734 → 12 745 ms (**+11**) |
+| `R01-direct-dev` → `R01-switchyard-dev` | 47/48 | 47/48 | 47/48 | 14 = 14 | 31 = 31 | 36 → 37 | 0.599 → 0.606 | 6 → 5 | +421 |
+| `R1-direct2-dev` (10:01 UTC) → `R01-direct-dev` (13:00 UTC), same session | 46/48 | 47/48 | 46/48 | | | | | | |
+
+The single R01-direct-dev difference (S04-2003003, dev case 16) is attributable: a
+`pytest` run at 13:12 UTC sent one 1-token request to 8082 during that arm (the
+live tests were opt-in from `021890a` onward), changing that case's prompt-cache
+predecessor; the primed re-run `R01-direct2-dev` removed it. Transport overhead
+(wall − llama.cpp compute) p50: direct 120–139 ms across the two direct runs,
+Switchyard 136 ms — inside direct-vs-direct variation. Token accounting: FIS
+trajectories 117 426 in / 62 938 out on both arms; Switchyard's routing log for the
+48 requests 117 426 / 62 938 — exact. `runtime_context` on every trajectory records
+`pid=4848 start_ticks=37314 boot=b6ea9365`, build `b1-9b05354`, model path;
+`runtime_fingerprint=b1-9b05354` on every invocation.
+
+**Verdict.** Behaviour, parse rate, FIS metrics, tokens and latency are equivalent
+through the gateway; the routed local arm is now usable interchangeably with the
+direct one for routing experiments. Decision-gate: keep Switchyard. Residual caveats
+are the general ones — same server session and same request order for case-level
+comparisons; and the rewrite is only needed while the schema is non-alphabetical
+(pinned by `test_schema_property_order_is_not_alphabetical__why_r0_1_exists`).
 
 ---
 
