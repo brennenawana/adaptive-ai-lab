@@ -13,6 +13,8 @@ For *why the platform exists*, see the Canonical Architecture doc in `docs/`.
   eval runner ─────────▶│                                               │
   (checkpointed)        │  local-specialist   claude-frontier  (codex)  │
                         │  llama.cpp :8082    claude -p CLI            │
+                        │  local-specialist-switchyard                  │
+                        │  Switchyard :4000 ──▶ llama.cpp :8082 (R1)    │
                         └───────────────────────┬───────────────────────┘
                                                 │
                      ┌──────────────────────────▼──────────────────────────┐
@@ -46,6 +48,7 @@ For *why the platform exists*, see the Canonical Architecture doc in `docs/`.
 | 5433 | FIS PostgreSQL + pgvector | offset deliberately |
 | 4222 | NATS JetStream | 8222 monitoring |
 | 8082 | local model (llama.cpp) | |
+| 4000 | NeMo Switchyard (routing gateway) | `make serve-switchyard`; passthrough to 8082 in R1 |
 | 9000/9001 | MinIO | `artifacts` profile, not yet used |
 | **5432** | **pre-existing `thewall` Postgres** | **not ours — do not touch** |
 | **6379** | **pre-existing Redis** | **not ours** |
@@ -204,6 +207,29 @@ Two transport quirks handled here rather than leaking upward:
 - Claude Code invokes an internal side model on every call; `_extract_usage` filters
   `modelUsage` to the canonical model so per-arm cost is not inflated.
 
+### Routing gateway — NeMo Switchyard (`fis_platform/model_gateway/switchyard.py`, `infra/switchyard/`)
+**Beneath** the model-gateway contract, never beside it. A routed model is one more
+registry entry (`local-specialist-switchyard`): same `GenerationRequest`, same
+`GenerationResponse`, same trajectory; its `base_url` is the Switchyard listener on
+**:4000** and its `model_id` a Switchyard route id. `SwitchyardAdapter` subclasses the
+local adapter and inherits `build_body`, so the request is byte-identical on both
+paths by construction. Whatever the gateway reports lands in
+`ModelInvocation.routing` (`schemas/routing.py`) — only what it *actually* reported;
+a passthrough records `selected_backend=None`.
+
+Switchyard owns transport, backend selection inside a profile, fallback and
+per-request stats. FIS keeps scenario truth, the evidence plan, prompts and grammar,
+the scorer, the split and the trajectory. `router_signals` rejects every manifest gold
+field, and routing code may not import the scorer or the manifest schema
+(`test_routing_no_gold_leak.py`).
+
+**Known, measured non-equivalence (R1, 2026-08-16):** Switchyard 0.2.0 re-serialises
+JSON with sorted keys; llama.cpp's schema→GBNF compiler enforces property *order*; so
+the routed local arm generates under a different grammar than the direct arm and its
+greedy output differs on identical requests. See `routing-experiments.md` § R1 and
+`infra/switchyard/README.md`. Until fixed upstream or canonicalised in a suite bump,
+routed local runs are compared to direct runs, not assumed equal.
+
 ### Tool broker (`fis_platform/tool_broker/`)
 Eight narrow, typed, read-only tools. Parameterised SQL only.
 
@@ -308,4 +334,5 @@ Two decisions that keep the KPI honest:
 | One clock base for all scenarios | one 48h slot per scenario | a time-scoped tool would otherwise sweep all 288 scenarios into one answer |
 | `get_ledger_entries` ordered by `posted_at` | ordered by `posting_seq`, which is also returned | the consumer stamps `posted_at` from `occurred_at`, so S07's reversal race lives only in posting order. Sorting by event time showed a chronological, net-zero ledger and made `reversal_race` unreachable by correct reasoning — E4 went 0.125 → 1.000 on the class once exposed |
 | One system prompt | a versioned registry (`prompts.py`), selected per run | E6 compares prompt variants; the prompt has to be part of `config_digest` or two arms differing only by prompt are indistinguishable in the persisted results |
+| Switchyard as an invisible transport hop | routed local arm is a **measured** arm, not an assumed-equal one | 0.2.0 sorts JSON keys; llama.cpp's grammar compiler is order-sensitive; the model's output changes under the reordered grammar (R1). The frozen baseline stays on the direct path |
 | Forbidden claims matched by substring | polarity-aware match | a bare substring counted a *refutation* as an assertion — "the decline was not caused by insufficient funds" scored as the claim `insufficient_funds`, costing the frontier arm 8 points of all-pass for being right |
