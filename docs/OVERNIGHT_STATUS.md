@@ -799,3 +799,41 @@ Environment left: Qwen on 8082 (pid 586847, the R3b session), Nemotron on 8083 (
 Qwen, Nemotron and the frontier together with the generation budget fixed and recorded
 for every arm. R3b closes the token-budget question: what remains between the two weak
 models is model, not budget, and it is not enough on suite v2 to change the incumbent.
+
+---
+---
+
+# Milestone 5 — Suite v3: a deliberate benchmark release, then re-baseline all three arms
+
+Started 2026-08-17 ~22:00 UTC from HEAD `ce0d11d` (clean apart from the untracked goal
+prompt `docs/FIS_Suite_v3_Benchmark_Release_Goal_Prompt.txt`, committed in the first
+commit of this milestone). Governing document: that prompt; contract:
+`docs/SUITE_V3_RELEASE_CONTRACT.md` (committed before any implementation or model run).
+
+## M5.0 Reconciliation
+
+Direct checks: `pytest` 202 passed + 1 skipped (opt-in live test); `fis-postgres` /
+`fis-nats` healthy; Qwen pid 586847 on 8082, Nemotron pid 670208 on 8083 (`--no-mmap`),
+Switchyard pid 44417 on 4000 — the M4.8 "environment left" state; GPU 14.6/16.3 GB with
+both models resident. `learning.case_scores` holds all 32 recorded run_ids (incl. `R3-*`,
+`R3b-*`, `R3b-qwen4096-dev`); `learning.trajectories` 1 916 rows. No git tags exist.
+
+| Claim in prose | Repository / artefact state | Verdict |
+|---|---|---|
+| Goal prompt: HEAD `d99e21d`, clean | HEAD `ce0d11d` = `d99e21d` + one docs-only commit (dev-agent telemetry plan) | trivially stale |
+| "Background settlements unposted in **7** of 12 classes (S01,S02,S05,S06,S07,S08,S10)" | `catalog._distractors()` (3 approved auths + settlements, never published, no `add_entry`) is called by exactly **6** classes: S01, S02, S05, S06, S07, S08. S10's unposted settlement is the injected gap; S03/S04/S09/S12 have no settlements; S11's 3 entries are direct `World.add_entry` (counter-shaped `le_<seed>_NN` ids, unlike every pipeline entry `le_<12hex>`). S05 and S08 have **zero** ledger entries. Distractors are generated AFTER `add_case`, so background approvals post-date the case (and, in S08, a frozen card). | prose over-counts by S10; two further background-realism facts (timing, S11 id shape) |
+| "S08 declined amount > available balance" | `risk_hold` pins neither amount nor balance — independent draws (P≈7.3%): 3 of 24 corpus S08 worlds (dev `S08-2003007` 70 530>17 530, test `S08-3003007`, train `S08-1004007`); 5 of 24 counting distractor approvals. Balances are static everywhere; S05 sets `available_balance=150` and leaves `ledger_balance` at its draw. | confirmed, larger than one case |
+| Scorer "polarity-aware, lookback stops at a sentence boundary; residual = post-positioned cue" | lookback-only 80 chars (probe: `insufficient funds is ruled out` → assertion). Two more mechanical defects: `rfind` returns −1 so the window is always cut ≥2 chars (`if cut > 0` dead, effective 78); leading-space cues (`" not "`, `" no "`, `" nor "`) are lost at sentence/JSON-field start — a persisted real FP exists (`E6b-G-both-dev` S05-2000004 `system_outage`). 6 tests, none post-positioned; 7 persisted forbidden hits to replay. | item C = three sub-defects |
+| Verifier "harvests only `*_id` + `provider_ref`" | exact; `idempotency_key` is **already** returned by `get_webhook_history`, so the fix is harvesting; only S01 sets a non-null key; **no unit tests exist for the verifier module** | matches |
+| "bump `EvalRun.suite_version`" | literal `"2"` at `run_eval.py:238`; not persisted in any DB column; `compare.py` marks v1 by a hard-coded run-id set; every analysis script joins `ground_truth.scenario_manifests` on `scenario_id`, and scenario_ids are seed-deterministic, so v2 rows would silently join v3 manifests; `<run>.weak` rows have no metadata; no corpus digest; determinism test in-memory only | V3.2 steps 4–5 need new mechanisms |
+| Frontier "existing frozen configuration/budget" | `claude_cli.py` passes no `max_tokens`/`--effort`; frontier runs used prompt `baseline`, weak arms `cause_action_directed` | record as-is; carry the asymmetry unchanged |
+| R1: "suite v3 canonicalises schema property order" | superseded by R0.1 (adapter rewrite, 48/48 identical) | not in v3 scope |
+| `task-ontology.md` §4 forbidden-claim table (8) | code catalog forbids 13 (doc lacks `kyc_hold_active`, `merchant_overcharged_customer`, `duplicate_charge_confirmed`, `insufficient_funds`, `ledger_mismatch_detected`) | doc drift; fixed in the docs pass, no behaviour change |
+| `projection.py` cites `test_projection_matches_the_live_pipeline` | no such test; the only projection/live check is `run.materialise()`'s id-set equality | gate needs a real check |
+| `make reachability` | TEST split only | v3 gate needs both splits |
+
+Environment side effect, recorded: an inspection agent ran `uv run pytest --collect-only`,
+which created an untracked `uv.lock` (deleted) and re-synced `.venv` (sqlalchemy 2.0.52,
+greenlet 3.5.5, pgvector 0.5.0, python-dotenv 1.2.3 reinstalled; `nemo-switchyard 0.2.0`
+untouched; tests unchanged 202+1). None of these libraries sits on the model, scorer or
+verifier path.
