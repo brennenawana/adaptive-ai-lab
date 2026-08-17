@@ -201,3 +201,47 @@ def test_corpus_plan_matches_the_makefile():
     plan = corpus_plan()
     assert len(plan) == 288
     assert Counter(seed // 1_000_000 for _, seed in plan) == {1: 144, 2: 48, 3: 96}
+
+
+# ---------------------------------------------------------------- B. amounts vs balances
+def test_s08_2003007_declined_amount_is_below_the_available_balance():
+    """The recorded Suite v2 defect, reproduced by seed: dev S08-2003007 declined
+    70 530 against an available balance of 17 530, which made the forbidden
+    `insufficient_funds` hypothesis data-consistent (`routing-experiments.md` § R2).
+    Under v3 semantics the balance is the snapshot at case time and the injected
+    decline is the last thing before the case, so it must fit inside it."""
+    world, manifest = build("S08", 2_003_007)
+    declined = [a for a in world.authorizations if a["processor_state"] == "declined"]
+    assert len(declined) == 1
+    assert declined[0]["amount"] < world.accounts[0]["available_balance"], (
+        f"{manifest['scenario_id']}: declined {declined[0]['amount']} > "
+        f"available {world.accounts[0]['available_balance']}")
+
+
+@pytest.mark.parametrize("code", ["S05", "S08"])
+def test_declines_are_consistent_with_the_balance_snapshot(corpus, code):
+    """S08 (risk hold): the decline is NOT a funding problem, so the amount must fit
+    the balance. S05 (insufficient funds): it IS one, so the amount must exceed it,
+    and available == ledger since nothing else explains a gap between them."""
+    for world, manifest, _ in _by_class(corpus, code):
+        acc = world.accounts[0]
+        (declined,) = [a for a in world.authorizations if a["processor_state"] == "declined"]
+        if code == "S08":
+            assert declined["amount"] < acc["available_balance"], manifest["scenario_id"]
+            assert declined["decline_code"] == "62_RESTRICTED_CARD"
+        else:
+            assert declined["amount"] > acc["available_balance"], manifest["scenario_id"]
+            assert declined["decline_code"] == "51_INSUFFICIENT_FUNDS"
+        assert acc["available_balance"] == acc["ledger_balance"], (
+            f"{manifest['scenario_id']}: available {acc['available_balance']} != "
+            f"ledger {acc['ledger_balance']} with no hold to explain it")
+
+
+@pytest.mark.parametrize("code", CODES)
+def test_every_account_balance_pair_is_consistent(corpus, code):
+    """Balances are a snapshot at case time (contract § 2B). No builder models a
+    hold, so available and ledger balance agree everywhere."""
+    for world, manifest, _ in _by_class(corpus, code):
+        for acc in world.accounts:
+            assert acc["available_balance"] == acc["ledger_balance"], manifest["scenario_id"]
+            assert acc["available_balance"] > 0

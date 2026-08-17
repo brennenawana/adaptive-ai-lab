@@ -290,7 +290,9 @@ def processor_decline(w: World) -> dict:
     background = _background(w, cus, acc, card)
     auth = w.add_auth(card, state="declined", decline_code="51_INSUFFICIENT_FUNDS",
                       amount=minor_units(w.rng, 200_00, 400_00))
-    w.accounts[-1]["available_balance"] = 1_50
+    # Balances are the snapshot at case time (contract § 2B): spent down to 1.50,
+    # both figures — nothing here models a hold that would separate them.
+    acc["available_balance"] = acc["ledger_balance"] = 1_50
 
     case = w.add_case(category="declined_transaction",
                       summary="Customer's card was declined at checkout.",
@@ -420,8 +422,13 @@ def risk_hold(w: World) -> dict:
     # freeze, and the decline. Approvals after the freeze would contradict it.
     background = _background(w, cus, acc, card)
     alert = w.add_alert(cus, rule_code="AML_STRUCTURING_PATTERN", severity="high", status="open")
-    auth = w.add_auth(card, state="declined", decline_code="62_RESTRICTED_CARD")
-    w.accounts[-1]["status"] = "restricted"
+    # The decline is NOT a funding problem, so the amount must fit the balance the
+    # investigator will read. Suite v2 drew both independently and in 3 of 24 corpus
+    # worlds the declined amount exceeded the available balance, which made the
+    # forbidden `insufficient_funds` hypothesis data-consistent (S08-2003007).
+    auth = w.add_auth(card, state="declined", decline_code="62_RESTRICTED_CARD",
+                      amount=minor_units(w.rng, 500, acc["available_balance"]))
+    acc["status"] = "restricted"
 
     case = w.add_case(category="declined_transaction",
                       summary="Customer's transactions are being declined at all merchants.",
