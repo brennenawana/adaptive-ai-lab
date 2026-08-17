@@ -14,10 +14,12 @@ decision is a function of the recorded rows, not of a reading of them.
                            strong calls < 50% (≤ 23/48) AND cost / success ≤ $0.070
     F  latency             Nemotron-only wall p50 ≤ 75 000 ms as run; p95 reported
 
-Definitions are those of `model_migration_matrix.py` (complete = not no-output; silent =
-schema-valid, verifier-clean, all_pass false) and `routing_cascade_report.py` (replay =
-apply the gate to the recorded weak trajectories, take the recorded strong outcome where
-it fires; cost = strong reference cost on escalated cases, local $0).
+Definitions: complete = `stop_reason == "stop"` (finished inside the budget; R3: 19 =
+17 schema-valid + 2 schema-invalid), the scoreable count is reported beside it; silent
+= schema-valid, verifier-clean, all_pass false (`model_migration_matrix.py`); replay as
+in `routing_cascade_report.py` (apply the gate to the recorded weak trajectories, take
+the recorded strong outcome where it fires; cost = strong reference cost on escalated
+cases, local $0).
 """
 
 from __future__ import annotations
