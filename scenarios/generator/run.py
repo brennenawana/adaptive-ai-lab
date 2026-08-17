@@ -116,10 +116,10 @@ def build(code: str, seed: int) -> tuple[World, dict]:
 #
 # `integration.events` is absent because nothing may hand-author a normalized event
 # — that is the mapper's output and the mapper is the thing under test. `ledger.
-# entries` survives for the state-based classes that model an already-reconciled
-# account (S11); a pipeline-caused posting comes from the ledger consumer, and
-# `test_event_driven_scenarios_do_not_hand_author_their_consequences` fails loudly
-# if a ported class starts using it again.
+# entries` is absent since Suite v3: every posting, including S11's already-reconciled
+# background, is a consequence the ledger consumer writes, and
+# `test_no_scenario_hand_authors_ledger_entries` fails loudly if a builder grows a
+# way to write one again.
 #
 # `webhook.deliveries` is here for exactly one reason: a delivery that FAILED cannot
 # be recorded by the consumer that failed to handle it. See `World.add_failed_delivery`.
@@ -130,7 +130,6 @@ _TABLES = [
     ("processor.cards", "cards"),
     ("processor.authorizations", "authorizations"),
     ("processor.settlements", "settlements"),
-    ("ledger.entries", "entries"),
     ("risk.alerts", "alerts"),
     ("webhook.deliveries", "deliveries"),
     ("cases.cases", "cases"),
@@ -202,14 +201,17 @@ async def materialise(bus: EventBus, world: World, conn: psycopg.Connection) -> 
     published and drained to the ledger consumer before the next provider event goes
     out. Nothing is concurrent, so nothing is timing-dependent.
 
-    The integration consumer is rebuilt per scenario because the mapper version is a
-    per-scenario property — S06 runs at v3 and S09 at v2. The dedupe ledger lives in
-    Postgres rather than in the consumer, so dedupe state correctly survives that.
+    The integration consumer is rebuilt per scenario, and its mapper version is set
+    per event from the schedule the builder recorded (`World.mapping_versions`) —
+    S09 runs at v2 throughout, S06 runs at v3 for the injected settlement and at v4
+    for its background. The dedupe ledger lives in Postgres rather than in the
+    consumer, so dedupe state correctly survives that.
     """
     integration = IntegrationConsumer(conn, mapping_version=world.mapping_version)
     ledger = LedgerConsumer(conn)
 
-    for event in world.published:
+    for event, version in zip(world.published, world.mapping_versions, strict=True):
+        integration.mapping_version = version
         await bus.publish_provider_event(event)
         await bus.drain(stream=WEBHOOK_STREAM, subject=WEBHOOK_SUBJECT,
                         durable=INTEGRATION_DURABLE, handler=integration.handle, expect=1)
@@ -223,7 +225,7 @@ async def materialise(bus: EventBus, world: World, conn: psycopg.Connection) -> 
     # published. If the live pipeline just wrote a different set of rows, the manifest
     # now points at ids that do not exist and the class is unwinnable for a reason no
     # score would explain. Fail here instead, where the cause is obvious.
-    expected = project(world.published, world.mapping_version).ids()
+    expected = project(world.published, world.mapping_versions).ids()
     actual = set(integration.wrote_deliveries) | set(integration.wrote_events) | set(ledger.posted)
     if expected != actual:
         raise RuntimeError(

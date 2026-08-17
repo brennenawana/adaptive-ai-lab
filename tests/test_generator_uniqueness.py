@@ -19,7 +19,7 @@ CODES = sorted(BUILDERS)
 
 ID_FIELDS = [
     ("customers", "customer_id"), ("verifications", "verification_id"),
-    ("accounts", "account_id"), ("entries", "entry_id"), ("cards", "card_id"),
+    ("accounts", "account_id"), ("cards", "card_id"),
     ("authorizations", "auth_id"), ("settlements", "settlement_id"),
     ("alerts", "alert_id"), ("deliveries", "delivery_id"),
     ("cases", "case_id"),
@@ -82,7 +82,7 @@ def test_envelope_derived_ids_unique_across_corpus():
     worlds, _ = _corpus()
     seen: dict[str, str] = {}
     for w in worlds:
-        for row_id in project(w.published, w.mapping_version).ids():
+        for row_id in project(w.published, w.mapping_versions).ids():
             prev = seen.get(row_id)
             assert prev is None, (
                 f"pipeline row id {row_id!r} produced by both {prev} and {w.scenario_id}"

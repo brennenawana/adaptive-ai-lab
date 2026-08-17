@@ -138,10 +138,14 @@ class World:
         written by the consumers, because a failure the generator writes down by
         hand is depicted rather than produced.
 
-    `webhook.deliveries`, `integration.events` and pipeline-caused `ledger.entries`
-    therefore have no builder here. That absence is the point of step 7 of the
-    migration: a scenario that wants a duplicate delivery has to publish twice and
-    let dedupe fail, which is the only version of the bug that can surprise us.
+    `webhook.deliveries`, `integration.events` and `ledger.entries` therefore have no
+    builder here. That absence is the point of step 7 of the migration: a scenario
+    that wants a duplicate delivery has to publish twice and let dedupe fail, which is
+    the only version of the bug that can surprise us. Suite v3 closed the last gap:
+    S11's "already reconciled" postings are published like every other settlement,
+    so every ledger entry in the corpus is pipeline-caused and carries the same id
+    shape (a hand-posted `le_<seed>_NN` beside pipeline `le_<12hex>` ids was a
+    class fingerprint a model could read).
     """
 
     scenario_id: str
@@ -150,14 +154,19 @@ class World:
     clock: Clock
     ids: Ids
 
-    # Which mapper version the integration service runs at for THIS scenario.
-    # v2 is stale about status vocabulary (S09); v3 corrupts amounts (S06).
+    # Which mapper version the integration service is running at NOW. v2 is stale
+    # about status vocabulary (S09); v3 corrupts amounts (S06). A builder may change
+    # it between publishes — a release goes live, a release is rolled back — and each
+    # published event records the version that was live when it arrived, so a bad
+    # release can be scoped to the events it actually touched (Suite v3: S06's
+    # background settlements post faithfully at v4 while the injected one is
+    # corrupted at v3, and `integration.events.mapping_version` says which is which).
     mapping_version: int = 4
+    mapping_versions: list[int] = field(default_factory=list)   # aligned with `published`
 
     customers: list[dict] = field(default_factory=list)
     verifications: list[dict] = field(default_factory=list)
     accounts: list[dict] = field(default_factory=list)
-    entries: list[dict] = field(default_factory=list)
     cards: list[dict] = field(default_factory=list)
     authorizations: list[dict] = field(default_factory=list)
     settlements: list[dict] = field(default_factory=list)
@@ -204,6 +213,7 @@ class World:
             scenario_id=self.scenario_id,
         )
         self.published.append(event)
+        self.mapping_versions.append(self.mapping_version)
         return event
 
     # --- builders ---------------------------------------------------------------
@@ -305,23 +315,6 @@ class World:
             "scenario_id": self.scenario_id,
         }
         self.settlements.append(row)
-        return row
-
-    def add_entry(self, account: dict, *, amount: int, direction: str = "debit",
-                  reference_type: str = "settlement", reference_id: str | None = None,
-                  minutes: int = 5, at: datetime | None = None) -> dict:
-        row = {
-            "entry_id": self.ids.next("le"),
-            "account_id": account["account_id"],
-            "direction": direction,
-            "amount": amount,
-            "currency": account["currency"],
-            "reference_type": reference_type,
-            "reference_id": reference_id,
-            "posted_at": at or self.clock.tick(minutes=minutes),
-            "scenario_id": self.scenario_id,
-        }
-        self.entries.append(row)
         return row
 
     def add_alert(self, customer: dict, *, rule_code: str, severity: str = "high",

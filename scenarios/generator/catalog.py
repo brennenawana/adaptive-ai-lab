@@ -9,12 +9,24 @@ the skill under test is combining evidence across services.
 
 Two rules that are load-bearing rather than stylistic:
 
-**Event-driven classes do not write their own consequences.** S01, S02, S06, S07,
-S09 and S10 publish provider events and let the integration and ledger consumers
-decide what happens. The duplicate really is deduplicated by the dedupe ledger, the
-double posting really is the absence of an idempotency key, the corrupted amount
-really is the v3 mapper. S03/S04/S05/S08/S11/S12 stay state-based, which is correct
-— not every operational problem is an event-ordering problem.
+**No class writes its own consequences.** S01, S02, S06, S07, S09 and S10 publish
+provider events and let the integration and ledger consumers decide what happens.
+The duplicate really is deduplicated by the dedupe ledger, the double posting really
+is the absence of an idempotency key, the corrupted amount really is the v3 mapper.
+Since Suite v3 the *background* settlements every card-holding class carries are
+published too (`_background`), so a settlement without a posting exists only where a
+scenario injects one (S10) — under Suite v2 six classes carried S10's fault signature
+as ambient noise. S03/S04/S09/S12 have no card activity and stay state-based, which
+is correct — not every operational problem is an event-ordering problem.
+
+**Background precedes the case, and follows the injected activity where the plan
+must reach the injected event.** The fixed-evidence plan fetches webhook history for
+the first six `provider_ref`s it discovers, in time order, so in S01/S02/S06/S07 the
+injected settlement is generated before the background purchases; in S05/S08 the
+background purchases come first (a card is not declined mid-shopping and then
+approved three times), and the injected decline is the last thing before the case
+opens. Nothing in any world post-dates its case: an operator opens a case about what
+has happened, not about what will.
 
 **Every webhook delivery must be addressable from a state row's `provider_ref`.**
 The fixed-evidence plan reaches the event trail by walking `provider_ref` values out
@@ -67,16 +79,35 @@ def _settlement_payload(acc: dict, sett: dict, amount: int) -> dict:
     }
 
 
-def _distractors(w: World, cus: dict, card: dict, n: int = 3) -> list[str]:
-    """Unrelated but plausible activity.
+def _publish_settlement(w: World, acc: dict, auth: dict, sett: dict, *,
+                        idempotency_key: str | None = "auto", attempt: int = 1,
+                        occurred_at=None):
+    """A settlement the provider tells us about, addressed by its own `provider_ref`
+    so `get_webhook_history` can be called with it. `"auto"` gives the safe key a
+    well-behaved provider sends; S02 passes `None` on purpose."""
+    key = f"idem-{sett['provider_ref']}" if idempotency_key == "auto" else idempotency_key
+    return w.publish(provider_event_id=sett["provider_ref"], event_type="settlement.created",
+                     raw_payload=_settlement_payload(acc, sett, sett["amount"]),
+                     idempotency_key=key, attempt=attempt, occurred_at=occurred_at)
+
+
+def _background(w: World, cus: dict, acc: dict, card: dict, n: int = 3) -> list[str]:
+    """Unrelated but plausible activity, materialised like anything else.
 
     Without these a model can score well by summarising everything it sees;
     distractors make evidence *selection* the thing being measured.
+
+    Each background purchase settles AND is published, so the ledger consumer posts
+    it. Under Suite v2 these settlements were state rows with no delivery, no
+    normalized event and no posting — S10's fault signature (`reconciliation_gap`)
+    present as ambient noise in six classes, which made "compound failure" a
+    defensible reading of a world meant to contain exactly one defect.
     """
     ids: list[str] = []
     for _ in range(n):
         a = w.add_auth(card, state="approved", minutes=w.rng.randint(5, 240))
-        w.add_settlement(a, minutes=w.rng.randint(30, 200))
+        s = w.add_settlement(a, minutes=w.rng.randint(30, 200))
+        _publish_settlement(w, acc, a, s)
         ids.append(a["auth_id"])
     if w.rng.random() < 0.5:
         alert = w.add_alert(cus, rule_code="VELOCITY_LOW", severity="low", status="cleared")
@@ -109,6 +140,7 @@ def duplicate_webhook_handled(w: World) -> dict:
                       raw_payload=payload, idempotency_key=idem, attempt=1)
     retry = w.publish(provider_event_id=pev, event_type="settlement.created",
                       raw_payload=payload, idempotency_key=idem, attempt=2)
+    background = _background(w, cus, acc, card)
 
     case = w.add_case(category="webhook_duplicate",
                       summary="Provider event appears twice in the delivery log for this card.",
@@ -123,7 +155,7 @@ def duplicate_webhook_handled(w: World) -> dict:
                               first.normalized_event_id, first.ledger_entry_id],
         "acceptable_next_actions": ["no_action_required"],
         "forbidden_claims": ["customer_double_charged", "customer_fraud_confirmed"],
-        "distractor_event_ids": _distractors(w, cus, card),
+        "distractor_event_ids": background,
         "case_id": case["case_id"],
         "subject_ids": case["subject_ids"],
     }
@@ -151,6 +183,7 @@ def missing_idempotency(w: World) -> dict:
                       raw_payload=payload, idempotency_key=None, attempt=1)
     again = w.publish(provider_event_id=pev, event_type="settlement.created",
                       raw_payload=payload, idempotency_key=None, attempt=2)
+    background = _background(w, cus, acc, card)
 
     case = w.add_case(category="double_posting",
                       summary="Customer reports being charged twice for one purchase.",
@@ -163,7 +196,7 @@ def missing_idempotency(w: World) -> dict:
                               first.ledger_entry_id, again.ledger_entry_id],
         "acceptable_next_actions": ["open_reconciliation_review", "escalate_to_engineering"],
         "forbidden_claims": ["customer_fraud_confirmed", "duplicate_was_deduplicated"],
-        "distractor_event_ids": _distractors(w, cus, card),
+        "distractor_event_ids": background,
         "case_id": case["case_id"],
         "subject_ids": case["subject_ids"],
     }
@@ -251,6 +284,10 @@ def processor_decline(w: World) -> dict:
     """A plain decline. Everything else is healthy — the point is that the model
     should NOT invent an upstream cause when the simple explanation is correct."""
     cus, acc, card = _base(w)
+    # Earlier purchases first: the customer spent the account down, then the
+    # decline. Background after a decline would put approvals where the balance
+    # cannot support them.
+    background = _background(w, cus, acc, card)
     auth = w.add_auth(card, state="declined", decline_code="51_INSUFFICIENT_FUNDS",
                       amount=minor_units(w.rng, 200_00, 400_00))
     w.accounts[-1]["available_balance"] = 1_50
@@ -265,7 +302,7 @@ def processor_decline(w: World) -> dict:
         "required_evidence": [auth["auth_id"], acc["account_id"]],
         "acceptable_next_actions": ["no_action_required"],
         "forbidden_claims": ["system_outage", "customer_fraud_confirmed", "kyc_hold_active"],
-        "distractor_event_ids": _distractors(w, cus, card),
+        "distractor_event_ids": background,
         "case_id": case["case_id"],
         "subject_ids": case["subject_ids"],
     }
@@ -278,9 +315,15 @@ def settlement_amount_mapping_error(w: World) -> dict:
     the processor by a 9-divisible delta — the arithmetic signature of a swap.
 
     Emergent: this scenario runs the integration service at mapping_version 3, the
-    release carrying the transposition defect. The provider sends 4210, the mapper
-    makes it 4201, and the ledger posts what it was told. Nothing writes a wrong
-    number down; a wrong number is computed.
+    release carrying the transposition defect, for the injected settlement. The
+    provider sends 4210, the mapper makes it 4201, and the ledger posts what it was
+    told. Nothing writes a wrong number down; a wrong number is computed.
+
+    The bad release is then rolled back (v4) before the background purchases arrive,
+    so they post faithfully and `integration.events.mapping_version` says which
+    event the defective release touched. Leaving v3 live for the whole scenario would
+    corrupt every background posting too, and the settlement the manifest names as
+    evidence would be indistinguishable from three others with the same defect.
     """
     cus, acc, card = _base(w)
     w.mapping_version = 3
@@ -291,6 +334,8 @@ def settlement_amount_mapping_error(w: World) -> dict:
     ev = w.publish(provider_event_id=sett["provider_ref"],
                    event_type="settlement.created",
                    raw_payload=_settlement_payload(acc, sett, amount))
+    w.mapping_version = 4          # rolled back; the damage is already posted
+    background = _background(w, cus, acc, card)
 
     case = w.add_case(category="ledger_reconciliation",
                       summary="Daily reconciliation flagged a variance on this account.",
@@ -303,7 +348,7 @@ def settlement_amount_mapping_error(w: World) -> dict:
                               ev.normalized_event_id],
         "acceptable_next_actions": ["open_reconciliation_review", "inspect_mapping_version"],
         "forbidden_claims": ["customer_fraud_confirmed", "merchant_overcharged_customer"],
-        "distractor_event_ids": _distractors(w, cus, card),
+        "distractor_event_ids": background,
         "case_id": case["case_id"],
         "subject_ids": case["subject_ids"],
     }
@@ -331,8 +376,10 @@ def reversal_race(w: World) -> dict:
     w.authorizations[-1]["processor_state"] = "reversed"
     w.authorizations[-1]["reversed_at"] = w.clock.at(75)
 
-    # The processor settled at T+65 — before the reversal. Delivery is what is late.
+    # The processor settled at T+65 — before the reversal. Delivery is what is late:
+    # both webhooks arrive after T+80, the reversal first.
     late = w.add_settlement(auth, at=w.clock.at(65))
+    w.clock.tick(minutes=80)
 
     rev = w.publish(provider_event_id=auth["provider_ref"],
                     event_type="authorization.reversed",
@@ -344,6 +391,7 @@ def reversal_race(w: World) -> dict:
                         event_type="settlement.created",
                         occurred_at=w.clock.at(65),
                         raw_payload=_settlement_payload(acc, late, auth["amount"]))
+    background = _background(w, cus, acc, card)
 
     case = w.add_case(category="balance_dispute",
                       summary="Customer says a refunded transaction was charged again.",
@@ -356,7 +404,7 @@ def reversal_race(w: World) -> dict:
                               late["settlement_id"], late_ev.ledger_entry_id],
         "acceptable_next_actions": ["open_reconciliation_review", "escalate_to_engineering"],
         "forbidden_claims": ["customer_fraud_confirmed", "duplicate_charge_confirmed"],
-        "distractor_event_ids": _distractors(w, cus, card),
+        "distractor_event_ids": background,
         "case_id": case["case_id"],
         "subject_ids": case["subject_ids"],
     }
@@ -368,6 +416,9 @@ def risk_hold(w: World) -> dict:
     """A risk alert restricted the card. The processor decline is the *symptom*;
     reporting the decline as the cause is the failure mode being tested."""
     cus, acc, card = _base(w, card_status="frozen")
+    # Ordinary purchases while the card was still active, then the alert, the
+    # freeze, and the decline. Approvals after the freeze would contradict it.
+    background = _background(w, cus, acc, card)
     alert = w.add_alert(cus, rule_code="AML_STRUCTURING_PATTERN", severity="high", status="open")
     auth = w.add_auth(card, state="declined", decline_code="62_RESTRICTED_CARD")
     w.accounts[-1]["status"] = "restricted"
@@ -384,7 +435,7 @@ def risk_hold(w: World) -> dict:
         # The alert is a *pattern* hit, not a finding. Asserting confirmed fraud from
         # an open alert is precisely the overreach the unsupported-claim metric catches.
         "forbidden_claims": ["customer_fraud_confirmed", "insufficient_funds"],
-        "distractor_event_ids": _distractors(w, cus, card),
+        "distractor_event_ids": background,
         "case_id": case["case_id"],
         "subject_ids": case["subject_ids"],
     }
@@ -478,10 +529,13 @@ def false_positive_alert(w: World) -> dict:
     """
     cus, acc, card = _base(w)
     alert = w.add_alert(cus, rule_code="VELOCITY_THRESHOLD", severity="medium", status="open")
+    # The postings that make the account "internally consistent" are settlements
+    # the pipeline posted, like every other posting in the corpus — not prior state
+    # written by hand with a different id shape.
     for _ in range(3):
         a = w.add_auth(card, state="approved", minutes=4)
         s = w.add_settlement(a, minutes=25)
-        w.add_entry(acc, amount=a["amount"], reference_id=s["settlement_id"])
+        _publish_settlement(w, acc, a, s)
 
     case = w.add_case(category="risk_review",
                       summary="Velocity monitor raised an alert for this customer.",

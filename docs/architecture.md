@@ -142,22 +142,34 @@ Resolution — **deterministic event sourcing**:
 | 6 | Regenerate the corpus; re-baseline every arm | done — suite v2 |
 | 7 | Delete the direct-insert path so it cannot silently come back | done |
 
-Genuinely event-driven: **S01, S02, S06, S07, S09, S10.**
-State-based, correctly: **S03, S04, S05, S08, S11, S12** — not every operational
-problem is an event-ordering problem.
+Genuinely event-driven: **S01, S02, S06, S07, S09, S10** — and, since suite v3,
+every class with card activity publishes its **background** settlements too
+(`catalog._background`: S01, S02, S05, S06, S07, S08; S11's three "already
+reconciled" postings). State-based, correctly: **S03, S04, S09's state, S12** — not
+every operational problem is an event-ordering problem. Under suite v2 the background
+settlements of six classes were state rows with no posting, i.e. S10's fault
+signature as ambient noise (`SUITE_V3_RELEASE_CONTRACT.md` § 2A).
+
+The mapper version is recorded **per published event** (`World.mapping_versions`,
+applied identically by `projection.project` and `run.materialise`): S06's
+transposing release (v3) is live for the injected settlement only and rolled back
+(v4) before its background arrives, so `integration.events.mapping_version` says
+which event the bad release touched.
 
 #### What step 7 actually deleted, and what survives
 
 `World.add_event` is gone outright and `integration.events` is not in the writer's
 table list, so a normalized event cannot be hand-authored at all — it is the mapper's
-output, and the mapper is the thing under test.
+output, and the mapper is the thing under test. Since suite v3 `World.add_entry` is
+gone too and `ledger.entries` left `_TABLES`: every posting in the corpus is the
+ledger consumer's (S11's hand-written `le_<seed>_NN` entries beside pipeline
+`le_<12hex>` ids were a class fingerprint).
 
-Two narrow direct-write paths survive **on purpose**:
+One narrow direct-write path survives **on purpose**:
 
 | Survivor | Used by | Why it is not a regression |
 |---|---|---|
 | `World.add_failed_delivery` | S04, S12 | A delivery that FAILED is the one thing a consumer cannot record about itself — the bus naks and redelivers on handler exception, so recording its own failure would mean pretending to have survived it. Modelling retry storms properly needs poison-message handling, which this migration deliberately does not add. Restricted to `retrying`/`failed`; a handled delivery raises `ValueError`. |
-| `World.add_entry` | S11 | S11 models an account that is already correctly reconciled. The postings are prior state, not consequences of anything the scenario publishes. |
 
 **S12 is the open one.** Its retry storm is genuinely webhook-shaped and would be
 better as a real one; it stays hand-authored only because the bus has no poison-message

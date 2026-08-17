@@ -14,12 +14,13 @@ from scenarios.generator.run import SPLIT_RANGES, build, split_for_seed
 
 CODES = sorted(BUILDERS)
 
-# Classes the migration made genuinely event-driven. The rest are state-based on
-# purpose — not every operational problem is an event-ordering problem.
-EVENT_DRIVEN = ["S01", "S02", "S06", "S07", "S09", "S10"]
+# Classes that publish provider events. S03/S04/S12 are state-based on purpose —
+# not every operational problem is an event-ordering problem — and since Suite v3
+# every class with card activity publishes its background settlements too.
+EVENT_DRIVEN = ["S01", "S02", "S05", "S06", "S07", "S08", "S09", "S10", "S11"]
 
 STATE_ATTRS = (
-    "customers", "verifications", "accounts", "entries", "cards",
+    "customers", "verifications", "accounts", "cards",
     "authorizations", "settlements", "alerts", "deliveries", "cases",
 )
 
@@ -34,7 +35,7 @@ def _fingerprint(world) -> str:
     """
     payload = {attr: getattr(world, attr) for attr in STATE_ATTRS}
     payload["published"] = [e.model_dump(mode="json") for e in world.published]
-    payload["mapping_version"] = world.mapping_version
+    payload["mapping_versions"] = world.mapping_versions
     return json.dumps(payload, sort_keys=True, default=str)
 
 
@@ -77,13 +78,13 @@ def _produced_ids(world) -> set[str]:
     produced = set()
     for attr, key in (
         ("customers", "customer_id"), ("verifications", "verification_id"),
-        ("accounts", "account_id"), ("entries", "entry_id"), ("cards", "card_id"),
+        ("accounts", "account_id"), ("cards", "card_id"),
         ("authorizations", "auth_id"), ("settlements", "settlement_id"),
         ("alerts", "alert_id"), ("deliveries", "delivery_id"),
         ("cases", "case_id"),
     ):
         produced |= {row[key] for row in getattr(world, attr)}
-    return produced | project(world.published, world.mapping_version).ids()
+    return produced | project(world.published, world.mapping_versions).ids()
 
 
 @pytest.mark.parametrize("code", CODES)
@@ -133,23 +134,30 @@ def test_event_driven_scenarios_do_not_hand_author_their_consequences(code):
     """
     world, _ = build(code, 3_000_500)
     assert world.published, f"{code} is listed as event-driven but publishes nothing"
-    assert not world.entries, (
-        f"{code} hand-authored ledger entries; a pipeline-caused posting must come "
-        "from the ledger consumer"
-    )
     assert not world.deliveries, (
         f"{code} hand-authored webhook deliveries; publish() and let the consumer "
         "record what it did with them"
     )
 
 
+@pytest.mark.parametrize("code", CODES)
+def test_no_scenario_hand_authors_ledger_entries(code):
+    """Suite v3: the World has no ledger-entry builder at all. Every posting in the
+    corpus is the ledger consumer's, so a posting's id shape can no longer say which
+    class it came from (S11's hand-written `le_<seed>_NN` entries did)."""
+    world, _ = build(code, 3_000_500)
+    assert not hasattr(world, "entries")
+    assert not hasattr(world, "add_entry")
+
+
 def test_the_fabrication_builders_are_gone():
-    """`add_event` and the general-purpose `add_delivery` no longer exist. Named
-    explicitly so that reintroducing one is a deliberate act with a failing test
-    attached, rather than an autocomplete accident."""
+    """`add_event`, the general-purpose `add_delivery` and `add_entry` no longer
+    exist. Named explicitly so that reintroducing one is a deliberate act with a
+    failing test attached, rather than an autocomplete accident."""
     world, _ = build("S01", 3_000_500)
     assert not hasattr(world, "add_event")
     assert not hasattr(world, "add_delivery")
+    assert not hasattr(world, "add_entry")
     assert not hasattr(world, "events")
 
 

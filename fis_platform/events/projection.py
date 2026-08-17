@@ -27,7 +27,7 @@ a projection only ever covers one scenario.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import Iterable, Sequence
 
 from services.integration_service.consumer import (
     delivery_row,
@@ -55,16 +55,29 @@ class Projection:
         )
 
 
-def project(published: Iterable[ProviderEvent], mapping_version: int = 4) -> Projection:
+def project(published: Iterable[ProviderEvent],
+            mapping_version: int | Sequence[int] = 4) -> Projection:
     """Replay `published` through the real consumer logic, in publish order.
 
     Publish order is the argument order — the same order the generator will use on
     the bus. S07's race is an inversion of this list, so it is reproduced here too.
+
+    `mapping_version` is either one version for every event or a sequence aligned
+    with `published` (`World.mapping_versions`): the mapper version that was live when
+    each event arrived. `run.materialise` applies the same per-event schedule, so
+    a projected row and a live row can only differ if the two disagree — which the
+    generator asserts they do not.
     """
+    published = list(published)
+    versions = (list(mapping_version) if isinstance(mapping_version, Sequence)
+                else [mapping_version] * len(published))
+    if len(versions) != len(published):
+        raise ValueError(f"{len(versions)} mapping versions for {len(published)} events")
+
     out = Projection()
     seen: set[str] = set()
 
-    for event in published:
+    for event, version in zip(published, versions):
         deduped = event.has_safe_idempotency and event.dedupe_key in seen
         out.deliveries.append(delivery_row(event, "deduplicated" if deduped else "processed"))
         if deduped:
@@ -72,7 +85,7 @@ def project(published: Iterable[ProviderEvent], mapping_version: int = 4) -> Pro
         if event.has_safe_idempotency:
             seen.add(event.dedupe_key)
 
-        domain, recognised = normalize(event, mapping_version)
+        domain, recognised = normalize(event, version)
         out.events.append(normalized_row(event, domain, recognised))
 
         row, _ = entry_row(domain)
