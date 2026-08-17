@@ -520,3 +520,46 @@ Sources: `bartowski/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF` and
 | arms | `R3-qwen-dev` (contemporaneous control, session pid 4848), `R3-nemotron-dev`, plus a second Qwen control after Nemotron (`R3-qwen2-dev`) to bound within-session drift |
 | comparison | `compare_routes.py` per scenario; migration matrix A/B/C/D; `routing_cascade_report.py` replay with the unchanged R4 `verifier` policy for both weak arms against `E4-v2-dev` |
 | test policy | test untouched unless the pre-registered rule (M3.5) is met; then exactly one run |
+
+## M3.3 Compatibility spike — result: COMPATIBLE (commit `3e02b3e`)
+
+Loaded on the existing llama.cpp build in 9 s (mmap): Nemotron process ~8.0 GB VRAM
+(GPU total 15.7 GB with Qwen's 7.7 GB), RSS 18.9 GB (the mmap'd file), n_threads 16
+(Ryzen 9 9955HX, 16C/32T). Note: WSL exposes 47 GB of the machine's RAM. Smoke on the
+fixed request ×3: **72 tok/s** generation with experts partly in system RAM, prompt
+~100 tok/s cold, identical output all three times (deterministic), reasoning on by
+default (4 163 chars of `<think>` — longer than Qwen's 3 456 on the same request; at
+`max_tokens 1200` it was still thinking, so the FIS cap of 4 096 is the operative
+constraint and stays as is). Two real dev cases (`SMOKE-nemotron`, S01-2000000/1):
+schema-valid output, both root causes correct, 3 034 / 1 885 output tokens, 45.6 s /
+29.1 s wall; one verifier violation ("cites a service that was never successfully
+called: `tool://case_summary/…`") — a citation-format habit to watch. Task contract
+unchanged: same prompt, evidence, schema, grammar path, scorer, verifier.
+
+## M3.4 Benchmark runs (in flight, `make eval-r3-dev`)
+
+`prime-local` → `R3-qwen-dev` (control A, session pid 4848) → `prime-nemotron` →
+`R3-nemotron-dev` (session pid 489534) → `prime-local` → `R3-qwen2-dev` (control B).
+Started 2026-08-17 02:12 UTC.
+
+## M3.5 Pre-registered selection rule (written before any R3 result was read)
+
+Nemotron becomes the preferred weak-tier candidate — and earns the single test
+confirmation — only if ALL of the following hold on DEV (n=48):
+
+1. **Quality:** strict all-pass(Nemotron) − all-pass(Qwen A) ≥ max(5 cases, 2 ×
+   |all-pass(Qwen A) − all-pass(Qwen B)|). Root-cause accuracy not below Qwen A.
+2. **Silent failures:** under the unchanged R4 `verifier` replay against `E4-v2-dev`,
+   false negatives (weak accepted, weak fail, strong-ref pass) fall by ≥ 5 cases vs
+   the Qwen A replay.
+3. **Regressions:** cell B (Qwen A pass / Nemotron fail) ≤ 3 cases, each reviewed
+   (harness vs model), and Nemotron introduces no forbidden claims.
+4. **Operational:** all 48 cases complete with no crash/OOM/restart; wall p50 ≤ 30 s
+   (Qwen ≈ 12.6 s) in the design-A placement; VRAM stays within the card.
+5. **Economics with the same cascade:** Nemotron + R4 has cost per successful
+   investigation ≤ Qwen + R4's, OR its all-pass exceeds Qwen + R4's by ≥ 5 cases at
+   ≤ 1.5× the strong-call rate.
+6. **Above noise:** (1) already requires the gain to exceed twice the Qwen A/B drift.
+
+If any criterion fails: no test run, negative result recorded, Qwen stays incumbent.
+No Nemotron-specific prompt, no trigger changes, no scorer changes regardless.

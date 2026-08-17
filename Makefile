@@ -174,6 +174,29 @@ eval-r4-confirm: ## R4 — the frozen policy on TEST, once (set POLICY=...)
 	  --prompt cause_action_directed --escalate-to claude-frontier --escalation-policy $(POLICY) \
 	  --strong-prompt baseline --run-id R4-cascade-$(POLICY)-96 --resume
 
+# R3 — candidate weak arm benchmark on DEV, design A (both endpoints alive, no restart):
+# Qwen control A -> Nemotron -> Qwen control B, same order, each endpoint primed first.
+.PHONY: prime-nemotron eval-r3-dev r3-compare
+prime-nemotron: ## Same fixed request to the Nemotron endpoint (cache-state parity with prime-local)
+	@curl -s --max-time 300 http://127.0.0.1:8083/v1/chat/completions -H 'content-type: application/json' \
+	  -d '{"model":"fis-nemotron-lightning","messages":[{"role":"user","content":"prime"}],"max_tokens":8,"temperature":0,"seed":42}' \
+	  | $(PY) -c 'import sys,json; d=json.load(sys.stdin); print("primed:", d.get("system_fingerprint"), d["usage"])'
+eval-r3-dev: ## R3 — Qwen A, Nemotron, Qwen B on DEV (frozen contract; run with nothing else on 8082/8083)
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm R3 --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --run-id R3-qwen-dev --resume
+	$(MAKE) prime-nemotron
+	$(PY) -m evals.runner.run_eval --arm R3 --model-ref nemotron-lightning --split dev \
+	  --prompt cause_action_directed --run-id R3-nemotron-dev --resume
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm R3 --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --run-id R3-qwen2-dev --resume
+r3-compare: ## R3 — per-scenario Qwen vs Nemotron, and Qwen A vs B (drift), plus cascade replays
+	$(PY) scripts/compare_routes.py --a R3-qwen-dev --b R3-qwen2-dev
+	$(PY) scripts/compare_routes.py --a R3-qwen-dev --b R3-nemotron-dev
+	$(PY) scripts/routing_cascade_report.py --weak R3-qwen-dev --strong E4-v2-dev --policy verifier
+	$(PY) scripts/routing_cascade_report.py --weak R3-nemotron-dev --strong E4-v2-dev --policy verifier
+
 # R2 pairs the frozen weak arm with the strong arm ON DEV. The oracle map is a
 # selection tool; the script refuses the test split without --allow-test.
 .PHONY: eval-e4-dev routing-oracle
