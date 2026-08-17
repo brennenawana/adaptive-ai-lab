@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Developer Agent Telemetry D0 — Initial Plan</title>
+<style>
+:root{--bg:#f6f8fb;--paper:#fff;--ink:#18202b;--muted:#5d6978;--line:#dce3eb;--accent:#315efb;--accent-soft:#eef2ff;--good:#0f7b51;--good-soft:#eaf7f1;--warn:#9a6700;--warn-soft:#fff6dd;--bad:#b42318;--bad-soft:#fff0ee;--code-bg:#f3f5f8;--shadow:0 14px 40px rgba(25,37,58,.08);--radius:14px}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.58}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}.page{max-width:1320px;margin:0 auto;padding:32px 28px 72px;display:grid;grid-template-columns:270px minmax(0,1fr);gap:28px}.sidebar{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}.sidebar .eyebrow{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin-bottom:8px}.sidebar h2{font-size:17px;margin:0 0 14px}.sidebar nav a{display:block;padding:6px 8px;color:#445164;border-radius:7px;font-size:13px}.sidebar nav a:hover{background:var(--accent-soft);color:var(--accent);text-decoration:none}main{min-width:0}.hero{background:linear-gradient(135deg,#111827 0%,#243b6b 58%,#315efb 100%);color:#fff;padding:42px 46px;border-radius:20px;box-shadow:var(--shadow);margin-bottom:24px}.hero .kicker{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.82;margin-bottom:10px}.hero h1{margin:0;font-size:clamp(32px,5vw,56px);line-height:1.03;letter-spacing:-.035em}.hero .subtitle{margin:18px 0 0;max-width:900px;font-size:18px;color:rgba(255,255,255,.88)}.hero .meta{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:24px;color:rgba(255,255,255,.78);font-size:13px}section{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 8px 26px rgba(25,37,58,.045);padding:30px 34px;margin:0 0 22px}h2{margin:0 0 15px;font-size:28px;letter-spacing:-.02em}h3{margin:28px 0 10px;font-size:20px;letter-spacing:-.01em}h4{margin:22px 0 8px;font-size:16px}p{margin:10px 0 14px}ul,ol{padding-left:23px}li{margin:6px 0}.lead{font-size:19px;color:#334155}.callout{border-left:4px solid var(--accent);background:var(--accent-soft);padding:15px 18px;border-radius:0 10px 10px 0;margin:18px 0}.callout.good{border-left-color:var(--good);background:var(--good-soft)}.callout.warn{border-left-color:var(--warn);background:var(--warn-soft)}.callout.bad{border-left-color:var(--bad);background:var(--bad-soft)}.callout strong{display:block;margin-bottom:4px}.pill{display:inline-block;border:1px solid #c8d4ff;background:#f4f6ff;color:#2f51c6;border-radius:999px;padding:2px 9px;margin:2px 4px 2px 0;font-size:12px;font-weight:700}pre{white-space:pre;overflow-x:auto;background:var(--code-bg);color:#111827;border:1px solid #dfe4eb;border-radius:11px;padding:17px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:13px;line-height:1.48}code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:#f1f4f8;border-radius:5px;padding:.1em .35em;font-size:.92em}pre code{background:none;padding:0}table{width:100%;border-collapse:collapse;margin:16px 0 22px;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:11px 10px;vertical-align:top;text-align:left}th{background:#f7f9fc;color:#3c4858;font-weight:800}tr:last-child td{border-bottom:0}.grid2,.grid3{display:grid;gap:14px}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}.card{border:1px solid var(--line);border-radius:11px;padding:16px;background:#fbfcfe}.card h3,.card h4{margin-top:0}.metric{font-weight:800;color:#243b6b}.small{font-size:13px;color:var(--muted)}.checklist{list-style:none;padding-left:0}.checklist li{position:relative;padding-left:28px;margin:8px 0}.checklist li::before{content:"□";position:absolute;left:2px;top:-1px;color:var(--accent);font-weight:900}.timeline{display:grid;gap:12px}.phase{display:grid;grid-template-columns:90px minmax(0,1fr);gap:18px;border-top:1px solid var(--line);padding-top:16px}.phase:first-child{border-top:0;padding-top:0}.phase .label{font-weight:900;color:var(--accent)}.source-list li{margin-bottom:9px}footer{color:var(--muted);font-size:13px;padding:14px 4px 0}@media(max-width:980px){.page{display:block;padding:18px 14px 50px}.sidebar{position:relative;top:auto;max-height:none;margin-bottom:18px}.sidebar nav{columns:2}.hero{padding:32px 26px}section{padding:24px 22px}.grid2,.grid3{grid-template-columns:1fr}}@media(max-width:620px){.sidebar nav{columns:1}.hero h1{font-size:34px}table{font-size:12px}th,td{padding:9px 7px}.phase{grid-template-columns:1fr;gap:4px}}@media print{body{background:#fff}.page{display:block;max-width:none;padding:0}.sidebar{display:none}.hero,section{box-shadow:none;break-inside:avoid}section{border-color:#bbb}a{color:inherit;text-decoration:none}}
+</style>
+</head>
+<body>
+<div class="page">
+<aside class="sidebar">
+<div class="eyebrow">Planned Workstream</div><h2>Developer Agent Telemetry D0</h2>
+<nav>
+<a href="#summary">1. Executive summary</a><a href="#principles">2. Design principles</a><a href="#scope">3. Scope & non-goals</a><a href="#architecture">4. Reference architecture</a><a href="#sources">5. Agent-source strategy</a><a href="#model">6. Canonical data model</a><a href="#correlation">7. Correlation & outcomes</a><a href="#metrics">8. Metrics</a><a href="#privacy">9. Privacy & security</a><a href="#stack">10. Initial stack</a><a href="#repo">11. Repository layout</a><a href="#phases">12. D0 phases</a><a href="#dashboard">13. First dashboard</a><a href="#workflow">14. Personal workflow</a><a href="#acceptance">15. Acceptance criteria</a><a href="#risks">16. Risks</a><a href="#future">17. Future roadmap</a><a href="#backlog">18. Initial backlog</a><a href="#references">19. References</a>
+</nav></aside>
+<main>
+<header class="hero"><div class="kicker">Initial Architecture & Implementation Plan</div><h1>Developer Agent Telemetry D0</h1><p class="subtitle">A provider-neutral telemetry plane for observing, evaluating, and eventually improving AI-assisted software development across Claude Code, Codex, Cursor, and future developer agents.</p><div class="meta"><span>Status: <strong>Planned — not in current FIS execution scope</strong></span><span>Initial user: <strong>single developer</strong></span><span>Primary mode: <strong>local-first telemetry</strong></span><span>Raw prompts/code: <strong>off by default</strong></span></div></header>
+
+<section id="summary"><h2>1. Executive summary</h2><p class="lead">D0 creates a durable, vendor-neutral record of how developer agents are used and whether their work actually succeeds. The first objective is observability, not automation.</p><div class="callout good"><strong>Working definition</strong>Observe, evaluate, and improve AI-assisted software development.</div><p>Claude Code, Codex, Cursor, and future coding agents expose different telemetry surfaces. D0 normalizes those surfaces into a single developer-agent trajectory model owned by the project. It then correlates agent activity with independent engineering outcomes such as tests, commits, reverts, review, and task completion.</p><p>D0 deliberately avoids declaring a developer “productive” based on token volume, lines changed, or agent usage. Those are inputs. The outcome layer is separate and must be grounded in evidence.</p><h3>North-star question</h3><pre><code>For this class of engineering work,
+which agent / model / workflow produces
+the most reliable verified outcome
+with the least developer intervention?</code></pre><p>Cost is one optimization dimension alongside correctness, rework, latency, autonomy, reliability, and developer attention. It is not assumed to be the dominant objective.</p></section>
+
+<section id="principles"><h2>2. Design principles</h2><div class="grid2"><div class="card"><h3>Outcome-first</h3><p>Token counts and tool calls describe activity. Tests, accepted commits, rework, and retained changes describe outcomes.</p></div><div class="card"><h3>Provider-neutral</h3><p>Claude, Codex, and Cursor are adapters. The canonical schema, IDs, outcome logic, and historical record are ours.</p></div><div class="card"><h3>Privacy-minimizing</h3><p>Do not collect raw prompts, source code, or full responses by default. Begin with metadata and explicit outcome signals.</p></div><div class="card"><h3>Correlation, not surveillance</h3><p>The initial system exists to understand developer-agent workflows, not to rank developers or create hidden performance scores.</p></div><div class="card"><h3>Experiment lineage</h3><p>Record tool version, model, repository, session, task, branch, commit, tests, and outcome so claims can be reproduced.</p></div><div class="card"><h3>Progressive instrumentation</h3><p>Start with coarse, trustworthy events. Add richer content only when a specific question requires it and policy permits it.</p></div></div><div class="callout warn"><strong>D0 is not an employee scoring system.</strong>The schema may include a developer identifier for correlation, but D0 should not produce leaderboard-style productivity judgments. Multi-developer governance belongs to a later phase with explicit policy and consent.</div></section>
+
+<section id="scope"><h2>3. Scope & non-goals</h2><h3>In scope for D0</h3><ul><li>Capture local Claude Code telemetry through OpenTelemetry.</li><li>Capture Codex telemetry through its OpenTelemetry configuration.</li><li>Probe the installed Cursor version/plan for supported hooks or structured agent-export surfaces.</li><li>Normalize agent events into one canonical schema.</li><li>Correlate sessions with repository, branch, commit, diff metadata, tests, and task outcome.</li><li>Build a personal dashboard for one developer across multiple coding agents.</li><li>Measure verified task outcomes, rework, failure patterns, autonomy, latency, and optional cost.</li><li>Preserve enough lineage to support future cross-agent experiments.</li></ul><h3>Explicitly out of scope</h3><ul><li>Automatically routing coding tasks between agents.</li><li>Automatically changing prompts/rules based on telemetry.</li><li>Team-wide monitoring or employee performance scoring.</li><li>Capturing raw prompts, full source code, or full responses by default.</li><li>Replacing Git, CI, issue trackers, or vendor-native admin analytics.</li><li>Claiming causal productivity improvement from observational data alone.</li><li>Changing FIS implementation work to accommodate D0.</li></ul></section>
+
+<section id="architecture"><h2>4. Reference architecture</h2><pre><code>                          DEVELOPER
+
+             ┌──────────────┼──────────────┐
+             │              │              │
+             ▼              ▼              ▼
+        Claude Code        Codex          Cursor
+             │              │              │
+         native OTel    native OTel    hooks / adapter
+             │              │              │
+             └──────────────┼──────────────┘
+                            ▼
+                    OpenTelemetry Collector
+                            │
+                            ▼
+                 Normalization / Enrichment
+                            │
+              ┌─────────────┼─────────────┐
+              │             │             │
+              ▼             ▼             ▼
+           Git data       Test data     Task metadata
+              │             │             │
+              └─────────────┼─────────────┘
+                            ▼
+                 Developer Trajectory Store
+                            │
+                 ┌──────────┼──────────┐
+                 │          │          │
+                 ▼          ▼          ▼
+              Dashboard   Analysis   Experiments
+
+Canonical ownership:
+- provider events are evidence
+- normalized trajectories are canonical
+- outcome rules are project-owned
+- raw vendor telemetry is replaceable</code></pre><h3>Separation of concerns</h3><table><thead><tr><th>Layer</th><th>Responsibility</th><th>Must remain independent?</th></tr></thead><tbody><tr><td>Agent adapter</td><td>Receive vendor-specific metrics/events and translate them</td><td>Yes</td></tr><tr><td>OTel collector</td><td>Transport, filtering, redaction, routing</td><td>Yes</td></tr><tr><td>Canonical store</td><td>Durable sessions, tasks, runs, outcomes, lineage</td><td>Yes — strategic asset</td></tr><tr><td>Outcome engine</td><td>Determine whether work was accepted, tested, reverted, or reworked</td><td>Yes</td></tr><tr><td>Dashboard</td><td>Human-readable summaries and comparisons</td><td>No — replaceable view</td></tr></tbody></table></section>
+
+<section id="sources"><h2>5. Agent-source strategy</h2><table><thead><tr><th>Source</th><th>D0 preferred integration</th><th>Useful signals</th><th>D0 caveat</th></tr></thead><tbody><tr><td><strong>Claude Code</strong></td><td>Native OpenTelemetry → local OTel Collector</td><td>Session identity, model, token usage, active time, tool activity, result/error signals, code-change and Git-related metrics where emitted</td><td>Prompt/tool content remains disabled by default.</td></tr><tr><td><strong>Codex</strong></td><td>Native OTLP exporter from Codex config → same collector</td><td>Conversation/session metadata, model/config, logs/traces/metrics exposed by the installed Codex version</td><td>Schema is version-sensitive; adapter must store source version.</td></tr><tr><td><strong>Cursor</strong></td><td>Capability probe: hooks if available; otherwise structured CLI/export wrapper</td><td>Agent lifecycle, tool/shell activity, model where observable, task/session identifiers, exported structured output</td><td>Hook/admin surfaces may depend on plan/version. Do not assume enterprise capabilities on an individual subscription.</td></tr></tbody></table><div class="callout"><strong>Adapter rule</strong>If an agent does not expose a signal reliably, record it as unavailable. Do not scrape undocumented internals just to make dashboards look complete.</div><h3>Capability probe</h3><pre><code>{
+  "agent": "cursor",
+  "version": "...",
+  "plan_context": "individual",
+  "capture": {
+    "session_id": "native|derived|unavailable",
+    "model": "native|derived|unavailable",
+    "tool_calls": "native|derived|unavailable",
+    "tokens": "native|derived|unavailable",
+    "prompt_content": "disabled",
+    "response_content": "disabled"
+  },
+  "transport": "hook|otel|wrapper|export"
+}</code></pre></section>
+
+<section id="model"><h2>6. Canonical data model</h2><p>D0 should model developer work at three levels rather than treating every tool event as a “trajectory.”</p><div class="grid3"><div class="card"><h3>Developer task</h3><p>The human intent: “implement R3b,” “fix CI,” “refactor auth,” “write migration.” This is the unit that eventually receives an outcome.</p></div><div class="card"><h3>Agent session</h3><p>A Claude/Codex/Cursor conversation or run used to advance the task.</p></div><div class="card"><h3>Agent event</h3><p>Tool call, model request, error, permission decision, test invocation, edit event, or other low-level telemetry.</p></div></div><h3>Core entities</h3><pre><code>developer_task
+  ├── 1..N agent_session
+  │       └── 1..N agent_event
+  ├── 0..N git_commit
+  ├── 0..N verification_run
+  ├── 0..N human_intervention
+  └── 1 task_outcome</code></pre><h3>Suggested developer_task fields</h3><pre><code>{
+  "task_id": "uuid",
+  "developer_id": "local-user",
+  "repo_id": "fintech-integration-sandbox",
+  "branch": "main",
+  "task_class": "experiment|bugfix|feature|refactor|review|research|other",
+  "task_title": "R3b token-budget factor",
+  "started_at": "...",
+  "completed_at": "...",
+  "source": "manual|issue|goal|commit-derived",
+  "sensitivity": "normal|restricted",
+  "status": "open|complete|abandoned|blocked"
+}</code></pre><h3>Suggested agent_session fields</h3><pre><code>{
+  "agent_session_id": "uuid",
+  "task_id": "uuid",
+  "provider": "anthropic|openai|cursor|other",
+  "harness": "claude-code|codex|cursor",
+  "harness_version": "...",
+  "native_session_id": "...",
+  "model": "...",
+  "reasoning_effort": "...",
+  "mode": "interactive|goal|background|cli|other",
+  "started_at": "...",
+  "ended_at": "...",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_tokens": 0,
+  "tool_calls": 0,
+  "tool_failures": 0,
+  "active_seconds": 0,
+  "wall_seconds": 0,
+  "estimated_cost": null,
+  "capture_capability_version": "..."
+}</code></pre><h3>Suggested outcome fields</h3><pre><code>{
+  "task_id": "uuid",
+  "verified_success": true,
+  "verification_basis": ["tests_passed", "working_tree_clean", "human_accepted"],
+  "tests": {"passed": 197, "failed": 0},
+  "commits_created": 4,
+  "reverted_within_window": false,
+  "human_rework": "none|minor|major",
+  "followup_fix_required": false,
+  "goal_completed": true,
+  "notes": null
+}</code></pre><div class="callout good"><strong>Key distinction</strong>The agent event stream describes what happened. The task outcome describes whether it was useful. Never infer the latter directly from token volume, lines changed, or the agent's own claim of completion.</div></section>
+
+<section id="correlation"><h2>7. Correlation & outcome strategy</h2><h3>Correlation hierarchy</h3><ol><li><strong>Explicit task ID</strong> — preferred. A task is opened before a substantial agent session.</li><li><strong>Native agent session ID</strong> — mapped to the task at session start.</li><li><strong>Git branch / worktree</strong> — useful secondary scope.</li><li><strong>Commit hashes</strong> — durable evidence that work crossed a boundary.</li><li><strong>Test runs</strong> — correlated by repository, branch, commit, and time window.</li><li><strong>Manual annotation</strong> — used when automation cannot distinguish intent.</li></ol><h3>Outcome hierarchy</h3><pre><code>production / real-world outcome
+        >
+merged / retained change
+        >
+objective automated verification
+        >
+review acceptance
+        >
+developer acceptance
+        >
+agent self-report</code></pre><h3>Initial task completion rule</h3><div class="callout"><strong>Verified successful task</strong>A task is successful when its declared completion condition is met and at least one independent verification signal supports it. Examples: targeted tests pass; requested artifact exists and is accepted; a fix remains in the repository after review.</div><h3>Rework window</h3><p>D0 should support a configurable observation window after completion—for example, 24 hours or the next related commit—to detect immediate reverts, repair commits, or major manual rewrite. This is more informative than measuring whether an agent produced code.</p></section>
+
+<section id="metrics"><h2>8. Metrics</h2><h3>Primary metrics</h3><table><thead><tr><th>Metric</th><th>Meaning</th><th>Why it matters</th></tr></thead><tbody><tr><td class="metric">Verified task success rate</td><td>Successful tasks / completed attempts</td><td>Quality constraint</td></tr><tr><td class="metric">Developer attention per success</td><td>Human-active time associated with a verified success</td><td>Better autonomy measure than wall time alone</td></tr><tr><td class="metric">Major rework rate</td><td>Completed tasks needing substantial manual correction</td><td>Detects “looks done” failure</td></tr><tr><td class="metric">Revert / repair rate</td><td>Changes quickly reverted or repaired</td><td>Durability</td></tr><tr><td class="metric">Verification failure rate</td><td>Agent-declared completion that fails independent checks</td><td>Reliability</td></tr></tbody></table><h3>Secondary metrics</h3><div><span class="pill">wall time</span><span class="pill">active developer time</span><span class="pill">agent autonomous time</span><span class="pill">tool calls</span><span class="pill">tool failure rate</span><span class="pill">input/output tokens</span><span class="pill">cache usage</span><span class="pill">estimated cost</span><span class="pill">files touched</span><span class="pill">diff size</span><span class="pill">test count</span><span class="pill">commit count</span><span class="pill">session count per task</span></div><h3>Derived metrics for later analysis</h3><pre><code>agent_effectiveness =
+  verified_successes / developer_attention
+
+reliability =
+  verified_successes / completed_tasks
+
+autonomy =
+  1 - (human_active_time / task_wall_time)
+
+rework_burden =
+  major_rework_tasks / successful_tasks
+
+optional_intelligence_density =
+  weighted_verified_outcome /
+  (latency + compute + monetary_cost + human_effort)</code></pre><div class="callout warn"><strong>Do not optimize lines of code.</strong>LOC, tokens, and tool calls are diagnostic variables. They should not become target metrics because agents can trivially increase them without improving outcomes.</div></section>
+
+<section id="privacy"><h2>9. Privacy & security</h2><h3>D0 default collection policy</h3><table><thead><tr><th>Data</th><th>Default</th><th>Reason</th></tr></thead><tbody><tr><td>Session/task IDs</td><td>Collect</td><td>Required for correlation</td></tr><tr><td>Model / harness / version</td><td>Collect</td><td>Required for reproducibility</td></tr><tr><td>Token counts / timing</td><td>Collect</td><td>Operational metrics</td></tr><tr><td>Tool names + result status</td><td>Collect</td><td>Workflow analysis</td></tr><tr><td>Git commit / branch metadata</td><td>Collect</td><td>Outcome lineage</td></tr><tr><td>Test names/counts/results</td><td>Collect carefully</td><td>Verification evidence</td></tr><tr><td>Raw prompts</td><td><strong>Do not collect</strong></td><td>High sensitivity; not needed for D0</td></tr><tr><td>Tool arguments / source contents</td><td><strong>Do not collect</strong></td><td>May contain code, secrets, customer data</td></tr><tr><td>Full model responses</td><td><strong>Do not collect</strong></td><td>Not needed for initial questions</td></tr><tr><td>Environment variables / secrets</td><td><strong>Never collect</strong></td><td>Security boundary</td></tr></tbody></table><h3>Data handling rules</h3><ul><li>Filter/redact at the collector before persistence when possible.</li><li>Store provider-native payloads only when necessary for adapter debugging, with short retention.</li><li>Canonical normalized records should contain the minimum durable fields.</li><li>Separate personal experiments from company/client telemetry by repository and policy boundary.</li><li>Do not reuse employer source code, prompts, telemetry, or private work in external demos without authorization.</li><li>Before D0 becomes multi-developer, create an explicit governance and disclosure policy.</li></ul></section>
+
+<section id="stack"><h2>10. Initial technology stack</h2><p>D0 should be intentionally small and portable.</p><table><thead><tr><th>Component</th><th>Initial choice</th><th>Role</th></tr></thead><tbody><tr><td>Telemetry transport</td><td>OpenTelemetry Collector</td><td>Receive, filter, redact, and forward</td></tr><tr><td>Canonical database</td><td>PostgreSQL</td><td>Tasks, sessions, events, outcomes, correlations</td></tr><tr><td>Raw/debug retention</td><td>Local filesystem or object storage, optional</td><td>Short-lived adapter debugging only</td></tr><tr><td>Normalizer</td><td>Small Python service / worker</td><td>Map provider events to canonical records</td></tr><tr><td>Git enrichment</td><td>Local Git CLI / library</td><td>Commits, branches, changed files, reverts</td></tr><tr><td>Verification ingestion</td><td>Wrapper / test-result parser</td><td>Test and validation outcomes</td></tr><tr><td>Dashboard</td><td>Simple app or lightweight BI view</td><td>Personal visibility; replaceable</td></tr></tbody></table><h3>Why Postgres instead of an observability vendor as the authority?</h3><p>Vendor observability tools are useful views, but the durable asset is the correlation between developer task, agent sessions, model/harness versions, commits, verification, and outcomes. That relationship should remain queryable even if the dashboard or agent vendor changes.</p><h3>Illustrative collector flow</h3><pre><code>receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  memory_limiter:
+  batch:
+  attributes/redaction:
+    # drop or hash sensitive attributes here
+
+exporters:
+  otlphttp/normalizer:
+    endpoint: http://d0-normalizer:8080/otel
+
+service:
+  pipelines:
+    metrics: [otlp -> redaction -> normalizer]
+    logs:    [otlp -> redaction -> normalizer]
+    traces:  [otlp -> redaction -> normalizer]</code></pre><p class="small">Configuration above is an architecture sketch, not a pinned implementation.</p></section>
+
+<section id="repo"><h2>11. Suggested repository layout</h2><p>D0 can live as its own small repository or as a clearly separated project directory. If it is placed near FIS, do not couple its schema to FIS internals.</p><pre><code>developer-agent-telemetry/
+├── README.md
+├── docs/
+│   ├── architecture.html
+│   ├── privacy-policy.md
+│   ├── metric-definitions.md
+│   └── capability-matrix.md
+├── infra/
+│   ├── docker-compose.yml
+│   └── otel-collector.yaml
+├── adapters/
+│   ├── claude_code/
+│   ├── codex/
+│   └── cursor/
+├── normalizer/
+│   ├── schemas/
+│   ├── mappings/
+│   └── service/
+├── enrichment/
+│   ├── git/
+│   └── verification/
+├── storage/
+│   └── migrations/
+├── dashboard/
+├── scripts/
+│   ├── start-task
+│   ├── end-task
+│   └── doctor
+└── tests/
+    ├── fixtures/
+    ├── adapter_contracts/
+    └── privacy/</code></pre><h3>Stable project-owned interfaces</h3><ul><li><code>DeveloperTask</code></li><li><code>AgentSession</code></li><li><code>AgentEvent</code></li><li><code>VerificationRun</code></li><li><code>TaskOutcome</code></li><li><code>CaptureCapability</code></li></ul></section>
+
+<section id="phases"><h2>12. D0 implementation phases</h2><div class="timeline">
+<div class="phase"><div class="label">D0.0</div><div><h3>Capability probe & experiment contract</h3><p>Inventory exact installed Claude Code, Codex, and Cursor versions and determine what each exposes without raw-content capture.</p><ul><li>Record subscription/client context.</li><li>Build capability manifests.</li><li>Define privacy defaults.</li><li>Freeze canonical IDs and initial schema.</li></ul><p><strong>Exit:</strong> no adapter implementation assumptions remain undocumented.</p></div></div>
+<div class="phase"><div class="label">D0.1</div><div><h3>Collector + canonical store</h3><ul><li>Launch local OTel Collector.</li><li>Create Postgres schema.</li><li>Create normalizer API/worker.</li><li>Implement redaction tests.</li><li>Create a simple <code>doctor</code> command showing telemetry health.</li></ul><p><strong>Exit:</strong> synthetic events survive collector → normalizer → Postgres with lineage intact.</p></div></div>
+<div class="phase"><div class="label">D0.2</div><div><h3>Claude Code adapter</h3><p>Start with Claude Code because its OTel monitoring surface is explicit and rich.</p><ul><li>Enable telemetry to the local collector.</li><li>Keep user prompts and tool details disabled.</li><li>Normalize session/model/token/tool/timing events.</li><li>Run three known tasks and reconcile counts manually.</li></ul><p><strong>Exit:</strong> three sessions can be reconstructed from canonical records without raw prompt/code capture.</p></div></div>
+<div class="phase"><div class="label">D0.3</div><div><h3>Codex adapter</h3><ul><li>Configure Codex OTLP export.</li><li>Normalize to the same session/event schema.</li><li>Record Codex version and telemetry-schema capability.</li><li>Run equivalent known tasks where practical.</li></ul><p><strong>Exit:</strong> Claude and Codex sessions can be queried from the same tables without provider-specific dashboard logic.</p></div></div>
+<div class="phase"><div class="label">D0.4</div><div><h3>Cursor adapter</h3><ul><li>Probe hooks and structured CLI/export capabilities available to the installed account/version.</li><li>If hooks are available, emit normalized local events.</li><li>If not, use the least-invasive documented structured surface.</li><li>Mark unavailable fields explicitly.</li></ul><p><strong>Exit:</strong> Cursor activity is represented in the same canonical session model without undocumented scraping.</p></div></div>
+<div class="phase"><div class="label">D0.5</div><div><h3>Outcome correlation + personal dashboard</h3><ul><li>Add task start/end workflow.</li><li>Correlate agent sessions to Git and tests.</li><li>Add manual rework/acceptance annotation.</li><li>Build dashboard views defined below.</li><li>Use D0 personally for several weeks before drawing optimization conclusions.</li></ul><p><strong>Exit:</strong> at least 20–30 completed tasks have trustworthy outcome records and can be compared across harness/model/task class.</p></div></div>
+</div></section>
+
+<section id="dashboard"><h2>13. First dashboard</h2><p>The first dashboard should answer descriptive questions only. No “AI productivity score.”</p><div class="grid2"><div class="card"><h3>Usage</h3><ul><li>Sessions by Claude / Codex / Cursor</li><li>Models used</li><li>Tasks by class</li><li>Agent sessions per task</li><li>Active vs wall time</li></ul></div><div class="card"><h3>Outcome</h3><ul><li>Verified success rate</li><li>Major rework rate</li><li>Repair/revert rate</li><li>Goal completion rate</li><li>Independent verification pass rate</li></ul></div><div class="card"><h3>Reliability</h3><ul><li>Tool failures</li><li>Permission interruptions</li><li>Agent-declared completion vs verified completion</li><li>Failed tests after agent completion</li></ul></div><div class="card"><h3>Efficiency</h3><ul><li>Developer attention / verified success</li><li>Wall time / verified success</li><li>Tokens / verified success</li><li>Optional monetary cost / verified success</li></ul></div></div><h3>Useful comparison view</h3><table><thead><tr><th>Task class</th><th>Agent/model</th><th>Verified success</th><th>Major rework</th><th>Human attention</th><th>Wall time</th></tr></thead><tbody><tr><td>Long autonomous experiment</td><td>Claude Code / model X</td><td>—</td><td>—</td><td>—</td><td>—</td></tr><tr><td>Focused bug fix</td><td>Codex / model Y</td><td>—</td><td>—</td><td>—</td><td>—</td></tr><tr><td>Interactive UI edit</td><td>Cursor / model Z</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table><p class="small">Rows are intentionally blank until enough data exists. D0 should not ship with fabricated comparative claims.</p></section>
+
+<section id="workflow"><h2>14. Initial personal workflow</h2><p>Instrumentation should not add enough friction that it changes how work is done.</p><h3>Recommended task lifecycle</h3><pre><code>start-task "R3b token-budget experiment" --class experiment
+      ↓
+task_id exported to shell / local context
+      ↓
+Claude Code / Codex / Cursor sessions occur normally
+      ↓
+Git + tests + agent telemetry accumulate
+      ↓
+end-task --status complete
+      ↓
+automatic enrichment
+      ↓
+short human annotation:
+  accepted?
+  rework?
+  goal achieved?
+      ↓
+task_outcome finalized</code></pre><h3>Manual annotation should take seconds</h3><pre><code>Outcome: verified success?     [y/n]
+Human rework:                  [none/minor/major]
+Follow-up fix required?        [y/n]
+Keep this change?              [y/n]
+Notes (optional):              [...]</code></pre><p>The manual answer is not treated as perfect ground truth; it is one evidence source combined with tests and Git history.</p></section>
+
+<section id="acceptance"><h2>15. D0 acceptance criteria</h2><p>D0 is complete when the system can support a trustworthy personal baseline, not when every possible agent signal is captured.</p><ul class="checklist"><li>Claude Code events arrive through OTel without raw prompt/tool content.</li><li>Codex events arrive through OTel and normalize into the same schema.</li><li>Cursor capability is probed and a supported adapter path is implemented or its limitation is explicitly documented.</li><li>Canonical task/session/event/outcome schemas are versioned.</li><li>Provider-native telemetry versions are recorded.</li><li>At least one privacy/redaction test fails if prompt/source content would be persisted unexpectedly.</li><li>Agent sessions can be correlated to repository, branch, and commit where applicable.</li><li>Tests/verification can be attached independently of the agent's own completion claim.</li><li>Developer rework can be recorded with minimal friction.</li><li>The dashboard distinguishes activity metrics from outcome metrics.</li><li>At least 20–30 real personal tasks are captured before comparative recommendations are made.</li><li>No automatic agent routing or self-modification is introduced in D0.</li></ul></section>
+
+<section id="risks"><h2>16. Risks & mitigations</h2><table><thead><tr><th>Risk</th><th>Failure mode</th><th>Mitigation</th></tr></thead><tbody><tr><td>Telemetry ≠ productivity</td><td>High usage is mistaken for high impact</td><td>Separate activity from verified outcome; prohibit composite productivity scores in D0</td></tr><tr><td>Vendor drift</td><td>Agent event schemas change</td><td>Version adapters and capability manifests; contract tests with fixtures</td></tr><tr><td>Privacy leakage</td><td>Prompts/code/secrets enter telemetry</td><td>Content off by default; collector redaction; explicit regression tests</td></tr><tr><td>Correlation errors</td><td>A commit/test is attached to wrong agent task</td><td>Prefer explicit task IDs; use time/git matching only as secondary evidence</td></tr><tr><td>Observer effect</td><td>Instrumentation changes developer behavior</td><td>Keep task annotation minimal; collect passively where possible</td></tr><tr><td>Small sample overclaim</td><td>Five tasks lead to “Claude beats Codex” conclusion</td><td>Minimum sample threshold and task-class stratification</td></tr><tr><td>Goodhart's law</td><td>Agents/workflows optimize visible metrics</td><td>Do not expose simplistic target scores; use multiple outcome dimensions</td></tr><tr><td>Cross-company contamination</td><td>Employer/client telemetry reused externally</td><td>Hard repository/policy boundaries and separate storage contexts</td></tr></tbody></table></section>
+
+<section id="future"><h2>17. Future roadmap after D0</h2><h3>D1 — Comparative developer-agent experiments</h3><p>After sufficient observations exist, run controlled experiments rather than relying only on historical usage.</p><pre><code>same task class
+same repo constraints
+same verification
+        ↓
+Claude vs Codex vs Cursor/model
+        ↓
+verified outcomes + rework + attention</code></pre><h3>D2 — Developer-agent routing</h3><p>Only after D1 should the system recommend which agent/model to use for a task class.</p><pre><code>developer task
+      ↓
+task classifier
+      ↓
+recommended harness/model
+      ↓
+execution
+      ↓
+verified outcome
+      ↓
+routing evaluation</code></pre><p>Candidate routing signals might include task class, repo/language, expected autonomy, need for browser/UI work, expected duration, and historical success.</p><h3>D3 — Context / workflow optimization</h3><p>Compare project instructions, skills, hooks, MCP tools, goal templates, and verification workflows. The unit of optimization becomes the developer-agent system, not the base model alone.</p><h3>D4 — Multi-developer organization view</h3><p>Before adding multiple developers, introduce governance: disclosure, access controls, retention, opt-outs, aggregation rules, and explicit prohibition on hidden individual performance scoring.</p><h3>D5 — Reusable client offering</h3><p>Package the collector, normalized schema, privacy policy, dashboards, and experiment playbook so a client can instrument its existing AI-development tools before deciding what to standardize or automate.</p></section>
+
+<section id="backlog"><h2>18. Initial implementation backlog</h2><p>This backlog is deliberately dormant until D0 becomes active.</p><h3>Foundation</h3><ul class="checklist"><li>Create dedicated D0 repo/directory.</li><li>Write data classification and privacy policy.</li><li>Define schema v1 and migrations.</li><li>Add Docker Compose for Postgres + OTel Collector.</li><li>Add normalizer service and contract tests.</li></ul><h3>Adapters</h3><ul class="checklist"><li>Claude Code capability manifest and OTel adapter.</li><li>Codex capability manifest and OTel adapter.</li><li>Cursor capability probe.</li><li>Cursor hooks adapter if supported.</li><li>Fallback Cursor structured export/wrapper if hooks are unavailable.</li></ul><h3>Outcome enrichment</h3><ul class="checklist"><li>Task start/end CLI.</li><li>Git enrichment.</li><li>Test-result ingestion.</li><li>Revert/repair detector.</li><li>Manual rework annotation.</li></ul><h3>Visualization</h3><ul class="checklist"><li>Usage dashboard.</li><li>Outcome dashboard.</li><li>Task-class comparison view.</li><li>Privacy/capture health page.</li></ul><h3>Experimental discipline</h3><ul class="checklist"><li>Define minimum sample size before cross-agent claims.</li><li>Version task taxonomy.</li><li>Version outcome rules.</li><li>Document observational vs controlled conclusions separately.</li></ul></section>
+
+<section id="references"><h2>19. Current implementation references</h2><p>These references are included so D0 can be revisited against actual tool capabilities at implementation time. Re-check them before building because telemetry surfaces evolve quickly.</p><ul class="source-list"><li><strong>Claude Code — Monitoring / OpenTelemetry:</strong> <a href="https://code.claude.com/docs/en/monitoring-usage">code.claude.com/docs/en/monitoring-usage</a>. Documents OTel metrics, events/logs, optional traces, identity/session attributes, and privacy defaults such as prompts/tool details not being logged unless explicitly enabled.</li><li><strong>OpenAI Codex — configuration schema:</strong> <a href="https://github.com/openai/codex/blob/main/codex-rs/core/config.schema.json">github.com/openai/codex/.../config.schema.json</a>. The official Codex repository exposes OTel configuration including OTLP HTTP/gRPC exporters and prompt-logging control.</li><li><strong>Cursor — Hooks:</strong> <a href="https://cursor.com/blog/hooks-partners">cursor.com/blog/hooks-partners</a> and <a href="https://cursor.com/blog/enterprise">cursor.com/blog/enterprise</a>. Cursor describes hooks as scripts that can observe/control stages of the agent loop. Availability should be verified for the installed plan/version before D0 assumes them.</li><li><strong>Cursor CLI — structured/non-interactive usage:</strong> <a href="https://docs.cursor.com/en/cli/using">docs.cursor.com/en/cli/using</a>. Provides a documented fallback surface including structured output for scripted CLI use.</li></ul><div class="callout"><strong>Implementation-time rule</strong>Re-run the capability probe against current official documentation before coding D0. Do not treat this plan as a promise that every telemetry surface remains unchanged.</div></section>
+<footer>Developer Agent Telemetry D0 — Initial Plan. Designed as a dormant, provider-neutral workstream that can be added to a project now and activated later.</footer>
+</main></div></body></html>
