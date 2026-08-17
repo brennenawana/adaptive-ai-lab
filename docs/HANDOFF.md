@@ -18,7 +18,7 @@ found.
 
 ## State: migration done, E6 done, E6b closed, routing baseline done (R0–R2, R0.1, R4)
 
-**~53 commits (52 + this one), 203 tests green** (`make test`; one live test skips unless
+**~54 commits, 203 tests green** (`make test`; one live test skips unless
 `FIS_LIVE_TESTS=1` — it must never touch :8082 during a paired run). `git log
 --oneline` for the trail.
 

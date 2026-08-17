@@ -574,7 +574,7 @@ economics? One factor was varied, for **both** weak arms, and nothing else.
 | strong reference / cascade | `E4-v2-dev`, R4 `verifier` policy by replay | **identical, no new trigger** |
 | test | untouched | **untouched** (rule failed) |
 
-Runtime note. The Nemotron process left running after R3 (`--no-mmap`, same flags,
+Runtime note (operator observations from `nvidia-smi`, `/proc` and the throughput probe — not in the JSON artefacts). The Nemotron process left running after R3 (`--no-mmap`, same flags,
 idle ~2.5 h) generated at 47–50 tok/s on the fixed probe; the same command line
 restarted gave 92.8–93.1 tok/s (R3's recorded state: 91 beside Qwen). Placement and
 outputs are unaffected (below: the 19 R3-completed cases reproduce byte-identically);
@@ -622,10 +622,10 @@ the R3 → R3b Qwen shift (0/48 digests, 24/48 strict outcomes across sessions a
 | silent failures (routing FN) | 23 (22) | 21 (21) | **4 (4)** | **16 (16)** |
 | output tokens total / mean / p50 / p95 / max | 62 938 / 1 311 / 999 / 3 111 / 3 508 | 62 673 / 1 306 / 1 057 / 3 193 / 4 105 | 172 436 / 3 592 / 4 096 / 4 096 / 4 096 | **239 961 / 4 999 / 4 507 / 8 192 / 8 192** |
 | cases > 4 096 tokens | 0 | 1 | 0 (capped) | **29** (13 in 4 097–6 144, 7 in 6 145–8 191, 9 at 8 192) |
-| reasoning / answer chars (mean; new telemetry) | — | 4 342 / 1 053 | — (capped cases: all reasoning) | 17 453 / 1 152; completed cases 14 912 / 1 423 (≈ 90% of characters are thinking) |
+| reasoning / answer chars (mean; new telemetry) | — | 4 342 / 1 053 | — (capped cases: all reasoning) | 17 453 / 1 152; the 39 `stop` cases 14 391 / 1 398, the 37 scoreable 14 912 / 1 423 (≈ 90% of characters are thinking) |
 | wall p50 / p95 / max | 14.0 / 41.3 / 45.2 s | 11.5 / 35.1 / 46.7 s | 206.6 / 211.0 / 216.1 s (mmap-slow) | **52.0 / 94.1 / 96.7 s** |
 | generation tok/s (median, llama.cpp timings) | 82 | 93 | 20 (mmap-slow) | **87** (80–89) |
-| digest equal to the 4 096 run | — | 1/48 (different session) | — | **19/19 of R3's completed cases** (and 8/8 of the still-empty ones) — the same tokens, the same sha, across sessions and budgets |
+| digest equal to the 4 096 run | — | 1/48 (different session) | — | **19/19 of R3's completed cases** — the same tokens, the same sha, across sessions and budgets (the still-empty capped cases have no digest to compare) |
 
 Every one of R3's 29 `length` cases, classified at 8 192:
 
@@ -718,14 +718,14 @@ failures still at the cap.
 **The business question.** At 8 192, Nemotron + R4 does *not* reduce strong-model
 utilisation — it is 29.2% vs Qwen + R4's 25.0% (14 vs 12 escalations), because the
 gate now sees only 9 length no-outputs and 2 schema failures instead of 31. What
-changes is quality per escalation: 13 of 14 escalations rescue, and the six extra local
-passes bring the cascade to 31/48 vs 25/48 at essentially the same reference cost per
+changes is quality per escalation: 13 of 14 escalations rescue, and three extra local
+passes plus three extra rescues bring the cascade to 31/48 vs 25/48 at essentially the same reference cost per
 success ($0.0534 vs $0.0553, −3%) and 20% more cost per attempt ($0.0345 vs $0.0288).
 The local burden is 3.8× the generated tokens and 3.7× the p50 wall (55 s vs 15 s;
 p95 147 s vs 57 s), with a second model resident on the card. Read against R3's
-Nemotron + R4 (89.6% at 66.7% strong calls, $0.0868), the extra budget traded 12
-points of cascade quality and 15 points of frontier utilisation for a 38% lower cost per
-success — but the cheaper configuration is now nowhere near frontier quality (64.6%
+Nemotron + R4 (89.6% at 66.7% strong calls, $0.0868), the extra budget traded 25
+points (12 cases) of cascade quality and 37.5 points (18 cases) of frontier utilisation
+for a 38% lower cost per success — but the cheaper configuration is now nowhere near frontier quality (64.6%
 vs 91.7%) and its 16 silent false negatives are the same family Qwen's gate cannot see.
 
 ### Pre-registered selection rule — outcome: **Nemotron does NOT qualify. TEST untouched.**

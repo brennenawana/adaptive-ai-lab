@@ -63,15 +63,20 @@ def _pctl(xs: list, q: float):
     return xs[min(len(xs) - 1, int(q * len(xs)))] if xs else None
 
 
-def _complete(row: dict) -> bool:
+def _scoreable(row: dict) -> bool:
     return not _no_output(row)
+
+
+def _complete(row: dict) -> bool:
+    """Finished inside the budget (the M4.2 definition); schema validity is separate."""
+    return _stop(row) == "stop"
 
 
 def _classify(before: dict, after: dict) -> str:
     """Only meaningful for a BEFORE row whose stop_reason was `length`."""
     if _stop(after) == "length":
         return "STILL_LENGTH_CAPPED"
-    if not _complete(after):
+    if not _scoreable(after):
         return "OTHER_FAILURE"
     return "RECOVERED_PASS" if after["all_pass"] else "RECOVERED_FAIL"
 
@@ -88,6 +93,10 @@ def _arm(rows: list[dict]) -> dict:
     have_split = [i for i, v in enumerate(reasoning) if v is not None]
     return {
         "n": n,
+        # `scoreable` = schema-valid output (not no-output); `complete` = finished inside the
+        # budget (stop_reason "stop"), the M4.2 definition — the two differ by the
+        # schema-invalid completions (R3 Nemotron: 17 vs 19).
+        "scoreable": sum(1 for r in rows if _scoreable(r)),
         "complete": sum(1 for r in rows if _complete(r)),
         "cap_hits": sum(1 for r in rows if _stop(r) == "length"),
         "stop": dict(Counter(_stop(r) for r in rows)),
@@ -159,7 +168,8 @@ def main() -> None:
         print(f"{label:<32}{fmt(vb):>16}{fmt(va):>16}{d:>10}")
 
     pc = lambda v: f"{v} ({100.0 * v / n:.1f}%)"  # noqa: E731
-    row("complete (scoreable output)", "complete", pc)
+    row("complete (stop inside budget)", "complete", pc)
+    row("scoreable (schema-valid output)", "scoreable", pc)
     row("cap hits (stop=length)", "cap_hits", pc)
     row("no-output (any reason)", "no_output", pc)
     row("strict all-pass", "all_pass", pc)
@@ -195,11 +205,11 @@ def main() -> None:
         per.append({
             "scenario_id": sid, "class": sid[:3], "category": b["category"], "truth": b["truth"],
             "before": {"pass": b["all_pass"], "pattern": _fail_pattern(b), "stop": _stop(b), "out_tok": _out(b),
-                       "complete": _complete(b), "silent": _silent(b), "rc_said": _said(b, "root_cause"),
+                       "complete": _complete(b), "scoreable": _scoreable(b), "silent": _silent(b), "rc_said": _said(b, "root_cause"),
                        "evidence": b["score"]["required_evidence_recall"], "wall_ms": b["score"]["wall_ms"],
                        "digest": b["traj"].get("output_digest")},
             "after": {"pass": a["all_pass"], "pattern": _fail_pattern(a), "stop": _stop(a), "out_tok": _out(a),
-                      "complete": _complete(a), "silent": _silent(a), "rc_said": _said(a, "root_cause"),
+                      "complete": _complete(a), "scoreable": _scoreable(a), "silent": _silent(a), "rc_said": _said(a, "root_cause"),
                       "evidence": a["score"]["required_evidence_recall"], "wall_ms": a["score"]["wall_ms"],
                       "digest": a["traj"].get("output_digest"),
                       "reasoning_chars": _inv(a).get("reasoning_chars"), "content_chars": _inv(a).get("content_chars")},

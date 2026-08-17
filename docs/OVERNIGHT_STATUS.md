@@ -663,7 +663,7 @@ Definitions, fixed now: **complete** = the generation finished inside the budget
 reached its final JSON (`stop_reason == "stop"`) — the notion behind R3's "19
 completed" (19 `stop` = 17 schema-valid + 2 schema-invalid; 29 `length`); a `length`
 stop is by construction not complete. The schema-valid ("scoreable") count is reported
-beside it. *Correction 08:15 UTC, before the Nemotron arm started (Qwen A in flight):
+beside it. *Correction ~08:11 UTC (commit `6742930`), before the Nemotron arm started at 08:21 (Qwen A in flight):
 the first wording defined complete as "schema-valid, scoreable" and claimed that
 equalled 48 − 31 = 19; it equals 17. The rule's threshold (43 = 19 + 24) was written
 against the `stop`-count, so the definition is aligned to it here rather than the
@@ -735,9 +735,10 @@ case.
 | `R3b-qwen2-dev` (B) | Qwen3-8B Q4_K_M | 8 192 | pid 586847 (same) | 09:12–09:24 | 15/48 | 30 | 0.648 | 36 | 6 |
 | `R3b-qwen4096-dev` (diagnostic, after B) | Qwen3-8B Q4_K_M | **4 096** | pid 586847 (same) | 09:25–09:37 | 15/48 | 30 | 0.627 | 35 | 7 (6 schema + 1 `length`: S07-2003006) |
 
-Build `b1-9b05354` on 192/192 invocations; `max_tokens` recorded on every trajectory;
-GPU peak 15 666 MiB (both models resident); Nemotron VmRSS 4.6 → 13.65 GB over its arm;
-WSL available memory never below 24.4 GB.
+Build `b1-9b05354` on 192/192 invocations; `max_tokens` recorded on every trajectory.
+Operator observations (sampler every 10 s, outside the JSON artefacts): GPU peak 15 666
+MiB (both models resident); Nemotron VmRSS 4.6 → 13.65 GB over its arm; WSL available
+memory never below 24.4 GB.
 
 ## M4.5 Reproducibility gate — PASS
 
