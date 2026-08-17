@@ -245,3 +245,60 @@ def test_every_account_balance_pair_is_consistent(corpus, code):
         for acc in world.accounts:
             assert acc["available_balance"] == acc["ledger_balance"], manifest["scenario_id"]
             assert acc["available_balance"] > 0
+
+
+# ---------------------------------------------------------------- reference sanity (V3.3)
+def _gold_answer(manifest, world):
+    """The canonical correct answer, built from the manifest alone: the right label,
+    a sanctioned action, every required id cited, no forbidden phrase. If the scorer
+    cannot pass this, the rubric is inconsistent with itself, not with any model."""
+    from schemas.investigator import Fact, InvestigationResult, NextAction, RootCause, RootCauseLabel
+    services = ("processor", "ledger", "webhook", "identity", "risk", "case")
+    facts = [
+        Fact(claim=f"Record {eid} was read from the {services[i % len(services)]} service",
+             source=f"tool://{services[i % len(services)]}/{eid}", entity_ids=[eid])
+        for i, eid in enumerate(manifest["required_evidence"])
+    ]
+    return InvestigationResult(
+        case_id=manifest["case_id"], classification=manifest["category"],
+        root_cause=RootCause(label=RootCauseLabel(manifest["root_cause"]), confidence=0.85),
+        facts=facts, hypotheses=[],
+        recommended_next_action=NextAction(manifest["acceptable_next_actions"][0]),
+        escalation_required=False, uncertainties=[],
+        summary=f"Diagnosis {manifest['root_cause']} for case {manifest['case_id']}, evidence cited above.",
+    )
+
+
+def _trajectory(passed=True):
+    from schemas import Trajectory, VerificationResult
+    return Trajectory(workflow="w", workflow_version="1", task_type="t", user="u",
+                      experiment_arm="GOLD",
+                      verification=VerificationResult(passed=passed, violations=[]))
+
+
+def test_the_gold_answer_scores_all_pass_for_every_corpus_scenario(corpus):
+    """Scorer against canonical expected answers (release contract § 4, V3.3): the
+    label is in the closed set, the first sanctioned action is a real action, the
+    required ids are citable, and no forbidden phrase hides inside the canonical
+    text (e.g. a category name that contains one)."""
+    from evals.scorers.score import score_case
+    for sid, (world, manifest, _) in corpus.items():
+        score = score_case(result=_gold_answer(manifest, world), trajectory=_trajectory(),
+                           manifest=manifest, run_id="GOLD")
+        assert score.all_pass, f"{sid}: {[d for d in score.dimensions if not d.passed]}"
+
+
+def test_a_wrong_label_or_action_or_forbidden_claim_fails(corpus):
+    from evals.scorers.score import score_case
+    from schemas.investigator import NextAction, RootCause, RootCauseLabel
+    world, manifest, _ = corpus["S08-2003007"]
+    gold = _gold_answer(manifest, world)
+    wrong_label = gold.model_copy(update={"root_cause": RootCause(label=RootCauseLabel("processor_decline"), confidence=0.85)})
+    assert not score_case(result=wrong_label, trajectory=_trajectory(), manifest=manifest, run_id="X").root_cause_correct
+    wrong_action = gold.model_copy(update={"recommended_next_action": NextAction("replay_webhook")})
+    assert not score_case(result=wrong_action, trajectory=_trajectory(), manifest=manifest, run_id="X").next_action_acceptable
+    forbidden = gold.model_copy(update={"summary": "The decline happened because of insufficient funds on the account."})
+    assert score_case(result=forbidden, trajectory=_trajectory(), manifest=manifest, run_id="X").forbidden_claim_made
+    refuted = gold.model_copy(update={"summary": "Insufficient funds is ruled out by the balance; this is a risk hold."})
+    assert not score_case(result=refuted, trajectory=_trajectory(), manifest=manifest, run_id="X").forbidden_claim_made
+    assert not score_case(result=gold, trajectory=_trajectory(passed=False), manifest=manifest, run_id="X").all_pass
