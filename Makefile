@@ -199,12 +199,18 @@ r3-compare: ## R3 — per-scenario Qwen vs Nemotron, and Qwen A vs B (drift), pl
 
 # R3b — the token-budget factor. Identical to eval-r3-dev in every respect except
 # `--max-tokens 8192` for BOTH weak arms (R3 was 4096; Qwen never reached it, Nemotron
-# hit it on 29/48). One factor; same order, same priming, same sessions kept alive.
+# hit it on 29/48). One factor; same order, same priming, one Qwen session throughout.
+# The Nemotron endpoint is (re)started with its unchanged flags right before its arm:
+# an idle `--no-mmap` process was measured at 50 tok/s after ~2.5 h and 93 tok/s
+# fresh — same placement, same digests, but the latency column must be taken in the
+# state R3 recorded (91–95 tok/s), and the probe (a TRAIN case) verifies that first.
 .PHONY: eval-r3b-dev r3b-compare
 eval-r3b-dev: ## R3b — Qwen A, Nemotron, Qwen B on DEV at max_tokens 8192 (nothing else on 8082/8083)
 	$(MAKE) prime-local
 	$(PY) -m evals.runner.run_eval --arm R3b --model-ref local-specialist --split dev \
 	  --prompt cause_action_directed --max-tokens 8192 --run-id R3b-qwen-dev --resume
+	$(MAKE) serve-nemotron
+	$(PY) scripts/model_throughput_probe.py --refs nemotron-lightning --scenario S05-1000004 --repeats 2 --rounds 1
 	$(MAKE) prime-nemotron
 	$(PY) -m evals.runner.run_eval --arm R3b --model-ref nemotron-lightning --split dev \
 	  --prompt cause_action_directed --max-tokens 8192 --run-id R3b-nemotron-dev --resume
