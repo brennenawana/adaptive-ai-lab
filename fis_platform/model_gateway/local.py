@@ -141,6 +141,13 @@ class LocalLlamaCppAdapter(ModelAdapter):
                 # than silently degrading to free-form text.
                 structured = None
 
+        # llama.cpp (--jinja, reasoning-format auto) returns the `<think>` block as
+        # `reasoning_content` beside `content`. A `length` stop with empty content and
+        # a long reasoning_content is the budget meeting the model mid-thought — the
+        # R3 failure mode — and this is the only place that split is observable.
+        reasoning = msg.get("reasoning_content")
+        reasoning_chars = len(reasoning) if isinstance(reasoning, str) else None
+
         resp = GenerationResponse(
             text=msg.get("content") or "",
             structured=structured,
@@ -154,6 +161,7 @@ class LocalLlamaCppAdapter(ModelAdapter):
             latency=LatencyRecord(wall_ms=wall_ms, api_ms=api_ms),
             stop_reason=choice.get("finish_reason"),
             runtime_fingerprint=payload.get("system_fingerprint"),
+            reasoning_chars=reasoning_chars,
             raw=payload,
         )
         return self._annotate(resp, headers)

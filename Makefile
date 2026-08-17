@@ -197,6 +197,30 @@ r3-compare: ## R3 — per-scenario Qwen vs Nemotron, and Qwen A vs B (drift), pl
 	$(PY) scripts/routing_cascade_report.py --weak R3-qwen-dev --strong E4-v2-dev --policy verifier
 	$(PY) scripts/routing_cascade_report.py --weak R3-nemotron-dev --strong E4-v2-dev --policy verifier
 
+# R3b — the token-budget factor. Identical to eval-r3-dev in every respect except
+# `--max-tokens 8192` for BOTH weak arms (R3 was 4096; Qwen never reached it, Nemotron
+# hit it on 29/48). One factor; same order, same priming, same sessions kept alive.
+.PHONY: eval-r3b-dev r3b-compare
+eval-r3b-dev: ## R3b — Qwen A, Nemotron, Qwen B on DEV at max_tokens 8192 (nothing else on 8082/8083)
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm R3b --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --max-tokens 8192 --run-id R3b-qwen-dev --resume
+	$(MAKE) prime-nemotron
+	$(PY) -m evals.runner.run_eval --arm R3b --model-ref nemotron-lightning --split dev \
+	  --prompt cause_action_directed --max-tokens 8192 --run-id R3b-nemotron-dev --resume
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm R3b --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --max-tokens 8192 --run-id R3b-qwen2-dev --resume
+r3b-compare: ## R3b — Qwen A vs B (drift), 8192 vs 4096 per model, migration matrix, unchanged R4 replays
+	$(PY) scripts/compare_routes.py --a R3b-qwen-dev --b R3b-qwen2-dev
+	$(PY) scripts/compare_routes.py --a R3-qwen-dev --b R3b-qwen-dev
+	$(PY) scripts/compare_routes.py --a R3-nemotron-dev --b R3b-nemotron-dev
+	$(PY) scripts/model_migration_matrix.py --incumbent R3b-qwen-dev --candidate R3b-nemotron-dev --strong E4-v2-dev
+	$(PY) scripts/routing_cascade_report.py --weak R3b-qwen-dev --strong E4-v2-dev --policy verifier
+	$(PY) scripts/routing_cascade_report.py --weak R3b-nemotron-dev --strong E4-v2-dev --policy verifier
+	$(PY) scripts/token_budget_delta.py --model qwen --before R3-qwen-dev --after R3b-qwen-dev
+	$(PY) scripts/token_budget_delta.py --model nemotron --before R3-nemotron-dev --after R3b-nemotron-dev
+
 # R2 pairs the frozen weak arm with the strong arm ON DEV. The oracle map is a
 # selection tool; the script refuses the test split without --allow-test.
 .PHONY: eval-e4-dev routing-oracle

@@ -78,6 +78,11 @@ class GenerationResponse(Base):
     stop_reason: str | None = None
     runtime_fingerprint: str | None = Field(
         default=None, description="Backend build id as the backend reports it (llama.cpp system_fingerprint).")
+    reasoning_chars: int | None = Field(
+        default=None,
+        description="Length of the backend's separately-returned reasoning text (llama.cpp "
+                    "`reasoning_content`), when it exposes one. Telemetry: says how much of "
+                    "the generation budget went to thinking rather than to the answer.")
     is_error: bool = False
     error: str | None = None
 

@@ -39,7 +39,7 @@ from fis_platform.tool_broker.broker import ToolBroker
 from schemas.investigator import InvestigationResult
 from schemas.trajectory import RouterDecision, Trajectory
 
-from .investigate import EvidenceMode, investigate
+from .investigate import DEFAULT_MAX_TOKENS, EvidenceMode, investigate
 from .prompts import DEFAULT_PROMPT
 
 
@@ -120,7 +120,11 @@ async def investigate_cascade(
     weak_prompt_ref: str = DEFAULT_PROMPT,
     strong_prompt_ref: str = DEFAULT_PROMPT,
     runtime_context: dict[str, str] | None = None,
+    weak_max_tokens: int = DEFAULT_MAX_TOKENS,
 ) -> CascadeOutcome:
+    """`weak_max_tokens` is the WEAK stage's generation budget (the R3b factor). The
+    strong stage keeps `investigate()`'s default: the frontier CLI does not take a
+    token budget, and the cascade experiments vary the weak tier only."""
     ctx = dict(runtime_context or {})
     ctx["cascade_policy"] = policy.value
 
@@ -128,6 +132,7 @@ async def investigate_cascade(
         case_id, gateway=gateway, broker=broker, model_ref=weak_ref,
         experiment_arm=experiment_arm, mode=mode, scenario_id=scenario_id,
         prompt_ref=weak_prompt_ref, runtime_context={**ctx, "stage": "weak"},
+        max_tokens=weak_max_tokens,
     )
     sig = signals_from(weak_result, weak_traj)
     escalate, reason = should_escalate(sig, policy)

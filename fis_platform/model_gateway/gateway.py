@@ -96,7 +96,11 @@ def default_registry() -> ModelRegistry:
             canonical_model="qwen3-8b",
             quantization="Q4_K_M",
             context_window=16_384,
-            max_output_tokens=4096,
+            # Ceiling, not the budget: a run picks its budget with `--max-tokens`
+            # (default 4096, every recorded run before R3b). 8192 is the largest
+            # value the served 16k context holds beside the longest FIS prompt
+            # (~3.5k tokens) with headroom — the R3b level.
+            max_output_tokens=8192,
             supports_tool_calling=True,
             supports_structured_output=True,   # GBNF-constrained decoding
             supports_seed=True,                # the reproducible baseline arm
@@ -117,7 +121,7 @@ def default_registry() -> ModelRegistry:
             canonical_model="nemotron-3.5-lightning-30b-a3b",
             quantization="IQ4_XS",
             context_window=16_384,
-            max_output_tokens=4096,
+            max_output_tokens=8192,            # same ceiling as local-specialist (R3b)
             supports_tool_calling=True,
             supports_structured_output=True,
             supports_seed=True,
@@ -139,7 +143,7 @@ def default_registry() -> ModelRegistry:
             canonical_model="qwen3-8b",
             quantization="Q4_K_M",
             context_window=16_384,
-            max_output_tokens=4096,
+            max_output_tokens=8192,            # identical to local-specialist by construction
             supports_tool_calling=True,
             supports_structured_output=True,
             supports_seed=True,

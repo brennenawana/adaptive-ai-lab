@@ -35,6 +35,13 @@ WORKFLOW = "fintech_case_investigation"
 WORKFLOW_VERSION = "1.0.0"
 PROMPT_VERSION = "1"
 
+# The generation budget every arm was baselined with (E2 … R4, R3). It is a
+# decoding-config factor, not a model property: R3 showed the candidate weak arm
+# still inside `<think>` at this cap on 29/48 dev cases, and R3b varies exactly this
+# number for both weak arms. Callers that do not say otherwise get the historical
+# value, so every recorded run stays reproducible from its make target.
+DEFAULT_MAX_TOKENS = 4096
+
 
 class EvidenceMode(StrEnum):
     AGENTIC = "agentic"
@@ -139,6 +146,7 @@ async def investigate(
     prompt_ref: str = DEFAULT_PROMPT,
     user: str = "eval-runner",
     runtime_context: dict[str, str] | None = None,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
 ) -> tuple[InvestigationResult | None, Trajectory]:
     traj = Trajectory(
         trace_id=new_trace_id(),
@@ -207,7 +215,7 @@ async def investigate(
             messages=transcript,
             json_schema=schema if mode is EvidenceMode.FIXED_EVIDENCE else None,
             tools=openai_tool_specs() if mode is EvidenceMode.AGENTIC else None,
-            max_tokens=4096,
+            max_tokens=max_tokens,
             trace_id=str(traj.trace_id),
             purpose="investigate",
         )
@@ -221,6 +229,9 @@ async def investigate(
             usage=resp.usage, cost=resp.cost, latency=resp.latency,
             stop_reason=resp.stop_reason, routing=resp.routing,
             runtime_fingerprint=resp.runtime_fingerprint,
+            max_tokens=max_tokens,
+            reasoning_chars=resp.reasoning_chars,
+            content_chars=len(resp.text) if resp.text else 0,
         ))
 
         if resp.is_error:

@@ -31,7 +31,7 @@ from fis_platform.model_gateway import ModelGateway, default_registry  # noqa: E
 from fis_platform.tool_broker.broker import ToolBroker  # noqa: E402
 from schemas.scenario import EvalRun, SeedSplit  # noqa: E402
 from services.ai_orchestrator.cascade import EscalationPolicy, investigate_cascade  # noqa: E402
-from services.ai_orchestrator.investigate import EvidenceMode, investigate  # noqa: E402
+from services.ai_orchestrator.investigate import DEFAULT_MAX_TOKENS, EvidenceMode, investigate  # noqa: E402
 from services.ai_orchestrator.prompts import DEFAULT_PROMPT, PROMPTS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -85,6 +85,26 @@ def local_server_session(base_url: str) -> dict[str, str]:
     except Exception:  # noqa: BLE001
         pass
     return ctx
+
+
+def config_digest(*, model_ref: str, mode: str, prompt: str,
+                  escalate_to: str | None = None, escalation_policy: str | None = None,
+                  strong_prompt: str | None = None,
+                  max_tokens: int = DEFAULT_MAX_TOKENS) -> str:
+    """The run's configuration string, recorded on `EvalRun.config_digest`.
+
+    Two arms with the same digest are the same configuration. The historical form is
+    `model|mode|prompt` (+ the cascade suffix), and every run before R3b was made at
+    the default budget, so the budget is appended ONLY when it differs from the
+    default: a run at 4096 keeps the digest its predecessors recorded, and a run at
+    any other budget can never be mistaken for one of them.
+    """
+    digest = f"{model_ref}|{mode}|{prompt}"
+    if escalate_to:
+        digest += f"|cascade:{escalation_policy}->{escalate_to}|{strong_prompt}"
+    if max_tokens != DEFAULT_MAX_TOKENS:
+        digest += f"|max_tokens:{max_tokens}"
+    return digest
 
 
 def load_manifests(conn, split: str, limit: int | None) -> list[dict]:
@@ -157,13 +177,30 @@ async def main() -> None:
                     choices=[p.value for p in EscalationPolicy])
     ap.add_argument("--strong-prompt", default=DEFAULT_PROMPT, choices=sorted(PROMPTS),
                     help="Prompt for the strong stage (default: the control, as E4 was baselined).")
+    # R3b — the generation budget as an explicit factor. Applies to --model-ref (the
+    # weak stage in a cascade); the strong stage keeps the default.
+    ap.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS,
+                    help=f"Generation budget for --model-ref (default {DEFAULT_MAX_TOKENS}, the "
+                         "budget every recorded run was made with). Recorded on every "
+                         "invocation and, when non-default, in the config digest.")
     args = ap.parse_args()
+    if args.max_tokens < 256:
+        raise SystemExit(f"--max-tokens {args.max_tokens} is below the manifest minimum (256)")
 
     run_id = args.run_id or f"{args.arm}-{args.model_ref}-{args.split}"
     gateway = ModelGateway(default_registry())
 
     manifest = gateway.registry.resolve(args.model_ref)
-    runtime_context = {"run_id": run_id, "model_ref": args.model_ref, "prompt": args.prompt}
+    if args.max_tokens > manifest.max_output_tokens:
+        raise SystemExit(f"--max-tokens {args.max_tokens} exceeds {args.model_ref}'s declared "
+                         f"ceiling max_output_tokens={manifest.max_output_tokens}")
+    if args.max_tokens + 3_600 > manifest.context_window:
+        # The largest dev/test prompt is ~3.5k tokens (either tokenizer). A budget the
+        # context cannot hold would fail mid-run on the longest case, not at start.
+        raise SystemExit(f"--max-tokens {args.max_tokens} + a ~3.6k-token prompt exceeds "
+                         f"{args.model_ref}'s context window ({manifest.context_window})")
+    runtime_context = {"run_id": run_id, "model_ref": args.model_ref, "prompt": args.prompt,
+                       "max_tokens": str(args.max_tokens)}
     if args.escalate_to:
         gateway.registry.resolve(args.escalate_to)   # fail loudly before any case runs
         runtime_context["escalate_to"] = args.escalate_to
@@ -195,9 +232,9 @@ async def main() -> None:
         # tool set gained the vendor-window form of get_verifications. Neither the
         # root-cause set nor the cause->action mapping changed, but the suite a score
         # was measured against did — v1 numbers are not comparable to v2 numbers.
-        digest = f"{args.model_ref}|{args.mode}|{args.prompt}"
-        if args.escalate_to:
-            digest += f"|cascade:{args.escalation_policy}->{args.escalate_to}|{args.strong_prompt}"
+        digest = config_digest(model_ref=args.model_ref, mode=args.mode, prompt=args.prompt,
+                               escalate_to=args.escalate_to, escalation_policy=args.escalation_policy,
+                               strong_prompt=args.strong_prompt, max_tokens=args.max_tokens)
         run = EvalRun(run_id=run_id, suite="fis-eval", suite_version="2",
                       experiment_arm=args.arm, split=SeedSplit(args.split),
                       config_digest=digest)
@@ -215,6 +252,7 @@ async def main() -> None:
                             scenario_id=m["scenario_id"], weak_prompt_ref=args.prompt,
                             strong_prompt_ref=args.strong_prompt,
                             runtime_context=runtime_context,
+                            weak_max_tokens=args.max_tokens,
                         )
                         result, traj = out.result, out.trajectory
                     else:
@@ -224,6 +262,7 @@ async def main() -> None:
                             model_ref=args.model_ref, experiment_arm=args.arm,
                             mode=EvidenceMode(args.mode), scenario_id=m["scenario_id"],
                             prompt_ref=args.prompt, runtime_context=runtime_context,
+                            max_tokens=args.max_tokens,
                         )
                 except Exception as exc:  # noqa: BLE001 — one bad case must not kill the run
                     print(f"[{i}/{len(pending)}] {m['scenario_id']}  EXCEPTION {exc}")
@@ -249,12 +288,15 @@ async def main() -> None:
 
             mark = "PASS" if score.all_pass else "fail"
             said = result.root_cause.label.value if result else "-"
+            # First invocation = the model under test (the weak stage in a cascade).
+            inv = traj.model_invocations[0] if traj.model_invocations else None
+            gen = (f"{inv.usage.output_tokens:>5}tok/{inv.stop_reason or '?'}" if inv else "")
             print(f"[{i}/{len(pending)}] {m['scenario_id']:<12} {mark:<4} "
                   f"rc={'ok' if score.root_cause_correct else 'X'} "
                   f"ev={score.required_evidence_recall:.2f} "
                   f"act={'ok' if score.next_action_acceptable else 'X'} "
                   f"ver={'ok' if score.verifier_passed else 'X'} "
-                  f"{score.wall_ms:>6}ms  ${score.reference_cost_usd:.4f}  {said}{route}")
+                  f"{score.wall_ms:>6}ms {gen}  ${score.reference_cost_usd:.4f}  {said}{route}")
 
     print("\n" + "=" * 78)
     print(f"strict all-pass    : {_pct(run.strict_all_pass_rate)}")

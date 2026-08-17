@@ -101,6 +101,22 @@ class ModelInvocation(Base):
     # server session; the build is the first thing to compare when two runs disagree.
     runtime_fingerprint: str | None = None
 
+    # The generation budget this invocation was made with. R3 found a whole class of
+    # failures — `stop_reason == "length"` with an empty answer — that are the budget
+    # meeting the model's reasoning length, not a wrong answer; two runs that differ
+    # only here (R3b) must be distinguishable per invocation, not just per run.
+    # None on records written before the field existed (all of them were 4096).
+    max_tokens: int | None = None
+
+    # Observation only, filled by adapters that expose the split (llama.cpp returns
+    # `reasoning_content` beside `content` for thinking models). Lengths in characters
+    # because the backend does not report reasoning tokens separately; the answer is
+    # grammar-constrained JSON so `content_chars` tracks answer tokens closely enough
+    # to say how much of the budget went to thinking. Never read by the model or the
+    # router. None where the adapter cannot observe it.
+    reasoning_chars: int | None = None
+    content_chars: int | None = None
+
 
 class RetrievalRef(FrozenBase):
     document_id: str
