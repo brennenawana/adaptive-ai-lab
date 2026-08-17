@@ -235,6 +235,11 @@ async def investigate(
         ))
 
         if resp.is_error:
+            if (resp.error or "").startswith("api_error_status="):
+                # An upstream API failure (5xx/429 through the CLI) is not a model
+                # answer. Raise so the runner skips the case unpersisted and --resume
+                # retries it, instead of scoring a transient outage as a no-output.
+                raise RuntimeError(f"upstream API error on {model_ref}: {resp.error}")
             traj.error = resp.error
             traj.tool_calls = list(broker.calls)
             return None, traj

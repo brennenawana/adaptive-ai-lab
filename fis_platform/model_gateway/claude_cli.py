@@ -123,7 +123,12 @@ class ClaudeCliAdapter(ModelAdapter):
             ),
             stop_reason=payload.get("stop_reason"),
             is_error=bool(payload.get("is_error")),
-            error=payload.get("api_error_status"),
+            # `api_error_status` is an HTTP status (an int) when the API failed — an
+            # upstream 500 must surface as an error response the runner records or
+            # retries on --resume, not as a pydantic ValidationError that drops the
+            # case (E4-v3-dev, three cases on 2026-08-17).
+            error=(None if payload.get("api_error_status") is None
+                   else f"api_error_status={payload.get('api_error_status')}"),
             raw=payload,
         )
 
