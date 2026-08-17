@@ -45,6 +45,7 @@ from psycopg.rows import dict_row
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from fis_platform.suite import require_comparable  # noqa: E402
 from services.ai_orchestrator.cascade import (  # noqa: E402
     EscalationPolicy, EscalationSignals, should_escalate,
 )
@@ -127,12 +128,17 @@ def main() -> None:
     ap.add_argument("--policy", default=EscalationPolicy.VERIFIER.value,
                     choices=[p.value for p in EscalationPolicy], help="replay policy")
     ap.add_argument("--json-out")
+    ap.add_argument("--allow-cross-suite", action="store_true",
+                    help="Proceed even if the runs (or the corpus) span suite versions; the "
+                         "caveat is printed. Cross-suite numbers are structural, not causal.")
     args = ap.parse_args()
     if not args.cascade and not args.weak:
         raise SystemExit("need --cascade RUN (live) or --weak RUN (replay)")
 
     weak_id = args.weak or f"{args.cascade}.weak"
     with psycopg.connect(DSN) as conn:
+        require_comparable(conn, [weak_id, args.strong, *([args.cascade] if args.cascade else [])], allow_cross_suite=args.allow_cross_suite,
+                           against_corpus=True)
         weak = _load(conn, weak_id)
         strong = _load(conn, args.strong)
         cascade = _load(conn, args.cascade) if args.cascade else None

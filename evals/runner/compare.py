@@ -19,17 +19,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 DSN = os.environ.get("FIS_PG_DSN", "postgresql://fis:fis_local_dev@127.0.0.1:5433/fis")
 
-# Runs scored against eval suite v1 — the PRE-migration corpus, where failures were
-# written by the generator rather than produced by the pipeline and five scenario
-# classes had structurally unreachable evidence.
-#
+from fis_platform.suite import SUITE_VERSION  # noqa: E402
+
 # This table is the one place every arm appears side by side, which makes it the one
 # place a reader is most likely to subtract two numbers that cannot be subtracted.
-# Marking the rows is cheaper than trusting everyone to remember.
-SUITE_V1_RUNS = {"E2-local-96", "E2-local-specialist-test", "E4-claude-frontier-test"}
-
+# Every row is labelled with the suite it was scored against (`learning.case_scores.
+# suite_version`, migration 006), and the footnote appears whenever more than one
+# suite is present. Suite 1 is the pre-migration corpus (failures written by the
+# generator, five classes with unreachable evidence); suite 2 the event-sourced corpus;
+# suite 3 the corpus after the four benchmark-defect fixes of
+# SUITE_V3_RELEASE_CONTRACT.md. Rows from different suites answer different questions.
 QUERY = """
 SELECT run_id,
+       coalesce(suite_version, '?')                                AS suite,
        experiment_arm                                              AS arm,
        count(*)                                                    AS n,
        avg((all_pass)::int)                                        AS all_pass,
@@ -51,8 +53,8 @@ SELECT run_id,
        avg((payload->>'tool_calls_total')::float)                  AS tools,
        sum((payload->>'reference_cost_usd')::float)                AS total_cost
 FROM learning.case_scores
-GROUP BY run_id, experiment_arm
-ORDER BY experiment_arm, run_id;
+GROUP BY run_id, suite_version, experiment_arm
+ORDER BY suite_version DESC, experiment_arm, run_id;
 """
 
 
@@ -69,7 +71,7 @@ def main() -> None:
         print("no scored runs yet — run `make eval-e2`")
         return
 
-    hdr = (f"{'run':<26}{'n':>4}{'all-pass':>10}{'root':>8}{'evid':>8}{'act':>8}"
+    hdr = (f"{'run':<30}{'n':>4}{'all-pass':>10}{'root':>8}{'evid':>8}{'act':>8}"
            f"{'act|rc':>8}{'ver':>8}{'unsup':>7}{'forb':>6}{'cloud':>8}{'p50':>8}"
            f"{'p95':>8}{'tools':>7}{'$/win':>9}")
     print(hdr)
@@ -78,9 +80,9 @@ def main() -> None:
     for r in rows:
         wins = float(r["all_pass"] or 0) * r["n"]
         cost_per_win = (r["total_cost"] / wins) if wins else None
-        label = r["run_id"] + (" †" if r["run_id"] in SUITE_V1_RUNS else "")
+        label = f"[v{r['suite']}] {r['run_id']}"
         print(
-            f"{label:<26}{r['n']:>4}{_pct(r['all_pass']):>10}{_pct(r['root_cause']):>8}"
+            f"{label:<30}{r['n']:>4}{_pct(r['all_pass']):>10}{_pct(r['root_cause']):>8}"
             f"{_pct(r['evidence']):>8}{_pct(r['action']):>8}"
             f"{_pct(r['action_given_cause']):>8}{_pct(r['verifier']):>8}"
             f"{r['unsupported'] or 0:>7}{r['forbidden'] or 0:>6}{_pct(r['cloud']):>8}"
@@ -95,12 +97,13 @@ def main() -> None:
     print("act|rc is action accuracy among cases whose ROOT CAUSE was correct — the")
     print("E6 metric. Aggregate act rises by guessing common actions; act|rc does not.")
 
-    if any(r["run_id"] in SUITE_V1_RUNS for r in rows):
-        print("\n† scored against eval suite v1, the PRE-migration corpus. Not comparable")
-        print("  to any v2 run: the corpus is regenerated (failures are now produced by")
-        print("  the consumers, not written by the generator) and five scenario classes")
-        print("  had structurally unreachable required evidence. Rows above and below")
-        print("  this line answer different questions — do not subtract them.")
+    suites = sorted({r["suite"] for r in rows}, reverse=True)
+    if len(suites) > 1:
+        print(f"\n[vN] is the eval suite the run was scored against (current code: v{SUITE_VERSION}).")
+        print("Rows from different suites were measured on different corpora and rules and")
+        print("answer different questions — do not subtract them. v1: pre-migration corpus")
+        print("(five classes with unreachable evidence); v2: event-sourced corpus; v3: after")
+        print("the four benchmark-defect fixes (docs/SUITE_V3_RELEASE_CONTRACT.md).")
 
 
 if __name__ == "__main__":

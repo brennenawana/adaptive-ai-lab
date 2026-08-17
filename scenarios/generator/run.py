@@ -39,6 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from fis_platform.events.bus import DOMAIN_STREAM, WEBHOOK_STREAM, EventBus  # noqa: E402
 from fis_platform.events.envelope import Subject  # noqa: E402
 from fis_platform.events.projection import project  # noqa: E402
+from fis_platform.suite import SUITE_VERSION  # noqa: E402
 from scenarios.generator import catalog  # noqa: E402,F401  (registers builders)
 from scenarios.generator.catalog import BUILDERS  # noqa: E402
 from scenarios.generator.world import EPOCH, Clock, Ids, World  # noqa: E402
@@ -174,13 +175,16 @@ def write(conn: psycopg.Connection, world: World, manifest: dict) -> None:
                 ],
             )
 
+        # The suite version rides on every manifest: scenario ids are seed-derived and
+        # identical across suites, so this column is what tells a v3 corpus from a v2
+        # one — the runner refuses to score a corpus whose suite is not its own.
         cur.execute(
             """
             INSERT INTO ground_truth.scenario_manifests
               (scenario_id, seed, split, category, root_cause, required_evidence,
                acceptable_next_actions, forbidden_claims, distractor_event_ids,
-               case_id, subject_ids)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+               case_id, subject_ids, suite_version)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT (scenario_id) DO NOTHING
             """,
             (
@@ -188,7 +192,7 @@ def write(conn: psycopg.Connection, world: World, manifest: dict) -> None:
                 manifest["category"], manifest["root_cause"],
                 manifest["required_evidence"], manifest["acceptable_next_actions"],
                 manifest["forbidden_claims"], manifest["distractor_event_ids"],
-                manifest["case_id"], Jsonb(manifest["subject_ids"]),
+                manifest["case_id"], Jsonb(manifest["subject_ids"]), SUITE_VERSION,
             ),
         )
 

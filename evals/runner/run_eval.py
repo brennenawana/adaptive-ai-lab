@@ -26,12 +26,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from dotenv import load_dotenv  # noqa: E402
 
-from evals.scorers.score import score_case  # noqa: E402
+from evals.scorers.score import SCORER_VERSION, score_case  # noqa: E402
 from fis_platform.model_gateway import ModelGateway, default_registry  # noqa: E402
+from fis_platform.suite import (  # noqa: E402
+    ONTOLOGY_VERSION, SUITE_VERSION, SuiteMismatch, corpus_suite, git_head, suite_of_run,
+)
 from fis_platform.tool_broker.broker import ToolBroker  # noqa: E402
+from fis_platform.verification.verifier import VERIFIER_VERSION  # noqa: E402
 from schemas.scenario import EvalRun, SeedSplit  # noqa: E402
+from scripts.corpus_digest import corpus_digest  # noqa: E402
 from services.ai_orchestrator.cascade import EscalationPolicy, investigate_cascade  # noqa: E402
-from services.ai_orchestrator.investigate import DEFAULT_MAX_TOKENS, EvidenceMode, investigate  # noqa: E402
+from services.ai_orchestrator.investigate import (  # noqa: E402
+    DEFAULT_MAX_TOKENS, PROMPT_VERSION, WORKFLOW_VERSION, EvidenceMode, investigate,
+)
 from services.ai_orchestrator.prompts import DEFAULT_PROMPT, PROMPTS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -130,6 +137,31 @@ def already_done(conn, run_id: str) -> set[str]:
         return {r[0] for r in cur.fetchall()}
 
 
+def guard_suite(conn, run_id: str, split: str, resume: bool) -> None:
+    """Refuse the two ways a suite bump can be silently absorbed.
+
+    1. Code and corpus disagree: the manifests in the database were generated for a
+       different suite than this runner scores against. Every score would be
+       measured against the wrong worlds and labelled with the wrong version.
+    2. A run id is reused across suites: `--resume` would treat the old suite's rows
+       as done, and a fresh run would keep the old rows via ON CONFLICT DO NOTHING.
+       Either way one run id would carry two suites' numbers.
+    """
+    corpus = corpus_suite(conn)
+    if corpus != SUITE_VERSION:
+        raise SuiteMismatch(
+            f"the corpus in the database is suite {corpus!r} but this code scores suite "
+            f"{SUITE_VERSION!r} — run `make migrate corpus` (and `make reachability`) first")
+    existing = suite_of_run(conn, run_id)
+    if existing is not None and existing != SUITE_VERSION:
+        raise SuiteMismatch(
+            f"run id {run_id!r} already holds suite-{existing} scores; a suite-{SUITE_VERSION} run "
+            "needs its own run id")
+    if existing is not None and not resume:
+        raise SuiteMismatch(
+            f"run id {run_id!r} already has scores; pass --resume to continue it or choose a new id")
+
+
 def persist(conn, run_id: str, score, trajectory) -> None:
     with conn.cursor() as cur:
         cur.execute(
@@ -144,11 +176,11 @@ def persist(conn, run_id: str, score, trajectory) -> None:
         )
         cur.execute(
             """INSERT INTO learning.case_scores
-                 (run_id, scenario_id, trace_id, experiment_arm, payload, all_pass)
-               VALUES (%s,%s,%s,%s,%s,%s)
+                 (run_id, scenario_id, trace_id, experiment_arm, payload, all_pass, suite_version)
+               VALUES (%s,%s,%s,%s,%s,%s,%s)
                ON CONFLICT (run_id, scenario_id) DO NOTHING""",
             (run_id, score.scenario_id, str(trajectory.trace_id), score.experiment_arm,
-             Jsonb(json.loads(score.model_dump_json())), score.all_pass),
+             Jsonb(json.loads(score.model_dump_json())), score.all_pass, SUITE_VERSION),
         )
     conn.commit()
 
@@ -200,7 +232,13 @@ async def main() -> None:
         raise SystemExit(f"--max-tokens {args.max_tokens} + a ~3.6k-token prompt exceeds "
                          f"{args.model_ref}'s context window ({manifest.context_window})")
     runtime_context = {"run_id": run_id, "model_ref": args.model_ref, "prompt": args.prompt,
-                       "max_tokens": str(args.max_tokens)}
+                       "max_tokens": str(args.max_tokens),
+                       # Suite v3: enough identity on every trajectory to tie a score to
+                       # the suite, the scoring code and the commit that produced it.
+                       "suite_version": SUITE_VERSION, "scorer_version": SCORER_VERSION,
+                       "verifier_version": VERIFIER_VERSION, "ontology_version": ONTOLOGY_VERSION,
+                       "prompt_version": PROMPT_VERSION, "workflow_version": WORKFLOW_VERSION,
+                       "git_head": git_head()}
     if args.escalate_to:
         gateway.registry.resolve(args.escalate_to)   # fail loudly before any case runs
         runtime_context["escalate_to"] = args.escalate_to
@@ -217,6 +255,8 @@ async def main() -> None:
             os.environ.get("FIS_LOCAL_MODEL_BASE_URL", "http://127.0.0.1:8082/v1")))
 
     with psycopg.connect(OWNER_DSN) as owner:
+        guard_suite(owner, run_id, args.split, args.resume)
+        runtime_context["corpus_digest"] = corpus_digest(owner)["digest"]
         manifests = load_manifests(owner, args.split, args.limit)
         done = already_done(owner, run_id) if args.resume else set()
         pending = [m for m in manifests if m["scenario_id"] not in done]
@@ -227,15 +267,13 @@ async def main() -> None:
         print("runtime: " + "  ".join(f"{k}={v}" for k, v in runtime_context.items()
                                      if k not in ("run_id", "model_ref", "prompt")) + "\n")
 
-        # v2: the event migration. The corpus is regenerated (failures are now
-        # produced by the consumers rather than written by the generator) and the
-        # tool set gained the vendor-window form of get_verifications. Neither the
-        # root-cause set nor the cause->action mapping changed, but the suite a score
-        # was measured against did — v1 numbers are not comparable to v2 numbers.
+        # The suite a score is measured against is `fis_platform.suite.SUITE_VERSION`
+        # (v2: the event migration; v3: the four benchmark-defect fixes of
+        # SUITE_V3_RELEASE_CONTRACT.md). Numbers are never comparable across it.
         digest = config_digest(model_ref=args.model_ref, mode=args.mode, prompt=args.prompt,
                                escalate_to=args.escalate_to, escalation_policy=args.escalation_policy,
                                strong_prompt=args.strong_prompt, max_tokens=args.max_tokens)
-        run = EvalRun(run_id=run_id, suite="fis-eval", suite_version="2",
+        run = EvalRun(run_id=run_id, suite="fis-eval", suite_version=SUITE_VERSION,
                       experiment_arm=args.arm, split=SeedSplit(args.split),
                       config_digest=digest)
         escalations = 0

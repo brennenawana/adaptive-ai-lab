@@ -34,6 +34,7 @@ from psycopg.rows import dict_row
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from fis_platform.suite import require_comparable  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 DSN = os.environ.get("FIS_PG_DSN", "postgresql://fis:fis_local_dev@127.0.0.1:5433/fis")
 
@@ -109,9 +110,14 @@ def main() -> None:
     ap.add_argument("--a", required=True, help="control run_id (direct path)")
     ap.add_argument("--b", required=True, help="candidate run_id (routed path)")
     ap.add_argument("--json-out")
+    ap.add_argument("--allow-cross-suite", action="store_true",
+                    help="Proceed even if the runs (or the corpus) span suite versions; the "
+                         "caveat is printed. Cross-suite numbers are structural, not causal.")
     args = ap.parse_args()
 
     with psycopg.connect(DSN) as conn:
+        require_comparable(conn, [args.a, args.b], allow_cross_suite=args.allow_cross_suite,
+                           against_corpus=False)
         A, B = _load(conn, args.a), _load(conn, args.b)
 
     common = sorted(set(A) & set(B))

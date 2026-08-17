@@ -36,6 +36,7 @@ from psycopg.rows import dict_row
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from fis_platform.suite import require_comparable  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 DSN = os.environ.get("FIS_PG_DSN", "postgresql://fis:fis_local_dev@127.0.0.1:5433/fis")
 
@@ -100,6 +101,9 @@ def main() -> None:
                          "designed from this output on test is tuned against test.")
     ap.add_argument("--json-out", help="Write the full paired table here (default: "
                                        "evals/reports/routing-oracle-<weak>-vs-<strong>.json)")
+    ap.add_argument("--allow-cross-suite", action="store_true",
+                    help="Proceed even if the runs (or the corpus) span suite versions; the "
+                         "caveat is printed. Cross-suite numbers are structural, not causal.")
     args = ap.parse_args()
 
     if args.split == "test" and not args.allow_test:
@@ -107,6 +111,8 @@ def main() -> None:
                          "oracle map is a selection tool and selection happens on dev")
 
     with psycopg.connect(DSN) as conn:
+        require_comparable(conn, [args.weak, args.strong], allow_cross_suite=args.allow_cross_suite,
+                           against_corpus=True)
         weak = _load(conn, args.weak)
         strong = _load(conn, args.strong)
 

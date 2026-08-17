@@ -35,6 +35,7 @@ import psycopg
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from fis_platform.suite import require_comparable  # noqa: E402
 from scripts.model_migration_matrix import _load, _no_output, _silent  # noqa: E402
 from scripts.routing_cascade_report import _signals  # noqa: E402
 from services.ai_orchestrator.cascade import EscalationPolicy, should_escalate  # noqa: E402
@@ -70,9 +71,14 @@ def main() -> None:
     ap.add_argument("--strong", default="E4-v2-dev")
     ap.add_argument("--historical-nemotron", default="R3-nemotron-dev")
     ap.add_argument("--json-out")
+    ap.add_argument("--allow-cross-suite", action="store_true",
+                    help="Proceed even if the runs (or the corpus) span suite versions; the "
+                         "caveat is printed. Cross-suite numbers are structural, not causal.")
     args = ap.parse_args()
 
     with psycopg.connect(DSN) as conn:
+        require_comparable(conn, [args.qwen_a, args.qwen_b, args.nemotron, args.strong, args.historical_nemotron], allow_cross_suite=args.allow_cross_suite,
+                           against_corpus=True)
         QA, QB, N, S = (_load(conn, args.qwen_a), _load(conn, args.qwen_b),
                         _load(conn, args.nemotron), _load(conn, args.strong))
         H = _load(conn, args.historical_nemotron)

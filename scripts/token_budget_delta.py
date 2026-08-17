@@ -40,6 +40,7 @@ import psycopg
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from fis_platform.suite import require_comparable  # noqa: E402
 from scripts.model_migration_matrix import (  # noqa: E402
     _fail_pattern, _inv, _load, _no_output, _said, _silent,
 )
@@ -134,9 +135,14 @@ def main() -> None:
     ap.add_argument("--after", required=True, help="run id at the new budget")
     ap.add_argument("--strong", default="E4-v2-dev", help="strong reference run for false-negative counts")
     ap.add_argument("--json-out")
+    ap.add_argument("--allow-cross-suite", action="store_true",
+                    help="Proceed even if the runs (or the corpus) span suite versions; the "
+                         "caveat is printed. Cross-suite numbers are structural, not causal.")
     args = ap.parse_args()
 
     with psycopg.connect(DSN) as conn:
+        require_comparable(conn, [args.before, args.after, *([args.strong] if args.strong else [])], allow_cross_suite=args.allow_cross_suite,
+                           against_corpus=True)
         B = _load(conn, args.before)
         A = _load(conn, args.after)
         try:

@@ -68,7 +68,7 @@ switchyard-stats: ## Gateway-side per-model counters (requests, tokens, latency)
 	@curl -s --max-time 3 http://127.0.0.1:4000/v1/stats | $(PY) -m json.tool
 
 # ---------------------------------------------------------------- data
-.PHONY: scenarios scenarios-dry corpus
+.PHONY: scenarios-dry corpus corpus-digest corpus-determinism
 scenarios-dry: ## Build scenarios in memory, write nothing
 	$(PY) -m scenarios.generator.run --dry-run --per-class 1
 corpus: ## Regenerate the full frozen corpus (96 test / 48 dev / 144 train)
@@ -81,6 +81,15 @@ corpus: ## Regenerate the full frozen corpus (96 test / 48 dev / 144 train)
 	$(PY) -m scenarios.generator.run --split test  --per-class 8 --reset
 	$(PY) -m scenarios.generator.run --split dev   --per-class 4
 	$(PY) -m scenarios.generator.run --split train --per-class 12
+# The corpus identity a run is tied to (recorded in every trajectory's runtime_context).
+CORPUS_MANIFEST := scenarios/manifests/corpus_v$(shell $(PY) -c 'from fis_platform.suite import SUITE_VERSION; print(SUITE_VERSION)').json
+corpus-digest: ## Record the canonical corpus digest (suite v3 release gate: determinism)
+	$(PY) scripts/corpus_digest.py --write $(CORPUS_MANIFEST)
+corpus-determinism: ## Regenerate the whole corpus again and check the digest is identical
+	# Two full generations under the same seeds and code must give the same worlds
+	# down to every row a model could observe. Run `make corpus corpus-digest` first.
+	$(MAKE) corpus
+	$(PY) scripts/corpus_digest.py --check $(CORPUS_MANIFEST)
 
 # ---------------------------------------------------------------- evals
 # Every arm is resumable: subscription rate limits WILL interrupt a long run, and
@@ -227,6 +236,53 @@ r3b-compare: ## R3b — Qwen A vs B (drift), 8192 vs 4096 per model, migration m
 	$(PY) scripts/token_budget_delta.py --model qwen --before R3-qwen-dev --after R3b-qwen-dev
 	$(PY) scripts/token_budget_delta.py --model nemotron --before R3-nemotron-dev --after R3b-nemotron-dev
 
+# ---------------------------------------------------------------- Suite v3 baselines
+# docs/SUITE_V3_RELEASE_CONTRACT.md § 6, pre-registered. Design A as R3/R3b: one
+# server session per model, same order, each endpoint primed, Nemotron restarted with
+# its unchanged flags and probed with a TRAIN case right before its arm (an idle
+# --no-mmap process degrades to ~50 tok/s), nothing else on 8082/8083, FIS_LIVE_TESTS
+# unset. Budgets are per-arm operating envelopes: Qwen 4096, Nemotron 8192, frontier
+# the CLI default. Cascade baselines come from REPLAY of the unchanged R4 policy.
+.PHONY: eval-v3-dev eval-e4-v3-dev v3-dev-analysis eval-v3-test v3-test-analysis
+eval-e4-v3-dev: ## Suite v3 — frontier on DEV (the sanity run; doubles as the DEV baseline if the suite is unchanged after it)
+	$(PY) -m evals.runner.run_eval --arm V3 --model-ref claude-frontier --split dev \
+	  --prompt baseline --run-id E4-v3-dev --resume
+eval-v3-dev: ## Suite v3 — Qwen A (4096), Nemotron (8192, restarted+probed), Qwen B on DEV
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm V3 --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --max-tokens 4096 --run-id V3-qwen-dev --resume
+	$(MAKE) serve-nemotron
+	$(PY) scripts/model_throughput_probe.py --refs nemotron-lightning --scenario S05-1000004 --repeats 2 --rounds 1
+	$(MAKE) prime-nemotron
+	$(PY) -m evals.runner.run_eval --arm V3 --model-ref nemotron-lightning --split dev \
+	  --prompt cause_action_directed --max-tokens 8192 --run-id V3-nemotron-dev --resume
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm V3 --model-ref local-specialist --split dev \
+	  --prompt cause_action_directed --max-tokens 4096 --run-id V3-qwen2-dev --resume
+v3-dev-analysis: ## Suite v3 — reproducibility gate, pairwise matrices, unchanged R4 replay (DEV)
+	$(PY) scripts/compare_routes.py --a V3-qwen-dev --b V3-qwen2-dev
+	$(PY) scripts/model_migration_matrix.py --incumbent V3-qwen-dev --candidate V3-nemotron-dev --strong E4-v3-dev
+	$(PY) scripts/model_migration_matrix.py --incumbent V3-qwen-dev --candidate E4-v3-dev
+	$(PY) scripts/model_migration_matrix.py --incumbent V3-nemotron-dev --candidate E4-v3-dev
+	$(PY) scripts/routing_cascade_report.py --weak V3-qwen-dev --strong E4-v3-dev --policy verifier
+	$(PY) scripts/routing_cascade_report.py --weak V3-nemotron-dev --strong E4-v3-dev --policy verifier
+eval-v3-test: ## Suite v3 — each frozen arm on TEST exactly once (only after the suite-v3 tag exists)
+	@git tag --list suite-v3 | grep -q suite-v3 || { echo "refusing: Suite v3 is not frozen (no suite-v3 tag)"; exit 1; }
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm V3 --model-ref local-specialist --split test \
+	  --prompt cause_action_directed --max-tokens 4096 --run-id V3-qwen-96 --resume
+	$(MAKE) serve-nemotron
+	$(PY) scripts/model_throughput_probe.py --refs nemotron-lightning --scenario S05-1000004 --repeats 2 --rounds 1
+	$(MAKE) prime-nemotron
+	$(PY) -m evals.runner.run_eval --arm V3 --model-ref nemotron-lightning --split test \
+	  --prompt cause_action_directed --max-tokens 8192 --run-id V3-nemotron-96 --resume
+	$(PY) -m evals.runner.run_eval --arm V3 --model-ref claude-frontier --split test \
+	  --prompt baseline --run-id E4-v3-96 --resume
+v3-test-analysis: ## Suite v3 — TEST matrices and unchanged R4 replay
+	$(PY) scripts/model_migration_matrix.py --incumbent V3-qwen-96 --candidate V3-nemotron-96 --strong E4-v3-96
+	$(PY) scripts/routing_cascade_report.py --weak V3-qwen-96 --strong E4-v3-96 --policy verifier
+	$(PY) scripts/routing_cascade_report.py --weak V3-nemotron-96 --strong E4-v3-96 --policy verifier
+
 # R2 pairs the frozen weak arm with the strong arm ON DEV. The oracle map is a
 # selection tool; the script refuses the test split without --allow-test.
 .PHONY: eval-e4-dev routing-oracle
@@ -237,10 +293,12 @@ routing-oracle: ## R2 — paired weak/strong opportunity map on DEV
 	$(PY) scripts/routing_oracle.py --weak E6-C-directed-dev --strong E4-v2-dev --split dev
 
 .PHONY: reachability
-reachability: ## Can the fixed-evidence plan reach every case's required evidence?
+reachability: ## Can the fixed-evidence plan reach every case's required evidence? (test AND dev)
 	# Run after `make corpus`, before trusting any score. A class capped below the
 	# recall threshold is a harness bug that reads exactly like model weakness.
+	# Both model-facing splits: dev is where every suite is developed and selected on.
 	$(PY) scripts/evidence_reachability.py --split test
+	$(PY) scripts/evidence_reachability.py --split dev
 
 .PHONY: eval-e2 eval-e4 eval-smoke report
 # run-ids carry the suite version. `E2-local-96` is the PRE-migration reference and
