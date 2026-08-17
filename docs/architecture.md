@@ -49,6 +49,7 @@ For *why the platform exists*, see the Canonical Architecture doc in `docs/`.
 | 4222 | NATS JetStream | 8222 monitoring |
 | 8082 | local model (llama.cpp) | |
 | 4000 | NeMo Switchyard (routing gateway) | `make serve-switchyard`; passthrough to 8082 in R1 |
+| 8083 | candidate weak arm — Nemotron 3.5 Lightning (llama.cpp, same build) | `make serve-nemotron`; hybrid GPU/RAM placement, `--no-mmap` (R3) |
 | 9000/9001 | MinIO | `artifacts` profile, not yet used |
 | **5432** | **pre-existing `thewall` Postgres** | **not ours — do not touch** |
 | **6379** | **pre-existing Redis** | **not ours** |
@@ -199,7 +200,9 @@ entry. **This is what makes E2/E4/E5 a controlled comparison** — the arms diff
 one string (`model_ref`), not by call path.
 
 Adapters: `local.py` (OpenAI-compatible HTTP, GBNF-constrained, greedy + seeded —
-the reproducible baseline), `claude_cli.py` (subscription CLI as a backend).
+the reproducible baseline), `claude_cli.py` (subscription CLI as a backend). A second
+local entry, `nemotron-lightning` (8083), uses the same adapter and decoding — R3
+compared the two weak arms by `model_ref` alone; see `routing-experiments.md` § R3.
 
 Two transport quirks handled here rather than leaking upward:
 - llama.cpp's schema→GBNF compiler rejects `minLength`/`maxLength`; `schema_compat.py`
