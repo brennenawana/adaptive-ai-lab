@@ -1,4 +1,4 @@
-# Handoff — 2026-08-16 (routing baseline: R0–R2, R0.1, R4 done)
+# Handoff — 2026-08-17 (R0–R2, R0.1, R4 done; R3 Nemotron benchmarked — negative under the frozen budget)
 
 Written deliberately at a context boundary. Everything needed to resume is here or
 in the other docs. Read `architecture.md` and `task-ontology.md` before coding, and
@@ -18,7 +18,7 @@ found.
 
 ## State: migration done, E6 done, E6b closed, routing baseline done (R0–R2, R0.1, R4)
 
-**~40 commits, 197 tests green** (`make test`; one live test skips unless
+**~46 commits, 197 tests green** (`make test`; one live test skips unless
 `FIS_LIVE_TESTS=1` — it must never touch :8082 during a paired run). `git log
 --oneline` for the trail.
 
@@ -34,7 +34,8 @@ found.
 | **Event layer** | **DONE — all 7 steps. Generator publishes; consumers materialise.** |
 | Prompt registry (`prompts.py`) | done, 8 named variants; `DEFAULT_PROMPT` is the control |
 | Experiments | E2, E4 baselined on suite v2. **E6 done** (variant C is local best). **E6b closed — negative.** E3/E5/E7/E8 open |
-| **Routing track (R-series)** | **R0 frozen** (`weak-baseline-v1` = variant C on `f48039a`), **R1 measured**, **R0.1 fixed** (Switchyard passthrough now 48/48 identical to direct), **R2 done** (oracle map on dev), **R4 done** (deterministic cascade, policy `verifier`, dev + one test confirmation). R3/R5 not started. `routing-experiments.md` |
+| **Routing track (R-series)** | **R0 frozen** (`weak-baseline-v1` = variant C on `f48039a`), **R1 measured**, **R0.1 fixed** (Switchyard passthrough now 48/48 identical to direct), **R2 done** (oracle map on dev), **R4 done** (deterministic cascade, policy `verifier`, dev + one test confirmation), **R3 done** (Nemotron 3.5 Lightning compatible and benchmarked on dev; does not qualify under the frozen 4 096-token budget; test untouched). R5 not started. `routing-experiments.md` |
+| Candidate weak arm | `nemotron-lightning` registry entry, `infra/serve-nemotron.sh` (8083, `--fit on --no-mmap`, same llama.cpp build), `scripts/model_migration_matrix.py`, `scripts/model_throughput_probe.py`, make `serve-nemotron` / `eval-r3-dev` / `r3-compare` |
 | Routing gateway | NeMo Switchyard 0.2.0 on :4000 (`make serve-switchyard`), registry entry `local-specialist-switchyard` with the key-order-invariant schema rewrite, `RoutingRecord` on every routed invocation, gold-leak guards tested |
 | Deterministic cascade | `services/ai_orchestrator/cascade.py`, `run_eval --escalate-to`, `scripts/routing_cascade_report.py` (replay + live), make `r4-replay` / `eval-r4-dev` / `r4-report` / `eval-r4-confirm` |
 
@@ -64,35 +65,33 @@ and the live pipeline agree, per scenario.
 
 ---
 
-## THE NEXT TASK — R3: Nemotron 3.5 Lightning as a candidate weak arm, on suite v2. Not suite v3 yet.
+## THE NEXT TASK — R3b: the token-budget factor, both weak arms, dev only. Then suite v3.
 
-Why this and not suite v3 first: the routing baseline is now measured and understood
-(`routing-experiments.md` § R4). Its residual — 47/96 test cases where the weak model
-returns a verifier-clean answer that is wrong on root cause or terse on evidence — is
-a weak-model capability problem, the same family E6b showed prompting cannot move and
-R4 showed structural gates cannot see. The untested axis is the weak model itself.
-Suite v3's four candidates change ≤ 4 dev outcomes and would re-baseline every arm;
-run it as a deliberate release once there are two weak arms to re-baseline together.
+R3 answered its question with a twist. Nemotron 3.5 Lightning (IQ4_XS, same llama.cpp,
+hybrid GPU/RAM, ~91 tok/s with `--no-mmap`) removes ~80% of Qwen's silent
+valid-but-wrong answers (23 → 4 on dev) and, on the cases it finishes, passes 63%
+vs Qwen's 29% — but under the frozen `max_tokens 4096` it is still inside `<think>`
+on 29/48 cases and produces nothing. As a weak-only arm it is therefore *worse*
+(25.0% vs 29.2%); as the weak stage of the unchanged R4 cascade it reaches 89.6%
+(frontier 91.7%) by sending 67% of cases to the frontier, at $0.087 per success vs
+Qwen+R4's $0.055. It failed 4 of the 6 pre-registered criteria; test was not run.
 
-R3 protocol (guide § R3): compatibility spike first (checkpoint, quantisation, license,
-runtime, VRAM margin on the 16 GB 5080 — hosted endpoint if local packaging is not
-ready); then the identical prompt (`cause_action_directed`), evidence, grammar and
-scorer as `weak-baseline-v1`, on dev, one llama.cpp/session for the paired comparison
-with a same-session Qwen run; report every dimension plus parse rate, latency, tokens,
-cost; only then a dev-only prompt adaptation, and one test confirmation. Then
-`best weak arm + deterministic cascade` (R4 replay is free: `make r4-replay WEAK=…`).
+The one confound is the decoding budget. R3b: the *same* paired design (Qwen A →
+Nemotron → Qwen B, one server session per model, priming, same order, dev only) with
+`max_tokens 8192` for **both** arms — one factor, nothing else changed — then the
+migration matrix and the R4 replay again, with a pre-registered rule written before
+the run. `--reasoning-budget` and Nemotron-specific prompts remain off the table (they
+change the task / add a factor). Keep `--no-mmap` (quality-neutral, digests identical).
 
-Rules that carry: select on dev, one test look, one factor per arm, gold labels score
-a route but never choose it, same server session + same order for any case-level local
-comparison, `FIS_LIVE_TESTS` off during paired runs.
+Only after R3b is the model comparison a model comparison; then **suite v3** as a
+deliberate release re-baselining Qwen, Nemotron and the frontier together (backlog:
+background settlements never posted in 7 classes; S08 declined amount > balance;
+`idempotency_key` not an observed id; post-positioned refutation cue).
 
-**Suite v3 backlog (documented, not patched):** background settlements never posted in
-S01/S02/S05/S06/S07/S08/S10 (S10's signature is ambient noise; S06 "compound" readings
-are defensible); S08 can draw a declined amount above the available balance (tripped
-the strong arm twice: S08-2003007 in dev R2 and R4); `collect_observed_ids` skips
-`idempotency_key`; forbidden-claim matcher misses a refutation cue that follows the
-phrase. Build them together: implement, regenerate, reachability, invariants, strong
-sanity run, weak + frontier baselines. Never rewrite suite-v2 results.
+Rules that carry: select on dev, one test look, one factor per arm, gold labels score a
+route but never choose it, same server session + same order for any case-level local
+comparison (design A: keep both endpoints alive), `FIS_LIVE_TESTS` off during paired
+runs, never probe an endpoint mid-run.
 
 ## Numbers — the current baseline
 
@@ -122,6 +121,12 @@ reviewed: two harness defects, two scenario-realism issues (see next task).
 0 unnecessary escalations, 47/96 verifier-clean weak failures accepted, cost per
 success $0.046 vs $0.097 strong-only, wall p50 14.5 s vs 38.2 s. Details in
 `routing-experiments.md` § R4.
+
+**R3 Nemotron 3.5 Lightning (dev, `R3-nemotron-dev` vs `R3-qwen-dev`, n=48):** all-pass
+25.0% vs 29.2%; 29 length-capped no-outputs; silent failures 4 vs 23; migration
+A/B/C/D 4/10/8/26; Nemotron+R4 89.6% at 66.7% strong calls ($0.0868/success) vs
+Qwen+R4 45.8% at 22.9% ($0.0545). Not adopted; test untouched. `routing-experiments.md`
+§ R3.
 
 **Four findings that matter:**
 
@@ -366,8 +371,9 @@ make ps                # fis-postgres + fis-nats healthy
 make serve-local       # reads FIS_* from .env; prints "UP model=... port=8082"
 make model-health      # {"status":"ok"}
 make serve-switchyard  # Switchyard on 4000, passthrough to 8082 (optional)
+make serve-nemotron    # Nemotron 3.5 Lightning on 8083 beside Qwen (R3 candidate; --no-mmap)
 make switchyard-health # {"status":"ok"} + routes: ['fis-local-specialist']
-make test              # 187 passed (185 if the two live tests skip)
+make test              # 196 passed + 1 skipped (197 with FIS_LIVE_TESTS=1)
 make reachability      # 96 cases, 0 classes with an unreachable-evidence cap
 make report            # persisted cross-arm comparison
 ```
@@ -382,7 +388,7 @@ that failure mode has now cost this project four separate times.
 | | |
 |---|---|
 | Corpus | 288 scenarios — 96 test / 48 dev / 144 train, suite v2 |
-| Runs | `E2-local-96` (**suite v1, do not compare**), `E2-v2-96`, `E4-v2-96`, `E6-cause_action_directed-96`, eight E6/E6b dev runs, `E4-v2-dev` (strong arm on dev, R2), `R1-direct-dev`, `R1-direct2-dev`, `R1-switchyard-dev` (R1) |
+| Runs | `E2-local-96` (**suite v1, do not compare**), `E2-v2-96`, `E4-v2-96`, `E6-cause_action_directed-96`, eight E6/E6b dev runs, `E4-v2-dev` (strong arm on dev, R2), `R1-*` (R1), `R01-*` (R0.1), `R4-cascade-verifier-{dev,96}` (+`.weak`), `R3-qwen-dev`, `R3-nemotron-dev`, `R3-qwen2-dev` (R3), plus `SMOKE-*` |
 | Preserved | `learning.*` is never truncated by `make corpus`; prior run scores survive a regeneration |
 
 Regenerating is `make corpus`, which passes `--reset` on the first split only. It

@@ -12,7 +12,7 @@ score a route but never choose it.**
 | R1 | Can Switchyard sit in the model path without changing outcomes? | **measured** — no for the grammar-constrained local arm as shipped (14/48 dev outcomes change; +4 ms overhead; tokens reconcile exactly); root cause identified; see below |
 | **R0.1** | Can the hop be made transparent without touching the suite or the model's reasoning? | **yes — fixed and proven**: key-order-invariant schema rewrite in the adapter; same-session dev re-run **48/48 identical output digests**, 48/48 identical outcomes, tokens identical, +10 ms p50 |
 | R2 | How much routing opportunity exists between weak and strong on dev? | **done** — see below |
-| R3 | Nemotron 3.5 Lightning as candidate weak arm | not started (later milestone) |
+| R3 | Nemotron 3.5 Lightning as candidate weak arm | **done — negative under the pre-registered rule; test untouched.** Compatible (IQ4_XS, same llama.cpp, hybrid GPU/RAM, ~91 tok/s with `--no-mmap`); dev all-pass 25.0% vs Qwen 29.2% because 29/48 cases hit the 4 096-token cap while reasoning; silent failures 23 → 4; Nemotron+R4 89.6% at 66.7% strong calls; see below |
 | R4 | Deterministic weak→strong cascade | **done** — policy `verifier` (dev replay, pre-registered rule); dev live 50.0% all-pass at 22.9% strong calls, **test 49.0% at 21.9%**, 0 unnecessary escalations, rescue 90%; see below |
 | R5 | Predictive / stage routing | not started |
 
@@ -411,3 +411,141 @@ does not move, and one that no production-available deterministic signal exposes
 Closing that gap needs either a better weak model (R3) or a router that reads
 content, not just structure (R5); the oracle says the ceiling for either is ~92–100%
 at ~65–70% strong calls avoided.
+
+---
+
+## R3 — Nemotron 3.5 Lightning as a candidate weak arm (compatibility spike + dev benchmark)
+
+**Question.** Can a stronger specialist reduce the *silent* failures of the Qwen weak
+tier — verifier-clean answers that are wrong — enough to improve the quality and
+economics of the weak→strong cascade? Not "is it smarter overall".
+
+### Compatibility (commits `3e02b3e`, `9b211dc`)
+
+| | |
+|---|---|
+| Checkpoint | `bartowski/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF`, **IQ4_XS** (18.92 GB, imatrix; experts IQ4_NL ≈ 4.25 bpw). Model released 2026-08-11 (OpenMDW-1.1) |
+| Architecture | `nemotron_h_moe`: hybrid Mamba-2 + attention + MoE, 52 blocks (+1 MTP head, ignored), 16 MoE blocks × 128 experts (6 used + 1 shared); 30.65 B expert params, 1.56 B dense, 0.70 B embeddings — ~3 B active/token; declared context 1 M |
+| Why this quant | every GGUF of this model is ≥ 17.9 GB (dense ≈ 1.7 GB, experts ≥ 16 GB; K-quants fall back to Q5_0/Q8_0 for the 1856-wide expert matrices, so Q4_K_M is 25.5 GB); IQ4_XS is the closest 4-bit class to Qwen's Q4_K_M and the smallest high-quality option |
+| Fit on the RTX 5080 (16 GB) | **cannot be held whole at any quantization**; placement is hybrid: dense + KV/SSM + a share of expert layers on the GPU (`--fit on`), the rest in system RAM. Alone: 15.3 GB VRAM used; beside Qwen (fit-target 1024 MiB): ~8.0 GB, total 15.7 GB. RSS 18.9 GB. WSL exposes 47 GB RAM |
+| Runtime | the **same** llama.cpp build as Qwen (`b1-9b05354`, `nemotron_h_moe` already compiled in — no rebuild), `infra/serve-nemotron.sh` on 8083, `--jinja --parallel 1`, q8_0 KV, flash-attn, ctx 16 384, `--no-mmap` (see throughput). Loads in 9 s (mmap) / 80 s (no-mmap) |
+| Structured output | llama.cpp json_schema→GBNF, model-agnostic — schema-valid `InvestigationResult` on every completed case; reasoning on by default (`enable_thinking`), extracted to `reasoning_content` like Qwen3; grammar applied after `</think>` as for Qwen |
+| Throughput (back-to-back probe, real 3 150-token FIS prompt, 256-token gen) | Qwen 97 tok/s gen, prompt 5 000 tok/s (TTFT 0.5 s). Nemotron **91 tok/s beside Qwen / 95 tok/s alone with `--no-mmap`**, prompt ≈ 1 400 tok/s (TTFT 2.2 s); with mmap after the page cache turned over: 20 tok/s (the dev run ran in that state — quality unaffected, digests identical across placements) |
+| Stability | 48/48 + 3 smoke cases completed, no crash/OOM/restart; deterministic (3/3 identical smoke repeats, S01-2000000 identical across three server placements) |
+| Contract | unchanged: suite v2, prompt `cause_action_directed`, FIXED_EVIDENCE, same schema/grammar path, scorer, verifier, greedy/seed 42/`max_tokens 4096` — arms differ by `model_ref` only |
+
+### Design and reproducibility control
+
+Design **A — simultaneous endpoints**: Qwen (session pid 4848, the same process as
+every R0.1/R4 run) on 8082, Nemotron on 8083, same case order, each endpoint primed
+before its run. `R3-qwen-dev` (A) → `R3-nemotron-dev` → `R3-qwen2-dev` (B),
+2026-08-17 01:58–05:10 UTC. **Qwen A vs B: 48/48 identical output digests, 48/48
+identical outcomes** — and identical to `R01-direct2-dev` from the previous milestone.
+Within-session drift is zero; every Qwen/Nemotron difference below is model (plus
+quantization) difference, not process variance.
+
+### Dev benchmark (n=48)
+
+| metric | Qwen A (= B) | **Nemotron** | Δ |
+|---|---|---|---|
+| strict all-pass | 14 (29.2%) | **12 (25.0%)** | −2 |
+| root cause correct | 31 (64.6%) | 16 (33.3%) | −15 |
+| act \| rc | 100% | 100% | — |
+| evidence recall (mean) | 0.606 | 0.316 | −0.29 |
+| verifier pass | 37 | 16 | −21 |
+| **no-output** | 5 (all schema-invalid) | **31** = 29 `length` (4 096-token cap reached inside `<think>`) + 2 schema-invalid | +26 |
+| unsupported claims (total) | 6 | 1 | −5 |
+| forbidden claims | 0 | 0 | — |
+| **silent failures** (verifier-clean, wrong) | **23** | **4** | −19 |
+| output tokens (total) | 62 938 | 172 436 | ×2.7 |
+| wall p50 / p95 (as run, mmap-slow placement) | 14.0 s / 41.3 s | 206.6 s / 211.0 s | see throughput — projected p50 ≈ 47 s at 90 tok/s, still dominated by the cap |
+| **among the 19 cases Nemotron completed** | — | **12 pass (63%), rc 16/19 (84%), evidence 0.798, verifier 16/19** | |
+
+Per class (Nemotron pass / length-capped of 4): S01 0/0 · S02 1/3 · S03 2/1 ·
+S04 0/4 · S05 1/3 · S06 1/3 · S07 0/4 · S08 **4**/0 · S09 2/2 · S10 1/3 · S11 0/3 ·
+S12 0/3.
+
+### Migration matrix (Qwen A vs Nemotron, strong-ref `E4-v2-dev`)
+
+| cell | n | % | breakdown |
+|---|---|---|---|
+| **A** both pass | 4 | 8.3% | S02 1, S05 1, S09 2 |
+| **B** Qwen pass / Nemotron FAIL | **10** | 20.8% | **all 10 are `length` no-output** (S02 ×2, S05 ×3, S07 ×3, S09, S11); root causes missing_idempotency 2, processor_decline 3, reversal_race 3, stale_integration_mapping 1, false_positive_alert 1 — the strong arm passes all 10 |
+| **C** Qwen FAIL / Nemotron pass | **8** | 16.7% | S08 ×4 (risk_hold — Qwen said processor_decline / no-output; Nemotron evidence 1.00), S03 ×2 (kyc_hold — Qwen silent:evidence 0.67 → 1.00), S06-2003005, S10-2001009; 6 of the 8 were Qwen **silent** failures |
+| **D** both fail | 26 | 54.2% | Nemotron pattern: no-output 21, silent:evidence 3, verifier-fail 1, silent:rc 1; classes S01 ×4, S04 ×4, S12 ×4, S06 ×3, S10 ×3, S11 ×3, S03 ×2, S02, S07, S09 |
+
+Regressions reviewed: every one of the 10 is the same mechanism — the model was
+still reasoning when the 4 096-token cap hit (`finish_reason: length`, empty content),
+not a wrong answer. Not a harness issue, not a scenario issue: a **thinking-budget /
+contract-fit** issue. Rescues reviewed: S06-2003005 and S08-2001007/S08-2003007 are
+the R2 harness-review cases (background settlements; declined amount > balance /
+scorer FP) where the *strong* arm was scored as failing — Nemotron's passes there are
+genuine answers, and the S08 forbidden-claim FP did **not** recur for Nemotron.
+
+### Silent-failure analysis (the question R3 was asked)
+
+Silent = schema-valid, verifier-clean, and still failing — the family the R4 gate
+cannot see. Qwen A: **23/48** (22 of them routing false negatives: the strong-ref
+passes). Nemotron: **4/48** (4 routing false negatives). Of Qwen's 23: Nemotron
+**passes 6**, fails **15 loudly** (visible to the gate: 14 no-output, 1 verifier),
+stays silent on 2; and introduces **2 new** silent failures (S01-2000000 evidence
+0.50; S11-2001010 evidence 0.50). Silent patterns: Qwen evidence-only 13, rc+evidence
+(+action) 10; Nemotron evidence-only 3, rc 1.
+
+So: **yes — Nemotron reduces the silent valid-but-wrong failures by ~80% (23 → 4,
+false negatives 22 → 4)**, but overwhelmingly by converting them into *loud*
+failures (unfinished reasoning), and only 6 of them into passes. When it finishes, it
+is thorough (evidence 0.80 vs 0.61) and right (rc 84% vs 65%); it finishes 40% of the
+time under the frozen 4 096-token budget.
+
+### R4 cascade replay — same `verifier` policy, both weak arms, strong-ref `E4-v2-dev`
+
+| configuration | all-pass | rc | evidence | verifier | weak accepted | strong calls | rescue | unnecessary | false neg | cost / attempt | cost / success | wall p50 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Qwen only | 29.2% | 64.6% | 0.606 | 77.1% | 100% | 0% | — | — | 22 silent | $0 | $0 | 14.0 s |
+| **Qwen + R4** | 45.8% | 77.1% | 0.783 | 97.9% | 77.1% | **22.9%** | 8/11 | 0 | **22** | $0.0250 | **$0.0545** | 17.4 s |
+| Nemotron only | 25.0% | 33.3% | 0.316 | 33.3% | 100% | 0% | — | — | 4 silent | $0 | $0 | 206 s (mmap) → ~47 s (no-mmap) |
+| **Nemotron + R4** | **89.6%** | 97.9% | 0.972 | 97.9% | 33.3% | **66.7%** | 31/32 | 0 | **4** | $0.0777 | **$0.0868** | 236 s (mmap) → ~70 s |
+| Frontier only | 91.7% | 97.9% | 1.000 | 97.9% | 0% | 100% | — | — | — | $0.1074† | $0.1172† | 33.2 s |
+| Oracle (Qwen) / (Nemotron) | 91.7% / 97.9% | | | | | 70.8% / 81.3% | | | | | $0.0833 / $0.0887 | |
+
+† frontier input tokens under-reported by the CLI — strong cost is a floor.
+Escalation reasons — Qwen: 6 unsupported claims, 5 no-output; Nemotron: 31 no-output,
+1 unsupported. Nemotron+R4 keeps the three "w+s−" cases local (S06-2003005,
+S08-2001007, S08-2003007 — the harness-flagged ones) and misses only 4 rescueable
+cases (its 4 silent failures).
+
+**Intelligence-density reading.** Nemotron + R4 nearly matches the frontier (−1
+case) at 33% fewer strong calls, but its cost per success is 1.6× Qwen + R4's
+($0.087 vs $0.055) because two thirds of cases still go to the frontier — the local
+tier absorbs 33% of the work instead of 77%. Quality per dollar: Qwen+R4 22 passes for
+$1.20; Nemotron+R4 43 passes for $3.73; frontier 44 for $5.16.
+
+### Pre-registered selection rule — outcome: **Nemotron does NOT qualify. TEST untouched.**
+
+| # | criterion | result |
+|---|---|---|
+| 1 | all-pass ≥ Qwen A + max(5, 2×A/B drift) = +5; rc ≥ Qwen | **FAIL** — 12 vs 14 (−2); rc 16 vs 31 |
+| 2 | silent false negatives −5 under R4 replay | **PASS** — 22 → 4 (−18) |
+| 3 | cell B ≤ 3, reviewed, no forbidden claims | **FAIL** — B = 10 (all length-cap no-output; reviewed); forbidden 0 ✓ |
+| 4 | 48/48 no crash/OOM; wall p50 ≤ 30 s | **FAIL** on latency — 206 s as run, ≈ 47 s projected with `--no-mmap` (the length-capped cases alone are ~45 s); stability ✓ |
+| 5 | Nemotron+R4 cost/success ≤ Qwen+R4, or +5 all-pass at ≤ 1.5× strong-call rate | **FAIL** — $0.0868 > $0.0545; +21 all-pass but strong calls 66.7% vs 22.9% (2.9×) |
+| 6 | above A/B noise | moot (drift = 0) |
+
+Qwen stays the incumbent weak arm. No Nemotron prompt tuning, no trigger change, no
+scorer change, no test run.
+
+### Interpretation
+
+Nemotron 3.5 Lightning is compatible with the FIS contract on this hardware and, on
+the cases it completes, is a clearly stronger investigator than Qwen3-8B (63% vs 29%
+strict pass, evidence 0.80 vs 0.61) — and it does the one thing R3 asked about: it
+almost eliminates the silent-wrong family (23 → 4). But under the frozen decoding
+budget it fails to finish 60% of the cases (its `<think>` runs past 4 096 tokens), so
+as a *weak-only* arm it is worse, and as a *cascade* weak arm it buys near-frontier
+quality by sending two thirds of the traffic to the frontier. Under this contract it
+does not improve the specialist tier's economics. The result **does** support the
+architecture — with Nemotron the deterministic gate captures 31 of 35 rescueable
+cases because the model's failures are structural rather than confident — and it
+isolates exactly one confound to resolve before the model comparison is meaningful:
+the token budget.

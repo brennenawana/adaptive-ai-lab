@@ -540,7 +540,8 @@ unchanged: same prompt, evidence, schema, grammar path, scorer, verifier.
 
 `prime-local` → `R3-qwen-dev` (control A, session pid 4848) → `prime-nemotron` →
 `R3-nemotron-dev` (session pid 489534) → `prime-local` → `R3-qwen2-dev` (control B).
-Started 2026-08-17 02:12 UTC.
+Ran 2026-08-17 01:58–05:10 UTC (Qwen A 01:58–02:17, Nemotron 02:18–04:57, Qwen B
+04:57–05:10).
 
 ## M3.5 Pre-registered selection rule (written before any R3 result was read)
 
@@ -563,3 +564,52 @@ confirmation — only if ALL of the following hold on DEV (n=48):
 
 If any criterion fails: no test run, negative result recorded, Qwen stays incumbent.
 No Nemotron-specific prompt, no trigger changes, no scorer changes regardless.
+
+## M3.6 Results (all on dev, n=48; full tables in `routing-experiments.md` § R3)
+
+**Reproducibility control:** Qwen A vs Qwen B — 48/48 identical output digests and
+outcomes (and identical to `R01-direct2-dev`); design A gave zero within-session drift.
+
+| | Qwen A/B | Nemotron |
+|---|---|---|
+| all-pass · rc · evidence · verifier | 29.2% · 64.6% · 0.606 · 77.1% | 25.0% · 33.3% · 0.316 · 33.3% |
+| no-output | 5 (schema) | 31 (29 `length` — still in `<think>` at 4 096 tokens; 2 schema) |
+| silent failures (verifier-clean, wrong) | 23 | **4** |
+| completed cases | — | 19: 12 pass, rc 16, evidence 0.80 |
+| migration A/B/C/D | — | 4 / 10 / 8 / 26 (B = all length-cap; C = 6 Qwen-silent cases rescued) |
+| R4 replay (verifier policy) | 45.8% at 22.9% strong calls, $0.0545/success | **89.6%** at 66.7% strong calls, $0.0868/success |
+| throughput (probe, `--no-mmap`) | 97 tok/s, TTFT 0.5 s | 91–95 tok/s, TTFT 2.2 s |
+
+**Surprises:** (1) 29/48 Nemotron cases never leave `<think>` under the frozen
+4 096-token budget — a contract-fit failure, not a wrong answer; (2) mmap +
+CPU-offloaded experts collapsed to 20 tok/s after the page cache turned over
+(the dev run's 206 s p50); `--no-mmap` restores 91 tok/s with identical outputs;
+(3) Nemotron converts Qwen's silent failures into *loud* ones (15 of 23), which is
+why Nemotron+R4 lands one case short of the frontier; (4) the S08 forbidden-claim FP
+did not recur for Nemotron.
+
+## M3.7 Decision under the pre-registered rule: **Nemotron does NOT qualify — TEST untouched**
+
+1 FAIL (12 vs 14; rc 16 vs 31) · 2 PASS (22 → 4) · 3 FAIL (B = 10, all length-cap) ·
+4 FAIL (p50 206 s as run / ≈ 47 s projected > 30 s) · 5 FAIL ($0.0868 > $0.0545;
+strong calls 2.9×) · 6 moot. Qwen remains the incumbent. Recorded as a negative
+result with the confound named (token budget).
+
+## M3.8 Milestone-3 summary
+
+Completed: reconciliation · compatibility spike (compatible; hybrid placement; same
+runtime) · frozen contract · pre-registered rule · design-A benchmark with two Qwen
+controls · migration matrix · silent-failure analysis · R4 replay for both arms ·
+intelligence-density table · decision (negative) · docs. Not touched: test, suite v2,
+scorer, verifier, prompt, R4 policy, QLoRA, learned routing, suite v3.
+
+Environment left: Qwen on 8082 (new session — pid 4848 ended 05:15 UTC after all
+same-session work), Nemotron on 8083 (`--no-mmap`, fit-target 1024), Switchyard 4000.
+
+**Recommended next milestone (one): R3b — token-budget factor.** Re-run the *same*
+paired design (Qwen A → Nemotron → Qwen B, one session each, dev only) at
+`max_tokens 8192` for **both** arms — one decoding-config factor, everything else
+frozen — to learn whether Nemotron's completed-case quality (63% pass, 4 silent)
+holds across the whole split and what it does to Qwen; then the R4 replay again. Only
+after that is the Nemotron-vs-Qwen comparison a model comparison; and only then does
+suite v3 (re-baselining Qwen, Nemotron and the frontier together) buy the most.

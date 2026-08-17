@@ -715,3 +715,74 @@ the same family E6b showed prompting cannot move.
   balance — it tripped the strong arm again in this run, S08-2003007; `idempotency_key`
   not an observed id; post-positioned refutation cue) stays a backlog.
 - Nemotron / learned routing / QLoRA not started.
+
+---
+
+## 2026-08-17 — R3: Nemotron 3.5 Lightning compatibility spike and dev benchmark — negative under the pre-registered rule
+
+Full tables in `routing-experiments.md` § R3.
+
+### Compatibility: yes, on the same runtime
+
+`bartowski/…-30B-A3B-GGUF` IQ4_XS (18.9 GB; experts IQ4_NL) on the same llama.cpp
+build as Qwen (`b1-9b05354` already knows `nemotron_h_moe`), port 8083 beside Qwen
+on 8082. Every GGUF of this model is ≥ 17.9 GB, so it cannot sit whole in 16 GB of
+VRAM at any quant; hybrid placement (`--fit on`, experts partly in system RAM) works:
+~8 GB VRAM beside Qwen, 15.3 GB alone. Deterministic, schema-valid, no crashes over
+51 cases. **91–95 tok/s generation with `--no-mmap`**; with mmap the CPU-offloaded
+experts fell to 20 tok/s once the page cache turned over — the dev run ran in that
+state, so its latency column is an artefact (output digests identical across
+placements). Prompt ≈ 1 400 tok/s (2.2 s TTFT on 3 150 tokens) vs Qwen 5 000 tok/s.
+
+### Design A held: zero Qwen drift
+
+Qwen control A → Nemotron → Qwen control B in one Qwen session (pid 4848, the same
+process as every R0.1/R4 run): A vs B **48/48 identical output digests**, and
+identical to `R01-direct2-dev`. Every difference below is model difference.
+
+### Dev result (n=48, contract frozen: same prompt, evidence, schema, grammar path,
+scorer, greedy/seed 42/`max_tokens 4096`)
+
+| | Qwen | Nemotron |
+|---|---|---|
+| strict all-pass | 14 (29.2%) | 12 (25.0%) |
+| root cause | 31 | 16 |
+| evidence recall | 0.606 | 0.316 |
+| no-output | 5 (schema) | **31 = 29 length-cap + 2 schema** |
+| silent (verifier-clean, wrong) | **23** | **4** |
+| among completed cases | — | 12/19 pass (63%), rc 84%, evidence 0.80 |
+
+Migration matrix A/B/C/D = 4 / 10 / 8 / 26. All 10 regressions are the 4 096-token
+cap hit inside `<think>` (reviewed: not harness, not scenario — thinking budget vs
+contract). 6 of the 8 rescues were Qwen silent failures (S08 ×4, S03 ×2 evidence).
+Silent false negatives 22 → 4; 15 of Qwen's silent failures become *loud* under
+Nemotron (visible to the gate), 6 become passes, 2 stay silent, 2 new ones.
+
+R4 replay, same `verifier` policy: Qwen+R4 45.8% at 22.9% strong calls, $0.0545 per
+success; **Nemotron+R4 89.6% at 66.7% strong calls, $0.0868 per success**; frontier
+91.7%, $0.1172 (floor). Nemotron+R4 keeps the three harness-flagged "w+s−" cases local
+and misses 4 rescueable.
+
+### Decision (pre-registered in `OVERNIGHT_STATUS.md` M3.5 before results)
+
+Criteria 1 (all-pass +5), 3 (regressions ≤ 3), 4 (p50 ≤ 30 s), 5 (cascade economics)
+**fail**; criterion 2 (silent −5) passes. **Nemotron does not qualify; Qwen stays the
+incumbent; test untouched.**
+
+### What it means
+
+The candidate answers R3's actual question in the affirmative — it removes ~80% of
+the valid-looking-but-wrong weak answers — but under the frozen 4 096-token budget it
+does so mostly by not finishing, which the cascade turns into frontier calls. It is a
+better investigator and a worse weak tier at this budget. The one confound to resolve
+before the model comparison is meaningful is the token budget (a decoding-config
+factor, to be varied for **both** arms on dev, one factor, same session pair).
+
+### Deliberately NOT changed
+
+Suite v2, scorer, verifier, prompt, `max_tokens`, `weak-baseline-v1`, R4 policy. No
+Nemotron prompt adaptation, no `--reasoning-budget`, no test run. The S08
+forbidden-claim scorer FP did not recur for Nemotron (its S08 answers pass); it
+remains on the suite-v3 backlog. Qwen session pid 4848 (2026-08-16 08:14 UTC →
+2026-08-17 05:15 UTC) was ended only after all same-session comparisons were
+complete; both servers are up again in new sessions.
