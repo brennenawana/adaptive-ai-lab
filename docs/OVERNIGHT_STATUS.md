@@ -613,3 +613,86 @@ frozen — to learn whether Nemotron's completed-case quality (63% pass, 4 silen
 holds across the whole split and what it does to Qwen; then the R4 replay again. Only
 after that is the Nemotron-vs-Qwen comparison a model comparison; and only then does
 suite v3 (re-baselining Qwen, Nemotron and the frontier together) buy the most.
+
+---
+---
+
+# Milestone 4 — R3b: the token-budget factor (`max_tokens` 4096 → 8192, both weak arms, dev only)
+
+Started 2026-08-17 ~07:50 UTC from HEAD `332b9d0` (clean; 196 passed + 1 opt-in
+live test skipped). R3 left exactly one confound: Nemotron's 29/48 `length` no-outputs
+under the frozen 4 096-token budget. R3b varies that one factor for **both** weak arms
+and nothing else. Suite v3, prompts, scorer, verifier, ontology, evidence, R4 policy,
+learned routing and QLoRA are all out of scope.
+
+## M4.0 Reconciliation
+
+| Claim in prose | Repository / artefact state | Verdict |
+|---|---|---|
+| HANDOFF/OVERNIGHT: R3 done, negative under the frozen budget, test untouched, HEAD `332b9d0` | `git log` HEAD `332b9d0`, tree clean; persisted runs `R3-qwen-dev` (14/48), `R3-nemotron-dev` (12/48), `R3-qwen2-dev` (14/48), all n=48; no run touched the test split after `R4-cascade-verifier-96` | matches |
+| R3: Nemotron 29 `length` + 2 schema no-outputs; Qwen 5 schema no-outputs | `stop_reason` counts from `learning.trajectories`: Nemotron `length` 29 / `stop` 19; Qwen `stop` 48/48, **max output 3 508 tokens — Qwen never reached 4 096** | matches; for Qwen the cap was never binding at 4 096 |
+| Both servers up in new sessions after R3 (`--no-mmap`, fit-target 1024) | 8082 Qwen pid 586847, 8083 Nemotron pid 586986 (`--fit on --fit-target 1024 --no-mmap`), both `b1-9b05354`, ctx 16 384, 1 slot; Switchyard 4000 pid 44417 unused by R3b; `fis-postgres`/`fis-nats` healthy; GPU 15.6/16.3 GB used (both models resident); WSL RAM 47 GB, 40 GB available | matches — one session per model for the whole of R3b, no restart needed |
+| ctx 16 384 leaves room for 8 192 output tokens | largest dev prompt: 3 390 tokens (Qwen tokenizer) / 3 482 (Nemotron); 3 482 + 8 192 = 11 674 < 16 384 | no runtime blocker; placement unchanged |
+| Tests | 196 passed, 1 skipped (live) at `332b9d0` | matches |
+
+Runtime memory note (recorded, not acted on): the `--no-mmap` Nemotron process shows
+VmRSS 4.6 GB (RssShmem 4.0 GB) and `free` reports only ~6 GB used across the VM,
+although ~11 GB of expert weights must be off-GPU. Under WSL2 the CUDA host
+allocations appear to be accounted outside the guest's RSS. Reported as observed;
+VRAM (nvidia-smi) is the reliable footprint measure here.
+
+## M4.1 Experiment contract (frozen before any 8 192-token run)
+
+| Field | R3 (historical) | **R3b** |
+|---|---|---|
+| suite / split / order | v2 / dev (48) / `ORDER BY scenario_id` | **same** |
+| prompt | `cause_action_directed`, `PROMPT_VERSION 1` | **same** |
+| evidence / tools / schema / grammar path | `FIXED_EVIDENCE`, 8 tools, `InvestigationResult`, llama.cpp json_schema→GBNF, direct path | **same** |
+| scorer / verifier | `evals/scorers/score.py`, `fis_platform/verification/verifier.py` | **same (untouched)** |
+| decoding | greedy, `seed 42`, chat-template default (thinking on) | **same** |
+| **`max_tokens`** | **4 096** | **8 192 — the only factor, both weak arms** |
+| models | Qwen3-8B Q4_K_M (8082, `-ngl 99`); Nemotron 3.5 Lightning 30B-A3B IQ4_XS (8083, `--fit on --fit-target 1024 --no-mmap`) | **same checkpoints, quants, flags, build `b1-9b05354`** |
+| design | A: Qwen A → Nemotron → Qwen B, one session per model, `prime-*` before each arm, nothing else on 8082/8083, `FIS_LIVE_TESTS` unset | **same**; run ids `R3b-qwen-dev`, `R3b-nemotron-dev`, `R3b-qwen2-dev` |
+| strong reference | `E4-v2-dev` (recorded), R4 `verifier` policy by replay | **same, unchanged policy, no new trigger** |
+| implementation | — | `run_eval --max-tokens` (default 4 096 so every historical target is unchanged) threaded to `GenerationRequest.max_tokens`; recorded in `runtime_context` and, when non-default, in `config_digest`; additive telemetry `reasoning_chars`/`content_chars` on `ModelInvocation` (observation only — the model sees nothing new) |
+| test policy | untouched | **untouched unless M4.2 passes in full; then exactly one run** |
+
+## M4.2 Pre-registered R3b selection rule (written and committed BEFORE any 8 192-token result was observed)
+
+Definitions, fixed now: **complete** = produced a schema-valid, scoreable
+`InvestigationResult` (the `produced_output` scorer dimension is absent) — the same
+notion as R3's "19 completed" (48 − 31 no-output); a `length` stop is by construction
+not complete. **Silent failure** = schema-valid, verifier-clean, `all_pass` false
+(`model_migration_matrix.py` `_silent`). **Routing false negative** = silent AND the
+strong reference (`E4-v2-dev`) passes. **Migration cells** A/B/C/D are built with Qwen A
+as incumbent; if Qwen A and B disagree on any outcome, every criterion below is
+evaluated against both and must hold against both. **Cascade economics** come from
+`routing_cascade_report.py --weak <run> --strong E4-v2-dev --policy verifier` (replay,
+local reference cost $0, strong cost = recorded `E4-v2-dev` reference cost, a floor).
+
+Nemotron qualifies as a viable weak-tier challenger on DEV only if **ALL** of A–F hold:
+
+| # | criterion | threshold (mechanical) |
+|---|---|---|
+| **A** completion | Nemotron completes ≥ **43/48** (≥ +24 vs R3's 19/48) |
+| **B** quality | Nemotron strict all-pass ≥ **14/48**; AND Nemotron root-cause-correct count ≥ Qwen A's − max(2, 2 × \|rc(Qwen A) − rc(Qwen B)\|). "Materially worse" is fixed here as **more than 2 cases below Qwen A** (adjusted upward only if the Qwen A/B drift in rc exceeds 1 case); the exact difference is recorded either way |
+| **C** silent failure | Nemotron silent failures ≤ **6/48** (the superset of routing false negatives; both counts recorded) |
+| **D** regressions | cell B (Qwen A pass / Nemotron fail) ≤ **5**; every remaining B case reviewed and its cause classified (length cap / wrong rc / evidence / verifier / parse-schema / other) |
+| **E** cascade economics | under the unchanged R4 `verifier` replay: Nemotron strong-call rate < **50%** (i.e. ≤ 23/48 escalations) AND Nemotron + R4 cost per successful investigation ≤ **$0.070** |
+| **F** latency | Nemotron-only wall p50 (as run, current `--no-mmap` placement beside Qwen) ≤ **75 s**; p95 recorded |
+
+Interpretation, fixed now: all six PASS ⇒ Nemotron qualifies and receives **exactly
+one** TEST confirmation under the identical R3b contract (`R3b-nemotron-96`:
+Nemotron-only at 8 192, primed, one session; Nemotron + R4 by the same replay against
+the recorded `E4-v2-96`), with no tuning before or after and no second look. Any FAIL ⇒
+Qwen remains incumbent, TEST untouched, negative result recorded, stop after the DEV
+analysis. Thresholds will not be reinterpreted after results are seen.
+
+Reproducibility gate, fixed now: Qwen A vs Qwen B must agree on ≥ 46/48 output digests
+and ≥ 46/48 scored outcomes (R3: 48/48). If they diverge more than that, R3b stops for
+diagnosis before any Qwen-vs-Nemotron interpretation.
+
+Historical length-cap classification, fixed now (each of R3's 29 `length` cases lands in
+exactly one): **RECOVERED_PASS** (R3b complete and all-pass) · **RECOVERED_FAIL** (R3b
+complete, not all-pass) · **STILL_LENGTH_CAPPED** (R3b `stop_reason == length`) ·
+**OTHER_FAILURE** (R3b not complete for another reason — schema-invalid or error).
