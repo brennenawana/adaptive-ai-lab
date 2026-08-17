@@ -204,6 +204,14 @@ the reproducible baseline), `claude_cli.py` (subscription CLI as a backend). A s
 local entry, `nemotron-lightning` (8083), uses the same adapter and decoding — R3
 compared the two weak arms by `model_ref` alone; see `routing-experiments.md` § R3.
 
+The generation budget is an explicit factor, not a constant: `run_eval --max-tokens`
+(default `DEFAULT_MAX_TOKENS = 4096`, the value every run before R3b was made with)
+reaches `GenerationRequest.max_tokens` and is recorded on every
+`ModelInvocation.max_tokens` (and in `config_digest` when non-default). The local
+adapter also records `reasoning_chars` / `content_chars` from llama.cpp's
+`reasoning_content` — observation only — so a `length` stop can be told apart from a
+wrong answer, and thinking length is measurable per case (R3b).
+
 Two transport quirks handled here rather than leaking upward:
 - llama.cpp's schema→GBNF compiler rejects `minLength`/`maxLength`; `schema_compat.py`
   strips them for the grammar while the verifier still enforces them.

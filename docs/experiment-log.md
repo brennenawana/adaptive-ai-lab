@@ -786,3 +786,84 @@ forbidden-claim scorer FP did not recur for Nemotron (its S08 answers pass); it
 remains on the suite-v3 backlog. Qwen session pid 4848 (2026-08-16 08:14 UTC →
 2026-08-17 05:15 UTC) was ended only after all same-session comparisons were
 complete; both servers are up again in new sessions.
+
+---
+
+## 2026-08-17 — R3b: the token-budget factor (`max_tokens` 4 096 → 8 192, both weak arms, dev) — negative under the pre-registered rule; test untouched
+
+Full tables in `routing-experiments.md` § R3b; rule and definitions in
+`OVERNIGHT_STATUS.md` § M4.2 (committed at `99fe730` before any 8 192-token result).
+
+### One factor
+
+Same suite v2, dev split and order, prompt (`cause_action_directed`), evidence,
+schema/grammar path, scorer, verifier, decoding (greedy, seed 42), checkpoints, quants,
+llama.cpp build `b1-9b05354`, placement (`--no-mmap`) and R4 policy as R3; only
+`max_tokens` changed, 4 096 → 8 192, for **both** Qwen and Nemotron. `run_eval
+--max-tokens` (default 4 096) records the budget on every invocation; the config
+digest gains `|max_tokens:8192` only when non-default. New observation-only telemetry:
+`reasoning_chars` / `content_chars` from llama.cpp's `reasoning_content`.
+
+### Design A held again
+
+Qwen A → Nemotron → Qwen B in one Qwen session (pid 586847): A vs B **47/48 identical
+digests, 48/48 identical outcomes** (the first case in run order differs by 8 tokens —
+the endpoint had been probed with that case's prompt before priming). A same-session
+Qwen 4 096 diagnostic run after B: 46/48 identical to A — `max_tokens` is inert for
+Qwen except on the one case that needs 4 105 tokens (S07-2003006: silent wrong at
+8 192, `length` no-output at 4 096). The R3 → R3b Qwen shift (14 → 15 all-pass, 0/48
+identical digests) is cross-session drift, as R1 recorded, not the factor. Nemotron,
+by contrast, reproduced R3's 19 completed cases byte-for-byte in a new session.
+
+### Result (dev, n=48)
+
+| | Qwen 8 192 | **Nemotron 8 192** | Nemotron 4 096 (R3) |
+|---|---|---|---|
+| complete (`stop`) / `length` | 48 / 0 | **39 / 9** | 19 / 29 |
+| strict all-pass | 15 (31.2%) | **18 (37.5%)** | 12 |
+| root cause · evidence · verifier | 30 · 0.648 · 36 | 31 · 0.649 · 34 | 16 · 0.316 · 16 |
+| silent (verifier-clean, wrong) | 21 | **16** | 4 |
+| output tokens · wall p50 / p95 | 62 673 · 11.5 / 35.1 s | 239 961 · **52.0 / 94.1 s** | 172 436 · 206 s (mmap-slow) |
+
+R3's 29 length-capped cases at 8 192: **RECOVERED_PASS 6, RECOVERED_FAIL 14 (12 of them
+silent), STILL_LENGTH_CAPPED 9 (all four S07 `reversal_race`), OTHER 0.** So the cap
+explained all of the loudness and about a fifth of the failures: 6/29 capped cases
+(6/36 of R3's failures) were correct answers waiting to finish. Migration matrix vs Qwen
+A: A/B/C/D = 9 / 6 / 9 / 24 (B: 3 length cap, 2 verifier-unsupported, 1 wrong root
+cause; C: 6 Qwen-silent, 2 Qwen no-output, 1 Qwen verifier). Silent failures Nemotron
+16 vs Qwen 21 (−24%, not the −80% of R3): the earlier advantage was mostly unfinished
+reasoning counted as loud. R4 replay, unchanged `verifier` policy: Qwen + R4 52.1% at
+25.0% strong calls, $0.0553/success, p50 15.1 s; **Nemotron + R4 64.6% at 29.2%,
+$0.0534/success, p50 55.4 s** (R3: 89.6% at 66.7%, $0.0868); frontier 91.7%, $0.1172.
+The extra budget buys local passes at flat cost per success — it does not reduce
+frontier utilisation (29% vs 25%), and costs 3.8× the tokens and 4.5× the latency.
+
+### Decision (rule pre-registered before the run, applied by `scripts/r3b_selection_rule.py`)
+
+Gate PASS · **A FAIL** (39/48 complete, threshold 43) · B PASS (18 ≥ 14; rc +1 vs Qwen A,
+tolerance 2) · **C FAIL** (silent 16 > 6) · **D FAIL** (cell B 6 > 5) · E PASS (29.2% < 50%,
+$0.0534 ≤ $0.070) · F PASS (p50 52.0 s ≤ 75 s). **Nemotron does not qualify; Qwen stays
+the incumbent; TEST NOT RUN.**
+
+### What it means
+
+The 4 096-token limit was why R3 looked the way it did, not why Nemotron does not
+qualify. With the budget removed the two weak arms are measured on the same footing:
+Nemotron is marginally better on this contract (+3 local passes, +6 cascade passes,
+equal root cause and evidence, 5 fewer silent failures) at 3.8× the generated tokens,
+4.5× the latency, a second model resident on the card, and slightly *more* frontier
+traffic — and it still cannot finish 9 cases in 8 192 tokens. The token-budget
+question is closed; what remains is a model comparison, and on suite v2 it does not
+change the incumbent.
+
+### Deliberately NOT changed
+
+Suite v2, scorer, verifier, prompt, `DEFAULT_MAX_TOKENS` (4 096), R4 policy,
+`weak-baseline-v1`. No Nemotron prompt adaptation, no `--reasoning-budget`, no test
+run, no suite v3, no learned routing, no QLoRA. Runtime finding recorded, not acted
+on beyond the make target: an idle `--no-mmap` Nemotron process degrades to ~50 tok/s
+over hours and recovers to ~93 tok/s on restart with identical flags; outputs are
+placement-independent, latency is not.
+
+**Next (one): suite v3**, then re-baseline Qwen, Nemotron and the frontier together with
+the budget fixed and recorded per arm.
