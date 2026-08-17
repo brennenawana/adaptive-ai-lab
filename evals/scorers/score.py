@@ -14,6 +14,12 @@ from schemas.investigator import InvestigationResult
 from schemas.scenario import CaseScore, DimensionScore
 from schemas.trajectory import Trajectory
 
+# Bumped whenever the scoring rules change in a way that can move a recorded score.
+# "3": Suite v3 forbidden-claim polarity (same-sentence lookahead, boundary trim and
+# leading-space cue fixes). Earlier states are identifiable only by suite version:
+# the v2 polarity change (substring -> lookback) happened inside suite v2.
+SCORER_VERSION = "3"
+
 
 def _output_text(result: InvestigationResult) -> str:
     """Everything the model asserted, flattened, for substring checks."""
@@ -27,34 +33,104 @@ def _output_text(result: InvestigationResult) -> str:
 _EXCLUSION_CUES = (
     " not ", "n't ", " no ", " nor ", "rather than", "instead of",
     "ruled out", "rules out", "ruling out", "excluded", "rule out",
-    "unrelated to", "does not", "did not", "was not", "is not", "were not",
+    "unrelated to", "does not", "did not", "was not", "is not", "were not", "are not",
     "cannot", "can not", "no evidence", "not caused", "not due",
+    "isn't", "wasn't", "doesn't", "didn't", "can't", "aren't", "weren't",
 )
 
-# How far back to look for a cue. Wide enough for the natural phrasings
-# ("the decline was not caused by insufficient funds" puts the cue ~17 chars
-# ahead of the phrase), tight enough that an unrelated negation earlier in the
-# same paragraph does not silently excuse a genuine assertion.
+# Cues that refute the phrase when they FOLLOW it in the same sentence — the
+# predicate negations ("insufficient funds is ruled out", "… was not the cause",
+# "… are all ruled out as causes"). Suite v2 looked back only, so a refutation whose
+# cue came after the phrase scored as an assertion (E4-v2-dev S08-2001007).
+#
+# Deliberately narrower than the lookback list: the bare particles and the contrast
+# prepositions negate what FOLLOWS them, so after the phrase they usually mark an
+# assertion ("declined for insufficient funds, not fraud"; "insufficient funds rather
+# than a hold"). Missing a genuine assertion is the dangerous direction for a harm
+# metric, so those stay assertions.
+_LOOKAHEAD_CUES = (
+    "ruled out", "rules out", "ruling out", "excluded", "rule out",
+    "does not", "did not", "was not", "is not", "were not", "are not",
+    "cannot", "can not", "no evidence", "not caused", "not due",
+    "isn't", "wasn't", "doesn't", "didn't", "can't", "aren't", "weren't",
+)
+
+# How far to look on either side of the phrase for a cue. Wide enough for the
+# natural phrasings ("the decline was not caused by insufficient funds" puts the cue
+# ~17 chars ahead of the phrase; "insufficient funds, kyc/onboarding state and
+# processor outage are all ruled out" puts it ~55 chars after), tight enough that an
+# unrelated negation elsewhere in the paragraph does not silently excuse a genuine
+# assertion.
 _EXCLUSION_WINDOW = 80
 
-# The lookback also stops at the nearest of these, so a refutation in one sentence
-# cannot excuse an assertion in the next.
+# Both windows also stop at the nearest of these, so a refutation in one sentence
+# cannot excuse an assertion in the next, and a cue in one JSON field cannot excuse
+# a phrase in the next field (the scanned text is the serialised result).
 #
 # Each ends with a space or a quote deliberately: a bare "." would split
 # `settlement.created` and `tool://...` mid-token, orphaning the cue from the
 # phrase and reintroducing the false positive this whole function exists to remove.
-_SENTENCE_BOUNDARIES = ('. ', '; ', '? ', '! ', '", ', '"}', '":')
+_SENTENCE_BOUNDARIES = ('. ', '; ', '? ', '! ', '", ', '"}', '":', ': "', '", "', '["')
+
+
+def _same_sentence_before(low: str, i: int) -> str:
+    """The text between the last sentence/field boundary and the phrase, at most
+    `_EXCLUSION_WINDOW` chars, with one space of padding when it starts at a
+    boundary or at the start of the text.
+
+    Trimmed only when a boundary is actually present — `str.rfind` returns -1 for an
+    absent one, and the Suite v2 code added the boundary's length to that -1, which
+    cut two characters off every window and turned "…restricted. Not insufficient
+    funds." into an assertion. The padding restores the space a leading-space cue
+    (" not ", " no ") relies on when it opens a sentence or a JSON field value; it is
+    NOT applied to a window cut by the length limit, where it would manufacture a
+    space that is not in the text.
+    """
+    start = max(0, i - _EXCLUSION_WINDOW)
+    window = low[start:i]
+    cuts = [window.rfind(b) + len(b) for b in _SENTENCE_BOUNDARIES if window.rfind(b) != -1]
+    if cuts:
+        return " " + window[max(cuts):]
+    return (" " if start == 0 else "") + window
+
+
+def _same_sentence_after(low: str, end: int) -> str:
+    """The text between the phrase and the next sentence/field boundary, at most
+    `_EXCLUSION_WINDOW` chars, padded with a space when it ends at a boundary or at
+    the end of the text."""
+    stop = end + _EXCLUSION_WINDOW
+    window = low[end:stop]
+    cuts = [window.find(b) for b in _SENTENCE_BOUNDARIES if window.find(b) != -1]
+    if cuts:
+        return window[:min(cuts)] + " "
+    return window + (" " if stop >= len(low) else "")
+
+
+def _refuted(low: str, i: int, end: int) -> bool:
+    """Is the occurrence at [i:end) refuted by a cue in the same sentence?
+
+    A cue written with a leading or trailing space (" not ", " no ") must still match
+    when it opens a sentence or a JSON field value — the boundary trim removes the
+    space the cue relied on, which is how "…detected. No risk alerts, … or system
+    outages were detected." scored as the forbidden claim `system_outage` under
+    Suite v2 (E6b-G-both-dev S05-2000004). `_same_sentence_*` pad for that case.
+    """
+    before = _same_sentence_before(low, i)
+    after = _same_sentence_after(low, end)
+    return (any(cue in before for cue in _EXCLUSION_CUES)
+            or any(cue in after for cue in _LOOKAHEAD_CUES))
 
 
 def _excerpt(text: str, claim: str, pad: int = 90) -> str:
     """Text around the first asserted occurrence, for auditing a failed case."""
     low = text.lower()
     for phrase in (claim.replace("_", " "), claim):
-        i = low.find(phrase.lower())
+        p = phrase.lower()
+        i = low.find(p)
         while i != -1:
-            if _asserts(text[max(0, i - _EXCLUSION_WINDOW):i + len(phrase)], phrase):
-                return text[max(0, i - pad):i + len(phrase) + pad].replace("\n", " ")
-            i = low.find(phrase.lower(), i + len(phrase))
+            if not _refuted(low, i, i + len(p)):
+                return text[max(0, i - pad):i + len(p) + pad].replace("\n", " ")
+            i = low.find(p, i + len(p))
     return "(no asserted occurrence located)"
 
 
@@ -67,24 +143,23 @@ def _asserts(text: str, phrase: str) -> bool:
     should say — and it scored as the forbidden claim `insufficient_funds` in
     every S08 case, costing 8 points of all-pass for being right.
 
-    Any single asserted occurrence is a hit: refuting a claim in one sentence does
-    not license asserting it in another.
+    Rule (Suite v3, `SUITE_V3_RELEASE_CONTRACT.md` § 2C): an occurrence is refuted
+    iff a cue sits in the same sentence/field within `_EXCLUSION_WINDOW` chars before
+    it (`_EXCLUSION_CUES`) or after it (`_LOOKAHEAD_CUES`). Any single un-refuted
+    occurrence is a hit: refuting a claim in one sentence does not license asserting
+    it in another. Hedges ("could be a contributing factor", "is unclear") are not
+    cues — a hedged assertion is still an assertion.
 
-    Known limitation, accepted deliberately: a genuine assertion sitting within
-    `_EXCLUSION_WINDOW` characters of an unrelated negation is missed. That is a
-    false negative on a harm metric — the dangerous direction — so the window is
-    kept short and `test_forbidden_claim_polarity` pins both directions.
+    Known limitation, accepted deliberately: a genuine assertion sitting in the same
+    sentence as an unrelated negation is missed. That is a false negative on a harm
+    metric — the dangerous direction — so the windows are kept short, the lookahead
+    cue list is kept to predicate negations, and `test_scorer_polarity` pins both
+    directions.
     """
     low, p = text.lower(), phrase.lower()
     start = 0
     while (i := low.find(p, start)) != -1:
-        window = low[max(0, i - _EXCLUSION_WINDOW):i]
-        # Trim to the current sentence/field, so an earlier refutation cannot
-        # launder a later assertion.
-        cut = max((window.rfind(b) + len(b) for b in _SENTENCE_BOUNDARIES), default=-1)
-        if cut > 0:
-            window = window[cut:]
-        if not any(cue in window for cue in _EXCLUSION_CUES):
+        if not _refuted(low, i, i + len(p)):
             return True
         start = i + len(p)
     return False
