@@ -20,6 +20,17 @@ from schemas.investigator import InvestigationResult, NextAction
 from schemas.tool import ToolCall
 from schemas.trajectory import VerificationResult
 
+# Bumped whenever a check changes in a way that can move a recorded verdict.
+# "3": Suite v3 — `collect_observed_ids` harvests `idempotency_key` (contract § 2D).
+VERIFIER_VERSION = "3"
+
+# Keys whose string values a tool result exposes as identifiers the model may cite.
+# `*_id` and `provider_ref` name entities; `idempotency_key` names the one property
+# S01/S02 turn on. Under Suite v2 the key was returned by `get_webhook_history` and
+# shown to the model, yet a fact citing it read as a fabrication (E4-v2-dev
+# S01-2001000): the harvest was narrower than the tool surface.
+_OBSERVED_ID_KEYS = frozenset({"provider_ref", "idempotency_key"})
+
 _SOURCE_RE = re.compile(r"^tool://(?P<service>[a-z_]+)/(?P<ref>[A-Za-z0-9_./:-]+)$")
 
 # Which service a tool's evidence is attributed to, for citation checking.
@@ -137,14 +148,15 @@ def collect_observed_ids(results: list[Any]) -> set[str]:
 
     Deliberately permissive about shape — tool payloads are nested dicts and lists,
     and a missed id would produce a false fabrication violation, which is worse than
-    an occasional missed catch.
+    an occasional missed catch. Only what a tool actually returned is walked; the
+    caller never passes a manifest, so gold-only fields cannot become "observed".
     """
     found: set[str] = set()
 
     def walk(node: Any) -> None:
         if isinstance(node, dict):
             for k, v in node.items():
-                if isinstance(v, str) and (k.endswith("_id") or k == "provider_ref"):
+                if isinstance(v, str) and (k.endswith("_id") or k in _OBSERVED_ID_KEYS):
                     found.add(v)
                 else:
                     walk(v)
