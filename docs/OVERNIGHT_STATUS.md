@@ -659,10 +659,15 @@ VRAM (nvidia-smi) is the reliable footprint measure here.
 
 ## M4.2 Pre-registered R3b selection rule (written and committed BEFORE any 8 192-token result was observed)
 
-Definitions, fixed now: **complete** = produced a schema-valid, scoreable
-`InvestigationResult` (the `produced_output` scorer dimension is absent) — the same
-notion as R3's "19 completed" (48 − 31 no-output); a `length` stop is by construction
-not complete. **Silent failure** = schema-valid, verifier-clean, `all_pass` false
+Definitions, fixed now: **complete** = the generation finished inside the budget and
+reached its final JSON (`stop_reason == "stop"`) — the notion behind R3's "19
+completed" (19 `stop` = 17 schema-valid + 2 schema-invalid; 29 `length`); a `length`
+stop is by construction not complete. The schema-valid ("scoreable") count is reported
+beside it. *Correction 08:15 UTC, before the Nemotron arm started (Qwen A in flight):
+the first wording defined complete as "schema-valid, scoreable" and claimed that
+equalled 48 − 31 = 19; it equals 17. The rule's threshold (43 = 19 + 24) was written
+against the `stop`-count, so the definition is aligned to it here rather than the
+threshold moved.* **Silent failure** = schema-valid, verifier-clean, `all_pass` false
 (`model_migration_matrix.py` `_silent`). **Routing false negative** = silent AND the
 strong reference (`E4-v2-dev`) passes. **Migration cells** A/B/C/D are built with Qwen A
 as incumbent; if Qwen A and B disagree on any outcome, every criterion below is
