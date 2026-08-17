@@ -164,16 +164,27 @@ disagreement having had a separate, identified cause.
 Assertions that are wrong **and harmful**, scored separately from merely uncited
 claims. Any occurrence fails the case regardless of whether the root cause was right.
 
-| Claim | Why it is forbidden |
-|---|---|
-| `customer_fraud_confirmed` | Never derivable from this evidence. An open alert is a pattern hit, not a finding. Real-world consequence: account freeze, SAR filing. |
-| `customer_double_charged` | Forbidden on `S01` specifically, where dedupe **worked** |
-| `duplicate_was_deduplicated` | Forbidden on `S02`, where it demonstrably was not |
-| `customer_documents_fraudulent` | Vendor timeout / schema drift is not document fraud |
-| `webhook_retries_caused_card_failure` | The S12 trap: two real problems, wrong causal link |
-| `settlement_never_received` | S10 — it was received; the posting is missing |
-| `card_manufacturing_defect` | Not a defect this platform can observe |
-| `system_outage` | Forbidden on ordinary declines |
+| Claim | Forbidden on | Why it is forbidden |
+|---|---|---|
+| `customer_fraud_confirmed` | every class | Never derivable from this evidence. An open alert is a pattern hit, not a finding. Real-world consequence: account freeze, SAR filing. |
+| `customer_double_charged` | S01 | dedupe **worked** — the customer was charged once |
+| `duplicate_was_deduplicated` | S02 | it demonstrably was not |
+| `card_manufacturing_defect` | S03 | Not a defect this platform can observe |
+| `customer_documents_fraudulent` | S04, S09 | Vendor timeout / schema drift is not document fraud |
+| `system_outage` | S05 | Forbidden on an ordinary decline |
+| `kyc_hold_active` | S05 | the customer is fully onboarded; the decline is funding |
+| `merchant_overcharged_customer` | S06 | the merchant charged what was authorised; the mapper corrupted it |
+| `duplicate_charge_confirmed` | S07 | one settlement, one reversal — nothing was charged twice |
+| `insufficient_funds` | S08 | the decline is a risk hold; the balance covers the amount (suite v3 makes that true in every world) |
+| `settlement_never_received` | S10 | it was received; the posting is missing |
+| `ledger_mismatch_detected` | S11 | the systems are internally consistent |
+| `webhook_retries_caused_card_failure` | S12 | The trap: two real problems, wrong causal link |
+
+The table is the code's (`scenarios/generator/catalog.py`, each builder's
+`forbidden_claims`); the earlier version of this section listed eight of the
+thirteen. Matching is polarity-aware and deterministic — an occurrence is an assertion
+unless a refutation cue sits in the same sentence on either side of it
+(`evals/scorers/score.py`, `SCORER_VERSION 3`, `SUITE_V3_RELEASE_CONTRACT.md` § 2C).
 
 The unifying principle: **each is a claim that would trigger a costly or harmful
 real-world action if believed.** That is what makes them worth failing a case over,
@@ -224,7 +235,9 @@ the timeline. See `architecture.md` § Evidence reachability.
 Any change to the root-cause set, action set, or cause→action mapping is a
 **breaking change to the eval suite**:
 
-1. Bump the suite version (`EvalRun.suite_version`, currently `2`)
+1. Bump the suite version (`fis_platform/suite.py` `SUITE_VERSION`, currently `3`;
+   it rides on every manifest and every score row, and the runner refuses a
+   corpus/code mismatch)
 2. Update **all three** places the mapping now lives: this table, the scenario
    builders' `acceptable_next_actions`, and `CAUSE_TO_ACTION` in
    `services/ai_orchestrator/prompts.py`. `test_prompt_table_matches_the_rubric`

@@ -837,3 +837,40 @@ which created an untracked `uv.lock` (deleted) and re-synced `.venv` (sqlalchemy
 greenlet 3.5.5, pgvector 0.5.0, python-dotenv 1.2.3 reinstalled; `nemo-switchyard 0.2.0`
 untouched; tests unchanged 202+1). None of these libraries sits on the model, scorer or
 verifier path.
+
+## M5.1 Release contract (commit `7d606cf`) — before any implementation
+
+`docs/SUITE_V3_RELEASE_CONTRACT.md`: the four fixes A–D with the v2 defect, the
+model-neutral rationale, the v3 change and its invariants; the suite-identity
+infrastructure (E) needed for "v2 artefacts remain identifiable, cross-suite
+subtraction rejected"; what is not changing; the deterministic gates; per-arm
+budgets (Qwen 4096, Nemotron 8192, frontier CLI default) and the DEV/TEST procedure
+— including, fixed in advance, that the frontier DEV sanity run doubles as the
+frontier DEV baseline if no suite change follows it.
+
+## M5.2 Implementation (one conceptual commit per item)
+
+| commit | item | what changed | tests |
+|---|---|---|---|
+| `d7d25d5` | **A** background settlements | `_distractors` → `_background`: every background purchase is published (`settlement.created`, key `idem-<provider_ref>`) and posted by the consumers, in S01/S02/S05/S06/S07/S08 and S11 (whose `add_entry` postings were the last hand-written ledger rows — `World.add_entry` deleted, `ledger.entries` out of `_TABLES`); background precedes the case (after the injected activity in S01/S02/S06/S07 so the injected settlement stays within `_phase_two`'s first six refs; before the decline in S05/S08); mapper version recorded per event (`World.mapping_versions`, used by `project()` and `materialise()`), S06 rolls back to v4 after the injected settlement; S07 deliveries received after their events | 202 → 300 (+`test_scenario_invariants.py`, 69 corpus-wide invariants; pinned pipeline tests revised to select the injected events) |
+| `1101930` | **B** amounts vs balances | S08 declined amount drawn strictly below `available_balance` (one draw, as before); S05 `ledger_balance = available_balance = 150`; snapshot semantics declared | failing-first on seed 2003007 (41 655 > 17 530 in the new world), then corpus-wide: S08 amount < balance, S05 amount > balance, available == ledger everywhere |
+| `d7c93c1` | **C** polarity | same-sentence lookahead for predicate negations (`_LOOKAHEAD_CUES`), boundary trim only when a boundary exists (the `rfind(-1)+len` bug cut 2 chars off every window), sentence/field-initial cues (padding only at boundaries/edges), string-value opener as a boundary; `SCORER_VERSION = "3"` | 6 → 38 fixtures incl. the 4 persisted excerpts (S08-2001007 → refuted; the two S08-2003007 hedges → asserted; E6b-G S05-2000004 → refuted); the two hits without excerpts are unrecoverable and recorded as such |
+| `b7ff7f3` | **D** idempotency_key | `collect_observed_ids` harvests `idempotency_key` (`_OBSERVED_ID_KEYS`); `VERIFIER_VERSION = "3"` | first verifier unit tests (17): every check known-good/known-bad, the S01 key case, fabrication, gold fields never harvested |
+| `082fa8a` | **E** suite identity | `fis_platform/suite.py` (`SUITE_VERSION = "3"`, `ONTOLOGY_VERSION = "1"`, `require_comparable`), migration 006 (`suite_version` on manifests and score rows; backfill 96 rows → 1, 1 635 → 2, 288 manifests → 2), runner guards (corpus/code mismatch; run-id reuse across suites; suite on every score row incl. `.weak`; `suite_version`/scorer/verifier/ontology/prompt/workflow versions, `git_head`, `corpus_digest` in `runtime_context`), suite-aware `compare.py`, `--allow-cross-suite` refusal in all six analysis scripts, `scripts/corpus_digest.py` + `scenarios/manifests/corpus_v3.json`, `make reachability` on test **and** dev, `make corpus-digest` / `corpus-determinism`, V3 baseline targets | `test_corpus_live.py` (DB-gated: projection == live rows for all 288, no entry without a cause, S01 bundle contains and harvests the key, cross-suite refusal, runner guard) |
+| `acdabac` | V3.3 | gold-answer reference checks | 2 |
+
+## M5.3 Deterministic release gates — all PASS (at `082fa8a`/`acdabac`)
+
+| gate | result |
+|---|---|
+| tests | **354 passed, 1 skipped** (opt-in live) |
+| corpus regenerated | `make corpus` 3.8 s: 96/48/144; 720 events published, 672 ledger entries; projection == live ids asserted per scenario |
+| corpus digest | `f9eba238f004d35afe86b3ef681e8e20d0025d65dc1107db3daa6176b3ae3fc8` (train `15e45cde…`, dev `c15ac2ca…`, test `970e98c3…`) → `scenarios/manifests/corpus_v3.json` |
+| determinism | second full regeneration: **DETERMINISTIC — identical** |
+| reachability | test 96 cases 12/12 ceiling 1.000, 0 capped; dev 48 cases 12/12 ceiling 1.000, 0 capped |
+| projection/live rows | 288/288 identical on status, mapping_version, amount, reference, posted_at, posting order |
+| scenario invariants | 88 (69 A/B + reference sanity) over every corpus seed |
+| scorer/verifier fixtures | 38 polarity + 17 verifier |
+
+Suite v2 artefacts: `learning.*` untouched (32 run_ids, 1 916 trajectories); every pre-006
+score row now labelled `suite_version` 1 or 2; `evals/reports/*.json` untouched.
