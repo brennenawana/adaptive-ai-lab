@@ -42,6 +42,15 @@ stop-local: ## Stop it
 model-health: ## Is the local endpoint up?
 	@curl -s --max-time 3 http://127.0.0.1:8082/health || echo "DOWN"
 
+# ---------------------------------------------------------------- R3 candidate weak arm
+.PHONY: serve-nemotron stop-nemotron nemotron-health
+serve-nemotron: ## Start Nemotron 3.5 Lightning on 8083 next to Qwen on 8082 (experts partly in RAM)
+	bash ./infra/serve-nemotron.sh
+stop-nemotron: ## Stop it
+	@pkill -f 'llama-serve[r] .*--port 8083' && echo stopped || echo "not running"
+nemotron-health: ## Is the 8083 endpoint up?
+	@curl -s --max-time 3 http://127.0.0.1:8083/health || echo "DOWN"
+
 # ---------------------------------------------------------------- routing gateway (R1+)
 # NeMo Switchyard sits BENEATH the FIS gateway contract: an OpenAI-compatible hop
 # on 4000 in front of the same llama.cpp on 8082. It owns transport, backend

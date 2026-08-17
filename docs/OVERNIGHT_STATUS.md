@@ -465,3 +465,58 @@ R4 (interchangeable after R0.1, kept direct for one-factor discipline).
 
 **Recommended next experiment (one):** R3 — Nemotron 3.5 Lightning benchmark on
 suite v2 (see HANDOFF). Suite v3 afterwards as a deliberate release.
+
+---
+---
+
+# Milestone 3 — R3: Nemotron 3.5 Lightning compatibility spike and benchmark
+
+Started 2026-08-17 ~01:35 UTC (2026-08-16 21:35 EDT) from HEAD `8078da8` (clean, 196 passed + 1 opt-in live
+test, servers: llama.cpp Qwen pid 4848 `b1-9b05354` on 8082 — the same session as every
+R0.1/R4 run — and Switchyard 4000).
+
+## M3.0 Reconciliation
+
+`git status` clean at `8078da8`; pytest 196 passed / 1 skipped (live, opt-in);
+reachability unchanged (test 96/96, dev 48/48 — no corpus regeneration in R3);
+hardware as seen from WSL: RTX 5080 Laptop 16 303 MiB (7 760 MiB used by the Qwen
+server), driver 610.62, **47 GB RAM visible to WSL** (35 GB free; the machine's 64 GB
+is not all exposed to the VM), 845 GB disk free. Recorded artefacts match the prose
+(`R01-*`, `R4-cascade-verifier-{dev,96}` present with the documented counts).
+
+## M3.1 Compatibility spike — findings from the model's own metadata
+
+Sources: `bartowski/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF` and
+`ggml-org/…-GGUF` (HF), model card `nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16`
+(released 2026-08-11), GGUF headers parsed locally.
+
+| Property | Value |
+|---|---|
+| Architecture | `nemotron_h_moe` — hybrid Mamba-2 + attention + MoE, 53 blocks (attention in a few, per `head_count_kv` array), 16 MoE blocks |
+| Parameters | 30.65 B in experts (128 experts × 16 layers, `expert_used_count 6` + 1 shared), 1.56 B dense (Mamba-2/attention), 0.70 B embeddings/output; ~3 B active/token |
+| Context | 1 048 576 declared; FIS uses 16 384 |
+| Reasoning | on by default via chat template (`enable_thinking`), `<think>` block — same default as Qwen3 |
+| Vendor sampling | T 1.0 / top-p 0.95 (both modes). FIS holds decoding at greedy/seed 42 for both arms — a deliberate, shared deviation |
+| Structured output / tools | function calling supported (qwen3_coder-style parser); JSON-schema grammar is llama.cpp-side and model-agnostic |
+| llama.cpp support | `nemotron_h_moe` present in the local build `b1-9b05354` (2026-08-14; `libllama.so` carries the arch strings) — **no rebuild needed** if it loads |
+| GGUF sizes | every quant ≥ 17.9 GB: dense/embeddings only ~1.7 GB, experts 16.3 GB (IQ4_XS: IQ4_NL) / 17.4 GB (Q4_0) / 23.6 GB (Q4_K_M — experts fall back to Q5_0/Q8_0 because 1856-wide expert matrices are not 256-block aligned) |
+| Fit on 16 GB VRAM | **cannot be held whole at any available quantization**; placement is necessarily hybrid — dense weights + KV/SSM state + some expert layers on GPU, remaining experts in system RAM (`--fit on` / `--n-cpu-moe`) |
+| Chosen file | `bartowski/…-IQ4_XS.gguf` (17.94 GB, imatrix, experts IQ4_NL ~4.25 bpw — the closest 4-bit class to Qwen's Q4_K_M) |
+| Runtime | same llama.cpp binary/build as Qwen; `infra/serve-nemotron.sh` on **8083**, `--fit on --fit-target 1024` so Qwen (8082) keeps its headroom; otherwise identical flags (`--jinja`, `--parallel 1`, q8_0 KV, flash-attn, ctx 16 384) |
+| Design | **A — simultaneous endpoints**: Qwen session pid 4848 untouched, Nemotron on 8083, same ordered dev cases through both, fingerprints on every trajectory |
+
+## M3.2 Experiment contract (frozen before any benchmark run)
+
+| Field | Value |
+|---|---|
+| suite / split | v2 / dev (48 = 4 × 12 classes), corpus unchanged, reachability 48/48 |
+| prompt | `cause_action_directed` (variant C, sha256 `40111d53f60e0a37…`), `PROMPT_VERSION 1` — no Nemotron-specific prompt |
+| evidence / tools | `FIXED_EVIDENCE`, same two-phase plan, same 8 tools |
+| response schema | `InvestigationResult` — plain schema on the direct path (both arms direct); grammar = llama.cpp json_schema→GBNF |
+| scorer / verifier | unchanged (`evals/scorers/score.py`, `fis_platform/verification/verifier.py`) |
+| scenario order | `ORDER BY scenario_id` (S01-2000000 … S12-2003011), `prime-local`-style priming of each endpoint before its run |
+| decoding | `temperature 0`, `seed 42`, `max_tokens 4096`, chat template default (thinking on) — identical for both arms |
+| runtime | llama.cpp `b1-9b05354` for both; Qwen `-ngl 99`; Nemotron `--fit on` (hybrid GPU/RAM) — recorded in `runtime_context` |
+| arms | `R3-qwen-dev` (contemporaneous control, session pid 4848), `R3-nemotron-dev`, plus a second Qwen control after Nemotron (`R3-qwen2-dev`) to bound within-session drift |
+| comparison | `compare_routes.py` per scenario; migration matrix A/B/C/D; `routing_cascade_report.py` replay with the unchanged R4 `verifier` policy for both weak arms against `E4-v2-dev` |
+| test policy | test untouched unless the pre-registered rule (M3.5) is met; then exactly one run |

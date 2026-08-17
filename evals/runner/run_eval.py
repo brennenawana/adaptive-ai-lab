@@ -171,9 +171,13 @@ async def main() -> None:
     if manifest.routing is not None:
         runtime_context["gateway"] = f"{manifest.routing.gateway} {manifest.routing.gateway_version}"
     # The local backend's session, whether reached directly or through the gateway.
-    local_url = os.environ.get("FIS_LOCAL_MODEL_BASE_URL", "http://127.0.0.1:8082/v1")
-    if manifest.provider.value in ("local_llamacpp", "switchyard"):
-        runtime_context.update(local_server_session(local_url))
+    # A directly-served local model (Qwen on 8082, Nemotron on 8083) is identified by
+    # its own base_url; a Switchyard route by the local backend it fronts.
+    if manifest.provider.value == "local_llamacpp":
+        runtime_context.update(local_server_session(manifest.base_url or ""))
+    elif manifest.provider.value == "switchyard":
+        runtime_context.update(local_server_session(
+            os.environ.get("FIS_LOCAL_MODEL_BASE_URL", "http://127.0.0.1:8082/v1")))
 
     with psycopg.connect(OWNER_DSN) as owner:
         manifests = load_manifests(owner, args.split, args.limit)

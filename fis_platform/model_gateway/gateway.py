@@ -81,6 +81,7 @@ _CLAUDE_BASE_ARGS = [
 
 def default_registry() -> ModelRegistry:
     local_url = os.environ.get("FIS_LOCAL_MODEL_BASE_URL", "http://127.0.0.1:8082/v1")
+    nemotron_url = os.environ.get("FIS_NEMOTRON_BASE_URL", "http://127.0.0.1:8083/v1")
     switchyard_url = os.environ.get("FIS_SWITCHYARD_BASE_URL", "http://127.0.0.1:4000/v1")
 
     local_price = PriceTable(basis="local-marginal-zero", input_per_mtok=0.0,
@@ -102,6 +103,28 @@ def default_registry() -> ModelRegistry:
             base_url=local_url,
             price=local_price,
             notes="Primary local worker. Greedy, --parallel 1, for eval determinism.",
+        ),
+
+        # R3: candidate weak arm. Same adapter, same decoding (greedy, seed 42), same
+        # grammar path as local-specialist — the arms differ by model_ref only. Served
+        # by infra/serve-nemotron.sh on 8083 alongside Qwen on 8082 (design A:
+        # simultaneous endpoints, so the incumbent's session is never restarted).
+        "nemotron-lightning": ModelManifest(
+            ref="nemotron-lightning",
+            tier=ModelTier.SPECIALIST,
+            provider=Provider.LOCAL_LLAMACPP,
+            model_id="fis-nemotron-lightning",
+            canonical_model="nemotron-3.5-lightning-30b-a3b",
+            quantization="IQ4_XS",
+            context_window=16_384,
+            max_output_tokens=4096,
+            supports_tool_calling=True,
+            supports_structured_output=True,
+            supports_seed=True,
+            base_url=nemotron_url,
+            price=local_price,
+            notes="R3 candidate. Hybrid Mamba-2/attention/MoE, 30B total / ~3B active, "
+                  "128 experts; experts partly in system RAM (--fit on).",
         ),
 
         # R1: the same local model, reached through NeMo Switchyard in passthrough.
