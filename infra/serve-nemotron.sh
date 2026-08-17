@@ -42,6 +42,10 @@ PORT="${3:-8083}"
 # Leave this much VRAM alone so the Qwen server on 8082 keeps its headroom
 # (override with FIS_NEMOTRON_FIT_TARGET_MIB when Nemotron runs alone).
 FIT_TARGET="${FIS_NEMOTRON_FIT_TARGET_MIB:-1024}"
+# llama.cpp warns that CPU-offloaded expert tensors under mmap are slow; the R3
+# probe measured 20 tok/s with mmap against 72 tok/s right after load. --no-mmap
+# reads the file into anonymous memory instead (RSS ~19 GB, needs the RAM).
+MMAP_FLAG="${FIS_NEMOTRON_MMAP:---no-mmap}"
 LOG=/tmp/fis-nemotron.log
 
 export LD_LIBRARY_PATH="$FIS_CUDA_LIB:$(dirname "$BIN"):${LD_LIBRARY_PATH:-}"
@@ -59,6 +63,7 @@ setsid nohup "$BIN" \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
   --parallel 1 \
+  $MMAP_FLAG \
   --alias fis-nemotron-lightning \
   > "$LOG" 2>&1 </dev/null &
 
