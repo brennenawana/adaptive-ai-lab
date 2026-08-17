@@ -874,3 +874,18 @@ frontier DEV baseline if no suite change follows it.
 
 Suite v2 artefacts: `learning.*` untouched (32 run_ids, 1 916 trajectories); every pre-006
 score row now labelled `suite_version` 1 or 2; `evals/reports/*.json` untouched.
+
+## M5.4 One correction before the sanity run counted (commit below)
+
+Reviewing the fixed-evidence bundle for S06-2000005 and S08-2003007 through the real
+broker (not a model result): the injected S06/S07/S10 provider events were still
+published without an idempotency key (as in v2) while the new background settlements
+carry one — "the settlement without a key" would have been a spurious discriminator
+for the injected event. Every provider settlement/reversal event now carries a safe
+key except S02's, whose defect *is* the missing key
+(`test_the_idempotency_key_never_distinguishes_the_injected_event`). The frontier
+sanity run had 4/48 cases on the pre-fix corpus; it was stopped, its 4 rows and JSON
+removed (my own aborted run of minutes earlier, not a historical artefact), the corpus
+regenerated (digest `1e7c5278ba1f4cc1cc96fa8a1f04946ab622270eaba4c5671274c21e9d39e528`,
+deterministic on the second regeneration, reachability 96/96 + 48/48 clean, 368
+tests) and the sanity run restarted from scratch.

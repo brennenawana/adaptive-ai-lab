@@ -84,7 +84,12 @@ def _publish_settlement(w: World, acc: dict, auth: dict, sett: dict, *,
                         occurred_at=None):
     """A settlement the provider tells us about, addressed by its own `provider_ref`
     so `get_webhook_history` can be called with it. `"auto"` gives the safe key a
-    well-behaved provider sends; S02 passes `None` on purpose."""
+    well-behaved provider sends; S02 passes `None` on purpose.
+
+    Every provider settlement/reversal event carries a key except S02's, so the key
+    is never a way to tell an injected event from a background one — the only thing
+    that distinguishes them is the defect itself.
+    """
     key = f"idem-{sett['provider_ref']}" if idempotency_key == "auto" else idempotency_key
     return w.publish(provider_event_id=sett["provider_ref"], event_type="settlement.created",
                      raw_payload=_settlement_payload(acc, sett, sett["amount"]),
@@ -333,9 +338,7 @@ def settlement_amount_mapping_error(w: World) -> dict:
     auth = w.add_auth(card, amount=amount)
     sett = w.add_settlement(auth, amount=amount)
 
-    ev = w.publish(provider_event_id=sett["provider_ref"],
-                   event_type="settlement.created",
-                   raw_payload=_settlement_payload(acc, sett, amount))
+    ev = _publish_settlement(w, acc, auth, sett)
     w.mapping_version = 4          # rolled back; the damage is already posted
     background = _background(w, cus, acc, card)
 
@@ -385,14 +388,12 @@ def reversal_race(w: World) -> dict:
 
     rev = w.publish(provider_event_id=auth["provider_ref"],
                     event_type="authorization.reversed",
+                    idempotency_key=f"idem-{auth['provider_ref']}",
                     occurred_at=w.clock.at(75),
                     raw_payload={"state": "reversed", "account_id": acc["account_id"],
                                  "amount": auth["amount"], "currency": "GBP",
                                  "reference_id": auth["auth_id"]})
-    late_ev = w.publish(provider_event_id=late["provider_ref"],
-                        event_type="settlement.created",
-                        occurred_at=w.clock.at(65),
-                        raw_payload=_settlement_payload(acc, late, auth["amount"]))
+    late_ev = _publish_settlement(w, acc, auth, late, occurred_at=w.clock.at(65))
     background = _background(w, cus, acc, card)
 
     case = w.add_case(category="balance_dispute",
@@ -505,9 +506,7 @@ def reconciliation_gap(w: World) -> dict:
 
     other = w.add_auth(card, minutes=15)
     other_sett = w.add_settlement(other, minutes=40)
-    w.publish(provider_event_id=other_sett["provider_ref"],
-              event_type="settlement.created",
-              raw_payload=_settlement_payload(acc, other_sett, other["amount"]))
+    _publish_settlement(w, acc, other, other_sett)
 
     case = w.add_case(category="ledger_reconciliation",
                       summary="End-of-day totals do not match the processor statement.",

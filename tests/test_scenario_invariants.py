@@ -302,3 +302,18 @@ def test_a_wrong_label_or_action_or_forbidden_claim_fails(corpus):
     refuted = gold.model_copy(update={"summary": "Insufficient funds is ruled out by the balance; this is a risk hold."})
     assert not score_case(result=refuted, trajectory=_trajectory(), manifest=manifest, run_id="X").forbidden_claim_made
     assert not score_case(result=gold, trajectory=_trajectory(passed=False), manifest=manifest, run_id="X").all_pass
+
+
+@pytest.mark.parametrize("code", CODES)
+def test_the_idempotency_key_never_distinguishes_the_injected_event(corpus, code):
+    """Every provider settlement/reversal event carries a safe key except S02's,
+    whose defect IS the missing key. Otherwise "the one without a key" would be a
+    spurious discriminator for S06/S07/S10 next to keyed background settlements."""
+    for world, manifest, _ in _by_class(corpus, code):
+        money = [e for e in world.published if e.event_type in ("settlement.created", "authorization.reversed")]
+        if code == "S02":
+            unkeyed = [e for e in money if not e.has_safe_idempotency]
+            assert len(unkeyed) == 2 and all(e.provider_event_id == world.settlements[0]["provider_ref"] for e in unkeyed)
+            assert all(e.has_safe_idempotency for e in money if e not in unkeyed)
+        else:
+            assert all(e.has_safe_idempotency for e in money), manifest["scenario_id"]
