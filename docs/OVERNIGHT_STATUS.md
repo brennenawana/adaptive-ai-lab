@@ -889,3 +889,30 @@ removed (my own aborted run of minutes earlier, not a historical artefact), the 
 regenerated (digest `1e7c5278ba1f4cc1cc96fa8a1f04946ab622270eaba4c5671274c21e9d39e528`,
 deterministic on the second regeneration, reachability 96/96 + 48/48 clean, 368
 tests) and the sanity run restarted from scratch.
+
+## M5.5 Frontier DEV sanity run — clean; Suite v3 FROZEN
+
+`E4-v3-dev` (arm V3, `claude-frontier`, prompt `baseline`, CLI 2.1.234 default budget,
+effort unset; 22:40–23:35 UTC): **48/48 strict all-pass**, root cause 48/48, evidence
+recall 1.000, verifier 48/48, unsupported 0, forbidden 0; wall p50 36.9 s / p95 60.1 s;
+180 033 output tokens; reference cost $5.57. Every class 4/4. Under suite v2 the same
+arm on the same dev seeds had four failures, all of them the harness cases R2 flagged
+(S06-2003005 compound reading, S08-2001007 scorer FP, S08-2003007 amount > balance,
+S01-2001000 verifier gap) — none recurs, and no new disagreement, impossible scenario
+or surprising class behaviour appeared. **No harness defect found; the suite is
+unchanged after the sanity run.**
+
+Two operational notes, neither a suite change: (1) three cases (S09-2003008,
+S10-2000009, S11-2002010) hit an upstream API 500 through the CLI, and the adapter
+died in a pydantic error on the numeric status instead of surfacing it — fixed in
+`3517466` (error string + `investigate()` raises so the runner skips the case
+unpersisted and `--resume` retries), then the three cases were resumed and passed;
+cases 1–45 ran at `00ee124`, 46–48 at `3517466` (transport-only difference,
+recorded in `runtime_context.git_head`). (2) `evals/reports/E4-v3-dev.json` holds
+only the resumed remainder (a runner limitation recorded in M5.0); `learning.*` is
+the record.
+
+Per the contract (§ 6, fixed before any run) this run **is** the frontier DEV
+baseline. Freeze marker: tag `suite-v3` on the release commit; identity —
+suite 3, corpus `1e7c5278ba1f4cc1cc96fa8a1f04946ab622270eaba4c5671274c21e9d39e528` (train `d9d1570e6b70…`), scorer 3, verifier 3, ontology 1,
+prompt 1, evidence FIXED_EVIDENCE, llama.cpp `b1-9b05354`, claude CLI 2.1.234.
