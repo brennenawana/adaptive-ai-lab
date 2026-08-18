@@ -313,7 +313,7 @@ explains.
 
 `selection_rule.json` was first written with the skeleton's capped derivation (commit
 `76a7ec1`) and rewritten under § 12a-2 (commit `4b10da0`) — both before any DEV replay;
-the rewrite is recorded here rather than hidden. Chance-level note (before DEV): with
+the rewrite is recorded here rather than hidden. Chance-level note (written after the Qwen DEV replay and before the Nemotron one; it uses only R4's published DEV numbers, no candidate result): with
 Qwen's DEV R4-accepted subset ≈ 48 % unsafe (16 of 33, from the R4 replay), a *random*
 escalation of 12 accepted cases passes R1 ∧ (unnecessary ≤ E_max) with probability
 ≈ 0.59 — the rule has little power against chance for Qwen on n = 48; the report gives
