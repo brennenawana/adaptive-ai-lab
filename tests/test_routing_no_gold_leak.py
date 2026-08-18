@@ -25,6 +25,7 @@ ROUTING_MODULES = [
     ROOT / "schemas" / "routing.py",
     ROOT / "infra" / "switchyard",
     ROOT / "services" / "ai_orchestrator" / "cascade.py",   # R4: the gate itself
+    ROOT / "fis_platform" / "routing",                      # R5: the feature boundary
 ]
 
 # Where the answer key lives. Importing any of these from routing code is a leak
