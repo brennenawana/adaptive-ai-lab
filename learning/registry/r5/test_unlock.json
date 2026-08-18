@@ -9,6 +9,16 @@
       "strong_run": "E4-v3-96",
       "unlocked_at": "2026-08-18T06:24:31+00:00",
       "code_commit": "b1e92e9"
+    },
+    {
+      "policy_id": "r5-nemotron-lr_core-stratified-v1",
+      "model": "nemotron",
+      "artifact_digest": "32d527e922d0cb970dbb8fd5c896724c2031212a205d3fc3e1ca76f542a9ea74",
+      "selection_record_digest": "5bd2ba16e04b534d94c5d72453d032e54e17b710cf322ccea930a9bf8e4a03ba",
+      "local_run": "V3-nemotron-96",
+      "strong_run": "E4-v3-96",
+      "unlocked_at": "2026-08-18T09:01:03+00:00",
+      "code_commit": "af199a5"
     }
   ]
 }
