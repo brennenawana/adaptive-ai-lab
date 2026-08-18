@@ -966,3 +966,63 @@ unsupported.
 
 The gate's blind spot is unchanged in kind: every routing false negative is a
 verifier-clean answer wrong on evidence recall or root cause.
+
+## M5.9 TEST — once per frozen arm (`make eval-v3-test`, 00:57–04:15 UTC 2026-08-18; refuses to run without tag `suite-v3`)
+
+Qwen in its DEV session (pid 586847); Nemotron restarted + probed (87.7–88.3 tok/s, pid
+1045208); frontier last. Nemotron/frontier trajectories carry `git_head 2bbc0a1-dirty`
+— uncommitted documentation drafts only; `git diff suite-v3 -- . ':!docs'` is empty.
+
+| arm | run | all-pass | rc | evidence | verifier | unsup | forb | no-output | cap | wall p50/p95 | out tokens | cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Qwen 4096 | `V3-qwen-96` | **27/96 (28.1%)** | 68 | 0.628 | 74 | 12 | 0 | 13 | 1 | 12.9 / 33.8 s | 129 910 | $0 |
+| Nemotron 8192 | `V3-nemotron-96` | **48/96 (50.0%)** | 65 | 0.713 | 75 | 2 | 0 | 19 (15 `length`) | 15 | 55.8 / 94.1 s | 480 810 | $0 |
+| frontier | `E4-v3-96` | **95/96 (99.0%)** | 96 | 1.000 | 96 | 0 | 0 | 0 | 0 | 37.6 / 61.0 s | 354 059 | $10.82 |
+| Qwen + R4 (replay) | — | **48/96 (50.0%)** at 22 strong calls (22.9%), rescue 21/22, unnecessary 0, FN 47 | | | | | | | | 15.4 s | | $0.0513/success |
+| Nemotron + R4 (replay) | — | **69/96 (71.9%)** at 21 strong calls (21.9%), rescue 21/21, unnecessary 0, FN 26 | | | | | | | | 56.1 s | | $0.0380/success |
+
+Pairwise A/B/C/D: Qwen×Nemotron 21/6/27/42; Qwen×frontier 27/0/68/1;
+Nemotron×frontier 48/0/47/1; no inversion. The one frontier miss (S12-3002011:
+correct label, 4/4 evidence, action `replay_webhook`) is recorded, not acted on. No
+tuning, no re-run, no second look.
+
+## M5.10 Milestone-5 summary and completion checklist
+
+Completed: reconciliation · pre-registered contract before implementation · A/B/C/D
+one commit each with tests · suite identity + migration 006 · corpus regenerated,
+digest recorded, deterministic on second regeneration · reachability test+dev clean ·
+projection == live rows for all 288 · 88 scenario invariants incl. gold reference ·
+scorer/verifier fixtures · frontier DEV sanity 48/48 (no defect) · freeze tag
+`suite-v3` · DEV baselines (Qwen A/Nemotron/Qwen B; gate 47/47, 48/48) · pairwise
+matrices · unchanged R4 replay · TEST once per arm · release report
+(`SUITE_V3_RELEASE_REPORT.md`) · experiment log, HANDOFF, architecture, ontology,
+routing-experiments updated. Not done, by design: prompt tuning, learned routing,
+QLoRA, ontology expansion, any change after a score was seen; the R3b verdict stands.
+
+| goal-prompt criterion | status |
+|---|---|
+| repo state reconciled | ✔ M5.0 |
+| release contract committed before implementation/model runs | ✔ `7d606cf` |
+| changelist limited to genuine benchmark defects | ✔ A–D (+ E bookkeeping) |
+| A background settlements fixed + tested | ✔ `d7d25d5`, `00ee124` |
+| B S08 amount/balance fixed + tested | ✔ `1101930` |
+| C refutation polarity fixed + tested | ✔ `d7c93c1` |
+| D idempotency_key observability fixed + gold-leak tested | ✔ `b7ff7f3` |
+| suite version 3 | ✔ `082fa8a` |
+| corpus regenerated under normal reset rules | ✔ (`make corpus`, `learning.*` untouched) |
+| reachability clean DEV and TEST | ✔ 48/48, 96/96, 0 capped |
+| deterministic regeneration verified | ✔ digest identical |
+| scenario invariants pass | ✔ 88 |
+| projection/live agreement | ✔ ids at generation + rows for 288 |
+| scorer/verifier reference fixtures pass | ✔ |
+| frontier DEV sanity, no unresolved harness defect | ✔ 48/48 |
+| Suite v3 frozen (commit/tag) | ✔ `suite-v3` = `7764601` |
+| Qwen / Nemotron / frontier DEV baselines | ✔ 17/48 · 23/48 · 48/48 |
+| pairwise migration analysis | ✔ |
+| existing R4 cascade replayed unchanged | ✔ |
+| exactly-once frozen TEST baselines | ✔ 27/96 · 48/96 · 95/96 |
+| no prompt tuning / learned routing / QLoRA / ontology expansion | ✔ none |
+| Suite v2 artefacts intact | ✔ `learning.*` rows untouched, labelled |
+| full automated tests pass | ✔ 368 + 1 skipped |
+| experiment log / handoff / release report updated | ✔ |
+| working tree clean | ✔ at the final commit |

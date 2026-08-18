@@ -782,3 +782,28 @@ the v3 design: the generation budget is now a recorded, per-invocation factor an
 `reasoning_chars`/`content_chars` split makes thinking length measurable — a v3
 re-baseline should fix the budget explicitly and record it for every arm, including
 the frontier.
+
+---
+
+## Suite v3 — the R4 cascade replayed on the released suite (2026-08-18)
+
+Suite v3 (`SUITE_V3_RELEASE_CONTRACT.md`, `SUITE_V3_RELEASE_REPORT.md`) re-baselined
+the three arms; the R4 policy (`verifier`: escalate on no-output, unsupported claim
+or verifier failure) was **not** changed and was applied by replay only
+(`routing_cascade_report.py --weak <run> --strong E4-v3-dev|E4-v3-96 --policy verifier`).
+Nothing below is comparable to the § R4/R3/R3b tables above (suite v2); the scripts
+refuse the pairing.
+
+| split | weak arm | weak-only | cascade all-pass | strong calls | rescue | unnecessary | routing FN | cost/success | wall p50 |
+|---|---|---|---|---|---|---|---|---|---|
+| dev 48 | Qwen 4096 (`V3-qwen-dev`) | 35.4% | **66.7%** | 15 (31.2%) | 15/15 | 0 | 16 | $0.0608 | 16.7 s |
+| dev 48 | Nemotron 8192 (`V3-nemotron-dev`) | 47.9% | **72.9%** | 12 (25.0%) | 12/12 | 0 | 13 | $0.0453 | 54.7 s |
+| dev 48 | strong-only (`E4-v3-dev`) | — | 100% | 48 | — | — | — | $0.1160 | 37.2 s |
+| test 96 | Qwen 4096 (`V3-qwen-96`) | 28.1% | **50.0%** | 22 (22.9%) | 21/22 | 0 | 47 | $0.0513 | 15.4 s |
+| test 96 | Nemotron 8192 (`V3-nemotron-96`) | 50.0% | **71.9%** | 21 (21.9%) | 21/21 | 0 | 26 | $0.0380 | 56.1 s |
+| test 96 | strong-only (`E4-v3-96`) | — | 99.0% | 96 | — | — | — | $0.1139 | 37.8 s |
+
+The gate's blind spot is unchanged in kind: every routing false negative is a
+verifier-clean answer wrong on evidence recall or root cause. Escalations rescue 100%
+in both arms; there are no unnecessary escalations. Descriptive only — no trigger was
+added and no policy re-selected.

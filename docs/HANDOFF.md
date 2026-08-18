@@ -1,184 +1,161 @@
-# Handoff — 2026-08-17 (R0–R2, R0.1, R4 done; R3 + R3b Nemotron benchmarked at 4 096 and 8 192 — negative both times; next: suite v3)
+# Handoff — 2026-08-18 (Suite v3 released and baselined; next: R5 learned/classifier routing (not started))
 
 Written deliberately at a context boundary. Everything needed to resume is here or
-in the other docs. Read `architecture.md` and `task-ontology.md` before coding, and
-`routing-experiments.md` + `OVERNIGHT_STATUS.md` for what the overnight run found.
+in the other docs. Read `architecture.md` and `task-ontology.md` before coding,
+`SUITE_V3_RELEASE_CONTRACT.md` for what Suite v3 is, `SUITE_V3_RELEASE_REPORT.md`
+for its numbers, and `OVERNIGHT_STATUS.md` § Milestone 5 for the live log.
 
-**If you read one thing, read this.** Five times now, a number that looked like model
+**If you read one thing, read this.** Six times now, a number that looked like model
 weakness was a harness or scenario defect instead — unreachable webhook evidence, a
 clustering signal generated a month apart, an ordering hazard no tool returned, a
-scorer that counted refutations as assertions. Each was invisible in the aggregate
-and obvious once the *ceiling* was measured. Before believing any low score, run
-`make reachability` and check whether the case was winnable at all. The strongest
-tell is an **inversion**: if the weaker arm outscores the frontier arm on a class,
-the scenario is rewarding guessing, not measuring skill. That is how the S07 bug was
-found.
+scorer that counted refutations as assertions, background settlements that were never
+posted, a declined amount larger than the balance. Each was invisible in the aggregate
+and obvious once the *ceiling* was measured or an arm disagreement was reviewed.
+Before believing any low score, run `make reachability` and check whether the case
+was winnable at all. The strongest tell is an **inversion**: if the weaker arm
+outscores the frontier arm on a class, the scenario is rewarding guessing, not
+measuring skill.
 
 ---
 
-## State: migration done, E6 done, E6b closed, routing baseline done (R0–R2, R0.1, R4)
+## State: Suite v3 released (tag `suite-v3`, HEAD `7764601`), DEV + TEST baselines done for Qwen, Nemotron, frontier
 
-**~54 commits, 203 tests green** (`make test`; one live test skips unless
-`FIS_LIVE_TESTS=1` — it must never touch :8082 during a paired run). `git log
---oneline` for the trail.
+**~70 commits, 368 tests green** (`make test`; one live test skips unless
+`FIS_LIVE_TESTS=1` — it must never touch :8082 during a paired run; the DB-gated
+`test_corpus_live.py` skips unless the corpus in Postgres is this code's suite).
 
 | Piece | State |
 |---|---|
 | Schemas (6 foundational + 2 FIS) | done, invariant-tested |
-| Model gateway (local + claude-CLI) | done, both tiers verified end-to-end |
+| Model gateway (local + claude-CLI) | done, three arms verified end-to-end |
 | Tool broker, 8 read-only tools | done; ground truth blocked in Python **and** by DB role |
-| Deterministic verifier | done |
+| Deterministic verifier | done; **unit-tested since suite v3** (`VERIFIER_VERSION 3`: harvests `idempotency_key`) |
 | Orchestrator (`investigate`) | done, two evidence modes |
-| Scenario generator, 12 classes | done, deterministic, 288 scenarios |
-| Eval runner + scorers | done, checkpointed/resumable; `--prompt` selects a variant and lands in `config_digest` |
-| **Event layer** | **DONE — all 7 steps. Generator publishes; consumers materialise.** |
-| Prompt registry (`prompts.py`) | done, 8 named variants; `DEFAULT_PROMPT` is the control |
-| Experiments | E2, E4 baselined on suite v2. **E6 done** (variant C is local best). **E6b closed — negative.** E3/E5/E7/E8 open |
-| **Routing track (R-series)** | **R0 frozen** (`weak-baseline-v1` = variant C on `f48039a`), **R1 measured**, **R0.1 fixed** (Switchyard passthrough now 48/48 identical to direct), **R2 done** (oracle map on dev), **R4 done** (deterministic cascade, policy `verifier`, dev + one test confirmation), **R3 done** (Nemotron 3.5 Lightning compatible and benchmarked on dev; does not qualify under the frozen 4 096-token budget), **R3b done** (the token-budget factor: both weak arms at `max_tokens 8192`, dev, same paired design — Nemotron completes 39/48 and beats Qwen 18 vs 15 all-pass but fails the pre-registered rule on completion, silent failures and regressions; test untouched). R5 not started. `routing-experiments.md` |
-| Candidate weak arm | `nemotron-lightning` registry entry, `infra/serve-nemotron.sh` (8083, `--fit on --no-mmap`, same llama.cpp build), `scripts/model_migration_matrix.py`, `scripts/model_throughput_probe.py`, make `serve-nemotron` / `eval-r3-dev` / `r3-compare`; **generation budget as a factor**: `run_eval --max-tokens` (default 4 096), `ModelInvocation.max_tokens` / `reasoning_chars` / `content_chars`, `scripts/token_budget_delta.py`, `scripts/r3b_selection_rule.py`, make `eval-r3b-dev` / `r3b-compare` |
-| Routing gateway | NeMo Switchyard 0.2.0 on :4000 (`make serve-switchyard`), registry entry `local-specialist-switchyard` with the key-order-invariant schema rewrite, `RoutingRecord` on every routed invocation, gold-leak guards tested |
-| Deterministic cascade | `services/ai_orchestrator/cascade.py`, `run_eval --escalate-to`, `scripts/routing_cascade_report.py` (replay + live), make `r4-replay` / `eval-r4-dev` / `r4-report` / `eval-r4-confirm` |
+| Scenario generator, 12 classes | done, deterministic, 288 scenarios; **suite v3**: background settlements published and posted, per-event mapper version, S08/S05 amounts vs balances fixed, no direct ledger writes |
+| Eval runner + scorers | done, checkpointed/resumable; **suite identity on every row**; scorer polarity rule v3 (`SCORER_VERSION 3`) |
+| Event layer | done — generator publishes, consumers materialise; projection == live rows asserted for all 288 |
+| Prompt registry (`prompts.py`) | done, 8 named variants; `DEFAULT_PROMPT` is the control; **unchanged in suite v3** |
+| Suite identity | `fis_platform/suite.py` `SUITE_VERSION = "3"`; migration 006; `compare.py` labels every row; analysis scripts refuse cross-suite pairs without `--allow-cross-suite`; `scenarios/manifests/corpus_v3.json` is the corpus identity |
+| Experiments | Suite v2: E2/E4/E6/E6b/R0–R4/R3/R3b (historical, labelled v2). **Suite v3: DEV + TEST baselines for all three arms, pairwise matrices, unchanged R4 replay** — `SUITE_V3_RELEASE_REPORT.md` |
+| Routing gateway / cascade | unchanged: Switchyard 0.2.0 on :4000 (R0.1 key-order fix), `cascade.py` policy `verifier` |
 
 Infra (all healthy): Postgres+pgvector `:5433`, NATS JetStream `:4222`,
-Qwen3-8B on llama.cpp `:8082`. Start with `make up-core` and `make serve-local`.
+Qwen3-8B on llama.cpp `:8082`, Nemotron 3.5 Lightning on `:8083`. Start with
+`make up-core`, `make serve-local`, `make serve-nemotron`.
 
-**Suite version is now `2`.** The corpus is event-sourced and the tool set gained
-`get_verifications` v2. Nothing from v1 is comparable to anything from v2.
+**Suite version is now `3`** (`fis_platform/suite.py`), frozen at tag `suite-v3`
+(`7764601`), corpus digest `1e7c5278ba1f4cc1cc96fa8a1f04946ab622270eaba4c5671274c21e9d39e528`
+(`scenarios/manifests/corpus_v3.json`). Nothing from v2 is comparable to anything from
+v3, and the tooling now says so: `make report` labels rows `[v2]`/`[v3]`, and
+`compare_routes` / `model_migration_matrix` / `routing_cascade_report` /
+`routing_oracle` / `token_budget_delta` / `r3b_selection_rule` refuse a cross-suite
+pair unless `--allow-cross-suite` is given (which prints the caveat).
 
-### What landed
+### What Suite v3 changed (contract § 2; report § 2)
 
-S01, S02, S06, S07, S09 and S10 publish `ProviderEvent`s and let the consumers decide
-what happens. `World.add_event` is deleted; `add_delivery` is now
-`add_failed_delivery`, restricted to `retrying`/`failed` because a delivery that
-failed is the one thing a consumer cannot record about itself. See
-`architecture.md` § "What step 7 actually deleted, and what survives" — two narrow
-direct-write paths survive on purpose, and **S12's retry storm is the one genuinely
-open item** (it needs poison-message handling in the bus).
+Four benchmark defects found by arm disagreement in R2/R4 and deferred until a
+versioned release, plus the bookkeeping to keep suites apart:
 
-Determinism held by making envelope ids `uuid5` over the scenario id. Every
-materialised row is named after the envelope that caused it, so `uuid4` would have
-given the same seed a different world on every regeneration — and the
-`ON CONFLICT DO NOTHING` on manifests would have hidden it as stale evidence ids.
-`fis_platform/events/projection.py` replays the real consumer logic without a broker
-so a builder can name rows before publishing them; generation asserts the projection
-and the live pipeline agree, per scenario.
+1. **Background settlements** — six classes carried S10's unposted-settlement
+   signature as ambient noise (`_distractors` settlements were never published). Now
+   `_background()` publishes them and the consumers post them; S11's hand-written
+   postings go through the same path and `World.add_entry` is gone; background
+   precedes the case; the mapper version is recorded per event so S06's bad release
+   touches only the injected settlement; S07's deliveries arrive after their events;
+   every settlement/reversal event carries a safe key except S02's (whose defect is
+   the missing key).
+2. **S08/S05 amounts vs balances** — S08's declined amount now fits its balance (v2:
+   3 of 24 worlds had it larger, making `insufficient_funds` data-consistent); S05's
+   two balances agree.
+3. **Forbidden-claim polarity** — one same-sentence rule in both directions
+   (`SCORER_VERSION 3`); the recorded false positives replay as refuted, the recorded
+   hedges still count.
+4. **`idempotency_key`** is an observed id (`VERIFIER_VERSION 3`).
+
+Rubric (root causes, required evidence, actions, forbidden claims), prompts, tools,
+evidence plan, schema/grammar, decoding, budgets' default, R4 policy: unchanged.
 
 ---
 
-## THE NEXT TASK — suite v3: a deliberate benchmark release, then re-baseline all three arms
+## THE NEXT TASK — R5: learned / classifier routing (recommended, NOT started)
 
-R3b closed the token-budget question. Same paired design as R3 (Qwen A → Nemotron →
-Qwen B, one session per model, primed, same order, dev only) with `max_tokens 8192`
-for both arms and nothing else changed: Nemotron now finishes 39/48 (was 19), passes
-18/48 vs Qwen's 15/48 with equal root cause (31 vs 30) and evidence (0.649 vs 0.648) —
-but 9 cases still hit the cap (all four S07), 12 of the 14 recovered-but-wrong cases
-are *silent* (silent 4 → 16 vs Qwen 21), cell B is 6, and Nemotron + R4 sends slightly
-more to the frontier (29.2% vs 25.0%) at the same cost per success ($0.053 vs $0.055)
-for 3.8× the tokens and 4.5× the latency. It failed A/C/D of the pre-registered rule
-(`OVERNIGHT_STATUS.md` § M4.2 / M4.7); test untouched. The two weak arms are now on
-the same footing — the remaining difference is model, not budget — and on suite v2 it
-does not change the incumbent. Qwen remains the weak tier.
+Suite v3's TEST baselines say the dominant remaining bottleneck is **silent-failure
+detection**: the unchanged R4 `verifier` gate accepts 47/96 Qwen and 26/96 Nemotron
+answers that are verifier-clean and wrong, never escalates unnecessarily, and rescues
+almost everything it does escalate (21/22, 21/21). Weak capability is real (both
+weak arms ~70% root cause; S01/S11/S12 at 0/8 for both) and Nemotron's +21 TEST
+passes cost 3.7× tokens and 4.3× latency, but the gap between delivered (50–72%)
+and pair-achievable (99%) is the gate.
 
-**Suite v3** is the next milestone and should be a *deliberate release*: fix the four
-harness candidates the R2/R4 reviews found (background settlements never posted in 7
-classes; S08 declined amount > available balance and the post-positioned refutation
-cue in the forbidden-claim scorer; `idempotency_key` not harvested as an observed id),
-bump `suite_version`, regenerate, run `make reachability`, then re-baseline **Qwen,
-Nemotron and the frontier together** under one recorded contract — including the
-generation budget, which is now a per-invocation field (`ModelInvocation.max_tokens`;
-choose it explicitly per arm and record it, do not inherit 4 096 by default). Nothing
-from v2 will be comparable to v3; say so in every table.
+R5 = a router over **production-available features only** (parse/verifier signals,
+output length/structure, cited-id counts vs bundle size, case category, model
+confidence — never evidence recall or any gold field; `router_signals` rejects
+`GOLD_FEATURE_NAMES` and `test_routing_no_gold_leak.py` enforces the import ban),
+selected on DEV under a pre-registered rule in case counts (strong-call ceiling,
+unnecessary-escalation budget), compared with the deterministic `verifier` policy
+and a transparent baseline (pivot guide § R5), one TEST look. Weak stage on the
+direct path or through Switchyard (interchangeable since R0.1). Suite v3 stays
+frozen; any harness defect found on the way is a v4 item, not a patch.
+
+## Numbers — the Suite v3 baselines (report § 4–7)
+
+**DEV (n=48).** Reproducibility gate Qwen A vs B: 47/47 digests, 48/48 outcomes.
+
+| arm | run | all-pass | rc | evidence | verifier | no-output | cap | wall p50/p95 | out tokens |
+|---|---|---|---|---|---|---|---|---|---|
+| Qwen 4096 | `V3-qwen-dev` | **35.4%** (17) | 62.5% | 0.611 | 68.8% | 9 | 1 | 12.8 / 41.7 s | 65 588 |
+| Nemotron 8192 | `V3-nemotron-dev` | **47.9%** (23) | 64.6% | 0.675 | 75.0% | 12 | 10 | 53.2 / 96.0 s | 238 293 |
+| frontier | `E4-v3-dev` | **100%** (48) | 100% | 1.000 | 100% | 0 | 0 | 36.9 / 60.1 s | 180 033 |
+| Qwen + R4 (replay) | — | **66.7%** at 31.2% strong calls | | | | | | 16.7 s | $0.0608/success |
+| Nemotron + R4 (replay) | — | **72.9%** at 25.0% strong calls | | | | | | 54.7 s | $0.0453/success |
+
+Pairwise A/B/C/D: Qwen×Nemotron 13/4/10/21 (B = four Nemotron `length` no-outputs);
+Qwen×frontier 17/0/31/0; Nemotron×frontier 23/0/25/0. **No inversion anywhere.**
+Silent failures 16 (Qwen) / 13 (Nemotron); every routing false negative is
+verifier-clean and wrong on evidence recall or root cause.
+
+**TEST (n=96, once, after the freeze).**
+
+| arm | run | all-pass | rc | evidence | verifier | no-output | cap | wall p50/p95 | out tokens |
+|---|---|---|---|---|---|---|---|---|---|
+| Qwen 4096 | `V3-qwen-96` | **28.1%** (27) | 70.8% | 0.628 | 77.1% | 13 | 1 | 12.9 / 33.8 s | 129 910 |
+| Nemotron 8192 | `V3-nemotron-96` | **50.0%** (48) | 67.7% | 0.713 | 78.1% | 19 | 15 | 55.8 / 94.1 s | 480 810 |
+| frontier | `E4-v3-96` | **99.0%** (95; S12-3002011 chose `replay_webhook`) | 100% | 1.000 | 100% | 0 | 0 | 37.6 / 61.0 s | 354 059 |
+| Qwen + R4 (replay) | — | **50.0%** at 22.9% strong calls, FN 47 | | | | | | 15.4 s | $0.0513/success |
+| Nemotron + R4 (replay) | — | **71.9%** at 21.9% strong calls, FN 26 | | | | | | 56.1 s | $0.0380/success |
+
+Pairwise A/B/C/D: Qwen×Nemotron 21/6/27/42; Qwen×frontier 27/0/68/1;
+Nemotron×frontier 48/0/47/1. No inversion. Silent failures 47 / 27.
 
 Rules that carry: select on dev, one test look, one factor per arm, gold labels score a
 route but never choose it, same server session + same order for any case-level local
-comparison (design A: keep both endpoints alive; restart the `--no-mmap` Nemotron
-endpoint right before its arm and probe it with a *train* case — an idle process
-degrades to ~50 tok/s and the pre-run probe must not use a dev prompt), `FIS_LIVE_TESTS`
-off during paired runs, never probe an endpoint mid-run. `--reasoning-budget` and
-Nemotron-specific prompts remain separate factors for a separate arm, if ever.
+comparison (restart the `--no-mmap` Nemotron endpoint right before its arm and probe
+it with a *train* case), `FIS_LIVE_TESTS` off during paired runs, never probe an
+endpoint mid-run, per-arm `--max-tokens` chosen and recorded (Qwen 4096, Nemotron 8192).
 
-## Numbers — the current baseline
+**Four findings that still matter (Suite v2, unchanged in kind by v3):**
 
-**Suite v2.** `E2-v2-96` (control), `E6-cause_action_directed-96` (current best
-local), `E4-v2-96` (frontier ceiling). All 96 test scenarios, `FIXED_EVIDENCE`.
-
-| Metric | E2 local | **E6 local (C)** | E4 frontier |
-|---|---|---|---|
-| Strict all-pass | 3.1% | **29.2%** | 99.0% |
-| Root-cause accuracy | 16.7% | **65.6%** | 100% |
-| act \| rc | 18.8% | **100%** | 100% |
-| Required-evidence recall | 74.6% | **61.1%** ⚠ | 100% |
-| Verifier pass | 77.1% | 78.1% | 100% |
-| Forbidden claims | 0 | 0 | 1 (a false positive) |
-
-Run with `--prompt cause_action_directed`. `DEFAULT_PROMPT` stays `baseline` on
-purpose, so a run without `--prompt` is still the control.
-
-**Routing numbers (dev, R2, `E6-C-directed-dev` × `E4-v2-dev`, n=48):**
-weak-pass/strong-pass 16 · weak-fail/strong-pass 28 · weak-pass/strong-fail 1 ·
-both-fail 3 → safe-local 35.4%, rescueable 58.3%, oracle hybrid 93.8% (strong-only
-91.7%), oracle strong-call minimum 64.6%, cascade cost −35%. All four disagreements
-reviewed: two harness defects, two scenario-realism issues (see next task).
-
-**R4 deterministic cascade (policy `verifier`, frozen on dev):** dev 50.0% all-pass at
-22.9% strong calls; **test 49.0%** (`R4-cascade-verifier-96`) at 21.9%, rescue 19/21,
-0 unnecessary escalations, 47/96 verifier-clean weak failures accepted, cost per
-success $0.046 vs $0.097 strong-only, wall p50 14.5 s vs 38.2 s. Details in
-`routing-experiments.md` § R4.
-
-**R3 Nemotron 3.5 Lightning (dev, `R3-nemotron-dev` vs `R3-qwen-dev`, n=48):** all-pass
-25.0% vs 29.2%; 29 length-capped no-outputs; silent failures 4 vs 23; migration
-A/B/C/D 4/10/8/26; Nemotron+R4 89.6% at 66.7% strong calls ($0.0868/success) vs
-Qwen+R4 45.8% at 22.9% ($0.0545). Not adopted; test untouched. `routing-experiments.md`
-§ R3.
-
-**R3b token budget (dev, `R3b-nemotron-dev` vs `R3b-qwen-dev`, both `max_tokens 8192`,
-n=48):** Nemotron all-pass 37.5% vs Qwen 31.2%; rc 31 vs 30; evidence 0.649 vs 0.648;
-complete 39/48 (9 still `length`); silent 16 vs 21; migration A/B/C/D 9/6/9/24; R3's 29
-capped cases → 6 RECOVERED_PASS / 14 RECOVERED_FAIL / 9 STILL_CAPPED; Nemotron+R4
-64.6% at 29.2% strong calls ($0.0534/success, p50 55 s) vs Qwen+R4 52.1% at 25.0%
-($0.0553, 15 s). Qwen A/B 47/48 digests, 48/48 outcomes; a same-session Qwen 4 096
-diagnostic shows the budget touched exactly one Qwen case. Fails rule A/C/D; not
-adopted; test untouched. `routing-experiments.md` § R3b.
-
-**Four findings that matter:**
-
-1. **Enumerating the hypothesis space is what fixed diagnosis, not the remedy
-   table.** Variant D (the twelve cause labels, no actions) recovered essentially all
-   the diagnostic gain — 60.4% against a control's 18.8% — and none of the action
-   gain. The label set was already enforced by the response grammar, so an invalid
-   cause could never be *emitted*; a grammar does nothing for what is *considered*.
-   Without variant D this would have been recorded as "the cause→action table triples
-   diagnosis", which is false.
-2. **The cause→action mapping fixed the action gap completely.** `act | rc` went
-   18.8% → 100%: every case E6 diagnoses correctly now gets a sanctioned remedy.
-   Note this metric now measures lookup compliance rather than judgement — by
-   design — so it is not comparable to E2's.
-3. **Evidence recall is now the binding constraint.** It *fell* 74.6% → 61.1%, and
-   35 of the 63 cases E6 diagnoses correctly fail on evidence alone. Diagnosis was
-   the bottleneck this morning; citation is the bottleneck now. See the next task.
-4. **Zero forbidden claims from the local model at any accuracy**, across every run.
-   Frequently wrong, never dangerous.
-
-> The old "~2× better at diagnosis than remedy" (29.2% vs 13.5%) framing came from
-> `E2-local-96`, which is **suite v1 and not comparable** — five classes could not be
-> passed by any model. `compare.py` marks it with a †. Do not subtract across it.
+1. Enumerating the hypothesis space is what fixed diagnosis, not the remedy table
+   (E6 variant D).
+2. The cause→action mapping fixed the action gap completely (`act | rc` 100% on every
+   arm since).
+3. Evidence recall / citation discipline is the binding constraint for the weak arms
+   and the R4 gate cannot see it.
+4. Zero forbidden claims from either local model at any accuracy, across every run.
 
 ## Deliberately NOT done (do not silently undo these)
 
-1. **The action rubric was not widened, and the review is CLOSED.** Two E4 answers
-   on suite v1 looked defensible but scored wrong (S09 `contact_identity_vendor`,
-   S10 `inspect_mapping_version`). On v2 neither recurred — E4 chose a sanctioned
-   action in 96/96 — so both were artefacts of the v1 corpus, where those classes had
-   unreachable evidence. Closed as no change in `task-ontology.md` §3. Note what did
-   not happen: it was not widened because a model disagreed, and it was not narrowed
-   because one later agreed.
-2. **S12's retry storm was not made event-driven.** It needs poison-message handling
-   in the bus, which is a new capability rather than a port. `add_failed_delivery`
-   rejects non-failure statuses so the gap stays visible instead of quietly widening.
-3. **The root-cause and action sets were not touched** by the migration. Suite v2 is
-   a corpus + tool change, not an ontology change.
-4. **MinIO provisioned but unused** — trajectories still fit in JSONB.
+1. **The rubric was not widened**, in v2 or v3. Every v3 change is to the world, the
+   scorer's polarity mechanics or the verifier's observed-id set; required evidence,
+   actions and forbidden claims are byte-identical per class.
+2. **S12's retry storm was not made event-driven** (`add_failed_delivery` stays; the
+   bus has no poison-message path).
+3. **Balances are static snapshots**; nothing derives them from entries.
+4. **The scorer still scans the whole serialised result**; scoring `facts[].claim`
+   alone is a semantics change deferred on purpose. Hedged assertions count.
+5. **No prompt, budget, routing, QLoRA or ontology change** happened in this
+   milestone; the R3b verdict stands and was not revisited.
+6. **MinIO provisioned but unused.**
 
 ---
 
@@ -244,6 +221,16 @@ Each was initially mistakable for model weakness:
    corrected figure predicted. **One residual false positive remains** (1 of 96); the
    scorer now logs an excerpt of the matched text so the next one is auditable
    without re-running a non-deterministic case.
+
+10. **Background settlements were never posted in six classes** (suite v3 A) — S10's
+    fault signature as ambient noise; the frontier's "compound failure" reading of S06
+    was defensible. Found by the R2 weak>strong inversion.
+11. **S08's declined amount could exceed the balance** (suite v3 B) — the forbidden
+    `insufficient_funds` hypothesis was data-consistent in 3 of 24 worlds.
+12. **The polarity matcher looked back only, trimmed two chars off every window and
+    lost sentence-initial cues** (suite v3 C) — three recorded frontier false positives.
+13. **`idempotency_key` was shown by a tool but not harvested as observed** (suite v3
+    D) — citing the fact S01 is about read as fabrication.
 
 > The pattern in (2), (5), (6), (7) and (8) is one bug wearing five costumes:
 > **evidence that exists but cannot be reached, or a signal the scenario never
@@ -384,11 +371,13 @@ make ps                # fis-postgres + fis-nats healthy
 make serve-local       # reads FIS_* from .env; prints "UP model=... port=8082"
 make model-health      # {"status":"ok"}
 make serve-switchyard  # Switchyard on 4000, passthrough to 8082 (optional)
-make serve-nemotron    # Nemotron 3.5 Lightning on 8083 beside Qwen (R3 candidate; --no-mmap)
+make serve-nemotron    # Nemotron 3.5 Lightning on 8083 beside Qwen (--no-mmap; restart before its arm)
 make switchyard-health # {"status":"ok"} + routes: ['fis-local-specialist']
-make test              # 202 passed + 1 skipped (203 with FIS_LIVE_TESTS=1)
-make reachability      # 96 cases, 0 classes with an unreachable-evidence cap
-make report            # persisted cross-arm comparison
+make test              # 368 passed + 1 skipped (369 with FIS_LIVE_TESTS=1); test_corpus_live needs the v3 corpus in Postgres
+make reachability      # test 96 + dev 48 cases, 0 classes with an unreachable-evidence cap
+make corpus-digest     # canonical corpus digest -> scenarios/manifests/corpus_v3.json
+make corpus-determinism# regenerate again and check the digest is identical
+make report            # persisted cross-arm comparison, rows labelled [vN]
 ```
 
 `make reachability` is the one that is easy to skip and expensive to skip. It replays
@@ -400,9 +389,9 @@ that failure mode has now cost this project four separate times.
 
 | | |
 |---|---|
-| Corpus | 288 scenarios — 96 test / 48 dev / 144 train, suite v2 |
-| Runs | `E2-local-96` (**suite v1, do not compare**), `E2-v2-96`, `E4-v2-96`, `E6-cause_action_directed-96`, eight E6/E6b dev runs, `E4-v2-dev` (strong arm on dev, R2), `R1-*` (R1), `R01-*` (R0.1), `R4-cascade-verifier-{dev,96}` (+`.weak`), `R3-qwen-dev`, `R3-nemotron-dev`, `R3-qwen2-dev` (R3), `R3b-qwen-dev`, `R3b-nemotron-dev`, `R3b-qwen2-dev`, `R3b-qwen4096-dev` (R3b, `max_tokens 8192` except the last), plus `SMOKE-*` |
-| Preserved | `learning.*` is never truncated by `make corpus`; prior run scores survive a regeneration |
+| Corpus | 288 scenarios — 96 test / 48 dev / 144 train, **suite v3** (`ground_truth.scenario_manifests.suite_version = '3'`) |
+| Runs | **suite v3:** `E4-v3-dev`, `V3-qwen-dev`, `V3-nemotron-dev`, `V3-qwen2-dev`, `V3-qwen-96`, `V3-nemotron-96`, `E4-v3-96`. **suite v2 (labelled, do not compare):** `E2-v2-96`, `E4-v2-96`, `E6-cause_action_directed-96`, eight E6/E6b dev runs, `E4-v2-dev`, `R1-*`, `R01-*`, `R4-cascade-verifier-{dev,96}` (+`.weak`), `R3-*`, `R3b-*`, `SMOKE-nemotron*`. **suite v1:** `E2-local-96` |
+| Preserved | `learning.*` is never truncated by `make corpus`; prior run scores survive a regeneration and carry their `suite_version` |
 
 Regenerating is `make corpus`, which passes `--reset` on the first split only. It
 truncates the scenario tables and purges the JetStream streams — required, because

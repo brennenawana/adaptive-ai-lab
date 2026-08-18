@@ -867,3 +867,123 @@ placement-independent, latency is not.
 
 **Next (one): suite v3**, then re-baseline Qwen, Nemotron and the frontier together with
 the budget fixed and recorded per arm.
+
+---
+
+## 2026-08-17/18 — Suite v3: a deliberate benchmark release, then fresh DEV and TEST baselines for Qwen, Nemotron and the frontier
+
+Governing documents: `FIS_Suite_v3_Benchmark_Release_Goal_Prompt.txt`,
+`SUITE_V3_RELEASE_CONTRACT.md` (pre-registered, committed at `7d606cf` before any
+implementation or model run), `SUITE_V3_RELEASE_REPORT.md` (numbers),
+`OVERNIGHT_STATUS.md` § Milestone 5 (live log). Freeze tag `suite-v3` at `7764601`.
+
+### What Suite v3 changed, and why each change is model-neutral
+
+Four defect classes, each found by arm disagreement during R2/R4 and deferred rather
+than patched mid-baseline; each answers "which invariant was wrong under v2" without
+reference to any model's score:
+
+1. **Background settlements** (generator, pipeline). Six classes carried
+   S10's `reconciliation_gap` signature as ambient noise: `_distractors()` created
+   settlements no consumer ever posted. Now `_background()` publishes them and the
+   consumers post them; S11's hand-written postings (a class-identifying id shape)
+   go through the same path and `World.add_entry` is gone; background precedes the
+   case; the mapper version is recorded per event so S06's bad release touches only
+   the injected settlement; S07's deliveries arrive after their events; every
+   settlement/reversal event carries a safe key except S02's. Ledger rows in the
+   corpus: 672, all pipeline-caused.
+2. **S08/S05 amounts vs balances** (generator). S08 drew amount and balance
+   independently (3 of 24 worlds had declined amount > available; dev S08-2003007);
+   S05's ledger balance sat unexplained next to available = 1.50. Balances are the
+   snapshot at case time; S08's decline now fits inside it, S05's exceeds it and the
+   two balances agree.
+3. **Forbidden-claim polarity** (scorer). Lookback-only, a dead boundary guard, and
+   lost sentence-initial cues; now one documented same-sentence rule in both
+   directions (`SCORER_VERSION 3`), with the recorded false positives replayed and
+   the recorded hedges still counted.
+4. **`idempotency_key` observability** (verifier). The key the model was shown by
+   `get_webhook_history` was not harvested as an observed id (`VERIFIER_VERSION 3`).
+
+Plus the bookkeeping the goal required: suite identity on every manifest and score
+row (migration 006, v1/v2 rows backfilled and untouched otherwise), a runner that
+refuses a corpus/code mismatch or a run-id reused across suites, suite-labelled
+`compare.py`, cross-suite refusal in every analysis script, a canonical corpus digest
+(`scenarios/manifests/corpus_v3.json`), and reachability on both model-facing splits.
+
+### Deliberately NOT changed
+
+Root causes, actions, cause→action table, prompts (`DEFAULT_PROMPT` still
+`baseline`; weak arms still `cause_action_directed`, frontier still `baseline`),
+schema and grammar path, tools and the evidence plan, the 0.8 threshold, decoding,
+`DEFAULT_MAX_TOKENS`, the R4 `verifier` policy, `add_failed_delivery`, `learning.*`,
+every Suite v2 run row, the R3b verdict. No prompt tuning, no learned routing, no
+QLoRA, no ontology expansion. One correction was made after the sanity run had
+started (M5.4): the injected S06/S07/S10 events also carry a key so the key never
+discriminates the injected event — a world-consistency fix from reading the bundle,
+not from a model result; the sanity run was restarted from scratch on the
+regenerated corpus.
+
+### Release gates (all pass; report § 3)
+
+368 tests; corpus regenerated (`make corpus`, 3.8 s, 720 events / 672 entries),
+digest `1e7c5278…`, second regeneration byte-identical; reachability test 96/96 and
+dev 48/48 with 0 capped classes; projection == live rows for all 288 scenarios;
+88 scenario invariants; gold answers score all-pass everywhere; scorer/verifier
+fixtures pass; frontier DEV sanity 48/48 with no disagreement — Suite v3 frozen at
+tag `suite-v3` (`7764601`).
+
+### DEV baselines (n=48; report § 4–6)
+
+| arm | budget | all-pass | rc | evidence | verifier | no-output | cap hits | wall p50/p95 | out tokens |
+|---|---|---|---|---|---|---|---|---|---|
+| Qwen3-8B Q4_K_M (`V3-qwen-dev`; B `V3-qwen2-dev` identical 48/48 outcomes) | 4096 | **35.4%** | 62.5% | 0.611 | 68.8% | 9 | 1 | 12.8 / 41.7 s | 65 588 |
+| Nemotron 3.5 Lightning IQ4_XS (`V3-nemotron-dev`) | 8192 | **47.9%** | 64.6% | 0.675 | 75.0% | 12 | 10 | 53.2 / 96.0 s | 238 293 |
+| Claude Opus 5 CLI (`E4-v3-dev`) | CLI default | **100%** | 100% | 1.000 | 100% | 0 | 0 | 36.9 / 60.1 s | 180 033 |
+
+Pairwise A/B/C/D: Qwen×Nemotron 13/4/10/21 (the four regressions are Nemotron `length`
+no-outputs; seven of the ten rescues were Qwen silent failures); Qwen×frontier
+17/0/31/0; Nemotron×frontier 23/0/25/0 — **no inversion**, so no harness review was
+triggered. Unchanged R4 `verifier` policy by replay: Qwen + R4 66.7% at 31.2% strong
+calls ($0.0608/success, p50 16.7 s); Nemotron + R4 72.9% at 25.0% ($0.0453, p50
+54.7 s); rescue 100%, unnecessary 0, routing false negatives 16 / 13 — all
+verifier-clean answers wrong on evidence or root cause.
+
+### TEST baselines (n=96, once each, after the freeze)
+
+| arm | budget | all-pass | rc | evidence | verifier | no-output | cap hits | wall p50/p95 | out tokens |
+|---|---|---|---|---|---|---|---|---|---|
+| Qwen3-8B Q4_K_M (`V3-qwen-96`) | 4096 | **28.1%** (27) | 70.8% | 0.628 | 77.1% | 13 | 1 | 12.9 / 33.8 s | 129 910 |
+| Nemotron 3.5 Lightning IQ4_XS (`V3-nemotron-96`) | 8192 | **50.0%** (48) | 67.7% | 0.713 | 78.1% | 19 | 15 | 55.8 / 94.1 s | 480 810 |
+| Claude Opus 5 CLI (`E4-v3-96`) | CLI default | **99.0%** (95) | 100% | 1.000 | 100% | 0 | 0 | 37.6 / 61.0 s | 354 059 |
+
+The one frontier miss (S12-3002011) is a correct diagnosis with 4/4 evidence and the
+`replay_webhook` distractor as the action — recorded, rubric unchanged. Pairwise
+A/B/C/D: Qwen×Nemotron 21/6/27/42 (B: 2 `length`, 2 unsupported, 1 wrong label, 1
+evidence; 20 of the 27 rescues were Qwen silent evidence failures); Qwen×frontier
+27/0/68/1; Nemotron×frontier 48/0/47/1; no inversion. Unchanged R4 `verifier` policy
+by replay: Qwen + R4 **50.0%** at 22.9% strong calls, rescue 21/22, unnecessary 0,
+routing false negatives 47/96, $0.0513/success, p50 15.4 s; Nemotron + R4 **71.9%** at
+21.9%, rescue 21/21, unnecessary 0, false negatives 26/96, $0.0380/success, p50 56.1 s;
+strong-only $0.1139/success.
+
+### What it means
+
+Suite v3 numbers are a new reference point, not a delta on v2 (report § 8): seven
+classes' worlds changed, the scorer's polarity rule changed for every class, and the
+verifier's observed set grew. Within v3 the picture is consistent across DEV and
+TEST: the frontier saturates the suite (100% / 99.0%), so nothing in it rewards
+guessing; Nemotron 3.5 Lightning at 8 192 outscores Qwen at 4 096 by +6 (DEV) / +21
+(TEST) passes for ~3.7× the tokens and ~4.3× the latency and still cannot finish S07
+inside its budget; both weak arms are blind to the same classes (S01, S11, S12) and
+fail on different dimensions (Qwen: schema no-outputs and fabricated ids; Nemotron:
+the cap). The cascade's rescue rate is ~100% and its unnecessary-escalation rate is 0,
+so **the binding constraint is now silent-failure detection** — 47/96 (Qwen) and
+26/96 (Nemotron) accepted answers on TEST are verifier-clean and wrong. That is the
+R5 question (`HANDOFF.md`, report § 10). This milestone selects no model and tunes
+nothing; the Suite v2 verdicts (Qwen incumbent; R3b closed) are neither confirmed nor
+overturned by v3 numbers, because they are not comparable to them.
+
+### Deliberately NOT changed after the numbers
+
+Nothing. No prompt, budget, routing, scorer, verifier or generator change was made
+after any Suite v3 score was seen; TEST was run once per arm and not revisited.
