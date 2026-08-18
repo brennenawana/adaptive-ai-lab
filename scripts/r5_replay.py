@@ -549,6 +549,12 @@ def main() -> None:
             arts = [frozen_only]
         else:
             arts = load_candidates(args.model, [Path(p) for p in args.candidates] if args.candidates else None, reg)
+            # TRAIN-only comparators (answer bodies exist for TRAIN acquisitions only) cannot
+            # be replayed on the frozen DEV/TEST arms; they are reported from TRAIN alone.
+            skipped = [a["policy_id"] for a in arts if a["feature_source"] not in ("features", "prior", "prior_class")]
+            arts = [a for a in arts if a["feature_source"] in ("features", "prior", "prior_class")]
+            if skipped:
+                print(f"(not replayable on frozen arms — TRAIN-only comparators skipped: {skipped})")
         results = []
         for a in arts:
             risk = risk_scores(a, rows)
@@ -660,12 +666,39 @@ def main() -> None:
         print(f"  selection record {reg.selection_file(args.model)}"
               + (f"; frozen artifact {reg.frozen_artifact(record['winner'])}" if record["winner"] else ""))
 
+    # ---- TEST reading (contract § 14, pre-registered; a reading, not a selection) ----
+    test_reading = None
+    if args.split == "test" and results:
+        rule = json.loads(reg.rule_file.read_text())
+        proto = arts[0].get("protocol", "grouped")
+        p_ = rule["per_model"][args.model][proto]
+        m = results[0]["system"]
+        k_test = max(3, math.ceil(0.25 * r4["routing_fn"]))
+        cap = p_["absolute_cap"] if "absolute_cap" in p_ else 0.50
+        util_ok = (m["utilization"] <= r4["utilization"] + p_["delta_util"]) and (cap is None or m["utilization"] <= cap)
+        test_reading = {
+            "policy_id": results[0]["policy_id"], "protocol": proto, "K_test": k_test,
+            "fn_r4": r4["routing_fn"], "fn_policy": m["routing_fn"],
+            "R1_fn": m["routing_fn"] <= r4["routing_fn"] - k_test,
+            "unnecessary": m["unnecessary"], "e_max_x2": 2 * p_["e_max"],
+            "R2_unnecessary": m["unnecessary"] <= 2 * p_["e_max"],
+            "utilization": m["utilization"], "util_bound": r4["utilization"] + p_["delta_util"], "absolute_cap": cap,
+            "R2_utilization": util_ok,
+        }
+        test_reading["confirmed"] = bool(test_reading["R1_fn"] and test_reading["R2_unnecessary"] and util_ok)
+        print("\nTEST READING (contract § 14, pre-registered)")
+        print(f"  K_test={k_test}  FN {m['routing_fn']} vs R4 {r4['routing_fn']} → R1 {test_reading['R1_fn']};  "
+              f"unnecessary {m['unnecessary']} ≤ {2 * p_['e_max']} → {test_reading['R2_unnecessary']};  "
+              f"utilization {m['utilization']:.3f} ≤ {r4['utilization'] + p_['delta_util']:.3f}"
+              + (f" and ≤ {cap}" if cap is not None else "") + f" → {util_ok}")
+        print(f"  => {'CONFIRMED on TEST' if test_reading['confirmed'] else 'NOT CONFIRMED on TEST'}")
+
     out = Path(args.json_out) if args.json_out else ROOT / "evals" / "reports" / f"r5-replay-{args.split}-{args.model}.json"
     out.write_text(json.dumps({
         "split": args.split, "model": args.model, "local_run": local_run, "strong_run": strong_run, "n": n,
         "dataset_digest": meta["dataset_digest"], "baselines": base,
         "candidates": [{k: v for k, v in r.items() if k != "risk"} | {"risk": r["risk"]} for r in results],
-        "selection": selection, "code_commit": git_head(),
+        "selection": selection, "test_reading": test_reading, "code_commit": git_head(),
     }, indent=1, default=str) + "\n")
     print(f"\nwritten: {out}")
 
