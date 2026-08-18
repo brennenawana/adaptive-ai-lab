@@ -1,0 +1,165 @@
+{
+  "evidence_mode": "fixed_evidence",
+  "extra_body": {},
+  "genconfig_id": "gc@9dc828f0e36e",
+  "max_tokens": 6144,
+  "prompt_ref": "cause_action_directed",
+  "prompt_sha256": "40111d53f60e0a373f1c1dd05542e708691334904efd90559b78261123ece51c",
+  "prompt_version": "1",
+  "record_digest": "4e5e38c39fb5f45cd61a58fb7db76658ded0818a666166838e622f1c26645876",
+  "response_format": {
+    "json_schema": {
+      "name": "fis_output",
+      "schema": {
+        "$defs": {
+          "Fact": {
+            "additionalProperties": false,
+            "description": "A claim the model asserts as true. Requires a tool citation, always.\n\n`source` must be a tool:// URI naming the call that produced it, so the verifier\ncan confirm the referenced call actually happened in this trajectory.",
+            "properties": {
+              "claim": {
+                "title": "Claim",
+                "type": "string"
+              },
+              "entity_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Entity Ids",
+                "type": "array"
+              },
+              "source": {
+                "pattern": "^tool://[a-z_]+/[A-Za-z0-9_./:-]+$",
+                "title": "Source",
+                "type": "string"
+              }
+            },
+            "required": [
+              "claim",
+              "source"
+            ],
+            "title": "Fact",
+            "type": "object"
+          },
+          "NextAction": {
+            "description": "Allowed action codes. Read-only project: these are recommendations an\noperator executes, never something the AI performs.",
+            "enum": [
+              "open_reconciliation_review",
+              "inspect_mapping_version",
+              "replay_webhook",
+              "contact_identity_vendor",
+              "request_kyc_documents",
+              "escalate_to_risk_team",
+              "release_risk_hold_review",
+              "no_action_required",
+              "escalate_to_engineering"
+            ],
+            "title": "NextAction",
+            "type": "string"
+          },
+          "RootCause": {
+            "additionalProperties": false,
+            "properties": {
+              "confidence": {
+                "title": "Confidence",
+                "type": "number"
+              },
+              "label": {
+                "$ref": "#/$defs/RootCauseLabel"
+              }
+            },
+            "required": [
+              "label",
+              "confidence"
+            ],
+            "title": "RootCause",
+            "type": "object"
+          },
+          "RootCauseLabel": {
+            "description": "Closed label set, matching the twelve seeded scenario classes.\n\nClosed rather than free-text because root-cause accuracy is scored by exact or\naccepted-label match \u2014 the guide is explicit that we should not ask an LLM judge\nto grade something we can test objectively.",
+            "enum": [
+              "duplicate_webhook_handled",
+              "missing_idempotency",
+              "kyc_hold",
+              "provider_outage",
+              "processor_decline",
+              "settlement_amount_mapping_error",
+              "reversal_race",
+              "risk_hold",
+              "stale_integration_mapping",
+              "reconciliation_gap",
+              "false_positive_alert",
+              "compound_failure",
+              "unknown"
+            ],
+            "title": "RootCauseLabel",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The structured case assessment. This is the schema the verifier validates and\nthe scorer grades against the hidden manifest.",
+        "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "classification": {
+            "title": "Classification",
+            "type": "string"
+          },
+          "escalation_required": {
+            "default": false,
+            "title": "Escalation Required",
+            "type": "boolean"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/$defs/Fact"
+            },
+            "title": "Facts",
+            "type": "array"
+          },
+          "hypotheses": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Hypotheses",
+            "type": "array"
+          },
+          "recommended_next_action": {
+            "$ref": "#/$defs/NextAction"
+          },
+          "root_cause": {
+            "$ref": "#/$defs/RootCause"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "uncertainties": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Uncertainties",
+            "type": "array"
+          }
+        },
+        "required": [
+          "case_id",
+          "classification",
+          "root_cause",
+          "facts",
+          "recommended_next_action",
+          "summary"
+        ],
+        "title": "InvestigationResult",
+        "type": "object"
+      },
+      "strict": true
+    },
+    "type": "json_schema"
+  },
+  "schema_digest": "07f929144cabe684a0060bd766554b13471f72d5feabcf4eb5593a67fee0a36b",
+  "seed": 42,
+  "temperature": 0.0,
+  "workflow_version": "1.0.0"
+}

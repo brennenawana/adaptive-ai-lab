@@ -83,6 +83,15 @@ def default_registry() -> ModelRegistry:
     local_url = os.environ.get("FIS_LOCAL_MODEL_BASE_URL", "http://127.0.0.1:8082/v1")
     nemotron_url = os.environ.get("FIS_NEMOTRON_BASE_URL", "http://127.0.0.1:8083/v1")
     switchyard_url = os.environ.get("FIS_SWITCHYARD_BASE_URL", "http://127.0.0.1:4000/v1")
+    # R6 candidates — one port each so `local_server_session` and the provenance
+    # registry can tell the servers apart; only one of them is resident at a time
+    # (the 16 GB card holds one 27B). The model behind a ref is NOT identified by
+    # this alias or port: the R6 registry binds the run to the artifact SHA-256 and
+    # the runtime digest (fis_platform/provenance.py) and the runner refuses to
+    # start when the served file/binary differ from the frozen execution system.
+    qwen35_url = os.environ.get("FIS_QWEN35_BASE_URL", "http://127.0.0.1:8084/v1")
+    qwen38_url = os.environ.get("FIS_QWEN38_BASE_URL", "http://127.0.0.1:8085/v1")
+    bonsai_url = os.environ.get("FIS_BONSAI_BASE_URL", "http://127.0.0.1:8086/v1")
 
     local_price = PriceTable(basis="local-marginal-zero", input_per_mtok=0.0,
                              output_per_mtok=0.0)
@@ -129,6 +138,61 @@ def default_registry() -> ModelRegistry:
             price=local_price,
             notes="R3 candidate. Hybrid Mamba-2/attention/MoE, 30B total / ~3B active, "
                   "128 experts; experts partly in system RAM (--fit on).",
+        ),
+
+        # R6 — modern local candidates. Same adapter, same decoding (greedy, seed 42),
+        # same grammar path and prompt as local-specialist / nemotron-lightning: the
+        # arms differ by execution system only. Served by infra/serve-r6.sh.
+        "qwen35-9b": ModelManifest(
+            ref="qwen35-9b",
+            tier=ModelTier.SPECIALIST,
+            provider=Provider.LOCAL_LLAMACPP,
+            model_id="fis-qwen35-9b",
+            canonical_model="qwen3.5-9b",
+            quantization="Q4_K_M",
+            context_window=16_384,
+            max_output_tokens=8192,
+            supports_tool_calling=True,
+            supports_structured_output=True,
+            supports_seed=True,
+            base_url=qwen35_url,
+            price=local_price,
+            notes="R6 modern small tier (unsloth/Qwen3.5-9B-GGUF Q4_K_M, pinned in "
+                  "learning/registry/r6/models). Port 8084.",
+        ),
+        "qwen38-27b": ModelManifest(
+            ref="qwen38-27b",
+            tier=ModelTier.SPECIALIST,
+            provider=Provider.LOCAL_LLAMACPP,
+            model_id="fis-qwen38-27b",
+            canonical_model="qwen3.8-27b",
+            quantization="Q3_K_M|UD-Q3_K_XL",   # which quant is served is an artifact fact
+            context_window=16_384,
+            max_output_tokens=8192,
+            supports_tool_calling=True,
+            supports_structured_output=True,
+            supports_seed=True,
+            base_url=qwen38_url,
+            price=local_price,
+            notes="R6 modern strong tier (unsloth/Qwen3.8-27B-GGUF; the TRAIN-selected "
+                  "quant only reaches DEV/TEST). Port 8085. NOT Bonsai.",
+        ),
+        "bonsai-27b": ModelManifest(
+            ref="bonsai-27b",
+            tier=ModelTier.SPECIALIST,
+            provider=Provider.LOCAL_LLAMACPP,
+            model_id="fis-bonsai-27b",
+            canonical_model="ternary-bonsai-27b",
+            quantization="Q2_0",
+            context_window=16_384,
+            max_output_tokens=8192,
+            supports_tool_calling=True,
+            supports_structured_output=True,
+            supports_seed=True,
+            base_url=bonsai_url,
+            price=local_price,
+            notes="R6 efficiency arm (prism-ml/Ternary-Bonsai-27B-gguf Q2_0) — served ONLY "
+                  "by the PrismML llama.cpp fork (infra/serve-r6.sh --runtime prism). Port 8086.",
         ),
 
         # R1: the same local model, reached through NeMo Switchyard in passthrough.

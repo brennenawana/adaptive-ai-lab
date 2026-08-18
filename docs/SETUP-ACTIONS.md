@@ -139,8 +139,9 @@ private is the safer default.
    existing `thewall` Postgres on 5432 and Redis on 6379 stay untouched; FIS gets its own
    instance on 5433)
 5. Pull a 4–8B instruct model with real tool-calling support and serve it OpenAI-compatible
-   via your existing CUDA llama.cpp build on a free port (8080 stays reserved for Bonsai,
-   8081 for your Qwen3.8-27B server)
+   via your existing CUDA llama.cpp build on a free port (8080/8081 were reserved by other
+   projects at the time — 8081 for an Unsloth Qwen3.8-27B server; the Ternary Bonsai
+   artifact is a separate Prism file and was never what ran there)
 6. Build the model gateway with three adapters behind one contract: local llama.cpp,
    Claude-subscription CLI, Codex CLI
 7. Build the 9 FIS services, the seeded scenario generator with hidden ground truth, the

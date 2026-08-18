@@ -306,6 +306,36 @@ eval-r5-train: ## R5 — both local arms on TRAIN, sequentially (nothing else on
 	$(MAKE) eval-r5-train-qwen
 	$(MAKE) eval-r5-train-nemotron
 
+# ---------------------------------------------------------------- R6 modern local refresh
+# R6 (docs/FIS_R6_Modern_Local_Specialist_Refresh_Plan.html) evaluates NEW local
+# execution systems under the frozen Suite v3 configuration. Every R6 run names a
+# registered candidate (learning/registry/r6): the runner refuses to start unless the
+# candidate's state allows the split, and unless the served file/binary/args match the
+# frozen execution system. Only one candidate server is resident at a time (16 GB card).
+#   make r6-serve MODEL=Qwen3.5-9B-Q4_K_M.gguf PORT=8084 ALIAS=fis-qwen35-9b [CTX=16384] [RUNTIME=upstream] [OFFLOAD="-ngl 99"]
+#   make r6-stop PORT=8084
+#   make r6-eval CANDIDATE=<id> REF=qwen35-9b SPLIT=train RUN_ID=R6-qwen35-train-pilot MAX_TOKENS=8192 IDS_FILE=learning/registry/r6/pilot/train_pilot_k3.ids
+R6_REG := $(PY) scripts/r6_registry.py
+.PHONY: r6-serve r6-stop r6-prime r6-eval r6-verify r6-show
+r6-serve: ## R6 — serve one candidate (MODEL PORT ALIAS [CTX RUNTIME OFFLOAD EXTRA])
+	bash ./infra/serve-r6.sh --model "$(MODEL)" --port "$(PORT)" --alias "$(ALIAS)" \
+	  --ctx "$(or $(CTX),16384)" --runtime "$(or $(RUNTIME),upstream)" \
+	  --offload "$(or $(OFFLOAD),-ngl 99)" --extra "$(EXTRA)"
+r6-stop: ## R6 — stop the candidate server on PORT
+	@pkill -f "llama-serve[r] .*--port $(PORT)" && echo "stopped llama-server on $(PORT)" || echo "nothing on $(PORT)"
+r6-prime: ## R6 — one tiny request so the first measured case is not a cold start (PORT ALIAS)
+	@curl -s --max-time 120 http://127.0.0.1:$(PORT)/v1/chat/completions -H 'Content-Type: application/json' \
+	  -d '{"model":"$(ALIAS)","messages":[{"role":"user","content":"prime"}],"max_tokens":8,"temperature":0,"seed":42}' >/dev/null \
+	  && echo "primed $(ALIAS) on $(PORT)"
+r6-eval: ## R6 — run one candidate on a split under the registry's fail-closed state check
+	$(PY) -m evals.runner.run_eval --arm R6 --model-ref $(REF) --split $(SPLIT) \
+	  --prompt cause_action_directed --max-tokens $(MAX_TOKENS) --run-id $(RUN_ID) \
+	  --candidate $(CANDIDATE) $(if $(IDS_FILE),--scenario-ids-file $(IDS_FILE),) $(if $(RESUME),--resume,)
+r6-verify: ## R6 — verify every registry record and state chain
+	$(R6_REG) verify
+r6-show: ## R6 — print candidate states
+	$(R6_REG) show
+
 # R2 pairs the frozen weak arm with the strong arm ON DEV. The oracle map is a
 # selection tool; the script refuses the test split without --allow-test.
 .PHONY: eval-e4-dev routing-oracle

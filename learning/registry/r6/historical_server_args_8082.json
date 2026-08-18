@@ -1,0 +1,43 @@
+{
+  "argv": [
+    "/home/wall/infra/llama.cpp-upstream/build-cuda/bin/llama-server",
+    "-m",
+    "/home/wall/infra/models/Qwen3-8B-Q4_K_M.gguf",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "8082",
+    "-c",
+    "16384",
+    "-ngl",
+    "99",
+    "--flash-attn",
+    "on",
+    "--cache-type-k",
+    "q8_0",
+    "--cache-type-v",
+    "q8_0",
+    "--jinja",
+    "--parallel",
+    "1",
+    "--alias",
+    "fis-local-specialist"
+  ],
+  "material": [
+    "-c",
+    "16384",
+    "-ngl",
+    "99",
+    "--flash-attn",
+    "on",
+    "--cache-type-k",
+    "q8_0",
+    "--cache-type-v",
+    "q8_0",
+    "--jinja",
+    "--parallel",
+    "1"
+  ],
+  "record_digest": "c4882fd8d7d7ce6d04ff6cbc7fbe0f581bab59156f2665355403d0038bd6dddd",
+  "server_args_digest": "7c6f27cb47785cb7fd0b22ceb23be1f5532ab4e96570663b2eb858beeeded18a"
+}

@@ -1,0 +1,18 @@
+{
+  "bonsai-27b@ddd13c20e0e8": {
+    "entry_digest": "915276dd9009d518fce601d3dc34baa6d3142dc48df1045dbec756818c9b9611",
+    "seq": 1
+  },
+  "qwen35-9b@9f010021daba": {
+    "entry_digest": "22dd7a37403c902fe6ae9c40424ffe91007fb94c54ef8306073b39d2d88c059c",
+    "seq": 1
+  },
+  "qwen38-27b-q3km@8528f049af75": {
+    "entry_digest": "b0af5bdc132a2766107abc3a6e2e29061f45f61cc195163693d5b88a49f1bb42",
+    "seq": 1
+  },
+  "qwen38-27b-udq3kxl@d9d3f9771d67": {
+    "entry_digest": "18544e12f96323dadabda0ef3bbccf9577788755b5542779044d51c0423547b0",
+    "seq": 1
+  }
+}

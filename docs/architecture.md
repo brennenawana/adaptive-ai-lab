@@ -53,7 +53,8 @@ For *why the platform exists*, see the Canonical Architecture doc in `docs/`.
 | 9000/9001 | MinIO | `artifacts` profile, not yet used |
 | **5432** | **pre-existing `thewall` Postgres** | **not ours — do not touch** |
 | **6379** | **pre-existing Redis** | **not ours** |
-| **8080/8081** | **Bonsai / Qwen3.8-27B** | **not ours** |
+| 8084 / 8085 / 8086 | R6 candidate servers — Qwen3.5-9B / Qwen3.8-27B (Unsloth quant, upstream llama.cpp) / Ternary Bonsai 27B (PrismML llama.cpp fork) | `make r6-serve …`; one resident at a time; identity = registry artifact SHA + runtime digest, never the port |
+| **8080/8081** | historically reserved by other projects (8081 once served the **Unsloth Qwen3.8-27B** file — it was never Bonsai; nothing listens on either today) | **not ours** |
 
 ---
 

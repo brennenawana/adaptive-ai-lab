@@ -94,6 +94,84 @@ def local_server_session(base_url: str) -> dict[str, str]:
     return ctx
 
 
+def gpu_mem_used_mib() -> str:
+    """`nvidia-smi` memory.used (MiB) for GPU 0, or "" — the resident-footprint sample the R6
+    efficiency gate reads (contract § 11). WSL cannot attribute VRAM per process, so this is
+    the card total; R6 keeps exactly one candidate server resident, which is what makes the
+    total the candidate's footprint."""
+    import subprocess
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=10, check=True).stdout
+        return out.strip().splitlines()[0].strip()
+    except Exception:  # noqa: BLE001 — telemetry only
+        return ""
+
+
+def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[str, str]):
+    """R6 fail-closed provenance gate (docs/R6_EXPERIMENT_CONTRACT.md § 13–14).
+
+    Before a single model call: the candidate's registry state must allow this split and
+    run id; DEV/TEST need a clean tree; the SERVED system must be the registered one —
+    `/props.build_info` == the runtime record's expected build, the served file's basename
+    == the artifact's filename and its SHA-256 (re-hashed now) == the artifact's, and, once
+    the execution system is frozen (TRAIN_COMPATIBLE), the live `/proc` server args and
+    the generation config this run would send must digest to the frozen values. Every
+    identity is stamped into `runtime_context` so each trajectory carries it. Returns
+    (registry, identity) for the run ledger.
+    """
+    from fis_platform.provenance import (
+        R6Registry, build_generation_config, capture_server_args, default_root, require_state,
+        sha256_file,
+    )
+    reg = R6Registry(default_root())
+    ident = require_state(reg, args.candidate, args.split, run_id, args.resume)
+    if args.split in ("dev", "test"):
+        gh = runtime_context.get("git_head", "")
+        if not gh or gh.endswith("-dirty"):
+            raise SystemExit(f"R6: {args.split.upper()} inference needs a clean committed tree "
+                             f"(git_head={gh!r}); allowed dirty paths: none (contract § 14)")
+    if manifest.provider.value != "local_llamacpp":
+        raise SystemExit("R6: --candidate applies to local llama.cpp arms only")
+    artifact = reg.get_artifact(ident["identity"]["artifact_id"])
+    runtime = reg.get_runtime(ident["identity"]["runtime_id"])
+    if runtime_context.get("llamacpp_build", "") != (runtime.build_info_expected or ""):
+        raise SystemExit(f"R6: served build_info {runtime_context.get('llamacpp_build')!r} != registered "
+                         f"runtime {runtime.runtime_id} ({runtime.build_info_expected!r}) — wrong binary")
+    served_path = runtime_context.get("model_path", "")
+    if not served_path or Path(served_path).name != artifact.filename:
+        raise SystemExit(f"R6: served model_path {served_path!r} is not the registered artifact "
+                         f"{artifact.artifact_id} ({artifact.filename})")
+    served_sha = sha256_file(Path(served_path))
+    if served_sha != artifact.sha256:
+        raise SystemExit(f"R6: served file sha256 {served_sha} != registered {artifact.sha256} "
+                         f"({artifact.artifact_id})")
+    import re
+    port = int((re.search(r":(\d+)", (manifest.base_url or "").rstrip("/").removesuffix("/v1")) or [None, "0"])[1])
+    sargs = capture_server_args(port)
+    if sargs is None:
+        raise SystemExit(f"R6: no llama-server process found on port {port}")
+    genconf = build_generation_config(args.prompt, args.max_tokens)
+    frozen = ident.get("execution_system") or {}
+    if frozen:
+        if sargs.server_args_digest != frozen["server_args_digest"]:
+            raise SystemExit("R6: live server args differ from the frozen execution system:\n"
+                             f"  live   {sargs.server_args_digest} {sargs.material}\n"
+                             f"  frozen {frozen['server_args_digest']} {frozen.get('server_args_material')}")
+        if genconf.record_digest != frozen["generation_config_digest"]:
+            raise SystemExit(f"R6: generation config {genconf.record_digest} (prompt={args.prompt}, "
+                             f"max_tokens={args.max_tokens}) != frozen {frozen['generation_config_digest']}")
+        runtime_context["execution_system_digest"] = frozen["record_digest"]
+    runtime_context.update({
+        "candidate_id": ident["candidate_id"], "artifact_id": artifact.artifact_id,
+        "artifact_sha256": artifact.sha256, "gguf_metadata_digest": artifact.gguf_metadata_digest,
+        "runtime_id": runtime.runtime_id, "runtime_digest": runtime.record_digest,
+        "server_args_digest": sargs.server_args_digest, "generation_config_digest": genconf.record_digest,
+        "generation_config_id": genconf.genconfig_id, "gpu_mem_used_mib_start": gpu_mem_used_mib(),
+    })
+    return reg, ident
+
+
 def config_digest(*, model_ref: str, mode: str, prompt: str,
                   escalate_to: str | None = None, escalation_policy: str | None = None,
                   strong_prompt: str | None = None,
@@ -114,21 +192,36 @@ def config_digest(*, model_ref: str, mode: str, prompt: str,
     return digest
 
 
-def load_manifests(conn, split: str, limit: int | None) -> list[dict]:
+def load_manifests(conn, split: str, limit: int | None,
+                   scenario_ids: list[str] | None = None) -> list[dict]:
+    """The split's manifests in scenario-id order. `scenario_ids` (R6) restricts the
+    run to a pre-registered subset — still constrained to `split`, so a TRAIN pilot
+    list can never pull a DEV/TEST case in — and refuses ids the split does not hold
+    rather than silently running fewer cases than the pilot record says."""
     sql = """
         SELECT scenario_id, seed, split, category, root_cause, required_evidence,
                acceptable_next_actions, forbidden_claims, distractor_event_ids,
                case_id, subject_ids
         FROM ground_truth.scenario_manifests
-        WHERE split = %s ORDER BY scenario_id
+        WHERE split = %s
     """
     params: tuple = (split,)
+    if scenario_ids:
+        sql += " AND scenario_id = ANY(%s)"
+        params += (list(scenario_ids),)
+    sql += " ORDER BY scenario_id"
     if limit:
         sql += " LIMIT %s"
         params += (limit,)
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(sql, params)
-        return [dict(r) for r in cur.fetchall()]
+        rows = [dict(r) for r in cur.fetchall()]
+    if scenario_ids:
+        missing = sorted(set(scenario_ids) - {r["scenario_id"] for r in rows})
+        if missing:
+            raise SystemExit(f"{len(missing)} requested scenario id(s) are not in split "
+                             f"{split!r}: {missing[:5]}{'…' if len(missing) > 5 else ''}")
+    return rows
 
 
 def already_done(conn, run_id: str) -> set[str]:
@@ -208,6 +301,10 @@ async def main() -> None:
                     default=EvidenceMode.FIXED_EVIDENCE.value)
     ap.add_argument("--split", choices=[s.value for s in SeedSplit], default="test")
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--scenario-ids-file", type=Path,
+                    help="R6: run only these scenario ids (one per line; '#' comments), e.g. "
+                         "the pre-registered TRAIN pilot from scripts/r6_pilot.py. Ids must "
+                         "belong to --split.")
     ap.add_argument("--run-id")
     ap.add_argument("--prompt", default=DEFAULT_PROMPT, choices=sorted(PROMPTS),
                     help="Investigator system prompt variant (E6). The prompt is part\n"
@@ -226,6 +323,10 @@ async def main() -> None:
                     help="Prompt for the strong stage (default: the control, as E4 was baselined).")
     # R3b — the generation budget as an explicit factor. Applies to --model-ref (the
     # weak stage in a cascade); the strong stage keeps the default.
+    ap.add_argument("--candidate", metavar="CANDIDATE_ID",
+                    help="R6: the registered candidate (learning/registry/r6) this run evaluates. "
+                         "Fail-closed: the run refuses to start unless the candidate's state allows "
+                         "the split and the served model/binary/args match the frozen execution system.")
     ap.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS,
                     help=f"Generation budget for --model-ref (default {DEFAULT_MAX_TOKENS}, the "
                          "budget every recorded run was made with). Recorded on every "
@@ -269,16 +370,37 @@ async def main() -> None:
         runtime_context.update(local_server_session(
             os.environ.get("FIS_LOCAL_MODEL_BASE_URL", "http://127.0.0.1:8082/v1")))
 
+    r6_reg = r6_ident = None
+    if args.candidate:
+        r6_reg, r6_ident = r6_candidate_preflight(args, run_id, manifest, runtime_context)
+
+    import time as _time
+    run_started = _time.monotonic()
     with psycopg.connect(OWNER_DSN) as owner:
         guard_suite(owner, run_id, args.split, args.resume)
         runtime_context["corpus_digest"] = corpus_digest(owner)["digest"]
-        manifests = load_manifests(owner, args.split, args.limit)
+        scenario_ids = None
+        if args.scenario_ids_file:
+            scenario_ids = [ln.strip() for ln in args.scenario_ids_file.read_text().splitlines()
+                            if ln.strip() and not ln.lstrip().startswith("#")]
+            if not scenario_ids:
+                raise SystemExit(f"--scenario-ids-file {args.scenario_ids_file} holds no ids")
+            runtime_context["scenario_ids_file"] = str(args.scenario_ids_file)
+            runtime_context["scenario_ids_digest"] = __import__("hashlib").sha256(
+                "\n".join(scenario_ids).encode()).hexdigest()
+        manifests = load_manifests(owner, args.split, args.limit, scenario_ids)
         done = already_done(owner, run_id) if args.resume else set()
         pending = [m for m in manifests if m["scenario_id"] not in done]
 
         print(f"run_id={run_id}  arm={args.arm}  model={args.model_ref}  mode={args.mode}")
         print(f"{len(manifests)} scenarios in split, {len(done)} already scored, "
               f"{len(pending)} to run")
+        if r6_reg is not None:
+            from fis_platform.provenance import begin_run
+            begin_run(r6_reg, args.candidate, args.split, run_id, planned_cases=len(manifests),
+                      extra={"pending": len(pending), "resume": bool(args.resume),
+                             "max_tokens": args.max_tokens, "prompt": args.prompt,
+                             "scenario_ids_digest": runtime_context.get("scenario_ids_digest", "")})
         print("runtime: " + "  ".join(f"{k}={v}" for k, v in runtime_context.items()
                                      if k not in ("run_id", "model_ref", "prompt")) + "\n")
 
@@ -294,6 +416,8 @@ async def main() -> None:
         escalations = 0
 
         for i, m in enumerate(pending, 1):
+            if r6_reg is not None:
+                runtime_context["gpu_mem_used_mib_now"] = gpu_mem_used_mib()
             with ToolBroker(TOOLS_DSN) as broker:
                 try:
                     if args.escalate_to:
@@ -363,6 +487,12 @@ async def main() -> None:
     out = ROOT / "evals" / "reports" / f"{run_id}.json"
     out.write_text(run.model_dump_json(indent=2))
     print(f"report             : {out}")
+    if r6_reg is not None:
+        from fis_platform.provenance import end_run
+        end_run(r6_reg, args.candidate, run_id, cases_done=len(run.scores),
+                wall_s=round(_time.monotonic() - run_started, 1),
+                extra={"all_pass": sum(1 for sc in run.scores if sc.all_pass),
+                       "gpu_mem_used_mib_end": gpu_mem_used_mib()})
 
 
 def _pct(v: float | None) -> str:
