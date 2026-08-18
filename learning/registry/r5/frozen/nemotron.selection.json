@@ -1,0 +1,280 @@
+{
+  "candidates": [
+    {
+      "artifact_digest": "bc2e0262be0135c1cb4a213eba7257276c29dc33acbbd7aa5be8fd60a54bbaaf",
+      "eligible": false,
+      "policy_id": "r5-nemotron-lr_answer-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "artifact_digest": "cc61aa6bda3a765b1c387d7959db595d25f9b80aebb76433e40537473563ab0a",
+      "eligible": false,
+      "policy_id": "r5-nemotron-lr_answer-v1",
+      "protocol": "grouped"
+    },
+    {
+      "artifact_digest": "512db5b1bc47a5628a9277019f481e6d2a855aed5a6e188312c00e603ac00cc2",
+      "eligible": false,
+      "policy_id": "r5-nemotron-lr_behavior-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "artifact_digest": "cd63d7b8e524558a54d7de4a61f41e04134c98eeaed4872a81dd05e268d4435c",
+      "eligible": false,
+      "policy_id": "r5-nemotron-lr_behavior-v1",
+      "protocol": "grouped"
+    },
+    {
+      "artifact_digest": "32d527e922d0cb970dbb8fd5c896724c2031212a205d3fc3e1ca76f542a9ea74",
+      "eligible": true,
+      "policy_id": "r5-nemotron-lr_core-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "artifact_digest": "29555aadbd7be11ba538cfb9fcf25470f6f08e670b44e7acabdc19f97147d5df",
+      "eligible": false,
+      "policy_id": "r5-nemotron-lr_core-v1",
+      "protocol": "grouped"
+    },
+    {
+      "artifact_digest": "c5103cf6f5c5a8efbc0204eafd498ff9e5d6c87de06b40e87d7bb62810b590e4",
+      "eligible": true,
+      "policy_id": "r5-nemotron-lr_full-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "artifact_digest": "fb9f310cf6de9269e4b816eb2ef7b5ad6e3ba9775d13cbf22eb3524dfb7abe74",
+      "eligible": false,
+      "policy_id": "r5-nemotron-lr_full-v1",
+      "protocol": "grouped"
+    },
+    {
+      "artifact_digest": "59db930c05b8dc430562e82a501ee1f7650785d7201b66bec6a1f556b4124248",
+      "eligible": false,
+      "policy_id": "r5-nemotron-prior_category-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "artifact_digest": "b2ef2e31b22feae9515aa47adf96d9644dfb3670593fc4f861ce99552f8fff09",
+      "eligible": false,
+      "policy_id": "r5-nemotron-prior_category-v1",
+      "protocol": "grouped"
+    },
+    {
+      "artifact_digest": "2499aaa31b11ff84b40a8d6e5371b173a1ccf3fc7d7ba78fcde8d40beafc8fb0",
+      "eligible": false,
+      "policy_id": "r5-nemotron-prior_class_ceiling-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "artifact_digest": "0c9f21d528de5d029f4c07cb91d4700ed1e435f0d1ce58ae264df92303cc5933",
+      "eligible": false,
+      "policy_id": "r5-nemotron-prior_class_ceiling-v1",
+      "protocol": "grouped"
+    },
+    {
+      "artifact_digest": "d2852e6be8aa60d675e4cf42f1a64af9db14745934a0ba7bf35b4da2d9564b49",
+      "eligible": true,
+      "policy_id": "r5-nemotron-tree-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "artifact_digest": "542ced57d283a977ab549d2c541251cfd8380d165cc3933a27b52313eedf02b8",
+      "eligible": false,
+      "policy_id": "r5-nemotron-tree-v1",
+      "protocol": "grouped"
+    }
+  ],
+  "code_commit": "3e04dc7",
+  "dev_local_run": "V3-nemotron-dev",
+  "dev_strong_run": "E4-v3-dev",
+  "frozen_at": "2026-08-18T09:00:47+00:00",
+  "model": "nemotron",
+  "selected_protocol": "stratified",
+  "verdicts": [
+    {
+      "K": 4,
+      "R1_fn_reduction": false,
+      "R2_no_collapse": false,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": false,
+      "delta_util": null,
+      "e_max": null,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-lr_answer-v1",
+      "protocol": "grouped"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": false,
+      "R2_no_collapse": false,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": false,
+      "delta_util": null,
+      "e_max": null,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-lr_behavior-v1",
+      "protocol": "grouped"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": false,
+      "R2_no_collapse": false,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": false,
+      "delta_util": null,
+      "e_max": null,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-lr_core-v1",
+      "protocol": "grouped"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": false,
+      "R2_no_collapse": false,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": false,
+      "delta_util": null,
+      "e_max": null,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-lr_full-v1",
+      "protocol": "grouped"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": false,
+      "R2_no_collapse": false,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": false,
+      "delta_util": null,
+      "e_max": null,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-prior_category-v1",
+      "protocol": "grouped"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": false,
+      "R2_no_collapse": false,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": false,
+      "delta_util": null,
+      "e_max": null,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-prior_class_ceiling-v1",
+      "protocol": "grouped"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": true,
+      "R2_no_collapse": false,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": true,
+      "delta_util": null,
+      "e_max": null,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-tree-v1",
+      "protocol": "grouped"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": true,
+      "R2_no_collapse": true,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": true,
+      "delta_util": 0.46875,
+      "e_max": 7,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-lr_answer-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": true,
+      "R2_no_collapse": true,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": true,
+      "delta_util": 0.46875,
+      "e_max": 7,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-lr_behavior-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": true,
+      "R2_no_collapse": true,
+      "R2_under_skeleton_caps": true,
+      "R3_quality": true,
+      "delta_util": 0.46875,
+      "e_max": 7,
+      "eligible": true,
+      "pass": true,
+      "policy_id": "r5-nemotron-lr_core-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": true,
+      "R2_no_collapse": true,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": true,
+      "delta_util": 0.46875,
+      "e_max": 7,
+      "eligible": true,
+      "pass": true,
+      "policy_id": "r5-nemotron-lr_full-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": true,
+      "R2_no_collapse": true,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": true,
+      "delta_util": 0.46875,
+      "e_max": 7,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-prior_category-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": true,
+      "R2_no_collapse": true,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": true,
+      "delta_util": 0.46875,
+      "e_max": 7,
+      "eligible": false,
+      "pass": false,
+      "policy_id": "r5-nemotron-prior_class_ceiling-stratified-v1",
+      "protocol": "stratified"
+    },
+    {
+      "K": 4,
+      "R1_fn_reduction": true,
+      "R2_no_collapse": true,
+      "R2_under_skeleton_caps": false,
+      "R3_quality": true,
+      "delta_util": 0.46875,
+      "e_max": 7,
+      "eligible": true,
+      "pass": true,
+      "policy_id": "r5-nemotron-tree-stratified-v1",
+      "protocol": "stratified"
+    }
+  ],
+  "winner": "r5-nemotron-lr_core-stratified-v1",
+  "winner_artifact_digest": "32d527e922d0cb970dbb8fd5c896724c2031212a205d3fc3e1ca76f542a9ea74"
+}
