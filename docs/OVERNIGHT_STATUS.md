@@ -916,3 +916,53 @@ Per the contract (§ 6, fixed before any run) this run **is** the frontier DEV
 baseline. Freeze marker: tag `suite-v3` on the release commit; identity —
 suite 3, corpus `1e7c5278ba1f4cc1cc96fa8a1f04946ab622270eaba4c5671274c21e9d39e528` (train `d9d1570e6b70…`), scorer 3, verifier 3, ontology 1,
 prompt 1, evidence FIXED_EVIDENCE, llama.cpp `b1-9b05354`, claude CLI 2.1.234.
+
+## M5.6 DEV baselines (design A; `make eval-v3-dev`, 23:39–00:56 UTC 2026-08-18; HEAD `7764601` = tag `suite-v3`)
+
+Qwen session pid 586847 (the R3b session, still up), Nemotron restarted with unchanged
+flags right before its arm (pid 1000667; probe on train case S05-1000004: 87.6–88.8
+tok/s, TTFT 2.2 s), each endpoint primed, nothing else on 8082/8083, `FIS_LIVE_TESTS`
+unset. Frontier = the sanity run (M5.5). Every trajectory carries suite 3, scorer 3,
+verifier 3, corpus `1e7c5278…`, `git_head`, server session and fingerprint `b1-9b05354`.
+
+| arm | run | max_tokens | all-pass | rc | evidence | verifier | unsup | forb | no-output | cap hits | wall p50 / p95 | out tokens | resource |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Qwen A | `V3-qwen-dev` | 4096 | **17/48 (35.4%)** | 30 | 0.611 | 33 | 9 | 0 | 9 (all schema) | 1 (S07-2003006) | 12.8 / 41.7 s | 65 588 | 7.7 GB VRAM, RSS 8.7 GB |
+| Nemotron | `V3-nemotron-dev` | 8192 | **23/48 (47.9%)** | 31 | 0.675 | 36 | 0 | 0 | 12 (10 `length` + 2 schema) | 10 | 53.2 / 96.0 s | 238 293 | ~8 GB VRAM beside Qwen (card 15.6/16.3 GB), RSS 13.0 GB |
+| Qwen B | `V3-qwen2-dev` | 4096 | 17/48 | 30 | 0.611 | 33 | 9 | 0 | 9 | 1 | 12.1 / 40.9 s | 65 588 | same session |
+| frontier | `E4-v3-dev` | CLI default | **48/48 (100%)** | 48 | 1.000 | 48 | 0 | 0 | 0 | 0 | 36.9 / 60.1 s (TTFT p50 9.4 s) | 180 033 | $5.57 reference (floor) |
+
+**Reproducibility gate — PASS:** Qwen A vs B 47/47 identical output digests (the 48th
+pair has a no-output side without a digest), 48/48 identical outcomes, identical
+token counts and stop reasons. All-pass 17 = 17. Comparison valid.
+
+## M5.7 Pairwise analysis (DEV, descriptive; `make v3-dev-analysis`)
+
+| pair | A both pass | B first pass / second fail | C first fail / second pass | D both fail |
+|---|---|---|---|---|
+| Qwen × Nemotron | 13 | **4** (S02-2001001, S04-2003003, S06-2000005, S07-2000006 — all Nemotron `length` no-outputs) | 10 (S02, S03 ×2, S06 ×2, S08 ×2, S10 ×3 — 7 were Qwen silent failures) | 21 |
+| Qwen × frontier | 17 | 0 | 31 | 0 |
+| Nemotron × frontier | 23 | 0 | 25 | 0 |
+
+No weak>strong inversion exists (the frontier passes every dev case), so no
+harness review was triggered by an inversion; the four B cases were reviewed and are
+budget/contract failures of the candidate (still inside `<think>` at 8 192 tokens),
+not harness. Silent failures (verifier-clean, wrong): Qwen 16, Nemotron 13 (7 Qwen-silent
+cases pass under Nemotron, 7 stay silent, 2 become loud, 6 new). Per class (Qwen /
+Nemotron / frontier of 4): S01 0/0/4 · S02 2/2/4 · S03 0/2/4 · S04 1/0/4 · S05 4/4/4 ·
+S06 2/3/4 · S07 1/0/4 · S08 2/4/4 · S09 4/4/4 · S10 1/4/4 · S11 0/0/4 · S12 0/0/4.
+Failure dimensions of the two weak arms: Qwen — 9 no-output (schema), 9 unsupported
+claims (fabricated ids such as `ver_000000`, `proc_2000010_01`), 9 evidence-only,
+5 root-cause; Nemotron — 12 no-output (10 cap), 8 evidence-only, 5 root-cause, 0
+unsupported.
+
+## M5.8 Unchanged R4 cascade, by replay (`verifier` policy vs `E4-v3-dev`)
+
+| weak arm | cascade all-pass | weak acceptance | strong calls | rescue | unnecessary | routing FN | cost / attempt | cost / success | wall p50 | local out tokens |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Qwen + R4 | **32/48 (66.7%)** | 68.8% | 15 (31.2%: 9 no-output, 6 unsupported) | 15/15 | 0 | 16 | $0.0405 | **$0.0608** | 16.7 s | 65 588 |
+| Nemotron + R4 | **35/48 (72.9%)** | 75.0% | 12 (25.0%: all no-output) | 12/12 | 0 | 13 | $0.0330 | **$0.0453** | 54.7 s | 238 293 |
+| strong-only | 48/48 | — | 48 | — | — | — | $0.1160 | $0.1160 | 37.2 s | — |
+
+The gate's blind spot is unchanged in kind: every routing false negative is a
+verifier-clean answer wrong on evidence recall or root cause.
