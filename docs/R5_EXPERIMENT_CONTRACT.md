@@ -309,7 +309,16 @@ explains.
 | protocol | eligible after the TRAIN gate | max OOF escalation-rate increase at τ* | Δ_util | max OOF unnecessary rate at τ* | E_max |
 |---|---|---|---|---|---|
 | grouped (primary) | none (`lr_full` AUC 0.238, `lr_core` 0.253, `tree` 0.515 — all < 0.60) | — | null → R2 cannot pass | — | null |
-| stratified (secondary) | `lr_full` (AUC 0.901, τ* 0.60), `lr_core` (0.821, τ* 0.60), `tree` (0.822, τ* 0.70) | 0.431 | min(0.20, 1.5 × 0.431) = **0.20** | 0.076 | ⌈1.5 × 0.076 × 48⌉ = **6** |
+| stratified (secondary) | `lr_full` (AUC 0.901, τ* 0.60), `lr_core` (0.821, τ* 0.60), `tree` (0.822, τ* 0.70) | 0.431 | 1.5 × 0.431 = **0.646** under § 12a-2 (would be min(0.20, …) = 0.20 under the skeleton's caps; both verdicts are printed) | 0.076 | ⌈1.5 × 0.076 × 48⌉ = **6** |
+
+`selection_rule.json` was first written with the skeleton's capped derivation (commit
+`76a7ec1`) and rewritten under § 12a-2 (commit `4b10da0`) — both before any DEV replay;
+the rewrite is recorded here rather than hidden. Chance-level note (before DEV): with
+Qwen's DEV R4-accepted subset ≈ 48 % unsafe (16 of 33, from the R4 replay), a *random*
+escalation of 12 accepted cases passes R1 ∧ (unnecessary ≤ E_max) with probability
+≈ 0.59 — the rule has little power against chance for Qwen on n = 48; the report gives
+the hypergeometric surprise of every policy's DEV and TEST catch counts beside the
+verdicts.
 
 K on DEV = max(3, ⌈0.25 × 16⌉) = **4** (R4's DEV routing FN for Qwen is 16).
 
