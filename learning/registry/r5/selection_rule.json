@@ -8,6 +8,7 @@
         "eligible_candidates": [],
         "delta_util": null,
         "e_max": null,
+        "absolute_cap": 0.5,
         "inputs": [
           {
             "policy_id": "r5-qwen-lr_full-v1",
@@ -92,13 +93,14 @@
           "r5-qwen-lr_core-stratified-v1",
           "r5-qwen-tree-stratified-v1"
         ],
-        "delta_util": 0.2,
+        "delta_util": 0.645833,
         "e_max": 6,
+        "absolute_cap": null,
         "derivation": {
           "max_oof_escalation_rate_all": 0.4305555555555556,
           "max_oof_unnecessary_rate_all": 0.0763888888888889,
           "slack": 1.5,
-          "delta_util_cap": 0.2,
+          "delta_util_cap": null,
           "dev_n": 48
         },
         "inputs": [
@@ -181,5 +183,5 @@
   "contract": "docs/R5_EXPERIMENT_CONTRACT.md \u00a7 12 + \u00a7 12a",
   "K_formula": "max(3, ceil(0.25 * routing_FN(R4 on the split)))",
   "utilization_cap": 0.5,
-  "code_commit": "eda2e56-dirty"
+  "code_commit": "76a7ec1-dirty"
 }

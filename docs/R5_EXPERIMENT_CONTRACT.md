@@ -117,6 +117,20 @@ categories and is **excluded** from the primary allowlist (plan § 7: classes ma
 appear directly or indirectly). It may appear only in the exploratory class-prior
 comparator (§ 9), never in an eligible candidate.
 
+*Measured (adversarial audit, before DEV replay; recorded here so it is not discovered
+later):* under FIXED_EVIDENCE the four case constants `n_tool_calls`,
+`n_webhook_history_calls`, `n_verification_calls`, `input_tokens` are identical across
+arms per scenario and identify the scenario class for 45 of 48 DEV cases (leave-one-out
+1-NN); the tool-call triple alone partitions the 12 classes into 4 buckets. So the
+allowlist carries an *indirect* class channel that a 12-template benchmark cannot remove
+without also removing legitimate bundle-size signal, and every family-A behaviour
+feature (output length, reasoning length) also clusters by template. Consequence for
+reading R5: an eligible candidate's DEV gain is reported **net of the class-prior
+ceiling** (`prior_class_ceiling`, § 12a) and beside a behaviour-only ablation
+(`lr_behavior`: family A without `input_tokens`/`output_per_input`, plus family D, no
+family C). Whether the residual is trajectory signal or template prior is stated per
+model in the report; it is not assumed either way.
+
 Snapshot header (not features): `feature_schema_version`, `local_model`
 (`canonical_model` of the invocation), `digest`.
 
@@ -178,11 +192,16 @@ Eligible candidates (per local model, trained separately):
 | `tree` | CART, Gini, Laplace leaf probabilities (stdlib) | all of § 6 | depth ∈ {2, 3}, min leaf 8, chosen by grouped-CV out-of-fold log-loss |
 
 Exploratory only (reported, never eligible for selection or TEST): `lr_answer` (family D
-only), `prior_category` (case category only — how much of any gain is task prior),
-`lr_unified` (both models pooled + a model flag), and, on TRAIN only, an
-answer-structure model over the persisted TRAIN answer bodies (fact count, cited-id
-count, hypotheses/uncertainties counts, confidence, summary length) — features
-DEV/TEST cannot compute; it informs the next-milestone recommendation, nothing else.
+only), `lr_behavior` (family A without the bundle-size channel, plus D; no C),
+`prior_category` (case category only — how much of any gain is task prior),
+`prior_class_ceiling` (P(unsafe | class) from the offline group key — not a router; the
+ceiling of a pure task-difficulty prior), `lr_unified` (both models pooled + a model
+flag; run only if time allows), and, on TRAIN only, an answer-structure model over the
+persisted TRAIN answer bodies (fact count, cited-id count, hypotheses/uncertainties
+counts, confidence, summary length) — features DEV/TEST cannot compute; it informs the
+next-milestone recommendation, nothing else. `verify_artifact` in `r5_replay.py` refuses
+an `eligible` flag on anything but `lr_full`/`lr_core`/`tree` over the production
+feature source.
 
 Not used: neural nets, LLM judges, embeddings, hidden reasoning text, scenario
 ids/classes/seeds, gold-derived features, scikit-learn/numpy (not in the stack; the
@@ -200,7 +219,12 @@ candidate, τ* = the grid value maximizing out-of-fold utility
 `U(τ) = catches(τ) − unnecessary(τ)` on the R4-accepted TRAIN subset (a catch = an
 unsafe case escalated; unnecessary = a safe case escalated; λ = 1, i.e. escalate when
 the case is more likely unsafe than not); ties → the larger τ. One τ* per candidate;
-DEV replays the candidate at τ* only for selection.
+DEV replays the candidate at τ* only for selection. Hyperparameter ties (equal OOF
+log-loss to 6 decimals) → the simpler model (larger λ, smaller depth). *Known property,
+recorded before DEV:* when the R4-accepted subset is more than half unsafe, "escalate
+every accepted case" has positive utility, so a weakly-ranked router's τ* sits at the
+grid floor; the R2 bound on unnecessary escalations is what rejects such a policy at
+selection. The rule is not changed.
 
 **TRAIN eligibility gate** (fixed now): a candidate is eligible for DEV selection only if
 its pooled out-of-fold ROC-AUC on the R4-accepted TRAIN subset is ≥ 0.60 and its
@@ -243,6 +267,13 @@ Applied per local model to eligible candidates at τ*, lexicographically:
 If no candidate survives: negative result recorded, R4 stays incumbent, TEST is not
 opened for any learned policy. No criterion is relaxed after DEV is seen.
 
+*What was known when these constants were fixed:* the R4 incumbent's published DEV and
+TEST numbers (`SUITE_V3_RELEASE_REPORT.md` § 6–7: DEV routing FN 16 / 13, utilization
+31.2 % / 25.0 %, frontier 48/48; TEST FN 47 / 26, utilization 22.9 % / 21.9 %) — no
+learned-candidate result on any split. "Pre-registered" here means relative to candidate
+results, as the plan requires. K's 25 % and the a-priori caps (20 pp, 50 %) were
+choices, not derivations; § 12a-2 records what TRAIN evidence later said about the caps.
+
 ### § 12a — numeric amendment (committed after TRAIN CV, before any DEV candidate replay)
 
 Derived mechanically by `scripts/r5_amend_rule.py` from the committed TRAIN reports into
@@ -280,12 +311,29 @@ explains.
 | grouped (primary) | none (`lr_full` AUC 0.238, `lr_core` 0.253, `tree` 0.515 — all < 0.60) | — | null → R2 cannot pass | — | null |
 | stratified (secondary) | `lr_full` (AUC 0.901, τ* 0.60), `lr_core` (0.821, τ* 0.60), `tree` (0.822, τ* 0.70) | 0.431 | min(0.20, 1.5 × 0.431) = **0.20** | 0.076 | ⌈1.5 × 0.076 × 48⌉ = **6** |
 
-K on DEV = max(3, ⌈0.25 × 16⌉) = **4** (R4's DEV routing FN for Qwen is 16). The
-absolute cap of 50 % utilization stands. Note recorded before DEV: Qwen's R4-accepted
-TRAIN subset is 61 % unsafe, so a router that catches most of it necessarily escalates
-≈ 40 % of all cases on top of R4's ≈ 30 %; the a-priori caps (Δ_util ≤ 20 pp, 50 %
-absolute) may therefore bind for Qwen even for a well-ranked router. They are not
-changed; the Pareto sweep reports what each utilization buys.
+K on DEV = max(3, ⌈0.25 × 16⌉) = **4** (R4's DEV routing FN for Qwen is 16).
+
+**§ 12a-2 — R2 under the secondary protocol (registered before DEV; audit-driven).**
+The plan says the maximum acceptable escalation increase is to be *chosen from TRAIN
+evidence*; the skeleton's 20 pp / 50 % caps were a priori. TRAIN evidence for Qwen: the
+R4-accepted subset is 61 % unsafe (64/105), so the post-answer oracle itself needs
+≈ 60 % utilization; the best-ranked router escalates 33 % of all cases beyond R4's 27 %
+even at the top of the grid (τ = 0.80) with OOF precision 0.94 — the a-priori caps would
+reject it for *volume*, not for degeneracy. Degeneracy ("approaching strong-only by
+escalating safe cases") is what `E_max` measures. Therefore, for the SECONDARY protocol
+only: R2 = { utilization ≤ util(R4) + Δ_util with Δ_util = 1.5 × max OOF escalation-rate
+increase at τ* (no 20 pp cap, no 50 % absolute cap); unnecessary ≤ E_max }. The PRIMARY
+protocol keeps the skeleton's R2 unchanged. Every DEV verdict is printed under both
+readings (`R2_no_collapse` and `R2_under_skeleton_caps`) so a secondary PASS is always
+shown beside what the capped rule would have said, and the Pareto table places every
+policy against the oracle's and strong-only's utilization. Qwen secondary numbers:
+Δ_util = 1.5 × 0.431 = **0.646**, E_max = **6**.
+
+Diagnostics also reported (not selection): per-fold LOGO AUC over folds whose held-out
+class carries both labels; the stratified OOF AUC of `prior_class_ceiling` (0.892) beside
+the eligible candidates (0.901 / 0.821 / 0.822) and `lr_behavior` (0.909); the answer-body
+comparators (0.873 / 0.685) — on Qwen TRAIN the production-observable router is within
+0.01 AUC of the class-identity ceiling.
 
 **§ 12a-N — Nemotron:** _added by a further commit when `R5-nemotron-train` is scored._
 
@@ -306,7 +354,15 @@ without `--unlock-test <policy_id>` naming a policy whose frozen artifact record
 `learning/registry/r5/test_unlock.json`; a second TEST replay of the same policy is
 refused. No feature/threshold/classifier change afterwards; a disappointing number is
 reported, not re-run. The three-tier cheapest-sufficient oracle's TEST counts are
-computed at the same unlock (from frozen local/frontier TEST outcomes; descriptive).
+computed at the same unlock (from frozen local/frontier TEST outcomes; descriptive;
+`r5_oracles.py --split test` refuses without the unlock record).
+
+**Pre-registered TEST reading (added before DEV, audit-driven — a fixed reading, not a
+selection):** a frozen policy is called *confirmed on TEST* iff routing_FN(TEST) ≤
+routing_FN(R4, TEST) − K_test with K_test = max(3, ⌈0.25 × routing_FN(R4, TEST)⌉),
+unnecessary(TEST) ≤ 2 × E_max, and utilization within the same R2 bound that selected it
+(read against R4's TEST utilization). Otherwise *not confirmed*. Both outcomes are
+reported as they fall.
 
 ## 15. Routing telemetry
 

@@ -60,8 +60,13 @@ CANDIDATES = {
     "lr_core": ("logistic", CORE),
     "tree": ("tree", ALL),
 }
+# Behaviour-only ablation: family A minus the bundle-size channel (input_tokens and its
+# ratio) plus the answer echo, no family C — how much of the signal survives without the
+# case-shape constants that identify the template (audit finding, § 12a).
+BEHAVIOR = [f for f in FEATURE_FAMILIES["A"] if f not in ("input_tokens", "output_per_input")] + ANSWER
 EXPLORATORY = {
     "lr_answer": ("logistic", ANSWER),
+    "lr_behavior": ("logistic", BEHAVIOR),
 }
 
 

@@ -58,7 +58,9 @@ from services.ai_orchestrator.cascade import (  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 DSN = os.environ.get("FIS_PG_DSN", "postgresql://fis:fis_local_dev@127.0.0.1:5433/fis")
 DATASET_DIR = ROOT / "learning" / "datasets" / "r5"
-UNLOCK_FILE = ROOT / "learning" / "registry" / "r5" / "test_unlock.json"
+# The registry root is overridable so the state machine can be exercised against a
+# temporary tree (tests); the canonical root is learning/registry/r5.
+UNLOCK_FILE = Path(os.environ.get("FIS_R5_REGISTRY_ROOT", str(ROOT / "learning" / "registry" / "r5"))) / "test_unlock.json"
 
 _SAID_LABEL = re.compile(r"^said (?P<said>[a-z_]+), truth ")
 _SAID_ACTION = re.compile(r"^said (?P<said>[a-z_]+)$")
@@ -184,7 +186,7 @@ def diagnostics(score: dict[str, Any], r4_escalate: bool) -> dict[str, bool]:
 def build_rows(rows: dict[str, dict], run_id: str, strong: dict[str, bool] | None,
                *, check_echo: bool = True) -> tuple[list[dict], dict]:
     out: list[dict] = []
-    echo_checked = echo_mismatch = 0
+    echo_checked = 0
     for sid in sorted(rows):
         r = rows[sid]
         traj = Trajectory.model_validate(r["traj"])
@@ -193,7 +195,8 @@ def build_rows(rows: dict[str, dict], run_id: str, strong: dict[str, bool] | Non
         if body is not None and check_echo:
             echo_checked += 1
             if echo != body:
-                echo_mismatch += 1
+                # Fail loudly: a mismatch means the echo reconstruction is not the model's
+                # own answer, and every DEV/TEST answer feature would then be suspect.
                 raise SystemExit(f"{sid}: scorer echo {echo} != persisted answer {body}")
         answer = body or echo
         snap = snapshot_from(traj, answer)
@@ -218,7 +221,7 @@ def build_rows(rows: dict[str, dict], run_id: str, strong: dict[str, bool] | Non
             "meta": {"category": r["category"]},   # analysis-only; never a feature
             "answer_structure": answer_structure(r["answer"]),
         })
-    return out, {"echo_checked": echo_checked, "echo_mismatch": echo_mismatch}
+    return out, {"echo_checked": echo_checked}
 
 
 def dataset_digest(rows: list[dict]) -> str:

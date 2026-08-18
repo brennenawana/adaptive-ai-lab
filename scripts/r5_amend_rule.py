@@ -36,7 +36,12 @@ SLACK = 1.5
 DELTA_UTIL_CAP = 0.20
 
 
-def derive(report: dict) -> dict:
+def derive(report: dict, protocol: str = "grouped") -> dict:
+    """§ 12a. PRIMARY (grouped): Δ_util = min(0.20, 1.5 × max OOF escalation-rate increase),
+    utilization also ≤ 0.50 absolute — the skeleton's a-priori caps. SECONDARY (stratified,
+    § 12a-2): the same 1.5× TRAIN-derived slack WITHOUT the a-priori caps — TRAIN showed
+    the caps forbid any FN-catching router for a local model whose R4-accepted subset is
+    mostly unsafe, whatever its ranking quality; non-degeneracy is carried by E_max."""
     elig = [c for c in report["candidates"] if c["eligible"]]
     rows = []
     for c in report["candidates"]:
@@ -45,16 +50,20 @@ def derive(report: dict) -> dict:
                      "oof_escalation_rate_all": t["escalation_rate_all"],
                      "oof_unnecessary_rate_all": t["unnecessary_rate_all"],
                      "oof_catches": t["catches"], "oof_unnecessary": t["unnecessary"]})
+    capped = protocol == "grouped"
     if not elig:
-        return {"eligible_candidates": [], "delta_util": None, "e_max": None, "inputs": rows}
+        return {"eligible_candidates": [], "delta_util": None, "e_max": None,
+                "absolute_cap": 0.50 if capped else None, "inputs": rows}
     esc = max(c["cv"]["at_threshold"]["escalation_rate_all"] for c in elig)
     unn = max(c["cv"]["at_threshold"]["unnecessary_rate_all"] for c in elig)
     return {
         "eligible_candidates": [c["policy_id"] for c in elig],
-        "delta_util": round(min(DELTA_UTIL_CAP, SLACK * esc), 6),
+        "delta_util": round(min(DELTA_UTIL_CAP, SLACK * esc) if capped else SLACK * esc, 6),
         "e_max": math.ceil(SLACK * unn * DEV_N),
+        "absolute_cap": 0.50 if capped else None,
         "derivation": {"max_oof_escalation_rate_all": esc, "max_oof_unnecessary_rate_all": unn,
-                       "slack": SLACK, "delta_util_cap": DELTA_UTIL_CAP, "dev_n": DEV_N},
+                       "slack": SLACK, "delta_util_cap": DELTA_UTIL_CAP if capped else None,
+                       "dev_n": DEV_N},
         "inputs": rows,
     }
 
@@ -86,7 +95,7 @@ def main() -> None:
             rep = json.loads(path.read_text())
             out["per_model"].setdefault(m, {})[protocol] = {
                 "train_report": str(path.relative_to(ROOT)), "train_run_id": rep["train_run_id"],
-                "dataset_digest": rep["dataset_digest"], **derive(rep)}
+                "dataset_digest": rep["dataset_digest"], **derive(rep, protocol)}
     Path(args.out).write_text(json.dumps(out, indent=2) + "\n")
     print(json.dumps(out, indent=2))
     print(f"\nwritten: {args.out}")

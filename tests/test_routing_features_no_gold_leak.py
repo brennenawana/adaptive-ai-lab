@@ -29,11 +29,14 @@ from fis_platform.routing.features import (
 )
 from schemas import (
     GOLD_FEATURE_NAMES,
+    FailureClass,
+    HumanFeedback,
     InvestigationResult,
     LatencyRecord,
     ModelInvocation,
     ModelTier,
     Provider,
+    RouterDecision,
     TokenUsage,
     ToolCall,
     Trajectory,
@@ -168,17 +171,35 @@ def test_extraction_succeeds_on_a_trajectory_with_no_eval_metadata():
 # --- guard 3: gold-removal invariance --------------------------------------------------
 
 def test_digest_is_invariant_to_scenario_arm_case_and_runtime_metadata():
+    """Every field the harness writes *after* the R4 decision point, plus the eval
+    metadata written before it. `router`, `human_feedback`, `business_outcome`,
+    `failure_class` and `ToolCall.was_useful` are all filled by the learning plane once
+    the case has been scored — a snapshot that moved with any of them would be reading
+    the future of the decision it is supposed to be taken at.
+    """
     verification = VerificationResult(passed=True, checks=dict(CLEAN_CHECKS))
+    scored_calls = [_calls()[0].model_copy(update={"was_useful": True}), *_calls()[1:]]
     labelled = _traj(
         verification=verification,
+        calls=scored_calls,
         scenario_id="S05-2001000", experiment_arm="E4", case_id="CASE-1",
         runtime_context={"root_cause": "settlement_amount_mapping_error", "split": "test",
                          "seed": "2001000", "strict_all_pass": "true", "category": "ledger"},
+        router=RouterDecision(selected_specialist="x", confidence=0.5,
+                              features={"x": 1.0}),
+        failure_class=FailureClass.MODEL_REASONING_FAILURE,
+        human_feedback=HumanFeedback(accepted=False, reason="wrong root cause"),
+        business_outcome="failed",
     )
     bare = _traj(verification=VerificationResult(passed=True, checks=dict(CLEAN_CHECKS)))
     a, b = snapshot_from(labelled, _result()), snapshot_from(bare, _result())
     assert a.features == b.features
     assert a.digest == b.digest
+    assert a.local_model == b.local_model
+    # the perturbation really was present on the trajectory the extractor was handed
+    assert labelled.router is not None and labelled.failure_class is not None
+    assert labelled.human_feedback.accepted is False and labelled.business_outcome == "failed"
+    assert labelled.tool_calls[0].was_useful is True and bare.tool_calls[0].was_useful is None
 
 
 # --- guard 4: no feature name, and no parameter, smells of the answer key --------------

@@ -559,8 +559,17 @@ def main() -> None:
             "ceilings computed on TEST before that point are a selection signal from the "
             "sealed split.")
     if args.split == "test":
+        # The flag alone is not enough: an unlock record written by r5_replay.py
+        # --unlock-test (contract § 14) must already name a TEST run — the oracle's TEST
+        # counts are read at the same unlock as the frozen policy's replay, never before.
+        unlock_file = ROOT / "learning" / "registry" / "r5" / "test_unlock.json"
+        if not unlock_file.exists():
+            raise SystemExit(f"TEST is sealed: no unlock record at {unlock_file} (contract § 14)")
+        unlocks = json.loads(unlock_file.read_text()).get("unlocks", [])
+        if not any(u.get("local_run", "").endswith("-96") for u in unlocks):
+            raise SystemExit("TEST is sealed: the unlock record names no TEST run (contract § 14)")
         print("!" * 100)
-        print("!! TEST SPLIT OPENED (--allow-test). Contract § 4: no threshold, feature or")
+        print("!! TEST SPLIT OPENED (--allow-test, unlock record present). Contract § 4: no threshold, feature or")
         print("!! classifier may be chosen from anything below. If R5 selection is not already")
         print("!! frozen (§ 13) and the TEST unlock condition (§ 14) not already met, this run")
         print("!! has contaminated the split and must be recorded as such in the experiment log.")

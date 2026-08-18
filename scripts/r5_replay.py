@@ -42,7 +42,9 @@ import psycopg
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from fis_platform.routing.features import FEATURE_ORDER, FEATURE_SCHEMA_VERSION  # noqa: E402
+from fis_platform.routing.features import (  # noqa: E402
+    FEATURE_ORDER, FEATURE_SCHEMA_VERSION, is_forbidden_feature_name,
+)
 from fis_platform.routing.learn import (  # noqa: E402
     RouterModel, average_precision, brier, canonical_json, digest, roc_auc,
 )
@@ -51,16 +53,45 @@ from scripts.r5_dataset import build_dataset, load_run  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 DSN = os.environ.get("FIS_PG_DSN", "postgresql://fis:fis_local_dev@127.0.0.1:5433/fis")
-REG = ROOT / "learning" / "registry" / "r5"
-CANDIDATE_DIR = REG / "candidates"
-FROZEN_DIR = REG / "frozen"
-RULE_FILE = REG / "selection_rule.json"
-UNLOCK_FILE = REG / "test_unlock.json"
 
 DEFAULT_RUNS = {
     "dev": {"qwen": ("V3-qwen-dev", "E4-v3-dev"), "nemotron": ("V3-nemotron-dev", "E4-v3-dev")},
     "test": {"qwen": ("V3-qwen-96", "E4-v3-96"), "nemotron": ("V3-nemotron-96", "E4-v3-96")},
 }
+TRAIN_RUNS = {"qwen": "R5-qwen-train", "nemotron": "R5-nemotron-train"}     # contract § 3
+
+
+class Registry:
+    """Where R5's experiment state lives (contract § 13–14). Rooted at
+    `learning/registry/r5` unless FIS_R5_REGISTRY_ROOT points elsewhere — tests exercise
+    the state machine against a temporary root, never the canonical tree.
+
+    State files and their invariants:
+      candidates/<policy_id>.json      TRAIN artifacts (r5_train.py); read-only here
+      selection_rule.json              § 12a numbers (r5_amend_rule.py)
+      frozen/<model>.selection.json    ONE record per local model, written exactly once by
+                                       `--select`; names the winner (or null)
+      frozen/<policy_id>.json          the winner's artifact only (never a loser's)
+      test_unlock.json                 append-only; at most one unlock per local model,
+                                       bound to the recorded winner's digest
+    """
+
+    def __init__(self, root: Path | None = None):
+        env = os.environ.get("FIS_R5_REGISTRY_ROOT")
+        self.root = Path(root) if root is not None else (Path(env) if env else ROOT / "learning" / "registry" / "r5")
+
+    @property
+    def candidates(self) -> Path: return self.root / "candidates"
+    @property
+    def frozen(self) -> Path: return self.root / "frozen"
+    @property
+    def rule_file(self) -> Path: return self.root / "selection_rule.json"
+    @property
+    def unlock_file(self) -> Path: return self.root / "test_unlock.json"
+    def selection_file(self, model: str) -> Path: return self.frozen / f"{model}.selection.json"
+    def frozen_artifact(self, policy_id: str) -> Path: return self.frozen / f"{policy_id}.json"
+    def dataset_meta(self, model: str) -> Path:
+        return ROOT / "learning" / "datasets" / "r5" / f"{TRAIN_RUNS[model]}.meta.json"
 
 
 # ------------------------------------------------------------------ outcome model
@@ -133,7 +164,8 @@ def classifier_metrics(rows: list[dict], risk: dict[str, float], tau: float) -> 
         "unsafe_recall": (tp / (tp + fn)) if (tp + fn) else None,
         "unsafe_precision": (tp / (tp + fp)) if (tp + fp) else None,
         "tp": tp, "fp": fp, "fn": fn, "tn": tn,
-        "roc_auc": roc_auc(y, p), "pr_auc": average_precision(y, p), "brier": brier(y, p),
+        "roc_auc": roc_auc(y, p) if y else None, "pr_auc": average_precision(y, p) if y else None,
+        "brier": brier(y, p) if y else None,
         "base_rate": (sum(y) / len(y)) if y else None,
     }
 
@@ -164,18 +196,39 @@ def silent_family(rows: list[dict], escalate: dict[str, bool]) -> dict:
 
 # ------------------------------------------------------------------ policies
 
-def load_candidates(model_short: str, paths: list[Path] | None) -> list[dict]:
-    paths = paths or sorted(CANDIDATE_DIR.glob(f"r5-{model_short}-*.json"))
+# Fields the freeze/selection step adds on top of the TRAIN artifact. Excluded from the
+# digest so a frozen copy verifies against the digest its candidate was trained with.
+_MUTABLE_FIELDS = ("artifact_digest", "dev_selection", "local_model_short")
+ELIGIBLE_CANDIDATES = ("lr_full", "lr_core", "tree")          # contract § 9
+
+
+def verify_artifact(a: dict) -> None:
+    """Fail closed (contract § 13): schema version, allowlist, digest, and the eligibility
+    flag itself — an artifact may claim `eligible` only if it is one of the § 9 candidates
+    over the production feature source, whatever its TRAIN numbers say."""
+    pid = a.get("policy_id", "?")
+    if a["feature_schema_version"] != FEATURE_SCHEMA_VERSION:
+        raise SystemExit(f"{pid}: artifact schema {a['feature_schema_version']} != extractor "
+                         f"{FEATURE_SCHEMA_VERSION} — refusing (fail closed)")
+    forbidden = sorted(n for n in a["feature_names"] if is_forbidden_feature_name(n))
+    if a["feature_source"] == "features":
+        if not set(a["feature_names"]) <= set(FEATURE_ORDER):
+            raise SystemExit(f"{pid}: features outside the allowlist — refusing")
+    if a.get("eligible") and (a["feature_source"] != "features" or a["candidate"] not in ELIGIBLE_CANDIDATES
+                              or forbidden):
+        raise SystemExit(f"{pid}: claims eligibility but is not a § 9 candidate over production "
+                         f"features (source={a['feature_source']}, forbidden={forbidden}) — refusing")
+    recomputed = digest({k: v for k, v in a.items() if k not in _MUTABLE_FIELDS})
+    if recomputed != a["artifact_digest"]:
+        raise SystemExit(f"{pid}: artifact digest mismatch — refusing")
+
+
+def load_candidates(model_short: str, paths: list[Path] | None, reg: Registry | None = None) -> list[dict]:
+    reg = reg or Registry()
+    paths = paths or sorted(reg.candidates.glob(f"r5-{model_short}-*.json"))
     arts = [json.loads(p.read_text()) for p in paths]
     for a in arts:
-        if a["feature_schema_version"] != FEATURE_SCHEMA_VERSION:
-            raise SystemExit(f"{a['policy_id']}: artifact schema {a['feature_schema_version']} "
-                             f"!= extractor {FEATURE_SCHEMA_VERSION} — refusing (fail closed)")
-        if a["feature_source"] == "features" and not set(a["feature_names"]) <= set(FEATURE_ORDER):
-            raise SystemExit(f"{a['policy_id']}: features outside the allowlist — refusing")
-        recomputed = digest({k: v for k, v in a.items() if k not in ("artifact_digest", "dev_selection")})
-        if recomputed != a["artifact_digest"]:
-            raise SystemExit(f"{a['policy_id']}: artifact digest mismatch — refusing")
+        verify_artifact(a)
     return arts
 
 
@@ -228,23 +281,181 @@ def apply_rule(model_short: str, rule: dict, r4: dict, cands: list[dict],
         r1 = m["routing_fn"] <= r4["routing_fn"] - K
         # delta_util / e_max are null when TRAIN produced no eligible candidate: nothing
         # can pass R2 then, by construction.
+        # A MISSING key is the primary reading (0.50, contract § 12); only an explicit
+        # null — written by r5_amend_rule.py for the secondary protocol — means uncapped.
+        cap = p["absolute_cap"] if "absolute_cap" in p else 0.50
         r2 = (p["delta_util"] is not None and p["e_max"] is not None
               and m["utilization"] <= r4["utilization"] + p["delta_util"]
-              and m["utilization"] <= 0.50 and m["unnecessary"] <= p["e_max"])
+              and (cap is None or m["utilization"] <= cap) and m["unnecessary"] <= p["e_max"])
+        # Also recorded: the verdict under the skeleton's a-priori caps (§ 12), so a
+        # secondary PASS is always shown beside what the capped rule would have said.
+        r2_capped = (p["delta_util"] is not None and p["e_max"] is not None
+                     and m["utilization"] <= r4["utilization"] + min(0.20, p["delta_util"])
+                     and m["utilization"] <= 0.50 and m["unnecessary"] <= p["e_max"])
         r3 = m["all_pass"] > r4["all_pass"]
         verdicts.append({
             "policy_id": c["policy_id"], "eligible": c["eligible"], "protocol": protocol,
             "K": K, "delta_util": p["delta_util"], "e_max": p["e_max"],
-            "R1_fn_reduction": r1, "R2_no_collapse": r2, "R3_quality": r3,
+            "R1_fn_reduction": r1, "R2_no_collapse": r2, "R2_under_skeleton_caps": r2_capped, "R3_quality": r3,
             "pass": bool(c["eligible"] and r1 and r2 and r3),
         })
     survivors = [c for c, v in zip(cands, verdicts) if v["pass"]]
     if not survivors:
         return None, verdicts
-    survivors.sort(key=lambda c: (c["system"]["escalated"],
-                                  c["system"]["cost_per_success"] or 1e9,
-                                  c["system"]["wall_p50_ms"]))
+    def _cps(c):
+        v = c["system"]["cost_per_success"]
+        return float("inf") if v is None else v
+    survivors.sort(key=lambda c: (c["system"]["escalated"], _cps(c), c["system"]["wall_p50_ms"]))
     return survivors[0], verdicts
+
+
+def _assert_rule_matches_artifacts(rule: dict, model_short: str, arts: list[dict]) -> None:
+    """The § 12a numbers are a computation over the committed candidate artifacts
+    (`scripts/r5_amend_rule.py`); recompute them here so the file cannot drift."""
+    from scripts.r5_amend_rule import derive
+    for protocol in ("grouped", "stratified"):
+        entry = (rule["per_model"].get(model_short) or {}).get(protocol)
+        sub = [a for a in arts if a.get("protocol", "grouped") == protocol]
+        if entry is None or not sub:
+            continue
+        got = derive({"candidates": sub}, protocol)
+        if (got["delta_util"], got["e_max"]) != (entry["delta_util"], entry["e_max"]):
+            raise SystemExit(f"selection_rule.json {model_short}/{protocol} (Δ_util {entry['delta_util']}, "
+                             f"E_max {entry['e_max']}) does not match the candidate artifacts "
+                             f"({got['delta_util']}, {got['e_max']}) — refusing")
+
+
+# ------------------------------------------------------------------ state machine
+
+def freeze_selection(reg: Registry, model: str, arts: list[dict], results: list[dict], verdicts: list[dict],
+                     winner: dict | None, selected_protocol: str | None, dev_local_run: str,
+                     dev_strong_run: str) -> dict:
+    """Write the ONE selection record for `model` and, if there is a winner, its frozen
+    artifact. Exactly once: a second call for the same model refuses (fail closed) —
+    re-selection is not a normal experiment command. Losers are recorded in the
+    selection record's verdicts, never frozen as artifacts, so at most one frozen policy
+    per model can exist."""
+    sel_path = reg.selection_file(model)
+    if sel_path.exists():
+        raise SystemExit(f"{sel_path} exists: DEV selection for {model} has already happened and is "
+                         "not repeatable (contract § 12/§ 13)")
+    existing = sorted(p.name for p in reg.frozen.glob(f"r5-{model}-*.json")) if reg.frozen.exists() else []
+    if existing:
+        raise SystemExit(f"frozen artifacts already exist for {model}: {existing} — refusing")
+    winner_id = winner["policy_id"] if winner else None
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    record = {
+        "model": model, "winner": winner_id, "selected_protocol": selected_protocol,
+        "winner_artifact_digest": winner["artifact_digest"] if winner else None,
+        "dev_local_run": dev_local_run, "dev_strong_run": dev_strong_run,
+        "candidates": [{"policy_id": a["policy_id"], "artifact_digest": a["artifact_digest"],
+                        "protocol": a.get("protocol", "grouped"), "eligible": a["eligible"]} for a in arts],
+        "verdicts": verdicts, "frozen_at": now, "code_commit": git_head(),
+    }
+    reg.frozen.mkdir(parents=True, exist_ok=True)
+    if winner is not None:
+        a = next(a for a in arts if a["policy_id"] == winner_id)
+        verify_artifact(a)
+        frozen = dict(a)
+        frozen["local_model_short"] = model
+        frozen["dev_selection"] = {
+            "result": "PASS",
+            "verdict": next(v for v in verdicts if v["policy_id"] == winner_id),
+            "dev_local_run": dev_local_run, "dev_strong_run": dev_strong_run,
+            "dev_system": next(r["system"] for r in results if r["policy_id"] == winner_id),
+            "frozen_at": now, "code_commit": git_head(),
+        }
+        verify_artifact(frozen)      # digest excludes the mutable fields; must still verify
+        reg.frozen_artifact(winner_id).write_text(canonical_json(frozen) + "\n")
+    sel_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+    return record
+
+
+def begin_test_unlock(reg: Registry, policy_id: str, model: str, local_run: str, strong_run: str,
+                      *, dataset_meta: dict | None = None) -> dict:
+    """Consume `model`'s single TEST look for `policy_id`. Every check fails closed:
+
+      * a selection record for `model` exists and names `policy_id` as its winner;
+      * the frozen artifact exists, verifies (schema, allowlist, digest), is eligible,
+        carries dev_selection PASS on the contract's DEV runs, and its digest equals
+        the one the selection record froze;
+      * lineage: trained on the contract's TRAIN run for the model, on the committed
+        TRAIN dataset digest (`dataset_meta`, default the registry's meta file);
+      * the TEST runs are the contract's for the model;
+      * no unlock exists for this policy AND none for this model.
+
+    The unlock record is append-only and written before any TEST label is read. There
+    is no function that removes an entry: the state is monotonic by construction.
+    """
+    sel_path = reg.selection_file(model)
+    if not sel_path.exists():
+        raise SystemExit(f"TEST is sealed: no DEV selection record for {model} at {sel_path}")
+    sel = json.loads(sel_path.read_text())
+    if sel.get("winner") != policy_id:
+        raise SystemExit(f"TEST is sealed: the DEV selection record for {model} names "
+                         f"{sel.get('winner')!r} as its winner, not {policy_id!r}")
+    fpath = reg.frozen_artifact(policy_id)
+    if not fpath.exists():
+        raise SystemExit(f"no frozen artifact for {policy_id!r} at {fpath}")
+    art = json.loads(fpath.read_text())
+    verify_artifact(art)
+    if art.get("policy_id") != policy_id:
+        raise SystemExit(f"{fpath} holds {art.get('policy_id')!r}, not {policy_id!r}")
+    if art["artifact_digest"] != sel.get("winner_artifact_digest"):
+        raise SystemExit(f"{policy_id!r}: frozen artifact digest {art['artifact_digest'][:12]}… != the digest the "
+                         f"selection record froze {str(sel.get('winner_artifact_digest'))[:12]}… — refusing")
+    if not art.get("eligible"):
+        raise SystemExit(f"{policy_id!r} is not an eligible policy — TEST stays sealed")
+    ds = art.get("dev_selection") or {}
+    if ds.get("result") != "PASS":
+        raise SystemExit(f"{policy_id!r} did not PASS DEV selection — TEST stays sealed")
+    if art.get("local_model_short") != model:
+        raise SystemExit(f"{policy_id!r} is a {art.get('local_model_short')!r} policy, not {model!r}")
+    if (ds.get("dev_local_run"), ds.get("dev_strong_run")) != DEFAULT_RUNS["dev"][model]:
+        raise SystemExit(f"{policy_id!r} was selected on {ds.get('dev_local_run')}/{ds.get('dev_strong_run')}, "
+                         f"not the contract's DEV runs {DEFAULT_RUNS['dev'][model]} — refusing")
+    if art.get("train_run_id") != TRAIN_RUNS[model]:
+        raise SystemExit(f"{policy_id!r} lineage: trained on {art.get('train_run_id')!r}, "
+                         f"not the contract's {TRAIN_RUNS[model]!r} — refusing")
+    if dataset_meta is None:
+        mp = reg.dataset_meta(model)
+        if not mp.exists():
+            raise SystemExit(f"{policy_id!r} lineage: no committed TRAIN dataset meta at {mp}")
+        dataset_meta = json.loads(mp.read_text())
+    if art.get("train_dataset_digest") != dataset_meta.get("dataset_digest"):
+        raise SystemExit(f"{policy_id!r} lineage: artifact trained on dataset {str(art.get('train_dataset_digest'))[:12]}…, "
+                         f"committed TRAIN dataset is {str(dataset_meta.get('dataset_digest'))[:12]}… — refusing")
+    if (local_run, strong_run) != DEFAULT_RUNS["test"][model]:
+        raise SystemExit(f"TEST runs {(local_run, strong_run)} are not the contract's {DEFAULT_RUNS['test'][model]}")
+    unlock = json.loads(reg.unlock_file.read_text()) if reg.unlock_file.exists() else {"unlocks": []}
+    for u in unlock["unlocks"]:
+        if u["policy_id"] == policy_id:
+            raise SystemExit(f"{policy_id!r} has already had its one TEST replay — refusing")
+        if u.get("model") == model:
+            raise SystemExit(f"{model} has already had its one TEST replay ({u['policy_id']}) — refusing")
+    unlock["unlocks"].append({
+        "policy_id": policy_id, "model": model, "artifact_digest": art["artifact_digest"],
+        "selection_record_digest": digest(sel),
+        "local_run": local_run, "strong_run": strong_run,
+        "unlocked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "code_commit": git_head(),
+    })
+    reg.unlock_file.parent.mkdir(parents=True, exist_ok=True)
+    reg.unlock_file.write_text(json.dumps(unlock, indent=2) + "\n")
+    return art
+
+
+def preflight_test_runs(conn, local_run: str, strong_run: str, n_expected: int = 96) -> None:
+    """Before the unlock is consumed: the TEST runs exist, are suite-comparable and
+    complete. Reads counts only — no label."""
+    from fis_platform.suite import require_comparable
+    require_comparable(conn, [local_run, strong_run], against_corpus=True)
+    with conn.cursor() as cur:
+        for rid in (local_run, strong_run):
+            cur.execute("SELECT count(*) FROM learning.case_scores WHERE run_id = %s", (rid,))
+            n = cur.fetchone()[0]
+            if n != n_expected:
+                raise SystemExit(f"{rid} has {n} scored cases, expected {n_expected} — not unlocking")
 
 
 # ------------------------------------------------------------------ telemetry
@@ -294,31 +505,21 @@ def main() -> None:
     local_run = args.local or local_run
     strong_run = args.strong or strong_run
 
-    # ---- TEST gate: unlock before any TEST label is read -----------------------
+    reg = Registry()
+    if args.split == "test" and args.candidates:
+        raise SystemExit("--candidates cannot be combined with a TEST replay: TEST replays the frozen winner only")
+    if args.select and args.candidates:
+        raise SystemExit("--candidates cannot be combined with --select: selection reads the registry candidates only")
+
+    # ---- TEST gate: the unlock is consumed BEFORE any TEST label is read ---------
     frozen_only: dict | None = None
     if args.split == "test":
         if not args.unlock_test:
-            raise SystemExit("TEST is sealed: pass --unlock-test <policy_id> for a DEV-qualified frozen policy")
-        fpath = FROZEN_DIR / f"{args.unlock_test}.json"
-        if not fpath.exists():
-            raise SystemExit(f"no frozen artifact for {args.unlock_test!r} under {FROZEN_DIR}")
-        frozen_only = json.loads(fpath.read_text())
-        if (frozen_only.get("dev_selection") or {}).get("result") != "PASS":
-            raise SystemExit(f"{args.unlock_test!r} did not PASS DEV selection — TEST stays sealed")
-        if frozen_only["local_model_short"] != args.model:
-            raise SystemExit(f"{args.unlock_test!r} is a {frozen_only['local_model_short']} policy")
-        unlock = json.loads(UNLOCK_FILE.read_text()) if UNLOCK_FILE.exists() else {"unlocks": []}
-        if any(u["policy_id"] == args.unlock_test for u in unlock["unlocks"]):
-            raise SystemExit(f"{args.unlock_test!r} has already had its one TEST replay — refusing")
-        unlock["unlocks"].append({
-            "policy_id": args.unlock_test, "artifact_digest": frozen_only["artifact_digest"],
-            "local_run": local_run, "strong_run": strong_run,
-            "unlocked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "code_commit": git_head(),
-        })
-        UNLOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
-        UNLOCK_FILE.write_text(json.dumps(unlock, indent=2) + "\n")
-        print(f"TEST UNLOCKED for {args.unlock_test} (recorded in {UNLOCK_FILE}); this is its only replay.\n")
+            raise SystemExit("TEST is sealed: pass --unlock-test <policy_id> for the DEV-selected frozen policy")
+        with psycopg.connect(DSN) as conn:
+            preflight_test_runs(conn, local_run, strong_run)
+        frozen_only = begin_test_unlock(reg, args.unlock_test, args.model, local_run, strong_run)
+        print(f"TEST UNLOCKED for {args.unlock_test} (recorded in {reg.unlock_file}); this is {args.model}'s only replay.\n")
 
     with psycopg.connect(DSN) as conn:
         rows, meta = build_dataset(conn, local_run, strong_run, allow_test=(args.split == "test"))
@@ -347,7 +548,7 @@ def main() -> None:
         if frozen_only is not None:
             arts = [frozen_only]
         else:
-            arts = load_candidates(args.model, [Path(p) for p in args.candidates] if args.candidates else None)
+            arts = load_candidates(args.model, [Path(p) for p in args.candidates] if args.candidates else None, reg)
         results = []
         for a in arts:
             risk = risk_scores(a, rows)
@@ -364,8 +565,8 @@ def main() -> None:
                               "all_pass": m_t["all_pass"], "routing_fn": m_t["routing_fn"],
                               "unnecessary": m_t["unnecessary"]})
             if not args.no_telemetry:
-                persist_decisions(conn, a["policy_id"], local_model, a, rows, risk, tau, esc,
-                                  local_run, snap_digests)
+                persist_decisions(conn, f"{a['policy_id']}@{a['artifact_digest'][:12]}", local_model, a,
+                                  rows, risk, tau, esc, local_run, snap_digests)
             results.append({"policy_id": a["policy_id"], "candidate": a["candidate"], "family": a["family"],
                             "protocol": a.get("protocol", "grouped"),
                             "eligible": a["eligible"], "eligible_kind": a["eligible_kind"],
@@ -427,9 +628,13 @@ def main() -> None:
     # ---- DEV selection -------------------------------------------------------
     selection = None
     if args.split == "dev" and args.select:
-        if not RULE_FILE.exists():
-            raise SystemExit(f"no pre-registered rule at {RULE_FILE} — commit the § 12a amendment first")
-        rule = json.loads(RULE_FILE.read_text())
+        if not reg.rule_file.exists():
+            raise SystemExit(f"no pre-registered rule at {reg.rule_file} — commit the § 12a amendment first")
+        if reg.selection_file(args.model).exists():
+            raise SystemExit(f"DEV selection for {args.model} already recorded at {reg.selection_file(args.model)} — "
+                             "not repeatable")
+        rule = json.loads(reg.rule_file.read_text())
+        _assert_rule_matches_artifacts(rule, args.model, arts)
         # PRIMARY protocol (grouped CV) first; the SECONDARY (stratified, § 12a) is
         # consulted only if the primary selects nothing.
         prim = [r for r in results if r["protocol"] == "grouped"]
@@ -444,27 +649,16 @@ def main() -> None:
         print("\nSELECTION (pre-registered rule, contract § 12/12a; primary protocol first)")
         for v in verdicts:
             print(f"  {v['policy_id']:<40} [{v['protocol']}] eligible={v['eligible']}  K={v['K']} Δutil={v['delta_util']} Emax={v['e_max']}  "
-                  f"R1 {v['R1_fn_reduction']}  R2 {v['R2_no_collapse']}  R3 {v['R3_quality']}  → {'PASS' if v['pass'] else 'FAIL'}")
+                  f"R1 {v['R1_fn_reduction']}  R2 {v['R2_no_collapse']} (capped {v['R2_under_skeleton_caps']})  R3 {v['R3_quality']}  → {'PASS' if v['pass'] else 'FAIL'}")
+        winner_art = next((a for a in arts if winner and a["policy_id"] == winner["policy_id"]), None)
+        record = freeze_selection(reg, args.model, arts, results, verdicts, winner_art, selected_protocol,
+                                  local_run, strong_run)
         selection = {"rule": rule["per_model"][args.model], "verdicts": verdicts,
-                     "winner": winner["policy_id"] if winner else None,
-                     "selected_protocol": selected_protocol}
-        FROZEN_DIR.mkdir(parents=True, exist_ok=True)
-        for a in arts:
-            v = next((v for v in verdicts if v["policy_id"] == a["policy_id"]), None)
-            if v is None:      # a secondary candidate never reached because the primary selected
-                v = {"policy_id": a["policy_id"], "protocol": a.get("protocol"), "pass": False,
-                     "note": "not evaluated: the primary protocol selected a policy"}
-            a2 = dict(a)
-            a2["local_model_short"] = args.model
-            a2["dev_selection"] = {"result": "PASS" if (winner and winner["policy_id"] == a["policy_id"]) else "FAIL",
-                                   "verdict": v, "dev_local_run": local_run, "dev_strong_run": strong_run,
-                                   "dev_system": next(r["system"] for r in results if r["policy_id"] == a["policy_id"]),
-                                   "frozen_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                                   "code_commit": git_head()}
-            (FROZEN_DIR / f"{a['policy_id']}.json").write_text(canonical_json(a2) + "\n")
+                     "winner": record["winner"], "selected_protocol": selected_protocol}
         print(f"  winner: {selection['winner'] or 'NONE — R4 stays incumbent; TEST not opened for any learned policy'}"
               + (f"  (protocol {selected_protocol})" if selected_protocol else ""))
-        print(f"  frozen artifacts written under {FROZEN_DIR} (dev_selection recorded)")
+        print(f"  selection record {reg.selection_file(args.model)}"
+              + (f"; frozen artifact {reg.frozen_artifact(record['winner'])}" if record["winner"] else ""))
 
     out = Path(args.json_out) if args.json_out else ROOT / "evals" / "reports" / f"r5-replay-{args.split}-{args.model}.json"
     out.write_text(json.dumps({
