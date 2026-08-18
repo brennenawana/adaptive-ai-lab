@@ -94,7 +94,11 @@ EXPECTED = {
         "nemotron": {"weak_all_pass": 48, "cascade_all_pass": 69, "strong_calls": 21,
                      "rescue_needed": 21, "escalated": 21, "unnecessary": 0, "routing_fn": 26,
                      "cost_per_attempt": 0.0273, "cost_per_success": 0.0380, "wall_p50_s": 56.1},
-        "strong": {"all_pass": 95, "cost_per_attempt": 0.1139, "cost_per_success": 0.1139},
+        # The release report § 7 states strong-only TEST cost per SUCCESS only ($0.1139);
+        # per attempt it is $10.8234 / 96 = $0.1127 (95 passes). The first version of this
+        # table transcribed 0.1139 into both cells; corrected 2026-08-18 after the TEST
+        # replay flagged the transcription (the reproduction itself was never in question).
+        "strong": {"all_pass": 95, "cost_per_attempt": 0.1127, "cost_per_success": 0.1139},
     },
 }
 

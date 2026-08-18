@@ -11,7 +11,7 @@ telemetry to learn from.
 **One-paragraph result.** Production-observable trajectory + answer features can raise
 the cascade well above the deterministic R4 gate on this benchmark — Qwen 50.0 % → 78.1 %
 strict all-pass on TEST (routing FN 47 → 20) at 57 % frontier utilization; Nemotron
-{{N_TEST_ONE_LINE}} — but the signal they carry is *template difficulty*: labels are
+71.9 % → 77.1 % (FN 26 → 21) at 33 % utilization, which did *not* meet the pre-registered TEST reading — but the signal they carry is *template difficulty*: labels are
 class-clustered (P(unsafe | class) 0.09–1.0; the minority label has n ≤ 1 in 8 of 11 classes),
 four production-observable case constants identify the scenario class for 45/48 DEV cases,
 the best learned router sits within 0.01 AUC of the class-identity ceiling on TRAIN, and
@@ -36,18 +36,18 @@ with p ≈ 0.6, so it certifies non-degeneracy, not information.
 | field | value |
 |---|---|
 | Suite v3 | tag `suite-v3` = `7764601`; corpus `1e7c5278…9d39e528`; scorer 3 / verifier 3 / ontology 1 / prompt 1; `git diff suite-v3 -- . ':!docs'` empty at R5 start (`47723b2`) |
-| R5 commits | `fc1c18e` plan + acquisition tooling · `e3b8066` contract skeleton · `ab1d7ab` reconciliation · `54c6fa9` feature/learner/replay/oracle tooling · `eda2e56` release-report erratum · `76a7ec1` Qwen TRAIN + § 12a-Q · `4b10da0` audit-driven amendment + state machine · `57f1a9d` artifacts · `503b042` Qwen DEV selection · `b1e92e9` pre-TEST follow-ups · `dbf5414` Qwen TEST · `6766e86`/`b078d4c` § 12a-Q reconciliation · {{N_COMMITS}} |
+| R5 commits | `fc1c18e` plan + acquisition tooling · `e3b8066` contract skeleton · `ab1d7ab` reconciliation · `54c6fa9` feature/learner/replay/oracle tooling · `eda2e56` release-report erratum · `76a7ec1` Qwen TRAIN + § 12a-Q · `4b10da0` audit-driven amendment + state machine · `57f1a9d` artifacts · `503b042` Qwen DEV selection · `b1e92e9` pre-TEST follow-ups · `dbf5414` Qwen TEST · `6766e86`/`b078d4c` § 12a-Q reconciliation · `3e04dc7` Nemotron TRAIN + § 12a-N · `af199a5` Nemotron DEV selection · `5d277f6` Nemotron TEST · final docs commit(s) listed in `OVERNIGHT_STATUS.md` § M6.9 |
 | source runs | TRAIN `R5-qwen-train`, `R5-nemotron-train` (acquired for R5); DEV `V3-qwen-dev`, `V3-nemotron-dev`, `E4-v3-dev`; TEST `V3-qwen-96`, `V3-nemotron-96`, `E4-v3-96` (all frozen Suite v3) |
 | new model inference | **288 local calls, 0 frontier calls, 0 TEST calls**: Qwen 144 + Nemotron 144 TRAIN cases under the frozen operating configuration (`make eval-r5-train`); DEV/TEST answered entirely by offline replay |
 | feature schema | `RoutingFeatureSnapshot` v1, 58 names (`fis_platform/routing/features.py`) |
-| frozen policies | Qwen `r5-qwen-tree-stratified-v1` (digest `aa13e045bb95d412…`, τ 0.70) · Nemotron {{N_FROZEN}} |
+| frozen policies | Qwen `r5-qwen-tree-stratified-v1` (digest `aa13e045bb95d412…`, τ 0.70) · Nemotron `r5-nemotron-lr_core-stratified-v1` (digest in `learning/registry/r5/frozen/nemotron.selection.json`, τ 0.50) |
 
 ## 2. Dataset and splits
 
 | split | n | Qwen safe / R4-accepted / silent | Nemotron safe / R4-accepted / silent | dataset digest |
 |---|---|---|---|---|
-| TRAIN | 144 (12 × 12) | 41 / 105 / 64 | {{N_TRAIN_ROW}} | Qwen `d4d3c09d…`, Nemotron {{N_TRAIN_DIGEST}} |
-| DEV | 48 (12 × 4) | 17 / 33 / 16 | 23 / 36 / 13 | Qwen `a4c777d4…`, Nemotron {{N_DEV_DIGEST}} |
+| TRAIN | 144 (12 × 12) | 41 / 105 / 64 | 66 / 104 / 38 | Qwen `d4d3c09d…`, Nemotron `fdb015a8…` |
+| DEV | 48 (12 × 4) | 17 / 33 / 16 | 23 / 36 / 13 | Qwen `a4c777d4…`, Nemotron `93373f00…` |
 | TEST | 96 (12 × 8) | 27 / 74 / 47 | 48 / 75 / 26 | opened once per frozen policy (§ 9) |
 
 - **Grouping.** Seeds are `lo + i·1000 + class_idx` — independent draws per class, so the
@@ -57,7 +57,7 @@ with p ≈ 0.6, so it certifies non-degeneracy, not information.
 - **Answer bodies.** The frozen Suite v3 arms kept only the answer's sha256, so the
   answer's `root_cause.label` / `recommended_next_action` are rebuilt from the scorer's
   verbatim `said …` echo; migration 007 persists the parsed body from R5's TRAIN
-  acquisition on, and the echo equals the body on 117/117 Qwen and {{N_ECHO}} Nemotron
+  acquisition on, and the echo equals the body on 117/117 Qwen and 114/114 Nemotron
   TRAIN cases. Everything else about the answer (facts, cited ids, hypotheses,
   confidence) is unrecoverable for DEV/TEST and appears only in the TRAIN-only
   exploratory `answer_structure` comparator.
@@ -114,12 +114,12 @@ contract § 12a are in `learning/registry/r5/reports/diagnostics_<model>.json`
 | Nemotron | 23 (47.9 %) | 25 (52.1 %) | 0 | 48/48 | 52.1 % | 25.0 % | $0.0635 | 72.3 s |
 
 TEST (opened at the unlock): Qwen local-safe 27, rescueable 68, unresolved 1 (S12-3002011,
-the frontier's one miss), oracle 95/96 at 70.8 %; Nemotron {{N_ORACLE_TEST}}.
+the frontier's one miss), oracle 95/96 at 70.8 %; Nemotron local-safe 48, rescueable 47, unresolved 1 (the same S12-3002011), oracle 95/96 at 49.0 % (R4 21.9 %).
 
 **Three-tier cheapest-sufficient oracle (descriptive, for R6).** DEV: Qwen sufficient 17
 (35.4 %), Nemotron sufficient 10 (20.8 %: S10 ×3, S03/S06/S08 ×2, S02), frontier required 21
-(43.8 %), unresolved 0; sufficient-tier cost $0.0542/attempt. TEST: {{N_THREE_TIER_TEST}}.
-TRAIN (no frontier run): {{N_THREE_TIER_TRAIN}}.
+(43.8 %), unresolved 0; sufficient-tier cost $0.0542/attempt. TEST: Qwen sufficient 27 (28.1 %), Nemotron sufficient 27 (28.1 %: S03 ×5, S10 ×5, S08 ×4, S02/S04/S06 ×3, S11 ×2, S05/S09), frontier required 41 (42.7 %), unresolved 1 (S12-3002011); sufficient-tier cost $0.0503/attempt, cascade reading $0.0514.
+TRAIN (no frontier run): Qwen sufficient 41 (28.5 %), Nemotron sufficient 33 (22.9 %: S03 ×7, S02/S10 ×6, S04 ×4, S08 ×3, S05/S06/S09 ×2, S11), neither local 70 (48.6 %); the Nemotron-sufficient band is not template-clean on any split (S03/S06/S10 mix all three tiers).
 
 ## 5. R4 reproduction
 
@@ -127,7 +127,7 @@ TRAIN (no frontier run): {{N_THREE_TIER_TRAIN}}.
 gated fields (Qwen 32/48, 15 calls, 15/15, 0, FN 16, $0.0405/$0.0608, 16.7 s; Nemotron
 35/48, 12, 12/12, 0, FN 13, $0.0330/$0.0453, 54.7 s; strong-only 48/48, $0.1160) —
 AGREES; `r5_replay.py` reproduces the same R4 rows on DEV and TEST (TEST: 48/96, 22
-calls, FN 47, $0.0513; {{N_R4_TEST}}). One erratum recorded (release report § 11): the
+calls, FN 47, $0.0513; Nemotron 69/96, 21 calls, FN 26, $0.0380; strong-only 95/96, $0.1139/success — one transcription error in the script's expected table (strong-only TEST cost/attempt, which the release report does not state) corrected in place). One erratum recorded (release report § 11): the
 Qwen DEV FN prose split is 7 root_cause / 9 evidence_only under the exclusive bucketing.
 
 ## 6. TRAIN development (TRAIN only; `learning/registry/r5/train_report_*.json`)
@@ -167,10 +167,36 @@ contract's E_max rejects. Full answer bodies (TRAIN only) add nothing over the s
 untested rather than refuted). Coefficient signs are stable across folds (≥ 0.9 agreement
 for the top 12); the tree's root split is `output_per_input` in 9/12 grouped folds.
 
-**Nemotron** (`R5-nemotron-train`): {{N_TRAIN_TABLE}}
+**Nemotron** (`R5-nemotron-train`, R4-accepted 104, unsafe 38 = 0.365):
+
+| candidate | protocol | hp | grouped OOF AUC / AP | stratified OOF AUC / AP / Brier | τ* | OOF at τ*: esc / catches / unnecessary (of 104) | gate |
+|---|---|---|---|---|---|---|---|
+| `lr_full` | primary | λ 100 | **0.201** / 0.248 | 0.863 / 0.767 | 0.80 | 0 / 0 / 0 | FAIL |
+| `lr_core` | primary | λ 100 | **0.244** / 0.257 | 0.657 / 0.569 | 0.80 | 0 / 0 / 0 | FAIL |
+| `tree` | primary | d 2 | **0.224** / 0.265 | 0.735 / 0.630 | 0.80 | 33 / 5 / 28 | FAIL |
+| `lr_full` | secondary | λ 1 | 0.321 / 0.278 | **0.919** / 0.876 / 0.102 | 0.55 | 37 / 31 / 6 | PASS |
+| `lr_core` | secondary | λ 10 | 0.331 / 0.281 | **0.656** / 0.591 / 0.212 | 0.50 | 18 / 15 / 3 | PASS (AUC 0.656 ≥ 0.60; AP 0.591 ≥ 0.465) |
+| `tree` | secondary | d 3 | 0.279 / 0.276 | **0.849** / 0.731 / 0.137 | 0.50 | 45 / 32 / 13 | PASS |
+| `prior_class_ceiling` (expl.) | secondary | λ 1 | 0.056 | **0.936** / 0.891 / 0.096 | 0.55 | 41 / 33 / 8 | — |
+| `prior_category` (expl.) | secondary | λ 1 | 0.440 | 0.859 / 0.739 | 0.60 | 31 / 23 / 8 | — |
+| `lr_answer` (expl.) | secondary | λ 1 | 0.300 | 0.860 / 0.729 | 0.60 | 42 / 31 / 11 | — |
+| `lr_behavior` (expl.) | secondary | λ 1 | 0.342 | 0.896 / 0.815 | 0.45 | 43 / 33 / 10 | — |
+| `answer_structure` (TRAIN bodies) | secondary | λ 10 | 0.322 | 0.904 / 0.830 | 0.45 | 39 / 31 / 8 | — |
+
+Reading (unsafe/accepted per class): S01 5/5, S02 0/12, S03 3/10, S04 6/10, S05 0/12, S06
+7/10, S08 0/11, S09 0/10, S10 2/8, S11 4/5, S12 11/11 — six of eleven classes are one label,
+but S03, S04, S06, S10, S11 mix. Per-fold LOGO AUC (`lr_full`, λ 10): S03 0.29, S04 0.92,
+S06 0.24, S10 0.83, S11 0.75 (mean 0.61); mean risk on held-out all-unsafe S01 = 0.15,
+S12 = 0.51, all-safe S08 = 0.88 — transfer to unseen templates is inconsistent. Unlike Qwen,
+Nemotron shows a genuine within-template behaviour signal: within-class per-feature AUC
+`content_chars` 0.26 (a shorter answer is the unsafe one), `input_tokens` 0.29,
+`reasoning_share` 0.68 (82 within-class pairs); the class-identity ceiling (0.936) is
+nevertheless *above* every eligible candidate, and the primary-protocol τ* sits at the
+grid ceiling (escalate nothing) — the utility rule's other degenerate corner when the
+router is weak and the base rate is below 0.5.
 
 **§ 12a numbers** (`learning/registry/r5/selection_rule.json`): Qwen primary null/null;
-secondary Δ_util 0.646, E_max 6; Nemotron {{N_RULE}}. K on DEV = 4 (Qwen), {{N_K}}.
+secondary Δ_util 0.646, E_max 6; Nemotron primary null/null; secondary Δ_util 0.469, E_max 7. K on DEV = 4 (Qwen), 4 (Nemotron).
 
 ## 7. DEV replay, Pareto frontier and selection
 
@@ -210,7 +236,35 @@ existed in the contract, and none is added for Nemotron (the two arms use identi
 machinery); the chance-level numbers were first recorded (`6766e86`) after the Qwen TEST
 look. The amended R2 utilization bound (95.8 % on DEV) did not bind; only E_max did.
 
-**Nemotron DEV (n = 48; R4 35/48 @ 25.0 %, FN 13).** {{N_DEV_TABLE}}
+**Nemotron DEV (n = 48; R4 35/48 @ 25.0 %, FN 13; `evals/reports/r5-replay-dev-nemotron.json`):**
+
+| policy | all-pass | util. | FN | unnec. | rescue | $/success | p50 / p95 | AUC (accepted) | caught of 13 (rc / ev) | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|
+| local-only | 23 (47.9 %) | 0 % | 25 | 0 | — | — | 53.8 / 96.0 s | — | — | — |
+| **R4 verifier** | 35 (72.9 %) | 25.0 % | 13 | 0 | 1.00 | $0.0453 | 54.7 / 150.0 s | — | — | incumbent |
+| `lr_full` sec. τ 0.55 | **45 (93.8 %)** | 50.0 % | 3 | 2 | 0.92 | $0.0691 | 69.3 / 150.0 s | **0.953** | 10 (5 / 5) | PASS |
+| `lr_core` sec. τ 0.50 | 40 (83.3 %) | 39.6 % | 8 | 2 | 0.89 | $0.0590 | 55.0 / 150.0 s | 0.676 | 5 (3 / 2) | **PASS → selected (tie-break)** |
+| `tree` sec. τ 0.50 | 44 (91.7 %) | 56.2 % | 4 | 6 | 0.78 | $0.0784 | 67.3 / 150.0 s | 0.823 | 9 (4 / 5) | PASS |
+| `prior_class_ceiling` τ 0.55 (expl.) | 45 (93.8 %) | 52.1 % | 3 | 3 | 0.88 | $0.0707 | 69.3 s | 0.876 | 10 (4 / 6) | — |
+| `prior_category` τ 0.60 (expl.) | 44 (91.7 %) | 47.9 % | 4 | 2 | 0.91 | $0.0633 | 67.0 s | 0.823 | 9 (4 / 5) | — |
+| `lr_answer` τ 0.60 (expl.) | 45 (93.8 %) | 54.2 % | 3 | 4 | 0.85 | $0.0697 | 71.3 s | 0.940 | 10 (5 / 5) | — |
+| `lr_behavior` τ 0.45 (expl.) | **48 (100 %)** | 60.4 % | 0 | 4 | 0.86 | $0.0727 | 72.6 s | 0.926 | 13 (5 / 8) | — |
+| primary-protocol candidates (τ* 0.80) | 35–39 | 25–33 % | 9–13 | 0 | 1.00 | $0.045–0.056 | 55–59 s | — | 0–4 | FAIL (gate) |
+| always-escalate | 48 | 100 % | 0 | 23 | 0.52 | $0.1160 | 91.1 / 150.0 s | — | 13 | — |
+| oracle (min-useful) | 48 | 52.1 % | 0 | 0 | 1.00 | $0.0635 | 72.3 / 150.0 s | — | 13 | — |
+
+Pareto, `lr_full`: 41.7 % → 42/6/1 · 47.9 % → 45/3/1 · 50.0 % → 45/3/2 · 54.2 % → 47/1/2 ·
+60.4 % → 48/0/4; `lr_core`: 25.0 % → 35/13/0 · 33.3 % → 38/10/1 · 39.6 % → 40/8/2 · 47.9 % →
+41/7/5 · 64.6 % → 44/4/10; `tree`: 33.3 % → 39/9/0 · 45.8 % → 42/6/3 · 56.2 % → 44/4/6.
+Selection: primary — nothing eligible; secondary — all three PASS R1 (FN ≤ 9), R2 (util ≤
+25.0 + 46.9 %, unnec ≤ 7), R3; `lr_core` is the only one that also passes the skeleton's
+caps (39.6 % ≤ 45 %). Tie-break "fewer frontier calls" → `lr_core` (19 calls vs 24 / 27);
+under "fewer unnecessary escalations" `lr_full` and `lr_core` tie at 2 and the next key
+(cost/success) would again pick `lr_core`. Net of the class ceiling at τ*: `lr_full` +0
+catches / −1 unnecessary at 2 pp less utilization (and AUC 0.953 vs 0.876 — the router
+ranks better than the class prior on DEV); `lr_core` −5 catches. Chance: `lr_core` 5/7
+p = 0.044; `lr_full` 10/12 p = 6 × 10⁻⁵; `tree` 9/15 p = 0.015; a random 7-escalation passes
+R1 ∧ E_max with p ≈ 0.20. The amended R2 bound (71.9 %) did not bind.
 
 ## 8. Silent-failure result
 
@@ -221,8 +275,10 @@ look. The amended R2 utilization bound (95.8 % on DEV) did not bind; only E_max 
 | Qwen DEV | 16 (7 rc / 9 ev) | `tree` 7 | 2 | 5 | 0 | 9 | 5 |
 | Qwen DEV, best survivor `lr_full` | 16 | 15 | 6 | 9 | 0 | 1 (S08-2003007 → said `processor_decline`) | 4 |
 | Qwen TEST | 47 (14 rc / 33 ev) | `tree` 27 | 5 | 22 | 0 | 20 (9 rc / 11 ev) | 6 |
-| Nemotron DEV | 13 (5 rc / 8 ev) | {{N_SIL_DEV}} | | | | | |
-| Nemotron TEST | 26 | {{N_SIL_TEST}} | | | | | |
+| Nemotron DEV | 13 (5 rc / 8 ev) | `lr_core` 5 | 3 | 2 | 0 | 8 | 2 |
+| Nemotron DEV, best survivor `lr_full` | 13 | 10 | 5 | 5 | 0 | 3 (S03/S04/S10 evidence) | 2 |
+| Nemotron DEV, exploratory `lr_behavior` | 13 | 13 | 5 | 8 | 0 | 0 | 4 |
+| Nemotron TEST | 26 (10 rc / 16 ev) | `lr_core` 5 | 4 | 1 | 0 | 21 (6 rc / 15 ev) | 6 |
 
 The catches are the classes whose template the router recognises as hard for the local
 model (Qwen TEST caught: S03 ×6, S04 ×3, S06 ×4, S08, S10 ×6, S11 ×2, S12 ×5); the
@@ -238,8 +294,8 @@ template, not by anything in the answer that says "this is short".
 | **Qwen `r5-qwen-tree-stratified-v1`** | **75/96 (78.1 %)** | 57.3 % | **20** | 6 | 0.87 | $0.0624 | $0.0799 | 37.6 / 77.2 s | 0.762 | **CONFIRMED** (K_test 12; unnec ≤ 12; util ≤ 87.5 %) |
 | Qwen oracle (min-useful) / always-escalate | 95 / 95 | 70.8 % / 100 % | 0 / 0 | 0 / 27 | | $0.0811 / $0.1127 | $0.0819 / $0.1139 | 43.4 / 52.7 s | | |
 | Nemotron R4 | 69/96 (71.9 %) | 21.9 % | 26 | 0 | 1.00 | $0.0273 | $0.0380 | 56.1 s | — | incumbent |
-| **Nemotron {{N_FROZEN}}** | {{N_TEST_ROW}} |
-| Nemotron oracle / always-escalate | {{N_TEST_ORACLE_ROW}} |
+| **Nemotron `r5-nemotron-lr_core-stratified-v1`** (τ 0.50) | 74/96 (77.1 %) | 33.3 % | **21** | 6 | 0.81 | $0.0392 | $0.0509 | 57.1 / 145.9 s | 0.557 | **NOT CONFIRMED** (FN 26 → 21 < K_test 7; unnecessary 6 ≤ 14 ✓; util ≤ 68.8 % ✓) |
+| Nemotron oracle (min-useful) / always-escalate | 95 / 95 | 49.0 % / 100 % | 0 / 0 | 0 / 48 | | $0.0586 / $0.1127 | $0.0592 / $0.1139 | 64.9 / 94.1 s | | |
 
 No threshold sweep was computed on TEST; nothing was changed after either look. The Qwen
 TEST catch count (27 of 33 escalations vs base rate 0.64) has hypergeometric p = 0.003
@@ -254,8 +310,11 @@ said-label misses. Price of the tree over R4 on TEST: cost/success +56 % ($0.051
 $0.0799), wall p50 2.4× (15.4 → 37.6 s), rescue rate 0.95 → 0.87; frontier utilization
 57.3 % vs the oracle's 70.8 % and always-escalate's 100 % — not a collapse toward
 strong-only by precision (0.82 vs base 0.64), though the amended R2 bound (87.5 %) would
-have tolerated one. Second-order cost: Qwen's TEST is no longer blind for learned routing
-on Suite v3 — any later Qwen router (R5b, R6) inherits this look.
+have tolerated one. Nemotron: the frozen `lr_core` caught 5 of 26 in 11 escalations (p = 0.35 against a
+random null; a random 11-escalation would be *confirmed* with p ≈ 0.04, so the Nemotron
+reading had teeth and was not met) — cost/success +34 % ($0.0380 → $0.0509) for +5 passes.
+Second-order cost: both models' TEST is no longer blind for learned routing on Suite v3 —
+any later router (R5b, R6) inherits these looks.
 
 ## 10. Timing and efficiency
 
@@ -264,14 +323,14 @@ on Suite v3 — any later Qwen router (R5b, R6) inherits this look.
 | reconciliation | 04:55–05:12 (17 min) | docs, DB, code, servers |
 | acquisition tooling + contract skeleton | 05:12–05:20 | migration 007, make targets, § 1–16 |
 | TRAIN acquisition (Qwen) | 05:16–05:53 (37 min) | 144 local calls, same session as the Suite v3 arms |
-| TRAIN acquisition (Nemotron) | 05:55–{{N_ACQ_END}} | restart + probe + 144 local calls |
+| TRAIN acquisition (Nemotron) | 05:55–08:59 (3 h 04 min; S07 cases at 8 192 tokens dominate) | restart + probe + 144 local calls |
 | feature/learner/replay/oracle tooling + tests (3 Opus agents in parallel) | 05:20–05:35 | 453 tests green |
 | adversarial audit (5 Fable lenses + synthesis) | 05:33–06:24 (parallel) | lens findings landed pre-DEV (`4b10da0`); synthesis and follow-ups (`b1e92e9`) landed after the Qwen DEV selection and before/around the Qwen TEST look |
 | Qwen TRAIN CV, amendment, state machine, DEV selection | 05:56–06:22 | |
 | Qwen TEST replay | 06:24 (< 1 min) | offline |
-| Nemotron TRAIN CV, amendment, DEV selection, TEST | {{N_TIMING}} | |
-| documentation | {{DOC_TIMING}} | |
-| **total** | {{TOTAL}} | vs ≈ 6 h for the Suite v3 release |
+| Nemotron TRAIN CV, amendment, DEV selection, TEST | 09:00–09:15 (TRAIN CV both protocols 3 min, § 12a-N, DEV selection, TEST replay, oracles — all offline) | |
+| documentation | 06:30–09:45 interleaved (report drafting during the Nemotron acquisition; independent reviewer 06:40–06:57) | |
+| **total** | ≈ 4 h 50 min wall (04:55–09:45 UTC), of which 3 h 41 min was local model inference for TRAIN acquisition; everything after the acquisition finished took 45 min | vs ≈ 6 h for the Suite v3 release |
 
 Work answered by offline replay: every DEV and TEST number, every oracle, the R4
 reproduction, all Pareto sweeps (thousands of policy evaluations) — no frontier call.
@@ -296,12 +355,23 @@ structure (minority n ≤ 1 in 8 of 11 classes) leaves R5 almost no power to det
 within-template signal, so "not detected" is not "absent".
 
 **Which local model produces the better learned-routing system frontier?**
-{{N_INTERPRETATION_MODEL}}
+Nemotron — on every axis but one. Its verifier-clean base rate is lower (TRAIN 0.365 vs 0.61,
+DEV 13/36 vs 16/33), so a router has room to be selective; its DEV frontier is strictly
+better (`lr_full` 45/48 at 50 % with 2 unnecessary vs Qwen's 47/48 at 71 % with 4; the
+behaviour-only `lr_behavior` reaches 48/48 at 60 % — the oracle's quality 8 pp above the
+oracle's utilization); it is the only model whose routers rank *above* the class-identity
+ceiling on DEV (0.953 vs 0.876) and whose within-class features carry signal
+(`content_chars` 0.26); and Nemotron + R4 alone already dominates Qwen + frozen tree on cost
+on TEST ($0.0380 vs $0.0799 per success at 71.9 % vs 78.1 %). The one axis it loses is
+latency: Nemotron's cascade p50 (55–72 s) exceeds the frontier's own 37 s, so a Nemotron
+cascade trades cost for wall time. The frozen Nemotron policy (`lr_core`, no answer echo)
+was the weakest survivor and did not carry to TEST (AUC 0.557); the DEV evidence for the
+better Nemotron routers is what stands.
 
 **How far does the learned policy remain from the oracle?** Qwen: the frozen tree is 20
 cases (TEST) / 9 cases (DEV) short of the min-useful oracle at 13 pp / 8 pp less
 utilization; `lr_full`, the best DEV survivor, was 1 case short at 6 pp more utilization
-than the oracle. Nemotron: {{N_GAP}}. Reaching the oracle for Qwen requires ~65–70 %
+than the oracle. Nemotron: the frozen `lr_core` is 21 cases (TEST) / 8 (DEV) short of the oracle at 16 pp / 13 pp *less* utilization; the best DEV survivor `lr_full` was 3 short at 2 pp less utilization than the oracle, and the exploratory behaviour-only `lr_behavior` reached the oracle's 48/48 on DEV at 60.4 % (8 pp above it). Reaching the oracle for Qwen requires ~65–70 %
 frontier utilization because ~64 % of Qwen's verifier-clean answers are wrong — the
 a-priori "no collapse" caps in the skeleton (20 pp / 50 %) would have forbidden every
 FN-catching Qwen router regardless of its precision, which is why § 12a-2 replaced them,
@@ -330,7 +400,12 @@ fact.
 Qwen TEST remaining after the tree (20): root cause 9 — S02 `duplicate_webhook_handled` ×4
 (the said-label pattern the tree does not split on), S06 `reconciliation_gap`, S07
 `reconciliation_gap` ×2, S08 `processor_decline`, S12 `kyc_hold` — and evidence 11 — S06 ×3,
-S07, S08, S09, S10 ×2, S11 ×3 (recall 0.50–0.75, all scored below τ 0.70). {{N_RESIDUAL}}
+S07, S08, S09, S10 ×2, S11 ×3 (recall 0.50–0.75, all scored below τ 0.70). Nemotron TEST remaining after `lr_core` (21): root cause 6 (S12 `kyc_hold` ×3, S02
+`duplicate_webhook_handled`, S05 `settlement_amount_mapping_error`, S11 `risk_hold`),
+evidence 15 (S01 ×4, S06 ×4, S11 ×2, S03, S04, S05, S09, S10); caught: S12 ×4 and S10
+×1; the classifier's TEST AUC on the accepted subset (0.557) is near chance — the
+family A + B + C router (no answer echo) did not carry Nemotron's DEV signal to TEST,
+whereas its DEV AUC was 0.676.
 Nothing in the snapshot distinguishes an evidence-short answer from a complete one on the
 same template; the answer-structure comparator on TRAIN bodies (fact count, cited-id
 count, confidence…) did not raise the class-dominated AUC either (0.873 vs 0.901) — which
@@ -338,15 +413,36 @@ is untested rather than refuted, because TRAIN holds almost no within-template c
 
 ## 13. Next recommendation (exactly one)
 
-**R6 — multi-tier Qwen → Nemotron → frontier routing on the same frozen suite, using the
-class-difficulty signal R5 found and the three-tier oracle R5 measured**, not richer
-silent-failure features. Reasons: the three-tier oracle shows a Nemotron-sufficient band
-(DEV 10/48 = 20.8 %, concentrated in S10/S03/S06/S08) that costs no frontier call; the R5
-routers demonstrably route by template difficulty, which is exactly the signal a
-Qwen→Nemotron gate needs; and R5 showed that within-template silent failure is not
-predictable from anything the trajectory or the answer body exposes — so richer
-deterministic signals would have to come from *evidence*, i.e. a suite change, and QLoRA
-would be aimed at a failure the router cannot see. R6 should pre-register a quality-first
-tie-break, a utility that charges escalation, and a per-fold-normalised primary gate.
+**Model specialization of the local tier (QLoRA on Nemotron 3.5 Lightning first, Qwen
+second) targeted at evidence-citation discipline on the systematically failing templates,
+trained on the TRAIN split only and measured with the R5 replay/oracle machinery as the
+instrument — with a class-difficulty router (`lr_full`-style, family A + D) kept as the
+interim production gate above R4.**
 
-Not started here: R6, QLoRA, dynamic harness work, any Suite v3 change.
+Why this and not the others. (i) The plan's own mapping applies: "model specialization if
+residual failures are not predictable" — R5's central finding is that within-template silent
+failure is not predictable from anything the trajectory or the answer body exposes; routing
+has been taken to the point where its only remaining lever is the template prior. (ii) The
+residual is a *capability* deficit, not an evidence or gate deficit: the dominant bucket is
+evidence-short answers on specific templates (Qwen TEST 33/47 R4 FNs, Nemotron 16/26;
+S01/S03/S06/S10/S11 throughout, plus S12/S02 root-cause misses), evidence reachability is
+1.000, and the frontier passes 99 % of the same bundles. (iii) Prompting is exhausted on
+exactly this dimension — E6/E6b ran eight variants and none moved evidence recall — so a
+"narrow evidence/prompt intervention" would be a ninth variant without a new mechanism;
+richer deterministic verifier signals cannot see a short-but-consistent answer either.
+(iv) R6 multi-tier is not yet supported: the three-tier oracle's Nemotron-sufficient band
+(DEV 10/48, TEST 27/96, TRAIN 33/144) is *not* template-clean — S03/S06/S10 mix Qwen-,
+Nemotron- and frontier-sufficient cases on every split — so a class-difficulty gate cannot
+select it, within-template routing is not learnable, the upside is bounded (frontier-
+required 41–43 % regardless), and Nemotron's cascade p50 exceeds the frontier's own.
+(v) The data now exists: TRAIN trajectories with persisted answer bodies for both local
+models (`learning.model_outputs`), the frozen DEV/TEST arms for a blind-on-DEV
+comparison, and the replay instrument that turns any new local run into cascade numbers
+without a frontier call. Nemotron first because its routers rank above the class ceiling
+and its within-class features carry signal, i.e. it is the model whose failures are
+closest to correctable. R5 also leaves two methodological fixes for whoever pre-registers
+next: a quality-first tie-break among survivors, and a threshold rule that charges
+escalation (or optimises subject to the utilization bound) so the τ* rule and the R2 rule
+optimise the same objective.
+
+Not started here: QLoRA, R6, dynamic harness work, any Suite v3 change.
