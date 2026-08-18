@@ -116,7 +116,7 @@ def evaluate_policy(rows: list[dict], strong_rows: dict[str, dict], local_rows: 
         e = escalate[sid]
         lp, sp = r["label_safe"], bool(r["strong_pass"])
         w = local_rows[sid]["score"]["wall_ms"]
-        c = 0.0
+        c = float(local_rows[sid]["score"].get("reference_cost_usd") or 0.0)   # weak stage always paid ($0 locally)
         local_out += sum(i.get("usage", {}).get("output_tokens", 0)
                          for i in local_rows[sid]["traj"].get("model_invocations", []))
         if e:
@@ -534,14 +534,14 @@ def main() -> None:
               f"echo-checked {meta['echo_checked']}")
 
         # ---- baselines --------------------------------------------------------
+        deferred_telemetry: list = []      # written after the report so a DB hiccup cannot eat the one TEST look
         base = {}
         for mode in ("local", "r4", "strong", "oracle"):
             esc = decisions(rows, None, None, mode)
             base[mode] = evaluate_policy(rows, strong_rows, local_rows, esc)
             base[mode]["silent"] = silent_family(rows, esc)
             if not args.no_telemetry and mode == "r4":
-                persist_decisions(conn, "r4-verifier", local_model, None, rows, None, None, esc,
-                                  local_run, snap_digests)
+                deferred_telemetry.append(("r4-verifier", None, None, None, esc))
         r4 = base["r4"]
 
         # ---- candidates -------------------------------------------------------
@@ -564,15 +564,16 @@ def main() -> None:
             clf = classifier_metrics(rows, risk, tau)
             sil = silent_family(rows, esc)
             sweep = []
-            for t in a["threshold_grid"]:
+            # No threshold sweep on TEST: a Pareto over the grid would be a selection
+            # signal from the sealed split. TEST is τ* only.
+            for t in (a["threshold_grid"] if args.split != "test" else []):
                 e_t = decisions(rows, risk, t, "learned")
                 m_t = evaluate_policy(rows, strong_rows, local_rows, e_t)
                 sweep.append({"threshold": t, "utilization": m_t["utilization"], "escalated": m_t["escalated"],
                               "all_pass": m_t["all_pass"], "routing_fn": m_t["routing_fn"],
                               "unnecessary": m_t["unnecessary"]})
             if not args.no_telemetry:
-                persist_decisions(conn, f"{a['policy_id']}@{a['artifact_digest'][:12]}", local_model, a,
-                                  rows, risk, tau, esc, local_run, snap_digests)
+                deferred_telemetry.append((f"{a['policy_id']}@{a['artifact_digest'][:12]}", a, risk, tau, esc))
             results.append({"policy_id": a["policy_id"], "candidate": a["candidate"], "family": a["family"],
                             "protocol": a.get("protocol", "grouped"),
                             "eligible": a["eligible"], "eligible_kind": a["eligible_kind"],
@@ -595,8 +596,8 @@ def main() -> None:
     for r in results:
         tag = "ELIGIBLE" if r["eligible"] else ("inelig(gate)" if r["eligible_kind"] else "exploratory")
         line(f"{r['candidate']} τ={r['threshold']} [{tag}]", r["system"])
-    line("strong-only", base["strong"])
-    line("post-answer oracle", base["oracle"])
+    line("always-escalate (strong, cascade)", base["strong"])
+    line("post-answer oracle (min-useful)", base["oracle"])
     print(f"  gap to oracle: R4 {base['r4']['all_pass'] - base['oracle']['all_pass']:+d}"
           + "".join(f"; {r['candidate']} {r['system']['all_pass'] - base['oracle']['all_pass']:+d}" for r in results))
 
@@ -628,8 +629,8 @@ def main() -> None:
         for s in r["sweep"]:
             mark = "  <- τ*" if s["threshold"] == r["threshold"] else ""
             print(f"     τ={s['threshold']:.2f}  {100*s['utilization']:5.1f}%  {s['all_pass']:>3}  {s['routing_fn']:>3}  {s['unnecessary']:>2}{mark}")
-    print(f"  strong-only {100*base['strong']['utilization']:5.1f}%  {base['strong']['all_pass']:>3}  {base['strong']['routing_fn']:>3}  {base['strong']['unnecessary']:>2}")
-    print(f"  oracle      {100*base['oracle']['utilization']:5.1f}%  {base['oracle']['all_pass']:>3}  {base['oracle']['routing_fn']:>3}  {base['oracle']['unnecessary']:>2}")
+    print(f"  always-esc  {100*base['strong']['utilization']:5.1f}%  {base['strong']['all_pass']:>3}  {base['strong']['routing_fn']:>3}  {base['strong']['unnecessary']:>2}   (strong for every case, cascade reading: weak wall/tokens included)")
+    print(f"  oracle      {100*base['oracle']['utilization']:5.1f}%  {base['oracle']['all_pass']:>3}  {base['oracle']['routing_fn']:>3}  {base['oracle']['unnecessary']:>2}   (min-useful: escalate only what the frontier rescues)")
 
     # ---- DEV selection -------------------------------------------------------
     selection = None
@@ -701,6 +702,15 @@ def main() -> None:
         "selection": selection, "test_reading": test_reading, "code_commit": git_head(),
     }, indent=1, default=str) + "\n")
     print(f"\nwritten: {out}")
+
+    if deferred_telemetry:
+        try:
+            with psycopg.connect(DSN) as conn:
+                for policy, a, risk, tau, esc in deferred_telemetry:
+                    persist_decisions(conn, policy, local_model, a, rows, risk, tau, esc, local_run, snap_digests)
+            print(f"telemetry: {len(deferred_telemetry)} policies × {n} decisions → learning.routing_decisions")
+        except Exception as exc:  # noqa: BLE001 — telemetry must never cost the replay its numbers
+            print(f"telemetry NOT persisted ({exc.__class__.__name__}: {exc}); the report above stands")
 
 
 if __name__ == "__main__":

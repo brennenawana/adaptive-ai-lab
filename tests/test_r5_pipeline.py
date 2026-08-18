@@ -834,7 +834,7 @@ class TestDeriveAmendment:
         assert got["eligible_candidates"] == ["a", "b"]       # the ineligible one is ignored
         assert got["delta_util"] == round(min(0.20, 1.5 * 0.4305555555555556), 6) == 0.20
         assert got["e_max"] == math.ceil(1.5 * 0.0763888888888889 * 48) == 6
-        assert got["derivation"]["max_oof_escalation_rate_all"] == 0.4305555555555556
+        assert got["derivation"]["max_oof_escalation_rate_all"] == pytest.approx(0.4305555555555556, abs=1e-9)
         assert len(got["inputs"]) == 3                        # every candidate is recorded
 
     def test_the_cap_only_binds_when_the_formula_exceeds_it(self):

@@ -294,11 +294,13 @@ def main() -> None:
     ap.add_argument("--run", required=True, help="local run id (e.g. R5-qwen-train, V3-qwen-dev)")
     ap.add_argument("--strong", help="strong reference run id (DEV/TEST): E4-v3-dev / E4-v3-96")
     ap.add_argument("--out", help=f"output JSONL (default {DATASET_DIR}/<run>.jsonl)")
-    ap.add_argument("--allow-test", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--allow-cross-suite", action="store_true")
     args = ap.parse_args()
+    # No CLI path opens TEST: a labelled TEST dataset on disk would let any script
+    # evaluate any policy outside the unlock accounting. r5_replay.py builds the TEST
+    # rows in memory, once, at the unlock.
     with psycopg.connect(DSN) as conn:
-        rows, meta = build_dataset(conn, args.run, args.strong, allow_test=args.allow_test,
+        rows, meta = build_dataset(conn, args.run, args.strong, allow_test=False,
                                    allow_cross_suite=args.allow_cross_suite)
     out = Path(args.out) if args.out else DATASET_DIR / f"{args.run}.jsonl"
     write_dataset(rows, meta, out)

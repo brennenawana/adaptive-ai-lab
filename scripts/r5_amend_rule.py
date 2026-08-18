@@ -54,8 +54,10 @@ def derive(report: dict, protocol: str = "grouped") -> dict:
     if not elig:
         return {"eligible_candidates": [], "delta_util": None, "e_max": None,
                 "absolute_cap": 0.50 if capped else None, "inputs": rows}
-    esc = max(c["cv"]["at_threshold"]["escalation_rate_all"] for c in elig)
-    unn = max(c["cv"]["at_threshold"]["unnecessary_rate_all"] for c in elig)
+    # Rates rounded to 9 dp before use: the train report holds full precision, the
+    # artifacts 12 dp, and ceil() must not flip on the last bit between the two.
+    esc = round(max(c["cv"]["at_threshold"]["escalation_rate_all"] for c in elig), 9)
+    unn = round(max(c["cv"]["at_threshold"]["unnecessary_rate_all"] for c in elig), 9)
     return {
         "eligible_candidates": [c["policy_id"] for c in elig],
         "delta_util": round(min(DELTA_UTIL_CAP, SLACK * esc) if capped else SLACK * esc, 6),
