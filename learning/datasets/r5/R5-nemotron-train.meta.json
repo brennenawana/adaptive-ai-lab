@@ -1,0 +1,19 @@
+{
+  "code_commit": "27d5f46",
+  "dataset_digest": "fdb015a84a17966efe3a68441a34ff828ebd3895e354e3f3c2b6731162d7655b",
+  "echo_checked": 114,
+  "feature_schema_version": "1",
+  "local_models": [
+    "nemotron-3.5-lightning-30b-a3b"
+  ],
+  "n": 144,
+  "n_features": 58,
+  "n_r4_accepted": 104,
+  "n_r4_escalate": 40,
+  "n_safe": 66,
+  "n_silent": 38,
+  "n_with_answer_body": 114,
+  "run_id": "R5-nemotron-train",
+  "split": "train",
+  "strong_run": null
+}
