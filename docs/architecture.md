@@ -291,7 +291,11 @@ any tool call returns it, **in a form that shows the property the class is about
 Deterministic only — schema, citation format, citation resolves to a call actually
 made, cited IDs actually observed, action code known, confidence calibrated against
 work done. Anything needing judgement belongs in the scorer, which has ground truth;
-the verifier must work in production where no answer key exists.
+the verifier must work in production where no answer key exists. "Observed" means
+returned by a tool this run: values under `*_id` keys, `provider_ref` and (suite v3,
+`VERIFIER_VERSION 3`) `idempotency_key` — the key `get_webhook_history` shows the
+model was, until then, judged a fabrication when cited. Unit-tested since suite v3
+(`tests/test_verifier.py`).
 
 ### Orchestrator (`services/ai_orchestrator/`)
 Two evidence modes, and the distinction is the backbone of the matrix:
@@ -322,7 +326,11 @@ variant gets penalised for correctly applying what it was told.
 ### Scenario generator (`scenarios/generator/`)
 Deterministic: no global `random`, no `datetime.now()`. Splits are disjoint seed
 ranges so train/test leakage is structurally impossible. Entity IDs embed the seed
-(they share one table space across the whole corpus).
+(they share one table space across the whole corpus). Suite v3 invariants over every
+corpus seed live in `tests/test_scenario_invariants.py` (background posted exactly
+once, nothing post-dates the case, deliveries after their events, one injected
+defect, S05/S08 amounts vs balances, gold answer scores all-pass); `make
+corpus-determinism` regenerates twice and compares the canonical digest.
 
 Since the migration, `build()` is still pure — it produces state rows plus a list of
 `ProviderEvent`s — and `run.py` does the I/O: insert state, then publish and drain
@@ -339,7 +347,18 @@ would be unwinnable for a reason no score could explain.
 
 ### Eval runner (`evals/runner/`)
 Commits per case with `UNIQUE(run_id, scenario_id)`, so `--resume` is exact.
-Subscription rate limits *will* interrupt a long run.
+Subscription rate limits *will* interrupt a long run; an upstream API error through
+the CLI raises so the case is skipped unpersisted and retried on `--resume`.
+
+**Suite identity** (suite v3): `fis_platform/suite.py` `SUITE_VERSION` rides on every
+manifest and every `learning.case_scores` row (migration 006 backfilled v1/v2). The
+runner refuses a corpus whose suite is not its own and a run id reused across suites;
+`runtime_context` records suite/scorer/verifier/ontology/prompt/workflow versions,
+`git_head` and the corpus digest (`scripts/corpus_digest.py`,
+`scenarios/manifests/corpus_v3.json`). `compare.py` labels every row `[vN]`; every
+analysis script refuses to pair runs across suites without `--allow-cross-suite`.
+Scenario ids are seed-derived and identical across suites, which is why the column
+exists.
 
 ---
 
