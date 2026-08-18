@@ -1122,3 +1122,77 @@ unnecessary 6; utilization 57.3 % (R4 22.9 %, oracle 70.8 %, always-escalate 100
 $0.0799/success (R4 $0.0513, strong $0.1139); wall p50 37.6 s; classifier AUC 0.762 on
 the accepted subset; catches 27/33 vs base 0.64: p 0.003. Pre-registered TEST reading:
 **CONFIRMED** (K_test 12). No sweep computed on TEST.
+
+## M6.6 Independent challenge of the interpretation (06:40–06:57 UTC, Fable reviewer)
+
+Verdicts on the Qwen half: the "template difficulty" reading holds but was over-evidenced
+(pooled LOGO is null-biased, so the per-fold LOGO diagnostic — `scripts/r5_diagnostics.py`,
+now in the report — is the evidence; "no detectable within-template signal beyond the S02
+said-label; TRAIN has little power to find a small one" is the defensible sentence);
+applying the tie-break as written was the discipline-consistent action but the contract's
+"fewer frontier calls" is one of two readings of the plan's clause and the other would have
+frozen `lr_full`; the secondary protocol and the uncapped R2 were each necessary for any
+selection and moved toward permitting a pass — stated as such in the report; "CONFIRMED on
+TEST" certifies non-degeneracy, not information (a random escalator of the same size meets
+the reading with p ≈ 0.59); the R6 premise (template-clean Nemotron band) is contradicted by
+the three-tier oracle. All required wording changes applied; the recommendation was
+rewritten after Nemotron's numbers.
+
+## M6.7 Nemotron TRAIN development, DEV selection, TEST (08:59–09:15 UTC; `3e04dc7`, `af199a5`, `5d277f6`)
+
+TRAIN (`R5-nemotron-train`, 05:55–08:59): 66/144 = 45.8 % all-pass, R4-accepted 104,
+unsafe 38 (0.365), 114 answer bodies (echo == body 114/114). Primary protocol: nothing
+passes the gate (LOGO AUC 0.20/0.24/0.22). Secondary: `lr_full` 0.919 (τ* 0.55), `lr_core`
+0.656 (0.50), `tree` 0.849 (0.50) eligible; class ceiling 0.936 *above* all; within-class
+`content_chars` AUC 0.26 (a genuine within-template signal). § 12a-N: Δ_util 0.469, E_max
+7, K 4. DEV (one look): R4 35/48 @ 25.0 %, FN 13; `lr_full` 45/48 @ 50.0 % (FN 3, unnec 2,
+AUC 0.953 — above the class ceiling 0.876), `lr_core` 40/48 @ 39.6 % (FN 8, unnec 2), `tree`
+44/48 @ 56.2 % (FN 4, unnec 6); exploratory `lr_behavior` 48/48 @ 60.4 %; tie-break freezes
+**`r5-nemotron-lr_core-stratified-v1`** (τ 0.50). TEST (once): 74/96 (77.1 %) vs R4 69/96
+(71.9 %), FN 26 → 21 (5 caught: 4 rc, 1 ev), unnecessary 6, utilization 33.3 % (oracle
+49.0 %), $0.0509/success, AUC 0.557 on the accepted subset — **NOT CONFIRMED** (K_test 7).
+Three-tier oracle at the unlock (TEST): Qwen-sufficient 27, Nemotron-sufficient 27,
+frontier-required 41, unresolved 1; R4 reproduction on TEST AGREES on every field (one
+transcription error in the script's expected table — strong-only cost/attempt, which the
+report never stated — corrected in place, `2f40c42`).
+
+## M6.8 Timing
+
+reconciliation 04:55–05:12 · tooling + contract 05:12–05:35 · Qwen TRAIN acquisition
+05:16–05:53 · audit 05:33–06:24 · Qwen TRAIN CV / amendment / state machine / DEV / TEST
+05:56–06:25 · Nemotron acquisition 05:55–08:59 · Nemotron CV / DEV / TEST / oracles
+09:00–09:15 · documentation interleaved and 09:15–09:50. **Total ≈ 4 h 55 min**, of which
+3 h 41 min was local inference (288 calls); 0 frontier calls; 0 TEST model calls; every
+DEV/TEST number, oracle, reproduction and Pareto sweep by offline replay.
+
+## M6.9 Milestone-6 summary and completion checklist
+
+| goal-prompt criterion | status |
+|---|---|
+| repository and Suite v3 identity reconciled | ✔ M6.0 |
+| TRAIN/DEV/TEST trajectory availability documented | ✔ M6.0 (TRAIN acquired M6.1/M6.7) |
+| R5 experiment contract committed before DEV candidate scoring | ✔ `e3b8066`, `76a7ec1`, `4b10da0`, `3e04dc7` (each before the corresponding DEV replay) |
+| production routing decision point identified | ✔ `cascade.py::investigate_cascade` after `investigate()` |
+| RoutingFeatureSnapshot implemented and versioned | ✔ schema v1, 58 names |
+| explicit feature allowlist | ✔ `FEATURE_ORDER` + `FORBIDDEN_FEATURE_NAMES` |
+| gold/scenario leakage tests pass | ✔ 43 + 64 + 17 (state machine) |
+| grouped memorization guard | ✔ leave-one-class-out primary CV; class key offline only |
+| Qwen / Nemotron post-answer oracles | ✔ DEV and TEST (report § 4) |
+| three-tier cheapest-sufficient oracle (descriptive) | ✔ TRAIN/DEV/TEST |
+| existing R4 reproduced from frozen trajectories | ✔ DEV and TEST, every field |
+| TRAIN dataset without TEST leakage | ✔ digests `d4d3c09d…`, `fdb015a8…` |
+| logistic + tree baselines per local model | ✔ both protocols |
+| candidate development TRAIN only | ✔ |
+| DEV replay: classifier + system + silent metrics, Pareto | ✔ report § 7–8 |
+| pre-registered DEV selection rule applied exactly | ✔ (tie-break outcome recorded, not re-selected) |
+| ≤ 1 learned policy per local model frozen | ✔ `r5-qwen-tree-stratified-v1`, `r5-nemotron-lr_core-stratified-v1` |
+| artifacts with stable digests + schema version | ✔ registry, fail-closed verification |
+| TEST sealed for policies failing DEV; exactly one replay for qualified ones | ✔ unlock records, append-only |
+| no new TEST inference | ✔ 0 |
+| Suite v3 / models / prompts / evidence / verifier unchanged | ✔ (`git diff suite-v3 -- fis_platform/verification scenarios evals/scorers services/ai_orchestrator/prompts.py` empty) |
+| no three-tier learned routing, no QLoRA | ✔ none |
+| routing telemetry persisted | ✔ `learning.routing_decisions` (17 policies × 48 DEV, 2 × 96 TEST per model) |
+| timing documented | ✔ M6.8 |
+| full automated tests pass | ✔ 534 + 1 skipped |
+| documentation updated | ✔ report, contract, experiment-log, HANDOFF, routing-experiments, architecture |
+| working tree clean except intentional artifacts | ✔ at the final commit |

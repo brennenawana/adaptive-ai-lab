@@ -1,9 +1,10 @@
-# Handoff — 2026-08-18 (Suite v3 released and baselined; next: R5 learned/classifier routing (not started))
+# Handoff — 2026-08-18 (R5 learned routing done; Suite v3 unchanged; next: QLoRA specialization of the local tier (not started))
 
 Written deliberately at a context boundary. Everything needed to resume is here or
 in the other docs. Read `architecture.md` and `task-ontology.md` before coding,
-`SUITE_V3_RELEASE_CONTRACT.md` for what Suite v3 is, `SUITE_V3_RELEASE_REPORT.md`
-for its numbers, and `OVERNIGHT_STATUS.md` § Milestone 5 for the live log.
+`SUITE_V3_RELEASE_CONTRACT.md` / `SUITE_V3_RELEASE_REPORT.md` for what Suite v3 is,
+`R5_EXPERIMENT_CONTRACT.md` / `R5_LEARNED_ROUTING_REPORT.md` for R5, and
+`OVERNIGHT_STATUS.md` § Milestone 6 for the live log.
 
 **If you read one thing, read this.** Six times now, a number that looked like model
 weakness was a harness or scenario defect instead — unreachable webhook evidence, a
@@ -14,13 +15,63 @@ and obvious once the *ceiling* was measured or an arm disagreement was reviewed.
 Before believing any low score, run `make reachability` and check whether the case
 was winnable at all. The strongest tell is an **inversion**: if the weaker arm
 outscores the frontier arm on a class, the scenario is rewarding guessing, not
-measuring skill.
+measuring skill. **R5 added a seventh:** a number that looks like a *router learning to
+detect failure* can be a router learning *which template it is* — under FIXED_EVIDENCE
+four production-observable case constants identify the scenario class for 45/48 cases,
+and the labels are class-clustered. Always report a learned gain net of the
+class-identity ceiling (`prior_class_ceiling`) and check the leave-one-class-out
+per-fold AUC before believing it.
+
+## R5 in one screen (2026-08-18; commits `fc1c18e` … see OVERNIGHT_STATUS M6.9)
+
+- **Built:** `fis_platform/routing/` (`RoutingFeatureSnapshot` v1 — explicit 58-name
+  allowlist, forbidden names are schema errors, deterministic digest; stdlib logistic /
+  CART learner), migrations 007 (`learning.model_outputs`: the answer body, kept from now
+  on) and 008 (`learning.routing_decisions`), `scripts/r5_*.py` (dataset, TRAIN-only
+  development, offline DEV/TEST replay with a fail-closed selection/unlock state machine,
+  oracles + R4 reproduction, diagnostics), 81 new tests (534 total).
+- **Data:** TRAIN trajectories acquired for both local arms under the frozen Suite v3
+  configuration (`R5-qwen-train` 41/144, `R5-nemotron-train` 66/144; 288 local calls,
+  0 frontier). DEV/TEST answered by replay only. **Both models' TEST is now spent for
+  learned routing on Suite v3** (`learning/registry/r5/test_unlock.json`).
+- **Result:** primary (leave-one-class-out) protocol — nothing passes the TRAIN gate for
+  either model (labels are class-clustered; per-fold LOGO AUC mean 0.39 Qwen / 0.61
+  Nemotron). Secondary, deployment-matched protocol (registered before DEV, a-priori
+  utilization caps removed for it — both amendments were necessary for any selection):
+  routers reach 93–100 % all-pass on DEV at 50–71 % utilization but sit at/near the
+  class-identity ceiling; the contract's tie-break ("fewer frontier calls") froze the
+  least-escalating survivor for both models. TEST once each: Qwen tree 78.1 % (R4 50.0 %)
+  at 57 % utilization — meets the pre-registered reading, which a random escalator of that
+  size also meets (p ≈ 0.59); Nemotron `lr_core` 77.1 % (R4 71.9 %) at 33 % — not confirmed.
+- **Meaning:** production-observable features carry template difficulty (plus a thin
+  said-label layer: S02 `duplicate_webhook_handled`, S12 `kyc_hold`); within-template
+  silent failure was not detected and TRAIN gives little power to find a small signal.
+  Nemotron is the better routing base (routers above the class ceiling on DEV, within-class
+  `content_chars` signal) but its cascade p50 exceeds the frontier's.
+- **Interim production gate if one is wanted:** R4 ∨ an `lr_full`-style router
+  (families A + D) — it is a template-difficulty prior with a said-label layer; call it that.
 
 ---
 
-## State: Suite v3 released (tag `suite-v3`, HEAD `7764601`), DEV + TEST baselines done for Qwen, Nemotron, frontier
+## THE NEXT TASK — QLoRA specialization of the local tier (recommended, NOT started)
 
-**~70 commits, 368 tests green** (`make test`; one live test skips unless
+Exactly one recommendation (report § 13): specialize the local tier (Nemotron 3.5 Lightning
+first, Qwen second) with QLoRA on the TRAIN split, targeted at evidence-citation
+discipline on the systematically failing templates (S01/S03/S06/S10/S11 evidence-short
+answers; S12/S02 root cause), measured with the R5 replay/oracle instrument and the R4/R5
+gates unchanged, selected on DEV, one TEST look. Why: the residual is a capability
+deficit (evidence reachable at 1.000, frontier 99 % on the same bundles), prompting is
+exhausted on this dimension (E6/E6b), routing has been taken to its last lever (template
+prior), and R6 multi-tier is not yet supported (the Nemotron-sufficient band is not
+template-clean). Pre-register a quality-first tie-break and a threshold rule that charges
+escalation. Frontier TRAIN outputs do not exist (never acquired); if the training signal
+needs them, that acquisition is part of the next milestone and must be recorded as such.
+
+---
+
+## State: Suite v3 released (tag `suite-v3` = `7764601`, unchanged through R5), DEV + TEST baselines done for Qwen, Nemotron, frontier; R5 learned routing done (see above)
+
+**~90 commits, 534 tests green** (`make test`; one live test skips unless
 `FIS_LIVE_TESTS=1` — it must never touch :8082 during a paired run; the DB-gated
 `test_corpus_live.py` skips unless the corpus in Postgres is this code's suite).
 
@@ -36,8 +87,8 @@ measuring skill.
 | Event layer | done — generator publishes, consumers materialise; projection == live rows asserted for all 288 |
 | Prompt registry (`prompts.py`) | done, 8 named variants; `DEFAULT_PROMPT` is the control; **unchanged in suite v3** |
 | Suite identity | `fis_platform/suite.py` `SUITE_VERSION = "3"`; migration 006; `compare.py` labels every row; analysis scripts refuse cross-suite pairs without `--allow-cross-suite`; `scenarios/manifests/corpus_v3.json` is the corpus identity |
-| Experiments | Suite v2: E2/E4/E6/E6b/R0–R4/R3/R3b (historical, labelled v2). **Suite v3: DEV + TEST baselines for all three arms, pairwise matrices, unchanged R4 replay** — `SUITE_V3_RELEASE_REPORT.md` |
-| Routing gateway / cascade | unchanged: Switchyard 0.2.0 on :4000 (R0.1 key-order fix), `cascade.py` policy `verifier` |
+| Experiments | Suite v2: E2/E4/E6/E6b/R0–R4/R3/R3b (historical, labelled v2). **Suite v3: DEV + TEST baselines for all three arms, pairwise matrices, unchanged R4 replay** — `SUITE_V3_RELEASE_REPORT.md`; **R5 learned routing** — `R5_LEARNED_ROUTING_REPORT.md` |
+| Routing gateway / cascade | unchanged: Switchyard 0.2.0 on :4000 (R0.1 key-order fix), `cascade.py` policy `verifier`; **R5** `fis_platform/routing/` (snapshot v1, learner), `scripts/r5_replay.py` (offline replay, selection/unlock state machine), frozen policies under `learning/registry/r5/frozen/` |
 
 Infra (all healthy): Postgres+pgvector `:5433`, NATS JetStream `:4222`,
 Qwen3-8B on llama.cpp `:8082`, Nemotron 3.5 Lightning on `:8083`. Start with
@@ -77,25 +128,12 @@ evidence plan, schema/grammar, decoding, budgets' default, R4 policy: unchanged.
 
 ---
 
-## THE NEXT TASK — R5: learned / classifier routing (recommended, NOT started)
+## What Suite v3's baselines said the next task was — R5 (now done)
 
-Suite v3's TEST baselines say the dominant remaining bottleneck is **silent-failure
-detection**: the unchanged R4 `verifier` gate accepts 47/96 Qwen and 26/96 Nemotron
-answers that are verifier-clean and wrong, never escalates unnecessarily, and rescues
-almost everything it does escalate (21/22, 21/21). Weak capability is real (both
-weak arms ~70% root cause; S01/S11/S12 at 0/8 for both) and Nemotron's +21 TEST
-passes cost 3.7× tokens and 4.3× latency, but the gap between delivered (50–72%)
-and pair-achievable (99%) is the gate.
-
-R5 = a router over **production-available features only** (parse/verifier signals,
-output length/structure, cited-id counts vs bundle size, case category, model
-confidence — never evidence recall or any gold field; `router_signals` rejects
-`GOLD_FEATURE_NAMES` and `test_routing_no_gold_leak.py` enforces the import ban),
-selected on DEV under a pre-registered rule in case counts (strong-call ceiling,
-unnecessary-escalation budget), compared with the deterministic `verifier` policy
-and a transparent baseline (pivot guide § R5), one TEST look. Weak stage on the
-direct path or through Switchyard (interchangeable since R0.1). Suite v3 stays
-frozen; any harness defect found on the way is a v4 item, not a patch.
+Suite v3's TEST baselines said the dominant remaining bottleneck was silent-failure
+detection (R4 accepts 47/96 Qwen and 26/96 Nemotron verifier-clean wrong answers). R5
+tested whether production-observable features could detect them; the answer, and the
+one recommendation that follows, are above.
 
 ## Numbers — the Suite v3 baselines (report § 4–7)
 
@@ -373,7 +411,7 @@ make model-health      # {"status":"ok"}
 make serve-switchyard  # Switchyard on 4000, passthrough to 8082 (optional)
 make serve-nemotron    # Nemotron 3.5 Lightning on 8083 beside Qwen (--no-mmap; restart before its arm)
 make switchyard-health # {"status":"ok"} + routes: ['fis-local-specialist']
-make test              # 368 passed + 1 skipped (369 with FIS_LIVE_TESTS=1); test_corpus_live needs the v3 corpus in Postgres
+make test              # 534 passed + 1 skipped (535 with FIS_LIVE_TESTS=1); test_corpus_live needs the v3 corpus in Postgres
 make reachability      # test 96 + dev 48 cases, 0 classes with an unreachable-evidence cap
 make corpus-digest     # canonical corpus digest -> scenarios/manifests/corpus_v3.json
 make corpus-determinism# regenerate again and check the digest is identical
@@ -390,7 +428,7 @@ that failure mode has now cost this project four separate times.
 | | |
 |---|---|
 | Corpus | 288 scenarios — 96 test / 48 dev / 144 train, **suite v3** (`ground_truth.scenario_manifests.suite_version = '3'`) |
-| Runs | **suite v3:** `E4-v3-dev`, `V3-qwen-dev`, `V3-nemotron-dev`, `V3-qwen2-dev`, `V3-qwen-96`, `V3-nemotron-96`, `E4-v3-96`. **suite v2 (labelled, do not compare):** `E2-v2-96`, `E4-v2-96`, `E6-cause_action_directed-96`, eight E6/E6b dev runs, `E4-v2-dev`, `R1-*`, `R01-*`, `R4-cascade-verifier-{dev,96}` (+`.weak`), `R3-*`, `R3b-*`, `SMOKE-nemotron*`. **suite v1:** `E2-local-96` |
+| Runs | **suite v3:** `E4-v3-dev`, `V3-qwen-dev`, `V3-nemotron-dev`, `V3-qwen2-dev`, `V3-qwen-96`, `V3-nemotron-96`, `E4-v3-96`, **R5 TRAIN** `R5-qwen-train`, `R5-nemotron-train` (answer bodies in `learning.model_outputs`; decisions in `learning.routing_decisions`). **suite v2 (labelled, do not compare):** `E2-v2-96`, `E4-v2-96`, `E6-cause_action_directed-96`, eight E6/E6b dev runs, `E4-v2-dev`, `R1-*`, `R01-*`, `R4-cascade-verifier-{dev,96}` (+`.weak`), `R3-*`, `R3b-*`, `SMOKE-nemotron*`. **suite v1:** `E2-local-96` |
 | Preserved | `learning.*` is never truncated by `make corpus`; prior run scores survive a regeneration and carry their `suite_version` |
 
 Regenerating is `make corpus`, which passes `--reset` on the first split only. It

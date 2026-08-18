@@ -15,7 +15,7 @@ score a route but never choose it.**
 | R3 | Nemotron 3.5 Lightning as candidate weak arm | **done — negative under the pre-registered rule; test untouched.** Compatible (IQ4_XS, same llama.cpp, hybrid GPU/RAM, ~91 tok/s with `--no-mmap`); dev all-pass 25.0% vs Qwen 29.2% because 29/48 cases hit the 4 096-token cap while reasoning; silent failures 23 → 4; Nemotron+R4 89.6% at 66.7% strong calls; see below |
 | **R3b** | Was the 4 096-token budget the reason Nemotron failed R3? | **done — negative under the pre-registered rule; test untouched.** One factor (`max_tokens` 8 192, both weak arms, dev, same paired design): Nemotron completes 39/48 (was 19), all-pass 18/48 vs Qwen 15/48, rc 31 vs 30, evidence 0.649 vs 0.648 — but silent failures 4 → 16 (Qwen 21), 9 cases still capped at 8 192, cell B = 6; Nemotron+R4 64.6% at 29.2% strong calls, $0.0534/success vs Qwen+R4 52.1% at 25.0%, $0.0553; fails A/C/D of the pre-registered rule; see below |
 | R4 | Deterministic weak→strong cascade | **done** — policy `verifier` (dev replay, pre-registered rule); dev live 50.0% all-pass at 22.9% strong calls, **test 49.0% at 21.9%**, 0 unnecessary escalations, rescue 90%; see below |
-| R5 | Predictive / stage routing | not started |
+| R5 | Predictive / stage routing (learned silent-failure routing over production-observable features) | **done — see § R5 below and `R5_LEARNED_ROUTING_REPORT.md`**: primary (leave-one-class-out) protocol null for both models; secondary protocol selected `r5-qwen-tree-stratified-v1` (TEST 78.1 % vs R4 50.0 % at 57 % util; reading met, non-informative) and `r5-nemotron-lr_core-stratified-v1` (TEST 77.1 % vs 71.9 % at 33 %; not confirmed); the signal is template difficulty |
 
 Runs live in `learning.case_scores` / `learning.trajectories`; `make report` lists
 them all. Reports under `evals/reports/` are gitignored, so the numbers that matter
@@ -807,3 +807,36 @@ The gate's blind spot is unchanged in kind: every routing false negative is a
 verifier-clean answer wrong on evidence recall or root cause. Escalations rescue 100%
 in both arms; there are no unnecessary escalations. Descriptive only — no trigger was
 added and no policy re-selected.
+
+
+---
+
+## R5 — learned silent-failure routing (2026-08-18; Suite v3, offline-first)
+
+Contract `R5_EXPERIMENT_CONTRACT.md`; report `R5_LEARNED_ROUTING_REPORT.md`; log
+`OVERNIGHT_STATUS.md` § M6. Policy form `escalate = R4 ∨ risk ≥ τ*`, router fitted on the
+R4-accepted TRAIN subset over `RoutingFeatureSnapshot` v1 (58 production-observable
+features: model/runtime, verifier, tool trajectory, answer echo — never gold, class, seed,
+split, scorer, frontier). TRAIN acquired for both local arms (288 local calls); DEV/TEST
+by replay only; TEST opened exactly once per model.
+
+| | Qwen | Nemotron |
+|---|---|---|
+| TRAIN (144) | 41 safe / 105 R4-accepted / 64 silent | 66 / 104 / 38 |
+| primary protocol (LOGO) | no candidate passes the TRAIN gate (AUC 0.24/0.25/0.52) | none (0.20/0.24/0.22) |
+| secondary (stratified) eligible | `lr_full` 0.901, `lr_core` 0.821, `tree` 0.822 (class ceiling 0.892) | `lr_full` 0.919, `lr_core` 0.656, `tree` 0.849 (class ceiling 0.936) |
+| DEV R4 | 32/48 @ 31.2 %, FN 16 | 35/48 @ 25.0 %, FN 13 |
+| DEV best survivor | `lr_full` 47/48 @ 70.8 %, FN 1, unnec 4 | `lr_full` 45/48 @ 50.0 %, FN 3, unnec 2, AUC 0.953 |
+| DEV frozen (tie-break) | `tree` 39/48 @ 56.2 %, FN 9, unnec 5 | `lr_core` 40/48 @ 39.6 %, FN 8, unnec 2 |
+| TEST R4 | 48/96 @ 22.9 %, FN 47 | 69/96 @ 21.9 %, FN 26 |
+| TEST frozen policy | **75/96 (78.1 %)** @ 57.3 %, FN 20, unnec 6, $0.0799/success — reading met (random escalator meets it with p ≈ 0.59) | **74/96 (77.1 %)** @ 33.3 %, FN 21, unnec 6, $0.0509/success — not confirmed |
+| oracle (min-useful) TEST | 95/96 @ 70.8 % | 95/96 @ 49.0 % |
+| three-tier oracle TEST | Qwen 27 / Nemotron 27 / frontier 41 / unresolved 1 (not template-clean) | |
+
+Reading: production-observable features carry template difficulty (four case constants
+identify the class for 45/48 DEV cases; routers at/near the class-identity ceiling) plus a
+thin said-label layer; within-template silent failure was not detected. Pre-registration
+lessons: tie-break by frontier calls picks the least-escalating survivor; U = catches −
+unnecessary degenerates at unsafe rate ≥ 0.5; pooled LOGO AUC is null-biased under
+class-clustered labels. Next (exactly one): QLoRA specialization of the local tier,
+Nemotron first — not started.

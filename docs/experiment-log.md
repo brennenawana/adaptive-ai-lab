@@ -987,3 +987,72 @@ overturned by v3 numbers, because they are not comparable to them.
 
 Nothing. No prompt, budget, routing, scorer, verifier or generator change was made
 after any Suite v3 score was seen; TEST was run once per arm and not revisited.
+
+## 2026-08-18 — R5: learned silent-failure routing over production-observable features (offline-first; TRAIN acquired, DEV selected, TEST once per model)
+
+Governing documents: `FIS_R5_Learned_Silent_Failure_Routing_Plan.html`,
+`R5_EXPERIMENT_CONTRACT.md` (skeleton `e3b8066`; TRAIN-driven amendments `76a7ec1`,
+`4b10da0`, `3e04dc7` — each before the corresponding DEV replay), `R5_LEARNED_ROUTING_REPORT.md`
+(numbers, interpretation), `OVERNIGHT_STATUS.md` § Milestone 6 (live log). Suite v3, models,
+prompts, budgets, evidence plan, scorer, verifier and the R4 gate unchanged; new inference:
+288 local TRAIN calls (Qwen 41/144 = 28.5 %, Nemotron 66/144 = 45.8 %), 0 frontier, 0 TEST.
+
+### What was built
+`fis_platform/routing/features.py` — `RoutingFeatureSnapshot` v1 (58-name allowlist over
+model/runtime, verifier, tool trajectory, answer echo; forbidden names are schema errors;
+deterministic digest; extractor reads only the local invocation, verifier verdict, tool calls,
+error and the answer's own label/action) with 43 leak-guard tests; `learn.py` (stdlib L2
+logistic + CART ≤ 3, AUC/AP/Brier, LOGO/stratified folds, JSON artifacts with digests);
+migrations 007 (`learning.model_outputs`: the answer body, kept from now on — the frozen
+Suite v3 arms had only its sha256) and 008 (`learning.routing_decisions` telemetry);
+`r5_dataset/train/replay/oracles/amend_rule/diagnostics.py`; a fail-closed selection state
+machine (one selection record per model, winner-only freeze, TEST unlock bound to the recorded
+winner + lineage, append-only, one look per model; 17 temp-registry tests). R4 reproduced from
+the frozen trajectories on DEV and TEST on every field.
+
+### Result (report § 6–9)
+- **Labels are class-clustered** (P(unsafe | class) 0.09–1.0 on Qwen TRAIN; six/eleven
+  classes one label on Nemotron) and four allowlisted case constants identify the scenario
+  class for 45/48 DEV cases, so under the plan's primary leave-one-class-out protocol **no
+  candidate passed the TRAIN gate for either model** (per-fold LOGO AUC mean 0.39 Qwen /
+  0.61 Nemotron). Under the skeleton alone R5 is a null result.
+- Under the secondary, deployment-matched protocol (registered before DEV, with the a-priori
+  utilization caps removed for it — both amendments necessary for any selection): Qwen DEV
+  `lr_full` 47/48 @ 70.8 % (FN 16 → 1, unnec 4), `lr_core` 44/48, `tree` 39/48 @ 56.2 %;
+  Nemotron DEV `lr_full` 45/48 @ 50.0 % (FN 13 → 3, unnec 2, AUC 0.953 — above the
+  class-identity ceiling 0.876), `lr_core` 40/48 @ 39.6 %, `tree` 44/48; the contract's
+  tie-break "fewer frontier calls" froze the least-escalating survivor for both models
+  (`r5-qwen-tree-stratified-v1` τ 0.70; `r5-nemotron-lr_core-stratified-v1` τ 0.50).
+- **TEST, once each:** Qwen tree **75/96 (78.1 %)** vs R4 48/96, FN 47 → 20 (27 caught: 22
+  evidence, 5 root cause), unnecessary 6, utilization 57.3 % (oracle 70.8 %), $0.0799/success
+  — meets the pre-registered reading (a reading a random escalator of that size also meets
+  with p ≈ 0.59; the catch count itself is beyond chance, p = 0.003; a class prior would have
+  caught 39). Nemotron `lr_core` **74/96 (77.1 %)** vs R4 69/96, FN 26 → 21, unnecessary 6,
+  utilization 33.3 %, $0.0509/success — **not confirmed** (K_test 7); AUC 0.557 on the
+  accepted subset.
+- Silent family: what is caught is caught by template (S03/S04/S06/S10/S11/S12) and, for
+  `lr_full`, by the answer's said label (S02 `duplicate_webhook_handled`, S12 `kyc_hold`);
+  Nemotron alone shows a within-template behaviour signal (`content_chars` within-class AUC
+  0.26). Oracles: Qwen 95/96 at 70.8 % min-useful utilization, Nemotron 95/96 at 49.0 %;
+  three-tier cheapest-sufficient on TEST 27 Qwen / 27 Nemotron / 41 frontier / 1 unresolved,
+  not template-clean.
+
+### What it means
+Production-observable features raise the cascade far above R4 on this benchmark, but what
+they carry is template difficulty (plus a thin said-label layer); within-template silent
+failure was not detected, and TRAIN's label structure gives little power to find a small
+signal. Nemotron is the better base for learned routing (lower silent base rate, routers above
+the class ceiling on DEV, within-class signal) but its cascade p50 exceeds the frontier's.
+Pre-registration lessons recorded, not repaired: the tie-break selects the least-escalating
+survivor; U = catches − unnecessary degenerates at unsafe rates ≥ 0.5 (and to escalate-nothing
+below it with a weak ranker); pooled LOGO AUC is null-biased under class-clustered labels;
+n = 48 gives the rule little power against a random escalator. Recommended next milestone
+(exactly one): QLoRA specialization of the local tier (Nemotron first) on TRAIN, targeted at
+evidence-citation discipline on the systematically failing templates, measured with the R5
+replay/oracle instrument; not started.
+
+### Deliberately NOT changed
+Suite v3 (corpus, scorer, verifier), prompts, budgets, evidence plan, the R4 gate, model
+configurations; no R6 multi-tier learned routing, no QLoRA, no dynamic harness work; nothing
+re-selected or re-run after a DEV or TEST look. Both models' TEST is now spent for learned
+routing on Suite v3.

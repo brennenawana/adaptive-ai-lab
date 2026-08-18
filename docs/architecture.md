@@ -264,6 +264,24 @@ only (no schema-valid output, unsupported claim, any verifier failure — nested
 `Trajectory.router`; the weak stage is scored under `<run>.weak`. Business policy stays
 in FIS; the gateway is transport.
 
+### Learned routing (`fis_platform/routing/`, R5)
+The production-observable boundary for a learned gate. `features.py` builds a
+`RoutingFeatureSnapshot` (schema v1, 58-name explicit allowlist; forbidden names such as
+`root_cause`, `split`, `category`, `strict_all_pass` are schema errors; deterministic
+digest) from *only* the local stage's invocation, verifier verdict, tool calls, error and
+the answer's own label/action — at exactly the R4 decision point in `cascade.py`, before
+any strong call. It inherits the routing import ban. `learn.py` is a stdlib logistic /
+CART learner with JSON artifacts and stable digests. The scientific pipeline lives in
+`scripts/r5_*.py`: dataset (labels join in the analysis layer only; the answer body is
+reconstructed from the scorer's `said …` echo for the frozen Suite v3 arms and read from
+`learning.model_outputs`, migration 007, from R5 on), TRAIN-only development, offline
+DEV/TEST replay with a fail-closed selection/unlock state machine (one selection record
+per model, winner-only freeze, TEST unlock bound to the recorded winner + lineage,
+append-only), telemetry to `learning.routing_decisions` (migration 008; no gold), oracles
+and R4 reproduction. **Known property of this benchmark:** under FIXED_EVIDENCE the
+tool-call shape and `input_tokens` are case constants that identify the scenario class
+for 45/48 DEV cases, so any learned gain must be read net of the class-identity ceiling.
+
 ### Tool broker (`fis_platform/tool_broker/`)
 Eight narrow, typed, read-only tools. Parameterised SQL only.
 
@@ -388,5 +406,5 @@ Two decisions that keep the KPI honest:
 | `get_ledger_entries` ordered by `posted_at` | ordered by `posting_seq`, which is also returned | the consumer stamps `posted_at` from `occurred_at`, so S07's reversal race lives only in posting order. Sorting by event time showed a chronological, net-zero ledger and made `reversal_race` unreachable by correct reasoning — E4 went 0.125 → 1.000 on the class once exposed |
 | One system prompt | a versioned registry (`prompts.py`), selected per run | E6 compares prompt variants; the prompt has to be part of `config_digest` or two arms differing only by prompt are indistinguishable in the persisted results |
 | Switchyard as an invisible transport hop | invisible **after** the adapter's key-order-invariant schema rewrite (R0.1: 48/48 identical) | 0.2.0 sorts JSON keys; llama.cpp's grammar compiler is order-sensitive (R1: 0/48 identical as shipped). Fixed on the FIS side without touching the suite or the direct path |
-| Routing owned by the gateway (strong/weak splitting) | R4's cascade is FIS business policy in the orchestrator; Switchyard fronts the local model only | the frontier is a subscription CLI with no OpenAI endpoint, and the gate must read FIS's verifier — a learned/Switchyard router is R5 |
+| Routing owned by the gateway (strong/weak splitting) | R4's cascade is FIS business policy in the orchestrator; Switchyard fronts the local model only; R5's learned router is offline-replayed FIS policy over `RoutingFeatureSnapshot` | the frontier is a subscription CLI with no OpenAI endpoint, and the gate must read FIS's verifier and the answer's own fields |
 | Forbidden claims matched by substring | polarity-aware match, same-sentence, both directions (suite v3, `SCORER_VERSION 3`) | a bare substring counted a *refutation* as an assertion — "the decline was not caused by insufficient funds" scored as the claim `insufficient_funds`, costing the frontier arm 8 points of all-pass for being right. The suite-v2 fix looked back only ("insufficient funds … are all ruled out" still scored), always trimmed two chars off the window, and lost sentence-initial cues; suite v3 fixed all three under one documented rule (`SUITE_V3_RELEASE_CONTRACT.md` § 2C) |
