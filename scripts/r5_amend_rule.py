@@ -2,19 +2,22 @@
 
 Contract § 12 fixes the FORMULAS before TRAIN is seen; this script applies them to the
 TRAIN reports written by `scripts/r5_train.py` and writes
-`learning/registry/r5/selection_rule.json`, which `scripts/r5_replay.py --select` reads.
-It exists so the amendment is a computation over committed TRAIN artifacts rather than
-a number typed by hand after looking at anything.
+`learning/registry/r5/selection_rule.json`, which `scripts/r5_replay.py --select` reads
+and re-derives from the candidate artifacts before applying. It exists so the amendment
+is a computation over committed TRAIN artifacts rather than a number typed by hand.
 
     K        = max(3, ceil(0.25 · routing_FN(R4 on the split)))     [applied at replay]
-    Δ_util   = min(0.20, 1.5 · max over ELIGIBLE candidates of the OOF escalation-rate
-               increase at τ* — (catches + unnecessary) / N_train)
+    PRIMARY (grouped CV, contract § 12):
+      Δ_util = min(0.20, 1.5 · max over ELIGIBLE candidates of the OOF escalation-rate
+               increase at τ* — (catches + unnecessary) / N_train);  utilization ≤ 0.50
+    SECONDARY (stratified CV, contract § 12a-2):
+      Δ_util = 1.5 · the same maximum, uncapped;  no absolute cap (`absolute_cap: null`)
     E_max    = ceil(1.5 · max over ELIGIBLE candidates of the OOF unnecessary rate at τ*
-               (unnecessary / N_train) · 48)
+               (unnecessary / N_train) · 48)                          [both protocols]
 
-If a local model has no eligible candidate, its Δ_util and E_max are recorded as null:
-the rule cannot pass anything for it, and DEV selection reports that outcome. The
-absolute caps of § 12 (utilization ≤ 50 %) are unchanged.
+If a local model has no eligible candidate under a protocol, its Δ_util and E_max are
+recorded as null: the rule cannot pass anything for it. Entries are written once per
+model and protocol, before that model's DEV replay, and never overwritten.
 """
 
 from __future__ import annotations
