@@ -344,7 +344,22 @@ the eligible candidates (0.901 / 0.821 / 0.822) and `lr_behavior` (0.909); the a
 comparators (0.873 / 0.685) — on Qwen TRAIN the production-observable router is within
 0.01 AUC of the class-identity ceiling.
 
-**§ 12a-N — Nemotron:** _added by a further commit when `R5-nemotron-train` is scored._
+**§ 12a-N — Nemotron** (`R5-nemotron-train`, dataset digest `fdb015a8…`; report
+`train_report_nemotron.json` / `_stratified.json`; written after Nemotron TRAIN CV and
+before any Nemotron DEV replay; the machinery is identical to Qwen's — no abstain
+criterion is added mid-experiment):
+
+| protocol | eligible after the TRAIN gate | max OOF escalation-rate increase at τ* | Δ_util | max OOF unnecessary rate at τ* | E_max |
+|---|---|---|---|---|---|
+| grouped (primary) | none (`lr_full` AUC 0.201, `lr_core` 0.244, `tree` 0.224) | — | null | — | null |
+| stratified (secondary) | `lr_full` (AUC 0.919, τ* 0.55), `lr_core` (0.656, τ* 0.50), `tree` (0.849, τ* 0.50) | 0.3125 (`tree`) | 1.5 × 0.3125 = **0.469** (uncapped, § 12a-2) | 0.090 (`tree`) | ⌈1.5 × 0.090 × 48⌉ = **7** |
+
+K on DEV = max(3, ⌈0.25 × 13⌉) = **4** (R4's DEV routing FN for Nemotron is 13).
+Diagnostics: R4-accepted 104, unsafe 38 (0.365); `prior_class_ceiling` stratified AUC
+0.936 — *above* every eligible candidate; per-fold LOGO AUC for `lr_full` on mixed
+held-out classes S03 0.29, S04 0.92, S06 0.24, S10 0.83, S11 0.75 (mean 0.61); within-class
+per-feature AUC: `content_chars` 0.26 (shorter answers are unsafe), `input_tokens` 0.29,
+`reasoning_share` 0.68 — Nemotron, unlike Qwen, shows a within-template behaviour signal.
 
 ## 13. Router artifact freeze
 

@@ -178,10 +178,207 @@
           }
         ]
       }
+    },
+    "nemotron": {
+      "grouped": {
+        "train_report": "learning/registry/r5/train_report_nemotron.json",
+        "train_run_id": "R5-nemotron-train",
+        "dataset_digest": "fdb015a84a17966efe3a68441a34ff828ebd3895e354e3f3c2b6731162d7655b",
+        "eligible_candidates": [],
+        "delta_util": null,
+        "e_max": null,
+        "absolute_cap": 0.5,
+        "inputs": [
+          {
+            "policy_id": "r5-nemotron-lr_full-v1",
+            "eligible": false,
+            "threshold": 0.8,
+            "oof_escalation_rate_all": 0.0,
+            "oof_unnecessary_rate_all": 0.0,
+            "oof_catches": 0,
+            "oof_unnecessary": 0
+          },
+          {
+            "policy_id": "r5-nemotron-lr_core-v1",
+            "eligible": false,
+            "threshold": 0.8,
+            "oof_escalation_rate_all": 0.0,
+            "oof_unnecessary_rate_all": 0.0,
+            "oof_catches": 0,
+            "oof_unnecessary": 0
+          },
+          {
+            "policy_id": "r5-nemotron-tree-v1",
+            "eligible": false,
+            "threshold": 0.8,
+            "oof_escalation_rate_all": 0.22916666666666666,
+            "oof_unnecessary_rate_all": 0.19444444444444445,
+            "oof_catches": 5,
+            "oof_unnecessary": 28
+          },
+          {
+            "policy_id": "r5-nemotron-lr_answer-v1",
+            "eligible": false,
+            "threshold": 0.8,
+            "oof_escalation_rate_all": 0.0,
+            "oof_unnecessary_rate_all": 0.0,
+            "oof_catches": 0,
+            "oof_unnecessary": 0
+          },
+          {
+            "policy_id": "r5-nemotron-lr_behavior-v1",
+            "eligible": false,
+            "threshold": 0.8,
+            "oof_escalation_rate_all": 0.0,
+            "oof_unnecessary_rate_all": 0.0,
+            "oof_catches": 0,
+            "oof_unnecessary": 0
+          },
+          {
+            "policy_id": "r5-nemotron-prior_category-v1",
+            "eligible": false,
+            "threshold": 0.8,
+            "oof_escalation_rate_all": 0.0,
+            "oof_unnecessary_rate_all": 0.0,
+            "oof_catches": 0,
+            "oof_unnecessary": 0
+          },
+          {
+            "policy_id": "r5-nemotron-prior_class_ceiling-v1",
+            "eligible": false,
+            "threshold": 0.8,
+            "oof_escalation_rate_all": 0.0,
+            "oof_unnecessary_rate_all": 0.0,
+            "oof_catches": 0,
+            "oof_unnecessary": 0
+          },
+          {
+            "policy_id": "r5-nemotron-answer_structure-v1",
+            "eligible": false,
+            "threshold": 0.8,
+            "oof_escalation_rate_all": 0.0,
+            "oof_unnecessary_rate_all": 0.0,
+            "oof_catches": 0,
+            "oof_unnecessary": 0
+          },
+          {
+            "policy_id": "r5-nemotron-answer_structure_only-v1",
+            "eligible": false,
+            "threshold": 0.55,
+            "oof_escalation_rate_all": 0.1527777777777778,
+            "oof_unnecessary_rate_all": 0.041666666666666664,
+            "oof_catches": 16,
+            "oof_unnecessary": 6
+          }
+        ]
+      },
+      "stratified": {
+        "train_report": "learning/registry/r5/train_report_nemotron_stratified.json",
+        "train_run_id": "R5-nemotron-train",
+        "dataset_digest": "fdb015a84a17966efe3a68441a34ff828ebd3895e354e3f3c2b6731162d7655b",
+        "eligible_candidates": [
+          "r5-nemotron-lr_full-stratified-v1",
+          "r5-nemotron-lr_core-stratified-v1",
+          "r5-nemotron-tree-stratified-v1"
+        ],
+        "delta_util": 0.46875,
+        "e_max": 7,
+        "absolute_cap": null,
+        "derivation": {
+          "max_oof_escalation_rate_all": 0.3125,
+          "max_oof_unnecessary_rate_all": 0.090277778,
+          "slack": 1.5,
+          "delta_util_cap": null,
+          "dev_n": 48
+        },
+        "inputs": [
+          {
+            "policy_id": "r5-nemotron-lr_full-stratified-v1",
+            "eligible": true,
+            "threshold": 0.55,
+            "oof_escalation_rate_all": 0.2569444444444444,
+            "oof_unnecessary_rate_all": 0.041666666666666664,
+            "oof_catches": 31,
+            "oof_unnecessary": 6
+          },
+          {
+            "policy_id": "r5-nemotron-lr_core-stratified-v1",
+            "eligible": true,
+            "threshold": 0.5,
+            "oof_escalation_rate_all": 0.125,
+            "oof_unnecessary_rate_all": 0.020833333333333332,
+            "oof_catches": 15,
+            "oof_unnecessary": 3
+          },
+          {
+            "policy_id": "r5-nemotron-tree-stratified-v1",
+            "eligible": true,
+            "threshold": 0.5,
+            "oof_escalation_rate_all": 0.3125,
+            "oof_unnecessary_rate_all": 0.09027777777777778,
+            "oof_catches": 32,
+            "oof_unnecessary": 13
+          },
+          {
+            "policy_id": "r5-nemotron-lr_answer-stratified-v1",
+            "eligible": false,
+            "threshold": 0.6,
+            "oof_escalation_rate_all": 0.2916666666666667,
+            "oof_unnecessary_rate_all": 0.0763888888888889,
+            "oof_catches": 31,
+            "oof_unnecessary": 11
+          },
+          {
+            "policy_id": "r5-nemotron-lr_behavior-stratified-v1",
+            "eligible": false,
+            "threshold": 0.45,
+            "oof_escalation_rate_all": 0.2986111111111111,
+            "oof_unnecessary_rate_all": 0.06944444444444445,
+            "oof_catches": 33,
+            "oof_unnecessary": 10
+          },
+          {
+            "policy_id": "r5-nemotron-prior_category-stratified-v1",
+            "eligible": false,
+            "threshold": 0.6,
+            "oof_escalation_rate_all": 0.2152777777777778,
+            "oof_unnecessary_rate_all": 0.05555555555555555,
+            "oof_catches": 23,
+            "oof_unnecessary": 8
+          },
+          {
+            "policy_id": "r5-nemotron-prior_class_ceiling-stratified-v1",
+            "eligible": false,
+            "threshold": 0.55,
+            "oof_escalation_rate_all": 0.2847222222222222,
+            "oof_unnecessary_rate_all": 0.05555555555555555,
+            "oof_catches": 33,
+            "oof_unnecessary": 8
+          },
+          {
+            "policy_id": "r5-nemotron-answer_structure-stratified-v1",
+            "eligible": false,
+            "threshold": 0.45,
+            "oof_escalation_rate_all": 0.2708333333333333,
+            "oof_unnecessary_rate_all": 0.05555555555555555,
+            "oof_catches": 31,
+            "oof_unnecessary": 8
+          },
+          {
+            "policy_id": "r5-nemotron-answer_structure_only-stratified-v1",
+            "eligible": false,
+            "threshold": 0.4,
+            "oof_escalation_rate_all": 0.2708333333333333,
+            "oof_unnecessary_rate_all": 0.08333333333333333,
+            "oof_catches": 27,
+            "oof_unnecessary": 12
+          }
+        ]
+      }
     }
   },
   "contract": "docs/R5_EXPERIMENT_CONTRACT.md \u00a7 12 + \u00a7 12a",
   "K_formula": "max(3, ceil(0.25 * routing_FN(R4 on the split)))",
   "utilization_cap": 0.5,
-  "code_commit": "76a7ec1-dirty"
+  "code_commit": "e331fa5"
 }

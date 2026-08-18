@@ -1,0 +1,2260 @@
+{
+ "candidates": [
+  {
+   "artifact_digest": "fb9f310cf6de9269e4b816eb2ef7b5ad6e3ba9775d13cbf22eb3524dfb7abe74",
+   "candidate": "lr_full",
+   "cv": {
+    "at_threshold": {
+     "catch_rate": 0.0,
+     "catches": 0,
+     "escalated": 0,
+     "escalation_rate_all": 0.0,
+     "precision": null,
+     "threshold": 0.8,
+     "unnecessary": 0,
+     "unnecessary_rate_all": 0.0,
+     "unnecessary_rate_safe": 0.0,
+     "utility": 0
+    },
+    "grouped_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.3051028171505094,
+     "log_loss": 0.8198573994819858,
+     "n": 104,
+     "pr_auc": 0.24757711390242038,
+     "roc_auc": 0.20095693779904306
+    },
+    "hp_trials": [
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.5294070970984619,
+      "hp": 0.1,
+      "log_loss": 2.4601897246962134,
+      "n": 104,
+      "pr_auc": 0.28947400808813856,
+      "roc_auc": 0.35685805422647526
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.4781852903489631,
+      "hp": 1.0,
+      "log_loss": 1.6929137708841562,
+      "n": 104,
+      "pr_auc": 0.277623250627646,
+      "roc_auc": 0.32057416267942584
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.40255007260799913,
+      "hp": 10.0,
+      "log_loss": 1.1250764009926337,
+      "n": 104,
+      "pr_auc": 0.26554565291558346,
+      "roc_auc": 0.28189792663476876
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.3051028171505094,
+      "hp": 100.0,
+      "log_loss": 0.8198573994819858,
+      "n": 104,
+      "pr_auc": 0.24757711390242038,
+      "roc_auc": 0.20095693779904306
+     }
+    ],
+    "method": "leave-one-class-out (grouped by scenario class)",
+    "primary_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.3051028171505094,
+     "log_loss": 0.8198573994819858,
+     "n": 104,
+     "pr_auc": 0.24757711390242038,
+     "roc_auc": 0.20095693779904306
+    },
+    "stability": {
+     "n_folds": 11,
+     "top_coefficients": [
+      {
+       "coef": 0.1312,
+       "feature": "said_label_duplicate_webhook_handled",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.1016,
+       "feature": "said_label_missing_idempotency",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.101,
+       "feature": "said_label_settlement_amount_mapping_error",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.0974,
+       "feature": "said_action_request_kyc_documents",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.0974,
+       "feature": "said_label_kyc_hold",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": -0.0915,
+       "feature": "said_label_processor_decline",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0884,
+       "feature": "said_label_stale_integration_mapping",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0884,
+       "feature": "said_action_inspect_mapping_version",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.064,
+       "feature": "said_label_false_positive_alert",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0573,
+       "feature": "said_label_risk_hold",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0573,
+       "feature": "said_action_escalate_to_risk_team",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0549,
+       "feature": "n_tool_calls",
+       "sign_agreement": 1.0
+      }
+     ]
+    },
+    "stratified4_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.18101693856073833,
+     "log_loss": 0.5451668928149855,
+     "n": 104,
+     "pr_auc": 0.7668323841713944,
+     "roc_auc": 0.863237639553429
+    },
+    "utility_curve": [
+     {
+      "catch_rate": 0.631578947368421,
+      "catches": 24,
+      "escalated": 86,
+      "escalation_rate_all": 0.5972222222222222,
+      "precision": 0.27906976744186046,
+      "threshold": 0.3,
+      "unnecessary": 62,
+      "unnecessary_rate_all": 0.4305555555555556,
+      "unnecessary_rate_safe": 0.9393939393939394,
+      "utility": -38
+     },
+     {
+      "catch_rate": 0.4473684210526316,
+      "catches": 17,
+      "escalated": 75,
+      "escalation_rate_all": 0.5208333333333334,
+      "precision": 0.22666666666666666,
+      "threshold": 0.35,
+      "unnecessary": 58,
+      "unnecessary_rate_all": 0.4027777777777778,
+      "unnecessary_rate_safe": 0.8787878787878788,
+      "utility": -41
+     },
+     {
+      "catch_rate": 0.3157894736842105,
+      "catches": 12,
+      "escalated": 64,
+      "escalation_rate_all": 0.4444444444444444,
+      "precision": 0.1875,
+      "threshold": 0.4,
+      "unnecessary": 52,
+      "unnecessary_rate_all": 0.3611111111111111,
+      "unnecessary_rate_safe": 0.7878787878787878,
+      "utility": -40
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 43,
+      "escalation_rate_all": 0.2986111111111111,
+      "precision": 0.11627906976744186,
+      "threshold": 0.45,
+      "unnecessary": 38,
+      "unnecessary_rate_all": 0.2638888888888889,
+      "unnecessary_rate_safe": 0.5757575757575758,
+      "utility": -33
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 30,
+      "escalation_rate_all": 0.20833333333333334,
+      "precision": 0.16666666666666666,
+      "threshold": 0.5,
+      "unnecessary": 25,
+      "unnecessary_rate_all": 0.1736111111111111,
+      "unnecessary_rate_safe": 0.3787878787878788,
+      "utility": -20
+     },
+     {
+      "catch_rate": 0.05263157894736842,
+      "catches": 2,
+      "escalated": 13,
+      "escalation_rate_all": 0.09027777777777778,
+      "precision": 0.15384615384615385,
+      "threshold": 0.55,
+      "unnecessary": 11,
+      "unnecessary_rate_all": 0.0763888888888889,
+      "unnecessary_rate_safe": 0.16666666666666666,
+      "utility": -9
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 4,
+      "escalation_rate_all": 0.027777777777777776,
+      "precision": 0.0,
+      "threshold": 0.6,
+      "unnecessary": 4,
+      "unnecessary_rate_all": 0.027777777777777776,
+      "unnecessary_rate_safe": 0.06060606060606061,
+      "utility": -4
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.65,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.7,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.75,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.8,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     }
+    ]
+   },
+   "eligible": false,
+   "eligible_kind": true,
+   "family": "logistic",
+   "hyperparameter": 100.0,
+   "policy_id": "r5-nemotron-lr_full-v1",
+   "protocol": "grouped",
+   "threshold": 0.8
+  },
+  {
+   "artifact_digest": "29555aadbd7be11ba538cfb9fcf25470f6f08e670b44e7acabdc19f97147d5df",
+   "candidate": "lr_core",
+   "cv": {
+    "at_threshold": {
+     "catch_rate": 0.0,
+     "catches": 0,
+     "escalated": 0,
+     "escalation_rate_all": 0.0,
+     "precision": null,
+     "threshold": 0.8,
+     "unnecessary": 0,
+     "unnecessary_rate_all": 0.0,
+     "unnecessary_rate_safe": 0.0,
+     "utility": 0
+    },
+    "grouped_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.27842048851398254,
+     "log_loss": 0.7637215820561725,
+     "n": 104,
+     "pr_auc": 0.2566177742604741,
+     "roc_auc": 0.24441786283891548
+    },
+    "hp_trials": [
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.4197500339545291,
+      "hp": 0.1,
+      "log_loss": 1.3684142101308356,
+      "n": 104,
+      "pr_auc": 0.27484564269718553,
+      "roc_auc": 0.31738437001594894
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.3757710793124165,
+      "hp": 1.0,
+      "log_loss": 1.0880783356430268,
+      "n": 104,
+      "pr_auc": 0.278872357666998,
+      "roc_auc": 0.32854864433811803
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.3132772710438135,
+      "hp": 10.0,
+      "log_loss": 0.8619473356142879,
+      "n": 104,
+      "pr_auc": 0.28113341123509655,
+      "roc_auc": 0.3309409888357257
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.27842048851398254,
+      "hp": 100.0,
+      "log_loss": 0.7637215820561725,
+      "n": 104,
+      "pr_auc": 0.2566177742604741,
+      "roc_auc": 0.24441786283891548
+     }
+    ],
+    "method": "leave-one-class-out (grouped by scenario class)",
+    "primary_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.27842048851398254,
+     "log_loss": 0.7637215820561725,
+     "n": 104,
+     "pr_auc": 0.2566177742604741,
+     "roc_auc": 0.24441786283891548
+    },
+    "stability": {
+     "n_folds": 11,
+     "top_coefficients": [
+      {
+       "coef": -0.0576,
+       "feature": "n_tool_calls",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": -0.0576,
+       "feature": "n_tool_success",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": -0.0558,
+       "feature": "tool_latency_ms_total",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.0516,
+       "feature": "reasoning_chars",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": -0.0515,
+       "feature": "n_webhook_history_calls",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.045,
+       "feature": "output_per_input",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.0404,
+       "feature": "reasoning_share",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.032,
+       "feature": "budget_used",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.032,
+       "feature": "output_tokens",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.0306,
+       "feature": "wall_ms",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.0305,
+       "feature": "api_ms",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.0291,
+       "feature": "n_verification_calls",
+       "sign_agreement": 0.9090909090909091
+      }
+     ]
+    },
+    "stratified4_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.2188291677758366,
+     "log_loss": 0.6294018152018939,
+     "n": 104,
+     "pr_auc": 0.5690983034724917,
+     "roc_auc": 0.6574960127591707
+    },
+    "utility_curve": [
+     {
+      "catch_rate": 0.5789473684210527,
+      "catches": 22,
+      "escalated": 85,
+      "escalation_rate_all": 0.5902777777777778,
+      "precision": 0.25882352941176473,
+      "threshold": 0.3,
+      "unnecessary": 63,
+      "unnecessary_rate_all": 0.4375,
+      "unnecessary_rate_safe": 0.9545454545454546,
+      "utility": -41
+     },
+     {
+      "catch_rate": 0.34210526315789475,
+      "catches": 13,
+      "escalated": 59,
+      "escalation_rate_all": 0.4097222222222222,
+      "precision": 0.22033898305084745,
+      "threshold": 0.35,
+      "unnecessary": 46,
+      "unnecessary_rate_all": 0.3194444444444444,
+      "unnecessary_rate_safe": 0.696969696969697,
+      "utility": -33
+     },
+     {
+      "catch_rate": 0.21052631578947367,
+      "catches": 8,
+      "escalated": 37,
+      "escalation_rate_all": 0.2569444444444444,
+      "precision": 0.21621621621621623,
+      "threshold": 0.4,
+      "unnecessary": 29,
+      "unnecessary_rate_all": 0.2013888888888889,
+      "unnecessary_rate_safe": 0.4393939393939394,
+      "utility": -21
+     },
+     {
+      "catch_rate": 0.07894736842105263,
+      "catches": 3,
+      "escalated": 23,
+      "escalation_rate_all": 0.1597222222222222,
+      "precision": 0.13043478260869565,
+      "threshold": 0.45,
+      "unnecessary": 20,
+      "unnecessary_rate_all": 0.1388888888888889,
+      "unnecessary_rate_safe": 0.30303030303030304,
+      "utility": -17
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 10,
+      "escalation_rate_all": 0.06944444444444445,
+      "precision": 0.0,
+      "threshold": 0.5,
+      "unnecessary": 10,
+      "unnecessary_rate_all": 0.06944444444444445,
+      "unnecessary_rate_safe": 0.15151515151515152,
+      "utility": -10
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 2,
+      "escalation_rate_all": 0.013888888888888888,
+      "precision": 0.0,
+      "threshold": 0.55,
+      "unnecessary": 2,
+      "unnecessary_rate_all": 0.013888888888888888,
+      "unnecessary_rate_safe": 0.030303030303030304,
+      "utility": -2
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 1,
+      "escalation_rate_all": 0.006944444444444444,
+      "precision": 0.0,
+      "threshold": 0.6,
+      "unnecessary": 1,
+      "unnecessary_rate_all": 0.006944444444444444,
+      "unnecessary_rate_safe": 0.015151515151515152,
+      "utility": -1
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.65,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.7,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.75,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.8,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     }
+    ]
+   },
+   "eligible": false,
+   "eligible_kind": true,
+   "family": "logistic",
+   "hyperparameter": 100.0,
+   "policy_id": "r5-nemotron-lr_core-v1",
+   "protocol": "grouped",
+   "threshold": 0.8
+  },
+  {
+   "artifact_digest": "542ced57d283a977ab549d2c541251cfd8380d165cc3933a27b52313eedf02b8",
+   "candidate": "tree",
+   "cv": {
+    "at_threshold": {
+     "catch_rate": 0.13157894736842105,
+     "catches": 5,
+     "escalated": 33,
+     "escalation_rate_all": 0.22916666666666666,
+     "precision": 0.15151515151515152,
+     "threshold": 0.8,
+     "unnecessary": 28,
+     "unnecessary_rate_all": 0.19444444444444445,
+     "unnecessary_rate_safe": 0.42424242424242425,
+     "utility": -23
+    },
+    "grouped_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.5198273847859776,
+     "log_loss": 1.4667095188557435,
+     "n": 104,
+     "pr_auc": 0.2650758379752448,
+     "roc_auc": 0.2240829346092504
+    },
+    "hp_trials": [
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.5198273847859776,
+      "hp": 2,
+      "log_loss": 1.4667095188557435,
+      "n": 104,
+      "pr_auc": 0.2650758379752448,
+      "roc_auc": 0.2240829346092504
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.5016842689644301,
+      "hp": 3,
+      "log_loss": 1.4696161457126244,
+      "n": 104,
+      "pr_auc": 0.2763593902846686,
+      "roc_auc": 0.27910685805422647
+     }
+    ],
+    "method": "leave-one-class-out (grouped by scenario class)",
+    "primary_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.5198273847859776,
+     "log_loss": 1.4667095188557435,
+     "n": 104,
+     "pr_auc": 0.2650758379752448,
+     "roc_auc": 0.2240829346092504
+    },
+    "stability": {
+     "root_split_by_fold": {
+      "n_tool_calls": 1,
+      "reasoning_chars": 3,
+      "said_label_kyc_hold": 7
+     }
+    },
+    "stratified4_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.19154950694264875,
+     "log_loss": 0.568086222783603,
+     "n": 104,
+     "pr_auc": 0.6297480898874087,
+     "roc_auc": 0.7346491228070176
+    },
+    "utility_curve": [
+     {
+      "catch_rate": 0.34210526315789475,
+      "catches": 13,
+      "escalated": 63,
+      "escalation_rate_all": 0.4375,
+      "precision": 0.20634920634920634,
+      "threshold": 0.3,
+      "unnecessary": 50,
+      "unnecessary_rate_all": 0.3472222222222222,
+      "unnecessary_rate_safe": 0.7575757575757576,
+      "utility": -37
+     },
+     {
+      "catch_rate": 0.23684210526315788,
+      "catches": 9,
+      "escalated": 59,
+      "escalation_rate_all": 0.4097222222222222,
+      "precision": 0.15254237288135594,
+      "threshold": 0.35,
+      "unnecessary": 50,
+      "unnecessary_rate_all": 0.3472222222222222,
+      "unnecessary_rate_safe": 0.7575757575757576,
+      "utility": -41
+     },
+     {
+      "catch_rate": 0.23684210526315788,
+      "catches": 9,
+      "escalated": 59,
+      "escalation_rate_all": 0.4097222222222222,
+      "precision": 0.15254237288135594,
+      "threshold": 0.4,
+      "unnecessary": 50,
+      "unnecessary_rate_all": 0.3472222222222222,
+      "unnecessary_rate_safe": 0.7575757575757576,
+      "utility": -41
+     },
+     {
+      "catch_rate": 0.23684210526315788,
+      "catches": 9,
+      "escalated": 59,
+      "escalation_rate_all": 0.4097222222222222,
+      "precision": 0.15254237288135594,
+      "threshold": 0.45,
+      "unnecessary": 50,
+      "unnecessary_rate_all": 0.3472222222222222,
+      "unnecessary_rate_safe": 0.7575757575757576,
+      "utility": -41
+     },
+     {
+      "catch_rate": 0.15789473684210525,
+      "catches": 6,
+      "escalated": 54,
+      "escalation_rate_all": 0.375,
+      "precision": 0.1111111111111111,
+      "threshold": 0.5,
+      "unnecessary": 48,
+      "unnecessary_rate_all": 0.3333333333333333,
+      "unnecessary_rate_safe": 0.7272727272727273,
+      "utility": -42
+     },
+     {
+      "catch_rate": 0.15789473684210525,
+      "catches": 6,
+      "escalated": 52,
+      "escalation_rate_all": 0.3611111111111111,
+      "precision": 0.11538461538461539,
+      "threshold": 0.55,
+      "unnecessary": 46,
+      "unnecessary_rate_all": 0.3194444444444444,
+      "unnecessary_rate_safe": 0.696969696969697,
+      "utility": -40
+     },
+     {
+      "catch_rate": 0.15789473684210525,
+      "catches": 6,
+      "escalated": 47,
+      "escalation_rate_all": 0.3263888888888889,
+      "precision": 0.1276595744680851,
+      "threshold": 0.6,
+      "unnecessary": 41,
+      "unnecessary_rate_all": 0.2847222222222222,
+      "unnecessary_rate_safe": 0.6212121212121212,
+      "utility": -35
+     },
+     {
+      "catch_rate": 0.15789473684210525,
+      "catches": 6,
+      "escalated": 47,
+      "escalation_rate_all": 0.3263888888888889,
+      "precision": 0.1276595744680851,
+      "threshold": 0.65,
+      "unnecessary": 41,
+      "unnecessary_rate_all": 0.2847222222222222,
+      "unnecessary_rate_safe": 0.6212121212121212,
+      "utility": -35
+     },
+     {
+      "catch_rate": 0.15789473684210525,
+      "catches": 6,
+      "escalated": 47,
+      "escalation_rate_all": 0.3263888888888889,
+      "precision": 0.1276595744680851,
+      "threshold": 0.7,
+      "unnecessary": 41,
+      "unnecessary_rate_all": 0.2847222222222222,
+      "unnecessary_rate_safe": 0.6212121212121212,
+      "utility": -35
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 33,
+      "escalation_rate_all": 0.22916666666666666,
+      "precision": 0.15151515151515152,
+      "threshold": 0.75,
+      "unnecessary": 28,
+      "unnecessary_rate_all": 0.19444444444444445,
+      "unnecessary_rate_safe": 0.42424242424242425,
+      "utility": -23
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 33,
+      "escalation_rate_all": 0.22916666666666666,
+      "precision": 0.15151515151515152,
+      "threshold": 0.8,
+      "unnecessary": 28,
+      "unnecessary_rate_all": 0.19444444444444445,
+      "unnecessary_rate_safe": 0.42424242424242425,
+      "utility": -23
+     }
+    ]
+   },
+   "eligible": false,
+   "eligible_kind": true,
+   "family": "tree",
+   "hyperparameter": 2,
+   "policy_id": "r5-nemotron-tree-v1",
+   "protocol": "grouped",
+   "threshold": 0.8
+  },
+  {
+   "artifact_digest": "cc61aa6bda3a765b1c387d7959db595d25f9b80aebb76433e40537473563ab0a",
+   "candidate": "lr_answer",
+   "cv": {
+    "at_threshold": {
+     "catch_rate": 0.0,
+     "catches": 0,
+     "escalated": 0,
+     "escalation_rate_all": 0.0,
+     "precision": null,
+     "threshold": 0.8,
+     "unnecessary": 0,
+     "unnecessary_rate_all": 0.0,
+     "unnecessary_rate_safe": 0.0,
+     "utility": 0
+    },
+    "grouped_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.2996196430798205,
+     "log_loss": 0.799425873336171,
+     "n": 104,
+     "pr_auc": 0.25680226610289525,
+     "roc_auc": 0.14055023923444976
+    },
+    "hp_trials": [
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.48557366638977556,
+      "hp": 0.1,
+      "log_loss": 1.9623073196823353,
+      "n": 104,
+      "pr_auc": 0.31283501258470825,
+      "roc_auc": 0.2944577352472089
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.4523597132893607,
+      "hp": 1.0,
+      "log_loss": 1.4643213462678326,
+      "n": 104,
+      "pr_auc": 0.3140359479013902,
+      "roc_auc": 0.30043859649122806
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.3901243873598816,
+      "hp": 10.0,
+      "log_loss": 1.055246600302068,
+      "n": 104,
+      "pr_auc": 0.2917532625721118,
+      "roc_auc": 0.2414274322169059
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.2996196430798205,
+      "hp": 100.0,
+      "log_loss": 0.799425873336171,
+      "n": 104,
+      "pr_auc": 0.25680226610289525,
+      "roc_auc": 0.14055023923444976
+     }
+    ],
+    "method": "leave-one-class-out (grouped by scenario class)",
+    "primary_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.2996196430798205,
+     "log_loss": 0.799425873336171,
+     "n": 104,
+     "pr_auc": 0.25680226610289525,
+     "roc_auc": 0.14055023923444976
+    },
+    "stability": {
+     "n_folds": 11,
+     "top_coefficients": [
+      {
+       "coef": 0.1178,
+       "feature": "said_label_duplicate_webhook_handled",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.1136,
+       "feature": "said_label_kyc_hold",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.1136,
+       "feature": "said_action_request_kyc_documents",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": -0.1082,
+       "feature": "said_label_processor_decline",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.1037,
+       "feature": "said_label_missing_idempotency",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.0946,
+       "feature": "said_label_settlement_amount_mapping_error",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0821,
+       "feature": "said_label_stale_integration_mapping",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0821,
+       "feature": "said_action_inspect_mapping_version",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0687,
+       "feature": "said_label_risk_hold",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0687,
+       "feature": "said_action_escalate_to_risk_team",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.0641,
+       "feature": "said_label_false_positive_alert",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.0278,
+       "feature": "said_label_provider_outage",
+       "sign_agreement": 0.9090909090909091
+      }
+     ]
+    },
+    "stratified4_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.18934980778217556,
+     "log_loss": 0.5639449775127854,
+     "n": 104,
+     "pr_auc": 0.6781455610164135,
+     "roc_auc": 0.8538676236044657
+    },
+    "utility_curve": [
+     {
+      "catch_rate": 0.7894736842105263,
+      "catches": 30,
+      "escalated": 93,
+      "escalation_rate_all": 0.6458333333333334,
+      "precision": 0.3225806451612903,
+      "threshold": 0.3,
+      "unnecessary": 63,
+      "unnecessary_rate_all": 0.4375,
+      "unnecessary_rate_safe": 0.9545454545454546,
+      "utility": -33
+     },
+     {
+      "catch_rate": 0.18421052631578946,
+      "catches": 7,
+      "escalated": 65,
+      "escalation_rate_all": 0.4513888888888889,
+      "precision": 0.1076923076923077,
+      "threshold": 0.35,
+      "unnecessary": 58,
+      "unnecessary_rate_all": 0.4027777777777778,
+      "unnecessary_rate_safe": 0.8787878787878788,
+      "utility": -51
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 57,
+      "escalation_rate_all": 0.3958333333333333,
+      "precision": 0.08771929824561403,
+      "threshold": 0.4,
+      "unnecessary": 52,
+      "unnecessary_rate_all": 0.3611111111111111,
+      "unnecessary_rate_safe": 0.7878787878787878,
+      "utility": -47
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 35,
+      "escalation_rate_all": 0.24305555555555555,
+      "precision": 0.14285714285714285,
+      "threshold": 0.45,
+      "unnecessary": 30,
+      "unnecessary_rate_all": 0.20833333333333334,
+      "unnecessary_rate_safe": 0.45454545454545453,
+      "utility": -25
+     },
+     {
+      "catch_rate": 0.07894736842105263,
+      "catches": 3,
+      "escalated": 21,
+      "escalation_rate_all": 0.14583333333333334,
+      "precision": 0.14285714285714285,
+      "threshold": 0.5,
+      "unnecessary": 18,
+      "unnecessary_rate_all": 0.125,
+      "unnecessary_rate_safe": 0.2727272727272727,
+      "utility": -15
+     },
+     {
+      "catch_rate": 0.07894736842105263,
+      "catches": 3,
+      "escalated": 21,
+      "escalation_rate_all": 0.14583333333333334,
+      "precision": 0.14285714285714285,
+      "threshold": 0.55,
+      "unnecessary": 18,
+      "unnecessary_rate_all": 0.125,
+      "unnecessary_rate_safe": 0.2727272727272727,
+      "utility": -15
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.6,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.65,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.7,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.75,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.8,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     }
+    ]
+   },
+   "eligible": false,
+   "eligible_kind": false,
+   "family": "logistic",
+   "hyperparameter": 100.0,
+   "policy_id": "r5-nemotron-lr_answer-v1",
+   "protocol": "grouped",
+   "threshold": 0.8
+  },
+  {
+   "artifact_digest": "cd63d7b8e524558a54d7de4a61f41e04134c98eeaed4872a81dd05e268d4435c",
+   "candidate": "lr_behavior",
+   "cv": {
+    "at_threshold": {
+     "catch_rate": 0.0,
+     "catches": 0,
+     "escalated": 0,
+     "escalation_rate_all": 0.0,
+     "precision": null,
+     "threshold": 0.8,
+     "unnecessary": 0,
+     "unnecessary_rate_all": 0.0,
+     "unnecessary_rate_safe": 0.0,
+     "utility": 0
+    },
+    "grouped_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.2938150749000869,
+     "log_loss": 0.7904091813450792,
+     "n": 104,
+     "pr_auc": 0.24491891263410565,
+     "roc_auc": 0.20813397129186603
+    },
+    "hp_trials": [
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.45705601484103553,
+      "hp": 0.1,
+      "log_loss": 1.8445032773443104,
+      "n": 104,
+      "pr_auc": 0.28901999765233444,
+      "roc_auc": 0.35007974481658694
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.4333535180368306,
+      "hp": 1.0,
+      "log_loss": 1.419310381561927,
+      "n": 104,
+      "pr_auc": 0.28409042593760153,
+      "roc_auc": 0.34210526315789475
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.3713992650678373,
+      "hp": 10.0,
+      "log_loss": 1.0178917065098867,
+      "n": 104,
+      "pr_auc": 0.2739796286244973,
+      "roc_auc": 0.3133971291866029
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.2938150749000869,
+      "hp": 100.0,
+      "log_loss": 0.7904091813450792,
+      "n": 104,
+      "pr_auc": 0.24491891263410565,
+      "roc_auc": 0.20813397129186603
+     }
+    ],
+    "method": "leave-one-class-out (grouped by scenario class)",
+    "primary_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.2938150749000869,
+     "log_loss": 0.7904091813450792,
+     "n": 104,
+     "pr_auc": 0.24491891263410565,
+     "roc_auc": 0.20813397129186603
+    },
+    "stability": {
+     "n_folds": 11,
+     "top_coefficients": [
+      {
+       "coef": 0.1259,
+       "feature": "said_label_duplicate_webhook_handled",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.114,
+       "feature": "said_label_kyc_hold",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": 0.114,
+       "feature": "said_action_request_kyc_documents",
+       "sign_agreement": 1.0
+      },
+      {
+       "coef": -0.1115,
+       "feature": "said_label_missing_idempotency",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0996,
+       "feature": "said_label_processor_decline",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.0913,
+       "feature": "said_label_settlement_amount_mapping_error",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0779,
+       "feature": "said_label_stale_integration_mapping",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0779,
+       "feature": "said_action_inspect_mapping_version",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0663,
+       "feature": "said_label_risk_hold",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": -0.0663,
+       "feature": "said_action_escalate_to_risk_team",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.0566,
+       "feature": "said_label_false_positive_alert",
+       "sign_agreement": 0.9090909090909091
+      },
+      {
+       "coef": 0.0537,
+       "feature": "reasoning_chars",
+       "sign_agreement": 1.0
+      }
+     ]
+    },
+    "stratified4_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.1851668701395819,
+     "log_loss": 0.5540892587345572,
+     "n": 104,
+     "pr_auc": 0.7846160345924086,
+     "roc_auc": 0.8755980861244019
+    },
+    "utility_curve": [
+     {
+      "catch_rate": 0.7631578947368421,
+      "catches": 29,
+      "escalated": 93,
+      "escalation_rate_all": 0.6458333333333334,
+      "precision": 0.3118279569892473,
+      "threshold": 0.3,
+      "unnecessary": 64,
+      "unnecessary_rate_all": 0.4444444444444444,
+      "unnecessary_rate_safe": 0.9696969696969697,
+      "utility": -35
+     },
+     {
+      "catch_rate": 0.5,
+      "catches": 19,
+      "escalated": 74,
+      "escalation_rate_all": 0.5138888888888888,
+      "precision": 0.25675675675675674,
+      "threshold": 0.35,
+      "unnecessary": 55,
+      "unnecessary_rate_all": 0.3819444444444444,
+      "unnecessary_rate_safe": 0.8333333333333334,
+      "utility": -36
+     },
+     {
+      "catch_rate": 0.18421052631578946,
+      "catches": 7,
+      "escalated": 49,
+      "escalation_rate_all": 0.3402777777777778,
+      "precision": 0.14285714285714285,
+      "threshold": 0.4,
+      "unnecessary": 42,
+      "unnecessary_rate_all": 0.2916666666666667,
+      "unnecessary_rate_safe": 0.6363636363636364,
+      "utility": -35
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 38,
+      "escalation_rate_all": 0.2638888888888889,
+      "precision": 0.13157894736842105,
+      "threshold": 0.45,
+      "unnecessary": 33,
+      "unnecessary_rate_all": 0.22916666666666666,
+      "unnecessary_rate_safe": 0.5,
+      "utility": -28
+     },
+     {
+      "catch_rate": 0.07894736842105263,
+      "catches": 3,
+      "escalated": 26,
+      "escalation_rate_all": 0.18055555555555555,
+      "precision": 0.11538461538461539,
+      "threshold": 0.5,
+      "unnecessary": 23,
+      "unnecessary_rate_all": 0.1597222222222222,
+      "unnecessary_rate_safe": 0.3484848484848485,
+      "utility": -20
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 12,
+      "escalation_rate_all": 0.08333333333333333,
+      "precision": 0.0,
+      "threshold": 0.55,
+      "unnecessary": 12,
+      "unnecessary_rate_all": 0.08333333333333333,
+      "unnecessary_rate_safe": 0.18181818181818182,
+      "utility": -12
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 4,
+      "escalation_rate_all": 0.027777777777777776,
+      "precision": 0.0,
+      "threshold": 0.6,
+      "unnecessary": 4,
+      "unnecessary_rate_all": 0.027777777777777776,
+      "unnecessary_rate_safe": 0.06060606060606061,
+      "utility": -4
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 1,
+      "escalation_rate_all": 0.006944444444444444,
+      "precision": 0.0,
+      "threshold": 0.65,
+      "unnecessary": 1,
+      "unnecessary_rate_all": 0.006944444444444444,
+      "unnecessary_rate_safe": 0.015151515151515152,
+      "utility": -1
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.7,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.75,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.8,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     }
+    ]
+   },
+   "eligible": false,
+   "eligible_kind": false,
+   "family": "logistic",
+   "hyperparameter": 100.0,
+   "policy_id": "r5-nemotron-lr_behavior-v1",
+   "protocol": "grouped",
+   "threshold": 0.8
+  },
+  {
+   "artifact_digest": "b2ef2e31b22feae9515aa47adf96d9644dfb3670593fc4f861ce99552f8fff09",
+   "candidate": "prior_category",
+   "cv": {
+    "at_threshold": {
+     "catch_rate": 0.0,
+     "catches": 0,
+     "escalated": 0,
+     "escalation_rate_all": 0.0,
+     "precision": null,
+     "threshold": 0.8,
+     "unnecessary": 0,
+     "unnecessary_rate_all": 0.0,
+     "unnecessary_rate_safe": 0.0,
+     "utility": 0
+    },
+    "grouped_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.26409660337212065,
+     "log_loss": 0.726770879992436,
+     "n": 104,
+     "pr_auc": 0.2938214667858889,
+     "roc_auc": 0.25757575757575757
+    },
+    "hp_trials": [
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.3542713548326387,
+      "hp": 0.1,
+      "log_loss": 1.2840895504725023,
+      "n": 104,
+      "pr_auc": 0.38657665226586957,
+      "roc_auc": 0.49282296650717705
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.3398125434411314,
+      "hp": 1.0,
+      "log_loss": 1.022039447905556,
+      "n": 104,
+      "pr_auc": 0.3586334911957735,
+      "roc_auc": 0.44019138755980863
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.3002986650013517,
+      "hp": 10.0,
+      "log_loss": 0.8128732575265336,
+      "n": 104,
+      "pr_auc": 0.3555523564905135,
+      "roc_auc": 0.4437799043062201
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.26409660337212065,
+      "hp": 100.0,
+      "log_loss": 0.726770879992436,
+      "n": 104,
+      "pr_auc": 0.2938214667858889,
+      "roc_auc": 0.25757575757575757
+     }
+    ],
+    "method": "leave-one-class-out (grouped by scenario class)",
+    "primary_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.26409660337212065,
+     "log_loss": 0.726770879992436,
+     "n": 104,
+     "pr_auc": 0.2938214667858889,
+     "roc_auc": 0.25757575757575757
+    },
+    "stability": null,
+    "stratified4_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.202184708949033,
+     "log_loss": 0.5920742062247992,
+     "n": 104,
+     "pr_auc": 0.7356299532600601,
+     "roc_auc": 0.8582535885167464
+    },
+    "utility_curve": [
+     {
+      "catch_rate": 0.5526315789473685,
+      "catches": 21,
+      "escalated": 83,
+      "escalation_rate_all": 0.5763888888888888,
+      "precision": 0.25301204819277107,
+      "threshold": 0.3,
+      "unnecessary": 62,
+      "unnecessary_rate_all": 0.4305555555555556,
+      "unnecessary_rate_safe": 0.9393939393939394,
+      "utility": -41
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 40,
+      "escalation_rate_all": 0.2777777777777778,
+      "precision": 0.125,
+      "threshold": 0.35,
+      "unnecessary": 35,
+      "unnecessary_rate_all": 0.24305555555555555,
+      "unnecessary_rate_safe": 0.5303030303030303,
+      "utility": -30
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 40,
+      "escalation_rate_all": 0.2777777777777778,
+      "precision": 0.125,
+      "threshold": 0.4,
+      "unnecessary": 35,
+      "unnecessary_rate_all": 0.24305555555555555,
+      "unnecessary_rate_safe": 0.5303030303030303,
+      "utility": -30
+     },
+     {
+      "catch_rate": 0.07894736842105263,
+      "catches": 3,
+      "escalated": 10,
+      "escalation_rate_all": 0.06944444444444445,
+      "precision": 0.3,
+      "threshold": 0.45,
+      "unnecessary": 7,
+      "unnecessary_rate_all": 0.04861111111111111,
+      "unnecessary_rate_safe": 0.10606060606060606,
+      "utility": -4
+     },
+     {
+      "catch_rate": 0.07894736842105263,
+      "catches": 3,
+      "escalated": 10,
+      "escalation_rate_all": 0.06944444444444445,
+      "precision": 0.3,
+      "threshold": 0.5,
+      "unnecessary": 7,
+      "unnecessary_rate_all": 0.04861111111111111,
+      "unnecessary_rate_safe": 0.10606060606060606,
+      "utility": -4
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.55,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.6,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.65,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.7,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.75,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.8,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     }
+    ]
+   },
+   "eligible": false,
+   "eligible_kind": false,
+   "family": "logistic",
+   "hyperparameter": 100.0,
+   "policy_id": "r5-nemotron-prior_category-v1",
+   "protocol": "grouped",
+   "threshold": 0.8
+  },
+  {
+   "artifact_digest": "0c9f21d528de5d029f4c07cb91d4700ed1e435f0d1ce58ae264df92303cc5933",
+   "candidate": "prior_class_ceiling",
+   "cv": {
+    "at_threshold": {
+     "catch_rate": 0.0,
+     "catches": 0,
+     "escalated": 0,
+     "escalation_rate_all": 0.0,
+     "precision": null,
+     "threshold": 0.8,
+     "unnecessary": 0,
+     "unnecessary_rate_all": 0.0,
+     "unnecessary_rate_safe": 0.0,
+     "utility": 0
+    },
+    "grouped_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.2648507182019736,
+     "log_loss": 0.7285904033038026,
+     "n": 104,
+     "pr_auc": 0.243503499095153,
+     "roc_auc": 0.06220095693779904
+    },
+    "hp_trials": [
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.31592929632867517,
+      "hp": 0.1,
+      "log_loss": 0.943468351244979,
+      "n": 104,
+      "pr_auc": 0.2425702244004489,
+      "roc_auc": 0.056220095693779906
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.29143242867624386,
+      "hp": 1.0,
+      "log_loss": 0.8165418452785308,
+      "n": 104,
+      "pr_auc": 0.2425702244004489,
+      "roc_auc": 0.056220095693779906
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.2718726809219526,
+      "hp": 10.0,
+      "log_loss": 0.7482772471899282,
+      "n": 104,
+      "pr_auc": 0.243503499095153,
+      "roc_auc": 0.06220095693779904
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.2648507182019736,
+      "hp": 100.0,
+      "log_loss": 0.7285904033038026,
+      "n": 104,
+      "pr_auc": 0.243503499095153,
+      "roc_auc": 0.06220095693779904
+     }
+    ],
+    "method": "leave-one-class-out (grouped by scenario class)",
+    "primary_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.2648507182019736,
+     "log_loss": 0.7285904033038026,
+     "n": 104,
+     "pr_auc": 0.243503499095153,
+     "roc_auc": 0.06220095693779904
+    },
+    "stability": null,
+    "stratified4_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.18831297125186558,
+     "log_loss": 0.5630834323324254,
+     "n": 104,
+     "pr_auc": 0.8940402503938057,
+     "roc_auc": 0.9368022328548644
+    },
+    "utility_curve": [
+     {
+      "catch_rate": 0.7105263157894737,
+      "catches": 27,
+      "escalated": 93,
+      "escalation_rate_all": 0.6458333333333334,
+      "precision": 0.2903225806451613,
+      "threshold": 0.3,
+      "unnecessary": 66,
+      "unnecessary_rate_all": 0.4583333333333333,
+      "unnecessary_rate_safe": 1.0,
+      "utility": -39
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 63,
+      "escalation_rate_all": 0.4375,
+      "precision": 0.07936507936507936,
+      "threshold": 0.35,
+      "unnecessary": 58,
+      "unnecessary_rate_all": 0.4027777777777778,
+      "unnecessary_rate_safe": 0.8787878787878788,
+      "utility": -53
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 45,
+      "escalation_rate_all": 0.3125,
+      "precision": 0.0,
+      "threshold": 0.4,
+      "unnecessary": 45,
+      "unnecessary_rate_all": 0.3125,
+      "unnecessary_rate_safe": 0.6818181818181818,
+      "utility": -45
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.45,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.5,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.55,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.6,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.65,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.7,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.75,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.8,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     }
+    ]
+   },
+   "eligible": false,
+   "eligible_kind": false,
+   "family": "logistic",
+   "hyperparameter": 100.0,
+   "policy_id": "r5-nemotron-prior_class_ceiling-v1",
+   "protocol": "grouped",
+   "threshold": 0.8
+  },
+  {
+   "artifact_digest": "dd153301b1a905b21bd2149ad2707a6bfd72b93e0a992892c4ab404e790e940a",
+   "candidate": "answer_structure",
+   "cv": {
+    "at_threshold": {
+     "catch_rate": 0.0,
+     "catches": 0,
+     "escalated": 0,
+     "escalation_rate_all": 0.0,
+     "precision": null,
+     "threshold": 0.8,
+     "unnecessary": 0,
+     "unnecessary_rate_all": 0.0,
+     "unnecessary_rate_safe": 0.0,
+     "utility": 0
+    },
+    "grouped_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.2977018296915468,
+     "log_loss": 0.8073960670280903,
+     "n": 104,
+     "pr_auc": 0.2748344214900249,
+     "roc_auc": 0.23923444976076555
+    },
+    "hp_trials": [
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.45907857298378174,
+      "hp": 0.1,
+      "log_loss": 2.4569686722652033,
+      "n": 104,
+      "pr_auc": 0.35580899846651226,
+      "roc_auc": 0.4525518341307815
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.4381853019798199,
+      "hp": 1.0,
+      "log_loss": 1.5206246478057943,
+      "n": 104,
+      "pr_auc": 0.32953884081363055,
+      "roc_auc": 0.3831738437001595
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.3744445412346216,
+      "hp": 10.0,
+      "log_loss": 1.0475026455026994,
+      "n": 104,
+      "pr_auc": 0.30922213602294524,
+      "roc_auc": 0.32177033492822965
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.2977018296915468,
+      "hp": 100.0,
+      "log_loss": 0.8073960670280903,
+      "n": 104,
+      "pr_auc": 0.2748344214900249,
+      "roc_auc": 0.23923444976076555
+     }
+    ],
+    "method": "leave-one-class-out (grouped by scenario class)",
+    "primary_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.2977018296915468,
+     "log_loss": 0.8073960670280903,
+     "n": 104,
+     "pr_auc": 0.2748344214900249,
+     "roc_auc": 0.23923444976076555
+    },
+    "stability": null,
+    "stratified4_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.1743030194480151,
+     "log_loss": 0.5301957894778216,
+     "n": 104,
+     "pr_auc": 0.8004532202890418,
+     "roc_auc": 0.8763955342902712
+    },
+    "utility_curve": [
+     {
+      "catch_rate": 0.631578947368421,
+      "catches": 24,
+      "escalated": 86,
+      "escalation_rate_all": 0.5972222222222222,
+      "precision": 0.27906976744186046,
+      "threshold": 0.3,
+      "unnecessary": 62,
+      "unnecessary_rate_all": 0.4305555555555556,
+      "unnecessary_rate_safe": 0.9393939393939394,
+      "utility": -38
+     },
+     {
+      "catch_rate": 0.4473684210526316,
+      "catches": 17,
+      "escalated": 76,
+      "escalation_rate_all": 0.5277777777777778,
+      "precision": 0.2236842105263158,
+      "threshold": 0.35,
+      "unnecessary": 59,
+      "unnecessary_rate_all": 0.4097222222222222,
+      "unnecessary_rate_safe": 0.8939393939393939,
+      "utility": -42
+     },
+     {
+      "catch_rate": 0.34210526315789475,
+      "catches": 13,
+      "escalated": 61,
+      "escalation_rate_all": 0.4236111111111111,
+      "precision": 0.21311475409836064,
+      "threshold": 0.4,
+      "unnecessary": 48,
+      "unnecessary_rate_all": 0.3333333333333333,
+      "unnecessary_rate_safe": 0.7272727272727273,
+      "utility": -35
+     },
+     {
+      "catch_rate": 0.18421052631578946,
+      "catches": 7,
+      "escalated": 42,
+      "escalation_rate_all": 0.2916666666666667,
+      "precision": 0.16666666666666666,
+      "threshold": 0.45,
+      "unnecessary": 35,
+      "unnecessary_rate_all": 0.24305555555555555,
+      "unnecessary_rate_safe": 0.5303030303030303,
+      "utility": -28
+     },
+     {
+      "catch_rate": 0.15789473684210525,
+      "catches": 6,
+      "escalated": 28,
+      "escalation_rate_all": 0.19444444444444445,
+      "precision": 0.21428571428571427,
+      "threshold": 0.5,
+      "unnecessary": 22,
+      "unnecessary_rate_all": 0.1527777777777778,
+      "unnecessary_rate_safe": 0.3333333333333333,
+      "utility": -16
+     },
+     {
+      "catch_rate": 0.10526315789473684,
+      "catches": 4,
+      "escalated": 13,
+      "escalation_rate_all": 0.09027777777777778,
+      "precision": 0.3076923076923077,
+      "threshold": 0.55,
+      "unnecessary": 9,
+      "unnecessary_rate_all": 0.0625,
+      "unnecessary_rate_safe": 0.13636363636363635,
+      "utility": -5
+     },
+     {
+      "catch_rate": 0.05263157894736842,
+      "catches": 2,
+      "escalated": 5,
+      "escalation_rate_all": 0.034722222222222224,
+      "precision": 0.4,
+      "threshold": 0.6,
+      "unnecessary": 3,
+      "unnecessary_rate_all": 0.020833333333333332,
+      "unnecessary_rate_safe": 0.045454545454545456,
+      "utility": -1
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.65,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.7,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.75,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     },
+     {
+      "catch_rate": 0.0,
+      "catches": 0,
+      "escalated": 0,
+      "escalation_rate_all": 0.0,
+      "precision": null,
+      "threshold": 0.8,
+      "unnecessary": 0,
+      "unnecessary_rate_all": 0.0,
+      "unnecessary_rate_safe": 0.0,
+      "utility": 0
+     }
+    ]
+   },
+   "eligible": false,
+   "eligible_kind": false,
+   "family": "logistic",
+   "hyperparameter": 100.0,
+   "policy_id": "r5-nemotron-answer_structure-v1",
+   "protocol": "grouped",
+   "threshold": 0.8
+  },
+  {
+   "artifact_digest": "ee33566648849ee46bde11453c3b02930e315ad43656cbf5ea997168dc6c7b3e",
+   "candidate": "answer_structure_only",
+   "cv": {
+    "at_threshold": {
+     "catch_rate": 0.42105263157894735,
+     "catches": 16,
+     "escalated": 22,
+     "escalation_rate_all": 0.1527777777777778,
+     "precision": 0.7272727272727273,
+     "threshold": 0.55,
+     "unnecessary": 6,
+     "unnecessary_rate_all": 0.041666666666666664,
+     "unnecessary_rate_safe": 0.09090909090909091,
+     "utility": 10
+    },
+    "grouped_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.23332594807932192,
+     "log_loss": 0.6894807022521049,
+     "n": 104,
+     "pr_auc": 0.5730423489335513,
+     "roc_auc": 0.6303827751196173
+    },
+    "hp_trials": [
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.2421497463906594,
+      "hp": 0.1,
+      "log_loss": 0.7242013361311892,
+      "n": 104,
+      "pr_auc": 0.5917201992632606,
+      "roc_auc": 0.645933014354067
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.23332594807932192,
+      "hp": 1.0,
+      "log_loss": 0.6894807022521049,
+      "n": 104,
+      "pr_auc": 0.5730423489335513,
+      "roc_auc": 0.6303827751196173
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.2414685347274812,
+      "hp": 10.0,
+      "log_loss": 0.691546554894043,
+      "n": 104,
+      "pr_auc": 0.4979564245929526,
+      "roc_auc": 0.5430622009569378
+     },
+     {
+      "base_rate": 0.36538461538461536,
+      "brier": 0.25899697573963987,
+      "hp": 100.0,
+      "log_loss": 0.7185852641421309,
+      "n": 104,
+      "pr_auc": 0.31079372861385357,
+      "roc_auc": 0.22089314194577353
+     }
+    ],
+    "method": "leave-one-class-out (grouped by scenario class)",
+    "primary_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.23332594807932192,
+     "log_loss": 0.6894807022521049,
+     "n": 104,
+     "pr_auc": 0.5730423489335513,
+     "roc_auc": 0.6303827751196173
+    },
+    "stability": null,
+    "stratified4_oof": {
+     "base_rate": 0.36538461538461536,
+     "brier": 0.16515594732921174,
+     "log_loss": 0.5027733240002887,
+     "n": 104,
+     "pr_auc": 0.7158002617962297,
+     "roc_auc": 0.8249601275917066
+    },
+    "utility_curve": [
+     {
+      "catch_rate": 0.6052631578947368,
+      "catches": 23,
+      "escalated": 59,
+      "escalation_rate_all": 0.4097222222222222,
+      "precision": 0.3898305084745763,
+      "threshold": 0.3,
+      "unnecessary": 36,
+      "unnecessary_rate_all": 0.25,
+      "unnecessary_rate_safe": 0.5454545454545454,
+      "utility": -13
+     },
+     {
+      "catch_rate": 0.5526315789473685,
+      "catches": 21,
+      "escalated": 53,
+      "escalation_rate_all": 0.3680555555555556,
+      "precision": 0.39622641509433965,
+      "threshold": 0.35,
+      "unnecessary": 32,
+      "unnecessary_rate_all": 0.2222222222222222,
+      "unnecessary_rate_safe": 0.48484848484848486,
+      "utility": -11
+     },
+     {
+      "catch_rate": 0.5263157894736842,
+      "catches": 20,
+      "escalated": 43,
+      "escalation_rate_all": 0.2986111111111111,
+      "precision": 0.46511627906976744,
+      "threshold": 0.4,
+      "unnecessary": 23,
+      "unnecessary_rate_all": 0.1597222222222222,
+      "unnecessary_rate_safe": 0.3484848484848485,
+      "utility": -3
+     },
+     {
+      "catch_rate": 0.5263157894736842,
+      "catches": 20,
+      "escalated": 36,
+      "escalation_rate_all": 0.25,
+      "precision": 0.5555555555555556,
+      "threshold": 0.45,
+      "unnecessary": 16,
+      "unnecessary_rate_all": 0.1111111111111111,
+      "unnecessary_rate_safe": 0.24242424242424243,
+      "utility": 4
+     },
+     {
+      "catch_rate": 0.4473684210526316,
+      "catches": 17,
+      "escalated": 28,
+      "escalation_rate_all": 0.19444444444444445,
+      "precision": 0.6071428571428571,
+      "threshold": 0.5,
+      "unnecessary": 11,
+      "unnecessary_rate_all": 0.0763888888888889,
+      "unnecessary_rate_safe": 0.16666666666666666,
+      "utility": 6
+     },
+     {
+      "catch_rate": 0.42105263157894735,
+      "catches": 16,
+      "escalated": 22,
+      "escalation_rate_all": 0.1527777777777778,
+      "precision": 0.7272727272727273,
+      "threshold": 0.55,
+      "unnecessary": 6,
+      "unnecessary_rate_all": 0.041666666666666664,
+      "unnecessary_rate_safe": 0.09090909090909091,
+      "utility": 10
+     },
+     {
+      "catch_rate": 0.3157894736842105,
+      "catches": 12,
+      "escalated": 18,
+      "escalation_rate_all": 0.125,
+      "precision": 0.6666666666666666,
+      "threshold": 0.6,
+      "unnecessary": 6,
+      "unnecessary_rate_all": 0.041666666666666664,
+      "unnecessary_rate_safe": 0.09090909090909091,
+      "utility": 6
+     },
+     {
+      "catch_rate": 0.21052631578947367,
+      "catches": 8,
+      "escalated": 13,
+      "escalation_rate_all": 0.09027777777777778,
+      "precision": 0.6153846153846154,
+      "threshold": 0.65,
+      "unnecessary": 5,
+      "unnecessary_rate_all": 0.034722222222222224,
+      "unnecessary_rate_safe": 0.07575757575757576,
+      "utility": 3
+     },
+     {
+      "catch_rate": 0.15789473684210525,
+      "catches": 6,
+      "escalated": 11,
+      "escalation_rate_all": 0.0763888888888889,
+      "precision": 0.5454545454545454,
+      "threshold": 0.7,
+      "unnecessary": 5,
+      "unnecessary_rate_all": 0.034722222222222224,
+      "unnecessary_rate_safe": 0.07575757575757576,
+      "utility": 1
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 8,
+      "escalation_rate_all": 0.05555555555555555,
+      "precision": 0.625,
+      "threshold": 0.75,
+      "unnecessary": 3,
+      "unnecessary_rate_all": 0.020833333333333332,
+      "unnecessary_rate_safe": 0.045454545454545456,
+      "utility": 2
+     },
+     {
+      "catch_rate": 0.13157894736842105,
+      "catches": 5,
+      "escalated": 8,
+      "escalation_rate_all": 0.05555555555555555,
+      "precision": 0.625,
+      "threshold": 0.8,
+      "unnecessary": 3,
+      "unnecessary_rate_all": 0.020833333333333332,
+      "unnecessary_rate_safe": 0.045454545454545456,
+      "utility": 2
+     }
+    ]
+   },
+   "eligible": false,
+   "eligible_kind": false,
+   "family": "logistic",
+   "hyperparameter": 1.0,
+   "policy_id": "r5-nemotron-answer_structure_only-v1",
+   "protocol": "grouped",
+   "threshold": 0.55
+  }
+ ],
+ "code_commit": "e331fa5",
+ "dataset_digest": "fdb015a84a17966efe3a68441a34ff828ebd3895e354e3f3c2b6731162d7655b",
+ "local_model": "nemotron-3.5-lightning-30b-a3b",
+ "protocol": "grouped",
+ "train_run_id": "R5-nemotron-train"
+}
