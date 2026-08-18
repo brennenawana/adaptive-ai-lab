@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FIS R5 — Learned Silent-Failure Routing Plan</title>
+<style>
+body{margin:0;background:#f5f7fb;color:#182230;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:1050px;margin:auto;padding:32px 22px 70px}
+header,section{background:#fff;border:1px solid #dfe5ec;border-radius:14px;padding:30px 34px;margin-bottom:20px}
+header{background:linear-gradient(135deg,#101828,#3559e0);color:white;padding:42px}
+h1{font-size:46px;line-height:1.05;margin:8px 0 12px;letter-spacing:-.035em}h2{font-size:28px;margin:0 0 12px}h3{font-size:20px;margin:26px 0 8px}
+p{margin:8px 0 14px}ul,ol{padding-left:23px}li{margin:5px 0}
+.callout{background:#eef2ff;border-left:4px solid #3559e0;padding:14px 17px;border-radius:0 9px 9px 0;margin:16px 0}
+.warn{background:#fff6dd;border-color:#9a6700}.good{background:#eaf7f2;border-color:#087a55}
+pre{white-space:pre;overflow:auto;background:#f4f6f8;border:1px solid #e1e5ea;border-radius:10px;padding:15px;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f1f3f7;padding:.1em .3em;border-radius:4px}
+table{width:100%;border-collapse:collapse;margin:14px 0}th,td{padding:10px;border-bottom:1px solid #dfe5ec;text-align:left;vertical-align:top}th{background:#f7f9fc}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{border:1px solid #dfe5ec;border-radius:10px;padding:14px;background:#fbfcfe}
+.pill{display:inline-block;background:#f2f4ff;border:1px solid #ced6ff;color:#3549b3;border-radius:999px;padding:2px 8px;margin:2px;font-size:12px;font-weight:700}
+.small{color:#667085;font-size:13px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}header,section{padding:23px}h1{font-size:34px}}
+</style>
+</head>
+<body><main>
+<header>
+<div style="text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:800;opacity:.8">Fintech Integration Sandbox · Milestone R5</div>
+<h1>Learned Silent-Failure Routing</h1>
+<p style="font-size:18px;max-width:850px;color:rgba(255,255,255,.88)">Predict when a completed local investigation is unsafe to return using only production-observable signals, then compare learned routing with R4 and the oracle.</p>
+</header>
+
+<section>
+<h2>1. Executive summary</h2>
+<p>Suite v3 moved the dominant bottleneck from benchmark realism to <strong>silent local failure</strong>: schema-valid, verifier-clean answers that are still wrong on root cause or required evidence.</p>
+<div class="callout good"><strong>R5 objective:</strong> learn a post-local-execution risk score from the answer and trajectory snapshot that production actually has before escalation.</div>
+<pre>local model
+    ↓
+answer + trajectory
+    ↓
+deterministic verifier
+    ↓
+RoutingFeatureSnapshot
+    ↓
+learned risk model
+    ↓
+safe ─────────→ return local
+risky
+    ↓
+frontier</pre>
+<p>R5 changes only the routing decision. Suite v3, models, prompts, tools, evidence, scorer, verifier and frontier configuration remain frozen.</p>
+</section>
+
+<section>
+<h2>2. Starting point</h2>
+<table><tr><th>Arm</th><th>Suite v3 TEST</th><th>System result</th></tr>
+<tr><td>Qwen3-8B</td><td>27/96 all-pass (28.1%)</td><td>Qwen + R4: 50.0%, 22.9% frontier, 47 routing false negatives</td></tr>
+<tr><td>Nemotron 3.5 Lightning</td><td>48/96 all-pass (50.0%)</td><td>Nemotron + R4: 71.9%, 21.9% frontier, 26 routing false negatives</td></tr>
+<tr><td>Frontier</td><td>95/96 all-pass (99.0%)</td><td>Reference strong tier</td></tr></table>
+<p>Every reported R4 routing false negative is verifier-clean but wrong on root cause or evidence. Exact run IDs and model configurations must be reconciled from the repository before implementation.</p>
+</section>
+
+<section>
+<h2>3. Scientific question</h2>
+<div class="callout"><strong>Can production-observable trajectory and answer features identify verifier-clean local failures that deterministic R4 misses?</strong></div>
+<p>The target is not generic classifier accuracy. The target is fewer unsafe local returns without degenerating into “send everything to frontier.”</p>
+<h3>Null result</h3>
+<p>If the available observable features do not generalize on DEV, R5 should say so. That would point toward richer verification, better signals, or model specialization rather than an overfit classifier.</p>
+</section>
+
+<section>
+<h2>4. Scope</h2>
+<div class="grid"><div class="card"><h3>In scope</h3><ul>
+<li>Frozen Suite v3 trajectories</li><li>Separate Qwen and Nemotron post-answer failure predictors</li>
+<li>Production-observable feature extraction</li><li>Interpretable classifiers</li>
+<li>TRAIN → DEV selection → TEST once</li><li>Offline cascade replay</li>
+<li>Post-answer oracle and descriptive three-tier oracle</li></ul></div>
+<div class="card"><h3>Out of scope</h3><ul>
+<li>Model or prompt changes</li><li>Suite v3 changes</li><li>New tools/evidence</li>
+<li>Verifier redesign</li><li>Three-tier learned routing</li><li>QLoRA</li>
+<li>Dynamic harness capability generation</li><li>Repeated TEST evaluation</li></ul></div></div>
+</section>
+
+<section>
+<h2>5. Exact decision point</h2>
+<pre>task/context
+   ↓
+local inference
+   ↓
+local answer
+   ↓
+parse + deterministic verifier
+   ↓
+ROUTING FEATURE SNAPSHOT  ← R5 input boundary
+   ↓
+local return OR frontier escalation
+   ↓
+gold scoring happens only offline</pre>
+<p>The snapshot must be computable in a real production deployment without access to the synthetic scenario generator or gold data.</p>
+</section>
+
+<section>
+<h2>6. Dataset protocol</h2>
+<pre>TRAIN
+  fit preprocessing/classifier
+  TRAIN-only grouped CV
+
+DEV
+  compare candidates and thresholds
+  select/freeze exactly one policy per local model
+
+TEST
+  exactly-once replay after freeze
+  no iteration afterward</pre>
+<p>First determine whether Suite v3 has a suitable TRAIN split and whether Qwen/Nemotron TRAIN trajectories already exist. Reuse them if present. If the TRAIN corpus exists but trajectories do not, generate only the missing frozen TRAIN arms. Do not regenerate DEV/TEST model outputs unnecessarily.</p>
+<div class="callout warn"><strong>No suitable TRAIN split?</strong> Preserve TEST as holdout. Pre-register a deterministic grouped development protocol rather than casually training on TEST.</div>
+<p>Related scenario seeds/templates must be grouped during CV so the classifier cannot memorize template structure through nearly duplicated examples.</p>
+</section>
+
+<section>
+<h2>7. Feature contract</h2>
+<h3>Allowed candidate families</h3>
+<table><tr><th>Family</th><th>Examples</th></tr>
+<tr><td>Model/runtime</td><td>model identity, finish reason, output/reasoning token counts if observable, cap hit, latency</td></tr>
+<tr><td>Answer structure</td><td>model-selected root-cause label/action, answer length, evidence/citation counts, observed IDs, claim count</td></tr>
+<tr><td>Verifier</td><td>existing production-safe subchecks, schema status, unsupported-claim counts, support/citation counts</td></tr>
+<tr><td>Tool trajectory</td><td>tool calls, unique tools, retries, errors, repeated queries, entity/window breadth</td></tr>
+<tr><td>Evidence-use shape</td><td>observed evidence types, diversity, temporal span, duplicated references</td></tr>
+<tr><td>Task-visible structure</td><td>only fields that truly exist in a production request</td></tr></table>
+
+<h3>Forbidden</h3>
+<p>
+<span class="pill">scenario_id</span><span class="pill">scenario class</span><span class="pill">seed</span>
+<span class="pill">injected anomaly</span><span class="pill">expected root cause</span>
+<span class="pill">expected evidence</span><span class="pill">gold answer</span>
+<span class="pill">strict_all_pass</span><span class="pill">scorer result</span>
+<span class="pill">split name</span><span class="pill">frontier outcome</span>
+</p>
+<div class="callout"><strong>Rule:</strong> gold may supervise the label; gold may never enter the feature vector.</div>
+
+<h3>Leakage guards</h3>
+<ul>
+<li>Explicit feature allowlist, not “drop known bad columns.”</li>
+<li>Gold-removal invariance: deleting/perturbing gold fields leaves feature vectors identical.</li>
+<li>Scenario IDs/classes/seeds cannot appear directly or indirectly.</li>
+<li>Feature serialization is deterministic and versioned.</li>
+<li>A production-shaped trajectory with no gold fields can still produce the snapshot.</li>
+</ul>
+</section>
+
+<section>
+<h2>8. Labels</h2>
+<p>Primary offline label:</p>
+<pre>safe_local = strict_all_pass</pre>
+<p>Keep diagnostic failure dimensions for analysis only: wrong root cause, required evidence miss, action failure, verifier failure, parse/no-output, unsupported/forbidden claim.</p>
+<p>The key analysis is the <strong>verifier-clean subset</strong>: did the learned router catch failures R4 could not?</p>
+</section>
+
+<section>
+<h2>9. Router candidates</h2>
+<p>Start with low-capacity, interpretable models because the dataset is small.</p>
+<ol>
+<li>Existing R4 deterministic gate — incumbent baseline.</li>
+<li>Logistic regression.</li>
+<li>One shallow tree model if supported cleanly by the current dependency stack.</li>
+</ol>
+<p>Train separate Qwen and Nemotron routers first. A unified model may be exploratory only. Do not use neural networks, LLM judges, frontier embeddings, or hidden reasoning content unavailable at runtime.</p>
+</section>
+
+<section>
+<h2>10. Oracle ceilings</h2>
+<h3>Post-answer oracle</h3>
+<p>For Qwen and Nemotron separately, compute the ideal gate that returns a safe local answer and escalates only a local failure that the frontier can rescue. Report local-safe, rescueable, unresolved, oracle quality and minimum useful frontier utilization.</p>
+<h3>Three-tier cheapest-sufficient oracle</h3>
+<pre>if Qwen passes:       Qwen sufficient
+elif Nemotron passes: Nemotron sufficient
+elif frontier passes: frontier required
+else:                 unresolved</pre>
+<p>This is descriptive groundwork for R6, not a learned policy in R5.</p>
+</section>
+
+<section>
+<h2>11. Evaluation</h2>
+<h3>Classifier metrics</h3>
+<p>Unsafe-case recall/precision, false negatives, false positives, PR-AUC, ROC-AUC where meaningful, and calibration/Brier score where useful.</p>
+<h3>Primary system metrics</h3>
+<ul>
+<li>final strict all-pass</li><li>routing false negatives</li><li>frontier utilization</li>
+<li>unnecessary escalations</li><li>frontier rescue rate</li>
+<li>cost per attempt / successful investigation</li><li>estimated p50/p95 latency</li>
+<li>gap to oracle</li>
+</ul>
+<p>Report the full DEV Pareto frontier: final quality / false negatives versus frontier utilization. A learned router that simply approaches strong-only usage is not a meaningful success.</p>
+</section>
+
+<section>
+<h2>12. Selection protocol</h2>
+<p>Before scoring candidate routers on DEV, commit an R5 experiment contract using TRAIN evidence only. It must freeze:</p>
+<ul>
+<li>feature families and exact allowlist</li><li>grouped CV protocol</li><li>candidate classifier families</li>
+<li>hyperparameter bounds</li><li>threshold grid/procedure</li><li>numeric DEV selection criteria</li>
+<li>maximum acceptable escalation increase</li><li>TEST unlock condition</li>
+</ul>
+<p>Recommended lexicographic shape:</p>
+<ol>
+<li>materially reduce R4 silent false negatives;</li>
+<li>do not achieve this by collapsing toward strong-only routing;</li>
+<li>among qualifying policies, prefer fewer unnecessary escalations/frontier calls;</li>
+<li>use cost/latency as secondary tie-breakers.</li>
+</ol>
+<p>The exact numeric thresholds must be chosen from TRAIN and committed before DEV candidate scoring.</p>
+</section>
+
+<section>
+<h2>13. Offline-first replay</h2>
+<pre>frozen local trajectory
+       +
+frozen frontier result
+       ↓
+feature snapshot
+       ↓
+router
+       ↓
+local or escalate
+       ↓
+offline system outcome</pre>
+<p>If all frozen trajectories already exist, threshold search and policy evaluation require no fresh Qwen, Nemotron, or frontier inference.</p>
+<div class="callout good"><strong>Expected operational improvement:</strong> R5 should be substantially faster than Suite v3 unless missing TRAIN trajectories must be acquired.</div>
+</section>
+
+<section>
+<h2>14. TEST policy</h2>
+<ol>
+<li>Train on TRAIN.</li><li>Select on DEV.</li><li>Freeze artifact, preprocessing, feature schema and threshold.</li>
+<li>Then open TEST exactly once.</li><li>No feature/threshold/model changes afterward.</li>
+</ol>
+<p>Use the existing frozen Suite v3 TEST trajectories for replay. New TEST model calls should not be necessary.</p>
+</section>
+
+<section>
+<h2>15. Routing telemetry</h2>
+<pre>{
+  "routing_policy": "r5-learned-v1",
+  "local_model": "...",
+  "router_artifact_digest": "...",
+  "feature_schema_version": "...",
+  "feature_snapshot_digest": "...",
+  "risk_score": 0.0,
+  "threshold": 0.0,
+  "decision": "local|escalate",
+  "r4_decision": "local|escalate",
+  "production_observable_only": true
+}</pre>
+<p>Gold outcomes are joined later in the analysis layer; they do not contaminate the decision record.</p>
+</section>
+
+<section>
+<h2>16. Implementation phases</h2>
+<div class="grid">
+<div class="card"><strong>R5.0 Reconcile</strong><br>Resolve Suite v3 identities, splits, run IDs, trajectory availability and decision point.</div>
+<div class="card"><strong>R5.1 Contract</strong><br>Pre-register feature boundary, CV, candidate models, thresholds and selection rule.</div>
+<div class="card"><strong>R5.2 Snapshot</strong><br>Implement versioned RoutingFeatureSnapshot and gold-leak tests.</div>
+<div class="card"><strong>R5.3 Dataset</strong><br>Build TRAIN features/labels; acquire only missing TRAIN trajectories.</div>
+<div class="card"><strong>R5.4 Train</strong><br>Fit simple per-model classifiers using TRAIN-only grouped CV.</div>
+<div class="card"><strong>R5.5 DEV replay</strong><br>Compare R4, candidates and oracle; select under the frozen rule.</div>
+<div class="card"><strong>R5.6 Freeze</strong><br>Persist artifact/schema/dataset digests and threshold.</div>
+<div class="card"><strong>R5.7 TEST once</strong><br>Replay only qualified frozen policies.</div>
+<div class="card"><strong>R5.8 Analyze</strong><br>Report silent-failure recovery, Pareto frontier and oracle gap.</div>
+<div class="card"><strong>R5.9 Stop</strong><br>Recommend exactly one next milestone.</div>
+</div>
+</section>
+
+<section>
+<h2>17. Acceptance criteria</h2>
+<ul>
+<li>Suite v3 unchanged.</li><li>R5 contract committed before DEV candidate scoring.</li>
+<li>Production decision snapshot versioned and allowlisted.</li><li>Gold-leak tests pass.</li>
+<li>Grouped memorization guard exists.</li><li>Qwen and Nemotron post-answer oracles computed.</li>
+<li>Three-tier oracle computed descriptively.</li><li>R4 reproduced from frozen trajectories.</li>
+<li>Interpretable learned router trained for each local model.</li><li>Candidate development uses TRAIN only.</li>
+<li>DEV Pareto frontier and silent-FN recovery reported.</li><li>At most one policy per local model frozen.</li>
+<li>TEST opened only for qualified frozen policies and only once.</li><li>No prompt/model/verifier/evidence/suite changes.</li>
+<li>No R6/QLoRA/dynamic-harness work started.</li><li>Timing and number of new model calls reported.</li>
+<li>Docs updated; working tree clean.</li>
+</ul>
+</section>
+
+<section>
+<h2>18. What R5 unlocks</h2>
+<p>If learned post-answer failure prediction works, R6 can ask the more interesting question:</p>
+<pre>Qwen
+  ↓ risk
+safe → return
+risky
+  ↓
+Nemotron
+  ↓ risk
+safe → return
+risky
+  ↓
+frontier</pre>
+<p>R5 is the first milestone where FIS learns a system decision policy from accumulated trajectories while keeping weights, benchmark truth and execution contracts fixed.</p>
+</section>
+
+<p class="small">Planning artifact: R5 Learned Silent-Failure Routing. Copy into the project before the R5 implementation run.</p>
+</main></body></html>

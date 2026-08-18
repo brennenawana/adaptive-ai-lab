@@ -283,6 +283,29 @@ v3-test-analysis: ## Suite v3 — TEST matrices and unchanged R4 replay
 	$(PY) scripts/routing_cascade_report.py --weak V3-qwen-96 --strong E4-v3-96 --policy verifier
 	$(PY) scripts/routing_cascade_report.py --weak V3-nemotron-96 --strong E4-v3-96 --policy verifier
 
+# ---------------------------------------------------------------- R5 TRAIN acquisition
+# Suite v3 has a TRAIN split (144 scenarios) but no TRAIN trajectories for any arm.
+# R5 (learned routing) fits on TRAIN, selects on DEV, opens TEST once — so the two
+# local arms are acquired on TRAIN under the FROZEN Suite v3 operating configuration
+# (same prompt, budget, evidence plan, schema, verifier, scorer; same protocol as
+# eval-v3-*: prime, Nemotron restarted with unchanged flags and probed on a train
+# case). Dataset acquisition, not tuning; the frontier is not run on TRAIN (labels
+# come from the local scorer). DEV/TEST outputs are never regenerated.
+.PHONY: eval-r5-train-qwen eval-r5-train-nemotron eval-r5-train
+eval-r5-train-qwen: ## R5 — Qwen (4096) on TRAIN, frozen Suite v3 configuration
+	$(MAKE) prime-local
+	$(PY) -m evals.runner.run_eval --arm R5 --model-ref local-specialist --split train \
+	  --prompt cause_action_directed --max-tokens 4096 --run-id R5-qwen-train --resume
+eval-r5-train-nemotron: ## R5 — Nemotron (8192, restarted + probed) on TRAIN, frozen Suite v3 configuration
+	$(MAKE) serve-nemotron
+	$(PY) scripts/model_throughput_probe.py --refs nemotron-lightning --scenario S05-1000004 --repeats 2 --rounds 1
+	$(MAKE) prime-nemotron
+	$(PY) -m evals.runner.run_eval --arm R5 --model-ref nemotron-lightning --split train \
+	  --prompt cause_action_directed --max-tokens 8192 --run-id R5-nemotron-train --resume
+eval-r5-train: ## R5 — both local arms on TRAIN, sequentially (nothing else on 8082/8083)
+	$(MAKE) eval-r5-train-qwen
+	$(MAKE) eval-r5-train-nemotron
+
 # R2 pairs the frozen weak arm with the strong arm ON DEV. The oracle map is a
 # selection tool; the script refuses the test split without --allow-test.
 .PHONY: eval-e4-dev routing-oracle

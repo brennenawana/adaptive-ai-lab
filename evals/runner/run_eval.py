@@ -162,7 +162,11 @@ def guard_suite(conn, run_id: str, split: str, resume: bool) -> None:
             f"run id {run_id!r} already has scores; pass --resume to continue it or choose a new id")
 
 
-def persist(conn, run_id: str, score, trajectory) -> None:
+def persist(conn, run_id: str, score, trajectory, result=None) -> None:
+    """`result` (the parsed InvestigationResult, or None) is stored in
+    `learning.model_outputs` since R5: the answer body is what a learned router reads,
+    and every run before R5 kept only its sha256. Best-effort and after the score row —
+    a persistence problem here must never lose a scored case."""
     with conn.cursor() as cur:
         cur.execute(
             """INSERT INTO learning.trajectories
@@ -182,6 +186,17 @@ def persist(conn, run_id: str, score, trajectory) -> None:
             (run_id, score.scenario_id, str(trajectory.trace_id), score.experiment_arm,
              Jsonb(json.loads(score.model_dump_json())), score.all_pass, SUITE_VERSION),
         )
+        if result is not None:
+            try:
+                with conn.transaction():   # a savepoint: failure here rolls back only itself
+                    cur.execute(
+                        """INSERT INTO learning.model_outputs (trace_id, run_id, scenario_id, output)
+                           VALUES (%s,%s,%s,%s) ON CONFLICT (trace_id) DO NOTHING""",
+                        (str(trajectory.trace_id), run_id, score.scenario_id,
+                         Jsonb(json.loads(result.model_dump_json()))),
+                    )
+            except psycopg.Error as exc:  # e.g. a pre-007 database without the table
+                print(f"    (model_outputs not persisted: {exc.__class__.__name__}; score kept)")
     conn.commit()
 
 
@@ -308,7 +323,7 @@ async def main() -> None:
 
             score = score_case(result=result, trajectory=traj, manifest=m, run_id=run_id)
             run.scores.append(score)
-            persist(owner, run_id, score, traj)   # commit per case: resume stays exact
+            persist(owner, run_id, score, traj, result)   # commit per case: resume stays exact
 
             route = ""
             if out is not None:
@@ -318,7 +333,7 @@ async def main() -> None:
                 # (its own trace_id) when the cascade escalated.
                 weak_score = score_case(result=out.weak_result, trajectory=out.weak_trajectory,
                                         manifest=m, run_id=f"{run_id}.weak")
-                persist(owner, f"{run_id}.weak", weak_score, out.weak_trajectory)
+                persist(owner, f"{run_id}.weak", weak_score, out.weak_trajectory, out.weak_result)
                 if out.decision.escalated:
                     escalations += 1
                 route = (f" -> {out.decision.escalation_reason}" if out.decision.escalated
