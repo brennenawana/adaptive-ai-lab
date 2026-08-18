@@ -96,7 +96,7 @@ def _oof(family: str, hp, rows: list[dict], names: list[str], folds, source="fea
                 p[i] = base
             continue
         m = _fit(family, hp, Xtr, ytr, names)
-        Xte = _matrix([rows[i] for i in te], names, source)
+        Xte = [{n: float(rows[i][source][n]) for n in names} for i in te]
         for i, q in zip(te, m.predict_proba(Xte)):
             p[i] = q
     return p
@@ -180,17 +180,22 @@ def _sign_stability(family: str, hp, rows, names, folds) -> dict | None:
 
 def train_candidate(cid: str, family: str, names: list[str], rows: list[dict],
                     *, source: str = "features", eligible_kind: bool,
-                    dataset_meta: dict, hp_grid=None) -> dict:
+                    dataset_meta: dict, hp_grid=None, protocol: str = "grouped") -> dict:
+    """`protocol` names the CV that drives hp, τ* and the gate: "grouped" (contract § 8/
+    § 10, leave-one-class-out — the PRIMARY protocol) or "stratified" (seed-stratified
+    4-fold, deployment-matched — the SECONDARY protocol registered in § 12a after TRAIN
+    showed the labels are class-clustered). The other CV is always reported beside it."""
     accepted = [r for r in rows if not r["r4_escalate"]]
     y = [int(r["label_unsafe"]) for r in accepted]
     groups = [r["group"] for r in accepted]
-    folds = grouped_folds(groups)
+    grouped = grouped_folds(groups)
     strat = stratified_folds(y, 4)
+    folds, other = (grouped, strat) if protocol == "grouped" else (strat, grouped)
     n_all = len(rows)
     if hp_grid is None:
         hp_grid = LR_LAMBDAS if family == "logistic" else TREE_DEPTHS
 
-    # 1. hyperparameter by grouped OOF log-loss (ties → simpler: larger λ / smaller depth)
+    # 1. hyperparameter by OOF log-loss under the protocol's CV (ties → simpler)
     trials = []
     for hp in hp_grid:
         p = _oof(family, hp, accepted, names, folds, source)
@@ -203,25 +208,28 @@ def train_candidate(cid: str, family: str, names: list[str], rows: list[dict],
 
     # 2. OOF at the chosen hp: metrics, utility curve, τ*
     p = _oof(family, hp, accepted, names, folds, source)
-    m_grouped = _metrics(y, p)
+    m_primary = _metrics(y, p)
     curve = _utility_curve(y, p, n_all)
     tau = _pick_threshold(curve)
     at_tau = next(c for c in curve if c["threshold"] == tau)
-    p_strat = _oof(family, hp, accepted, names, strat, source)
-    m_strat = _metrics(y, p_strat)
+    p_other = _oof(family, hp, accepted, names, other, source)
+    m_other = _metrics(y, p_other)
+    m_grouped, m_strat = (m_primary, m_other) if protocol == "grouped" else (m_other, m_primary)
 
-    # 3. eligibility gate (contract § 10)
-    gate = (m_grouped["roc_auc"] is not None and m_grouped["roc_auc"] >= GATE_AUC
-            and m_grouped["pr_auc"] is not None
-            and m_grouped["pr_auc"] >= m_grouped["base_rate"] + GATE_AP_MARGIN)
+    # 3. eligibility gate (contract § 10) under the protocol's CV
+    gate = (m_primary["roc_auc"] is not None and m_primary["roc_auc"] >= GATE_AUC
+            and m_primary["pr_auc"] is not None
+            and m_primary["pr_auc"] >= m_primary["base_rate"] + GATE_AP_MARGIN)
 
     # 4. final fit on all accepted TRAIN rows
     final = _fit(family, hp, _matrix(accepted, names, source), y, names)
     stability = _sign_stability(family, hp, accepted, names, folds) if source == "features" else None
 
+    suffix = "" if protocol == "grouped" else f"-{protocol}"
     art = {
-        "policy_id": f"r5-{dataset_meta['local_model_short']}-{cid}-v1",
+        "policy_id": f"r5-{dataset_meta['local_model_short']}-{cid}{suffix}-v1",
         "candidate": cid,
+        "protocol": protocol,
         "family": family,
         "eligible_kind": eligible_kind,             # contract § 9 eligible list
         "eligible": bool(eligible_kind and gate),   # kind AND TRAIN gate
@@ -242,10 +250,12 @@ def train_candidate(cid: str, family: str, names: list[str], rows: list[dict],
         "train_n_accepted_unsafe": sum(y),
         "code_commit": git_head(),
         "cv": {
-            "method": "leave-one-class-out (grouped by scenario class)",
+            "method": ("leave-one-class-out (grouped by scenario class)" if protocol == "grouped"
+                       else "seed-stratified 4-fold (deployment-matched; SECONDARY protocol)"),
             "hp_trials": trials,
             "grouped_oof": m_grouped,
-            "stratified4_oof_exploratory": m_strat,
+            "stratified4_oof": m_strat,
+            "primary_oof": m_primary,
             "utility_curve": curve,
             "at_threshold": at_tau,
             "stability": stability,
@@ -258,13 +268,16 @@ def train_candidate(cid: str, family: str, names: list[str], rows: list[dict],
 
 
 def _print_candidate(a: dict) -> None:
-    g = a["cv"]["grouped_oof"]; s = a["cv"]["stratified4_oof_exploratory"]; t = a["cv"]["at_threshold"]
+    g = a["cv"]["grouped_oof"]; s = a["cv"]["stratified4_oof"]; t = a["cv"]["at_threshold"]
     flag = "ELIGIBLE" if a["eligible"] else ("ineligible(gate)" if a["eligible_kind"] else "exploratory")
-    print(f"\n== {a['policy_id']}  [{a['family']}, hp={a['hyperparameter']}, {len(a['feature_names'])} features]  {flag}")
+    print(f"\n== {a['policy_id']}  [{a['family']}, hp={a['hyperparameter']}, {len(a['feature_names'])} features, "
+          f"protocol={a['protocol']}]  {flag}")
     print(f"   accepted subset n={a['train_n_accepted']} unsafe={a['train_n_accepted_unsafe']} "
           f"(base rate {g['base_rate']:.3f})")
-    print(f"   grouped OOF   AUC {g['roc_auc']:.3f}  PR-AUC {g['pr_auc']:.3f}  Brier {g['brier']:.3f}  logloss {g['log_loss']:.3f}")
-    print(f"   strat-4 OOF   AUC {s['roc_auc']:.3f}  PR-AUC {s['pr_auc']:.3f}  (exploratory)")
+    pg = " <- drives hp/τ/gate" if a["protocol"] == "grouped" else ""
+    ps = " <- drives hp/τ/gate" if a["protocol"] == "stratified" else ""
+    print(f"   grouped OOF   AUC {g['roc_auc']:.3f}  PR-AUC {g['pr_auc']:.3f}  Brier {g['brier']:.3f}  logloss {g['log_loss']:.3f}{pg}")
+    print(f"   strat-4 OOF   AUC {s['roc_auc']:.3f}  PR-AUC {s['pr_auc']:.3f}  Brier {s['brier']:.3f}  logloss {s['log_loss']:.3f}{ps}")
     print("   hp trials: " + ", ".join(f"{x['hp']}:{x['log_loss']:.3f}/{x['roc_auc']:.3f}" for x in a['cv']['hp_trials']))
     print(f"   τ*={a['threshold']}  OOF at τ*: escalated {t['escalated']} catches {t['catches']} unnecessary {t['unnecessary']} "
           f"U={t['utility']}  esc-rate(all) {t['escalation_rate_all']:.3f}  unnecessary-rate(all) {t['unnecessary_rate_all']:.3f}  "
@@ -285,6 +298,9 @@ def main() -> None:
     ap.add_argument("--out-dir", default=str(CANDIDATE_DIR))
     ap.add_argument("--exploratory", action="store_true",
                     help="also train the exploratory comparators (never eligible)")
+    ap.add_argument("--cv", choices=["grouped", "stratified"], default="grouped",
+                    help="which CV drives hp/τ/gate: grouped = PRIMARY (contract § 8/10); "
+                         "stratified = SECONDARY (§ 12a); the other is always reported beside it")
     args = ap.parse_args()
 
     ds = Path(args.dataset)
@@ -308,19 +324,31 @@ def main() -> None:
 
     out_dir = Path(args.out_dir); out_dir.mkdir(parents=True, exist_ok=True)
     arts = []
+    P = args.cv
+    print(f"protocol driving hp/τ/gate: {P}" + ("  (PRIMARY, contract § 8/10)" if P == "grouped" else "  (SECONDARY, § 12a)"))
     for cid, (fam, names) in CANDIDATES.items():
-        a = train_candidate(cid, fam, names, rows, eligible_kind=True, dataset_meta=dmeta)
+        a = train_candidate(cid, fam, names, rows, eligible_kind=True, dataset_meta=dmeta, protocol=P)
         arts.append(a); _print_candidate(a)
     if args.exploratory:
         for cid, (fam, names) in EXPLORATORY.items():
-            a = train_candidate(cid, fam, names, rows, eligible_kind=False, dataset_meta=dmeta)
+            a = train_candidate(cid, fam, names, rows, eligible_kind=False, dataset_meta=dmeta, protocol=P)
             arts.append(a); _print_candidate(a)
-        # class-prior comparator: case category one-hot (analysis-only column)
+        # class-prior comparator: case category one-hot (analysis-only column; production-
+        # visible but a class identifier for half the categories — never eligible)
         cats = sorted({r["meta"]["category"] for r in rows})
         for r in rows:
             r["prior"] = {f"category_{c}": float(r["meta"]["category"] == c) for c in cats}
         a = train_candidate("prior_category", "logistic", [f"category_{c}" for c in cats], rows,
-                            source="prior", eligible_kind=False, dataset_meta=dmeta)
+                            source="prior", eligible_kind=False, dataset_meta=dmeta, protocol=P)
+        arts.append(a); _print_candidate(a)
+        # class-identity ceiling: P(unsafe | scenario class) — the group key itself, which
+        # exists offline only. NOT a router (it reads the answer key's class); it is the
+        # ceiling of any router that works purely as a task-difficulty prior.
+        classes = sorted({r["group"] for r in rows})
+        for r in rows:
+            r["prior_class"] = {f"class_{c}": float(r["group"] == c) for c in classes}
+        a = train_candidate("prior_class_ceiling", "logistic", [f"class_{c}" for c in classes], rows,
+                            source="prior_class", eligible_kind=False, dataset_meta=dmeta, protocol=P)
         arts.append(a); _print_candidate(a)
         # answer-structure comparator over the persisted TRAIN answer bodies (+ snapshot)
         if all(r["answer_structure"] for r in rows if not r["r4_escalate"]):
@@ -329,21 +357,22 @@ def main() -> None:
                 r["structure"] = {**{k: r["features"][k] for k in ALL},
                                   **{f"as_{k}": (r["answer_structure"] or {}).get(k, 0.0) for k in keys}}
             a = train_candidate("answer_structure", "logistic", ALL + [f"as_{k}" for k in keys], rows,
-                                source="structure", eligible_kind=False, dataset_meta=dmeta)
+                                source="structure", eligible_kind=False, dataset_meta=dmeta, protocol=P)
             arts.append(a); _print_candidate(a)
             a = train_candidate("answer_structure_only", "logistic", [f"as_{k}" for k in keys], rows,
-                                source="structure", eligible_kind=False, dataset_meta=dmeta)
+                                source="structure", eligible_kind=False, dataset_meta=dmeta, protocol=P)
             arts.append(a); _print_candidate(a)
 
     for a in arts:
         (out_dir / f"{a['policy_id']}.json").write_text(canonical_json(a) + "\n")
     report = {"train_run_id": meta["run_id"], "local_model": model, "dataset_digest": meta["dataset_digest"],
-              "code_commit": git_head(),
-              "candidates": [{k: a[k] for k in ("policy_id", "candidate", "family", "eligible_kind",
+              "protocol": P, "code_commit": git_head(),
+              "candidates": [{k: a[k] for k in ("policy_id", "candidate", "protocol", "family", "eligible_kind",
                                                  "eligible", "hyperparameter", "threshold",
                                                  "artifact_digest", "cv")} for a in arts]}
-    (out_dir.parent / f"train_report_{short}.json").write_text(json.dumps(report, indent=1, sort_keys=True) + "\n")
-    print(f"\nwritten: {len(arts)} artifacts under {out_dir}; report train_report_{short}.json")
+    rep_name = f"train_report_{short}.json" if P == "grouped" else f"train_report_{short}_{P}.json"
+    (out_dir.parent / rep_name).write_text(json.dumps(report, indent=1, sort_keys=True) + "\n")
+    print(f"\nwritten: {len(arts)} artifacts under {out_dir}; report {rep_name}")
 
 
 if __name__ == "__main__":

@@ -185,6 +185,10 @@ def risk_scores(art: dict, rows: list[dict]) -> dict[str, float]:
     if src == "prior":
         feats = [{f"category_{r['meta']['category']}": 1.0} for r in rows]
         feats = [{n: f.get(n, 0.0) for n in art["feature_names"]} for f in feats]
+    elif src == "prior_class":
+        # analysis-only ceiling: the offline group key, never a production feature
+        feats = [{f"class_{r['group']}": 1.0} for r in rows]
+        feats = [{n: f.get(n, 0.0) for n in art["feature_names"]} for f in feats]
     elif src == "features":
         feats = [r["features"] for r in rows]
     else:
@@ -209,19 +213,27 @@ def decisions(rows: list[dict], risk: dict[str, float] | None, tau: float | None
 
 # ------------------------------------------------------------------ selection
 
-def apply_rule(model_short: str, rule: dict, r4: dict, cands: list[dict]) -> tuple[dict | None, list[dict]]:
-    """Contract § 12 lexicographic rule with the § 12a numbers. Returns (winner, verdicts)."""
-    p = rule["per_model"][model_short]
+def apply_rule(model_short: str, rule: dict, r4: dict, cands: list[dict],
+               protocol: str) -> tuple[dict | None, list[dict]]:
+    """Contract § 12 lexicographic rule with the § 12a numbers for one protocol.
+    Returns (winner, verdicts)."""
+    p = (rule["per_model"].get(model_short) or {}).get(protocol)
+    if p is None:
+        raise SystemExit(f"selection_rule.json has no {protocol} entry for {model_short} — commit the "
+                         "§ 12a amendment for this model/protocol (scripts/r5_amend_rule.py) before DEV selection")
     K = max(3, math.ceil(0.25 * r4["routing_fn"]))
     verdicts = []
     for c in cands:
         m = c["system"]
         r1 = m["routing_fn"] <= r4["routing_fn"] - K
-        r2 = (m["utilization"] <= r4["utilization"] + p["delta_util"]
+        # delta_util / e_max are null when TRAIN produced no eligible candidate: nothing
+        # can pass R2 then, by construction.
+        r2 = (p["delta_util"] is not None and p["e_max"] is not None
+              and m["utilization"] <= r4["utilization"] + p["delta_util"]
               and m["utilization"] <= 0.50 and m["unnecessary"] <= p["e_max"])
         r3 = m["all_pass"] > r4["all_pass"]
         verdicts.append({
-            "policy_id": c["policy_id"], "eligible": c["eligible"],
+            "policy_id": c["policy_id"], "eligible": c["eligible"], "protocol": protocol,
             "K": K, "delta_util": p["delta_util"], "e_max": p["e_max"],
             "R1_fn_reduction": r1, "R2_no_collapse": r2, "R3_quality": r3,
             "pass": bool(c["eligible"] and r1 and r2 and r3),
@@ -355,6 +367,7 @@ def main() -> None:
                 persist_decisions(conn, a["policy_id"], local_model, a, rows, risk, tau, esc,
                                   local_run, snap_digests)
             results.append({"policy_id": a["policy_id"], "candidate": a["candidate"], "family": a["family"],
+                            "protocol": a.get("protocol", "grouped"),
                             "eligible": a["eligible"], "eligible_kind": a["eligible_kind"],
                             "threshold": tau, "artifact_digest": a["artifact_digest"],
                             "system": sysm, "classifier": clf, "silent": sil, "sweep": sweep,
@@ -417,16 +430,30 @@ def main() -> None:
         if not RULE_FILE.exists():
             raise SystemExit(f"no pre-registered rule at {RULE_FILE} — commit the § 12a amendment first")
         rule = json.loads(RULE_FILE.read_text())
-        winner, verdicts = apply_rule(args.model, rule, r4, results)
-        print("\nSELECTION (pre-registered rule, contract § 12/12a)")
+        # PRIMARY protocol (grouped CV) first; the SECONDARY (stratified, § 12a) is
+        # consulted only if the primary selects nothing.
+        prim = [r for r in results if r["protocol"] == "grouped"]
+        sec = [r for r in results if r["protocol"] == "stratified"]
+        winner, verdicts = apply_rule(args.model, rule, r4, prim, "grouped")
+        selected_protocol = "grouped" if winner else None
+        if winner is None and sec:
+            w2, v2 = apply_rule(args.model, rule, r4, sec, "stratified")
+            verdicts += v2
+            if w2 is not None:
+                winner, selected_protocol = w2, "stratified"
+        print("\nSELECTION (pre-registered rule, contract § 12/12a; primary protocol first)")
         for v in verdicts:
-            print(f"  {v['policy_id']:<34} eligible={v['eligible']}  K={v['K']} Δutil={v['delta_util']:.3f} Emax={v['e_max']}  "
+            print(f"  {v['policy_id']:<40} [{v['protocol']}] eligible={v['eligible']}  K={v['K']} Δutil={v['delta_util']} Emax={v['e_max']}  "
                   f"R1 {v['R1_fn_reduction']}  R2 {v['R2_no_collapse']}  R3 {v['R3_quality']}  → {'PASS' if v['pass'] else 'FAIL'}")
         selection = {"rule": rule["per_model"][args.model], "verdicts": verdicts,
-                     "winner": winner["policy_id"] if winner else None}
+                     "winner": winner["policy_id"] if winner else None,
+                     "selected_protocol": selected_protocol}
         FROZEN_DIR.mkdir(parents=True, exist_ok=True)
         for a in arts:
-            v = next(v for v in verdicts if v["policy_id"] == a["policy_id"])
+            v = next((v for v in verdicts if v["policy_id"] == a["policy_id"]), None)
+            if v is None:      # a secondary candidate never reached because the primary selected
+                v = {"policy_id": a["policy_id"], "protocol": a.get("protocol"), "pass": False,
+                     "note": "not evaluated: the primary protocol selected a policy"}
             a2 = dict(a)
             a2["local_model_short"] = args.model
             a2["dev_selection"] = {"result": "PASS" if (winner and winner["policy_id"] == a["policy_id"]) else "FAIL",
@@ -435,7 +462,8 @@ def main() -> None:
                                    "frozen_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                                    "code_commit": git_head()}
             (FROZEN_DIR / f"{a['policy_id']}.json").write_text(canonical_json(a2) + "\n")
-        print(f"  winner: {selection['winner'] or 'NONE — R4 stays incumbent; TEST not opened for any learned policy'}")
+        print(f"  winner: {selection['winner'] or 'NONE — R4 stays incumbent; TEST not opened for any learned policy'}"
+              + (f"  (protocol {selected_protocol})" if selected_protocol else ""))
         print(f"  frozen artifacts written under {FROZEN_DIR} (dev_selection recorded)")
 
     out = Path(args.json_out) if args.json_out else ROOT / "evals" / "reports" / f"r5-replay-{args.split}-{args.model}.json"

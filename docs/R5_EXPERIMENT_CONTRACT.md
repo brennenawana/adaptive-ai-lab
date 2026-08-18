@@ -243,9 +243,51 @@ Applied per local model to eligible candidates at τ*, lexicographically:
 If no candidate survives: negative result recorded, R4 stays incumbent, TEST is not
 opened for any learned policy. No criterion is relaxed after DEV is seen.
 
-**§ 12a — numeric amendment:** _to be added by a further commit after TRAIN CV and before
-any DEV candidate replay; it will state K, Δ_util and E_max per local model with the
-TRAIN numbers they were derived from._
+### § 12a — numeric amendment (committed after TRAIN CV, before any DEV candidate replay)
+
+Derived mechanically by `scripts/r5_amend_rule.py` from the committed TRAIN reports into
+`learning/registry/r5/selection_rule.json`, which `r5_replay.py --select` reads. Written
+per local model as soon as that model's TRAIN development is done and before that
+model's DEV replay; an entry is never overwritten.
+
+**Two protocols, registered here before DEV.** TRAIN showed (Qwen; § 12a-Q below) that
+`safe_local` is class-clustered — P(unsafe | class) among R4-accepted TRAIN cases spans
+0.09 (S05, S09) to 1.0 (S04, S11, S12), and eight of eleven classes are ≥ 80 % one label
+— so under leave-one-class-out the pooled out-of-fold score is dominated by the shift of
+each training fold's base rate against its held-out class (pooled OOF ROC-AUC 0.24–0.52,
+i.e. below chance) and the § 10 gate cannot be informative. The PRIMARY protocol (§ 8/
+§ 10, grouped CV) is kept and applied exactly as written. A SECONDARY protocol is
+registered now: identical candidates, families, grid, utility rule, gate numbers and
+selection rule R1–R4, with hp/τ*/gate driven by the deployment-matched seed-stratified
+4-fold CV (DEV/TEST contain the same 12 templates as TRAIN). Order of application: the
+primary rule first; the secondary is consulted only if the primary selects nothing, and
+a secondary-selected policy is reported as such (its evidential status is weaker: its CV
+credits template-difficulty priors, which the exploratory comparators quantify). Either
+way at most one policy per local model is frozen and at most one TEST replay occurs.
+
+Two exploratory comparators are added (never eligible): `prior_class_ceiling` —
+P(unsafe | scenario class) fitted from the offline group key, the ceiling of any router
+that acts purely as a task-difficulty prior (not a router: it reads the class) — and the
+`lr_answer` / `prior_category` / answer-structure comparators of § 9. The report states,
+per model, how much of an eligible candidate's stratified OOF AUC the class ceiling
+explains.
+
+**§ 12a-Q — Qwen** (`R5-qwen-train`, dataset digest `d4d3c09d…`; report
+`train_report_qwen.json` / `_stratified.json`):
+
+| protocol | eligible after the TRAIN gate | max OOF escalation-rate increase at τ* | Δ_util | max OOF unnecessary rate at τ* | E_max |
+|---|---|---|---|---|---|
+| grouped (primary) | none (`lr_full` AUC 0.238, `lr_core` 0.253, `tree` 0.515 — all < 0.60) | — | null → R2 cannot pass | — | null |
+| stratified (secondary) | `lr_full` (AUC 0.901, τ* 0.60), `lr_core` (0.821, τ* 0.60), `tree` (0.822, τ* 0.70) | 0.431 | min(0.20, 1.5 × 0.431) = **0.20** | 0.076 | ⌈1.5 × 0.076 × 48⌉ = **6** |
+
+K on DEV = max(3, ⌈0.25 × 16⌉) = **4** (R4's DEV routing FN for Qwen is 16). The
+absolute cap of 50 % utilization stands. Note recorded before DEV: Qwen's R4-accepted
+TRAIN subset is 61 % unsafe, so a router that catches most of it necessarily escalates
+≈ 40 % of all cases on top of R4's ≈ 30 %; the a-priori caps (Δ_util ≤ 20 pp, 50 %
+absolute) may therefore bind for Qwen even for a well-ranked router. They are not
+changed; the Pareto sweep reports what each utilization buys.
+
+**§ 12a-N — Nemotron:** _added by a further commit when `R5-nemotron-train` is scored._
 
 ## 13. Router artifact freeze
 
