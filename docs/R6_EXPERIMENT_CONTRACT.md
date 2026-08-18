@@ -220,7 +220,7 @@ SHA and `/proc` server args match the frozen execution system.
 ## 14. Integrity controls
 
 - Suite v3 digests asserted at R6 start (R6.0) and end (report § A).
-- Clean tree for every DEV/TEST run (`git_head` without `-dirty`); allowed dirty paths: **none**. TRAIN pilots are run from committed code as well; if a TRAIN run had to be made dirty, its `git_head` says so and § 17 records why.
+- Committed code tree for every DEV/TEST run: every modified tracked path must lie under `learning/registry/r6/` — the registry's own append-only records (run ledger, phase markers, state logs, once-written result files) are necessarily ahead of HEAD at the moment a guarded run starts, and are committed right after. Allowed dirty paths outside the registry: **none** (`fis_platform/provenance.tree_state`, refused by `run_eval` and by every state transition). TRAIN pilots follow the same rule; each run's `git_head` and `code_tree_clean_except_registry` are recorded on its trajectories.
 - No new frontier calls. Historical Qwen/Nemotron/frontier arms are replayed, never rerun.
 - No `evals/reports` glob deletion; DEV/TEST result files are written once into the registry.
 - Only one candidate server resident at a time; the historical `:8082`/`:8083` servers are stopped at the start of R6.2 (their sessions are recorded in the R6.0 report; the controls are replay-only).
@@ -251,4 +251,5 @@ challenge of the conclusions. No subagent decides TEST unlock.
 
 | When (commit) | Section | Change |
 |---|---|---|
-| (this commit) | all | initial pre-registration, before any TRAIN pilot |
+| `b2f85d5` | all | initial pre-registration, before any TRAIN pilot |
+| (this commit) | § 14 | cleanliness rule made precise: the registry's own tracked append-only files may be ahead of HEAD (they are written by the guarded run itself); nothing else may |

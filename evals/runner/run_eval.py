@@ -127,10 +127,14 @@ def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[st
     reg = R6Registry(default_root())
     ident = require_state(reg, args.candidate, args.split, run_id, args.resume)
     if args.split in ("dev", "test"):
-        gh = runtime_context.get("git_head", "")
-        if not gh or gh.endswith("-dirty"):
-            raise SystemExit(f"R6: {args.split.upper()} inference needs a clean committed tree "
-                             f"(git_head={gh!r}); allowed dirty paths: none (contract § 14)")
+        from fis_platform.provenance import tree_state
+        gh, code_clean, dirty = tree_state()
+        if not code_clean:
+            raise SystemExit(f"R6: {args.split.upper()} inference needs a committed code tree "
+                             f"(git_head={gh!r}, dirty outside the registry: {dirty}); the only "
+                             "paths allowed to be ahead of HEAD are the registry's own append-only "
+                             "records under learning/registry/r6/ (contract § 14)")
+        runtime_context["code_tree_clean_except_registry"] = "true"
     if manifest.provider.value != "local_llamacpp":
         raise SystemExit("R6: --candidate applies to local llama.cpp arms only")
     artifact = reg.get_artifact(ident["identity"]["artifact_id"])

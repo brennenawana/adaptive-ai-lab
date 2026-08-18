@@ -976,6 +976,50 @@ def default_root() -> Path:
     return _ROOT / "learning" / "registry" / "r6"
 
 
+REGISTRY_REL = Path("learning") / "registry" / "r6"
+
+
+def dirty_paths_outside_registry() -> list[str]:
+    """Tracked files modified since HEAD that are NOT the R6 registry's own bookkeeping.
+
+    The registry's append-only files (ledger, phases, state logs, result files) are
+    git-tracked and are written by the very runs and transitions being guarded, so
+    "git status is empty" can never hold at the moment a run starts. The requirement that
+    matters is that the CODE tree is exactly a commit; the registry may be ahead of it
+    (contract § 14 amendment 1). Returns the offending paths, empty if the code tree is clean.
+    """
+    try:
+        out = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
+                             cwd=_ROOT, capture_output=True, text=True, timeout=10,
+                             check=True).stdout
+    except Exception:  # noqa: BLE001 — treated as dirty by the caller
+        return ["(git unavailable)"]
+    bad = []
+    for line in out.splitlines():
+        path = line[3:].strip()
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        if not path.startswith(str(REGISTRY_REL) + "/"):
+            bad.append(path)
+    return bad
+
+
+def tree_state() -> tuple[str, bool, list[str]]:
+    """(code_commit, code_tree_clean, dirty_paths). `code_commit` is `git_head()`
+    (`<sha>` or `<sha>-dirty`); `code_tree_clean` is True iff there is a commit and every
+    modified tracked path lies inside the R6 registry. A `-dirty` head with no listable
+    dirty paths is treated as dirty (fail closed)."""
+    code_commit = git_head()
+    if not code_commit:
+        return code_commit, False, ["(git unavailable)"]
+    if not code_commit.endswith("-dirty"):
+        return code_commit, True, []
+    outside = dirty_paths_outside_registry()
+    if outside == ["(git unavailable)"]:
+        return code_commit, False, outside
+    return code_commit, len(outside) == 0, outside
+
+
 def _append_line(path: Path, obj: dict[str, Any]) -> None:
     """The only writer of the append-only files. Opens "a" — never truncates, never
     rewrites a line that is already there."""
@@ -1273,11 +1317,11 @@ class R6Registry:
         }
         identity["identity_digest"] = digest(identity)
         _dump(self.identity_file(candidate_id), identity)
-        code_commit = git_head()
+        code_commit, tree_clean, _ = tree_state()
         self._append(candidate_id, "transition", None, REGISTERED,
                      {"identity_digest": identity["identity_digest"], "slug": slug,
                       "family": rec_family, "role": rec_role},
-                     code_commit, bool(code_commit) and not code_commit.endswith("-dirty"))
+                     code_commit, tree_clean)
         return candidate_id
 
     def family_members(self, family: str, states: tuple[str, ...],
@@ -1316,13 +1360,13 @@ class R6Registry:
             raise IllegalTransition(
                 f"{candidate_id}: {current} -> {to} is not a legal transition ({where})")
 
-        code_commit = git_head()
-        tree_clean = bool(code_commit) and not code_commit.endswith("-dirty")
+        code_commit, tree_clean, dirty = tree_state()
         if require_clean_tree and not tree_clean:
             raise TransitionRefused(
                 f"{candidate_id}: refusing {current} -> {to} at code_commit "
-                f"{code_commit or '(git unavailable)'} — a state change that cannot name the "
-                "exact code that produced it is not reproducible evidence. Commit first.")
+                f"{code_commit or '(git unavailable)'} (dirty outside the registry: {dirty}) — "
+                "a state change that cannot name the exact code that produced it is not "
+                "reproducible evidence. Commit first.")
 
         payload = dict(payload or {})
         stored, side_effects = self._validate_payload(candidate_id, entries, identity,
@@ -1636,11 +1680,10 @@ def begin_run(registry: R6Registry, candidate_id: str, split: str, run_id: str,
     entries = registry.read_state(candidate_id)
     state = entries[-1]["to"]
     started_at = _now()
-    code_commit = git_head()
+    code_commit, tree_clean, _ = tree_state()
     payload = {"split": split, "run_id": run_id, "planned_cases": planned_cases,
                "started_at": started_at, **(extra or {})}
-    entry = registry._append(candidate_id, "run", state, state, payload, code_commit,
-                             bool(code_commit) and not code_commit.endswith("-dirty"))
+    entry = registry._append(candidate_id, "run", state, state, payload, code_commit, tree_clean)
     _append_line(registry.ledger_file, {
         "candidate_id": candidate_id, "split": split, "run_id": run_id, "event": "start",
         "planned_cases": planned_cases, "started_at": started_at, "code_commit": code_commit,

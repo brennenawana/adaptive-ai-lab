@@ -517,14 +517,20 @@ def test_a_dirty_tree_refuses_the_edges_that_produce_evidence(reg, tmp_path, mon
     cid = _candidate(reg, tmp_path)
     payload = _payload(reg, cid, TRAIN_COMPATIBLE)
     monkeypatch.setattr(provenance, "git_head", lambda: "37742a7-dirty")
+    monkeypatch.setattr(provenance, "dirty_paths_outside_registry", lambda: ["evals/runner/run_eval.py"])
     with pytest.raises(TransitionRefused, match="not reproducible evidence"):
         reg.transition(cid, TRAIN_COMPATIBLE, payload)
+    # a "-dirty" head whose only modified paths are the registry's own bookkeeping is the
+    # normal state at the moment a transition is recorded (the ledger is tracked): allowed.
+    monkeypatch.setattr(provenance, "dirty_paths_outside_registry", lambda: [])
+    entry = reg.transition(cid, TRAIN_COMPATIBLE, payload)
+    assert entry["tree_clean"] is True and entry["code_commit"] == "37742a7-dirty"
     monkeypatch.setattr(provenance, "git_head", lambda: "")
     with pytest.raises(TransitionRefused, match="git unavailable"):
-        reg.transition(cid, TRAIN_COMPATIBLE, payload)
+        reg.transition(cid, CONTRACT_FROZEN, _payload(reg, cid, CONTRACT_FROZEN))
 
     monkeypatch.setattr(provenance, "git_head", lambda: "37742a7")
-    entry = reg.transition(cid, TRAIN_COMPATIBLE, payload)          # default: clean required
+    entry = reg.transition(cid, CONTRACT_FROZEN, _payload(reg, cid, CONTRACT_FROZEN))   # default: clean required
     assert entry["tree_clean"] is True and entry["code_commit"] == "37742a7"
 
 
