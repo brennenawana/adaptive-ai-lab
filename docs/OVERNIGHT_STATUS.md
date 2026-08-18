@@ -1068,3 +1068,57 @@ Qwen `R5-qwen-train` (4096, `cause_action_directed`, primed, session pid 586847)
 Nemotron `R5-nemotron-train` (8192, restarted with unchanged flags, probed on
 S05-1000004, primed). Dataset acquisition only; the answer body persists to
 `learning.model_outputs` for producing cases (verified on the first S02 rows).
+
+Qwen arm done 05:16–05:53 UTC (144 cases, 41/144 = 28.5 % all-pass; 117 answer bodies
+persisted). Nemotron restarted 05:54 (probe 77.6–78.2 tok/s vs 87–88 in Suite v3 —
+recorded), primed, arm 05:55 → ~08:2x UTC.
+
+## M6.2 Tooling and pre-registration (05:20–06:25 UTC; commits `54c6fa9` … `b078d4c`)
+
+`fis_platform/routing/features.py` (schema v1, 58-name allowlist, forbidden names,
+deterministic digest; 43 leak-guard tests, import ban extended), `learn.py` (stdlib L2
+logistic Newton, CART ≤ 3, AUC/AP/Brier/log-loss, LOGO + stratified folds; 26 tests),
+migration 008 `learning.routing_decisions`, `r5_dataset.py` (echo reconstruction of the
+answer's label/action, checked equal to the persisted TRAIN bodies on 117/117 Qwen
+cases), `r5_train.py`, `r5_replay.py`, `r5_oracles.py` (R4 reproduction gate: DEV AGREES
+with the release report on all 23 fields; release-report erratum § 11 recorded for the
+Qwen FN prose split), `r5_amend_rule.py`. Adversarial audit (5 lenses + synthesis) before
+DEV: feature boundary and learner arithmetic HOLD; the plan's "classes cannot appear
+indirectly" does NOT hold — four case constants (`n_tool_calls`, webhook/vendor query
+counts, `input_tokens`) identify the class for 45/48 DEV cases — recorded in contract
+§ 6, with `prior_class_ceiling` / `lr_behavior` comparators added; pooled LOGO AUC is
+null-biased under class-clustered labels → SECONDARY (seed-stratified) protocol
+registered in § 12a before DEV; the τ rule's degeneration at unsafe-rate ≥ 0.5 noted;
+TEST reading pre-registered (§ 14). Selection state machine hardened after the user's
+invariant list (one selection record per model, winner-only freeze, unlock bound to the
+recorded winner + lineage + one look per model, append-only, no rollback; 17 temp-registry
+tests). Full suite 534 passed + 1 skipped.
+
+## M6.3 Qwen TRAIN development (`R5-qwen-train`, TRAIN only)
+
+R4-accepted subset 105/144, 64 unsafe (0.61); P(unsafe | class) 0.09–1.0, eight of eleven
+classes ≥ 80 % one label. Grouped (primary) OOF AUC: `lr_full` 0.238, `lr_core` 0.253,
+`tree` 0.515 — none passes the gate. Stratified (secondary): `lr_full` 0.901 (τ* 0.60),
+`lr_core` 0.821 (0.60), `tree` 0.822 (0.70) — all pass; `prior_class_ceiling` 0.892,
+`lr_answer` 0.904, `lr_behavior` 0.909, answer-structure (TRAIN bodies) 0.873 / 0.685 —
+the router is within 0.01 AUC of the class-identity ceiling. § 12a-Q: Δ_util 0.646
+(uncapped secondary; 0.20 capped), E_max 6, K = 4.
+
+## M6.4 Qwen DEV replay + selection (one look, `503b042`)
+
+R4 32/48 @ 31.2 %, FN 16. Secondary candidates at τ*: `lr_full` 47/48 @ 70.8 % (FN 1,
+unnec 4, caught 15/16), `lr_core` 44/48 @ 68.8 % (FN 4, unnec 6), `tree` 39/48 @ 56.2 %
+(FN 9, unnec 5, caught 7/16); all three PASS R1–R3 (none under the skeleton's 50 % cap).
+Pre-registered tie-break "fewer frontier calls" freezes **`r5-qwen-tree-stratified-v1`**
+(τ 0.70, digest `aa13e045…`) — the least-escalating survivor, not the best; on DEV its 7
+catches in 12 escalations are not distinguishable from chance (hypergeometric p 0.31;
+`lr_full` 15/19: p 3e-5; class ceiling 13/18: p 0.004). Recorded, not re-selected.
+
+## M6.5 Qwen TEST — exactly once (`dbf5414`)
+
+`r5-qwen-tree-stratified-v1` on `V3-qwen-96` vs `E4-v3-96`: all-pass **75/96 (78.1 %)** vs
+R4 48/96 (50.0 %); routing FN 47 → **20** (27 caught: 22 evidence, 5 root cause);
+unnecessary 6; utilization 57.3 % (R4 22.9 %, oracle 70.8 %, always-escalate 100 %);
+$0.0799/success (R4 $0.0513, strong $0.1139); wall p50 37.6 s; classifier AUC 0.762 on
+the accepted subset; catches 27/33 vs base 0.64: p 0.003. Pre-registered TEST reading:
+**CONFIRMED** (K_test 12). No sweep computed on TEST.
