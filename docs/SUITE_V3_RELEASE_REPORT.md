@@ -236,3 +236,15 @@ of the case, model confidence — never evidence recall or any gold field; the e
 selection rule in case counts (strong-call rate ceiling and unnecessary-escalation
 budget), compare against the deterministic `verifier` policy and a transparent
 baseline as the pivot guide requires, one TEST look. Not started here.
+
+## 11. Errata (recorded after release; no number in a table changes)
+
+- **§ 6 prose, Qwen DEV routing false negatives "10 evidence, 6 rc/action".** Under the
+  exclusive bucketing R5 uses (root cause wrong → `root_cause`, whatever else also
+  failed; root cause right and only evidence short → `evidence_only`), the same 16 cases
+  split **7 root_cause / 9 evidence_only** (`scripts/r5_oracles.py --split dev`, section
+  D; four of the seven root-cause misses also have short evidence). Nemotron's "8
+  evidence, 5 rc" matches under both readings. The 16 / 13 totals, and every table cell,
+  are unchanged. Related: § 4's Qwen anatomy "5 root-cause" then lists eight scenarios —
+  seven silent root-cause misses plus S11-2003010, which is a verifier-visible
+  unsupported-claim case, not a silent one. Recorded 2026-08-18 during R5.0.
