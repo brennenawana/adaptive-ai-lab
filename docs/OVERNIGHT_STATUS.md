@@ -1026,3 +1026,45 @@ QLoRA, ontology expansion, any change after a score was seen; the R3b verdict st
 | full automated tests pass | ✔ 368 + 1 skipped |
 | experiment log / handoff / release report updated | ✔ |
 | working tree clean | ✔ at the final commit |
+
+---
+
+# Milestone 6 — R5: learned silent-failure routing (2026-08-18)
+
+Governing document: `docs/FIS_R5_Learned_Silent_Failure_Routing_Plan.html` (committed
+`fc1c18e`). Contract: `docs/R5_EXPERIMENT_CONTRACT.md`. Report:
+`docs/R5_LEARNED_ROUTING_REPORT.md`. Timing is logged per phase at the end (M6.x).
+
+## M6.0 Reconciliation (04:55–05:12 UTC)
+
+Direct checks: HEAD `47723b2` on `main`, clean but for the untracked R5 plan HTML;
+`git diff suite-v3 -- . ':!docs'` empty (code + corpus identical to the freeze);
+`fis-postgres`/`fis-nats` healthy; Qwen pid 586847 on 8082 (the very session that made
+`V3-qwen-dev` and `V3-qwen-96`), Nemotron pid 1045208 on 8083 (the `V3-nemotron-96`
+session, idle >24 h); GPU 15.6/16.3 GB with both resident.
+
+| item | repository / artefact state |
+|---|---|
+| Suite v3 identity | `SUITE_VERSION "3"`, tag `suite-v3` → `7764601`, corpus `1e7c5278…9d39e528` (train `d9d1570e…`, dev `5d5c94b0…`, test `8deea4a2…`), scorer 3 / verifier 3 / ontology 1 / prompt 1 |
+| suite-3 runs in `learning.case_scores` | DEV: `V3-qwen-dev` 17/48, `V3-qwen2-dev` 17/48, `V3-nemotron-dev` 23/48, `E4-v3-dev` 48/48; TEST: `V3-qwen-96` 27/96, `V3-nemotron-96` 48/96, `E4-v3-96` 95/96 — all goal-prompt figures match the DB |
+| TRAIN split | 144 scenarios (12 × 12, seeds 1,000,000–1,999,999), in the v3 corpus, reachable |
+| TRAIN trajectories | **none, for any arm, any suite** → acquire Qwen + Nemotron on TRAIN under the frozen configuration (`make eval-r5-train`); frontier not required for labels, not acquired |
+| decision point | `cascade.py::investigate_cascade`: after `investigate()` (parse + `verify()`), `signals_from` → `should_escalate` → `RouterDecision`, before any strong call |
+| R4 inputs | `EscalationSignals(produced_output, verifier_passed, unsupported_claims, violations)` from `traj.verification` only |
+| where gold enters | `score_case(manifest=…)`; analysis scripts join `ground_truth.scenario_manifests`; guards `GOLD_FEATURE_NAMES`, `test_routing_no_gold_leak.py`, `fis_tools` role |
+| **mismatch (a): the answer body was never persisted** | `investigate()` keeps only `output_digest`; server logs hold timings only. For the frozen DEV/TEST arms the answer-structure family reduces to length (`content_chars`, `output_tokens`), the verifier's per-check booleans, and the model's own `root_cause.label` / `recommended_next_action` (echoed verbatim by the scorer as `said …`). Fact/citation/hypothesis counts and confidence are unrecoverable for DEV/TEST. R5's primary feature set is thin on the verifier-clean subset; a null result is a live outcome. Migration 007 (`learning.model_outputs`) keeps the parsed answer from the TRAIN acquisition onward (best-effort, beside the trajectory) — exploratory TRAIN-only analysis, and so the next suite does not lose it again |
+| mismatch (b): case `category` | model-visible, but a class identifier for 4 of 8 categories → excluded from the eligible allowlist; exploratory class-prior comparator only |
+| mismatch (c): FIXED_EVIDENCE tool trajectory | deterministic per case: 0 errors, 0 retries; family C is bundle shape (`n_tool_calls` ∈ {9,10,11,12}, webhook/vendor query counts, `input_tokens`) |
+| mismatch (d): no numpy/scikit-learn | routers are stdlib logistic regression (L2, Newton) + CART depth ≤ 3, JSON artifacts, stable digests |
+| grouping | seeds are independent draws per class (`lo + i·1000 + class_idx`) → group = class, leave-one-class-out CV (conservative vs deployment; seed-stratified CV exploratory) |
+| Nemotron latency drift | idle `--no-mmap` degrades to ~50 tok/s; restart + train-case probe before its arm as in Suite v3; latency features are session-fragile, tokens are the invariant |
+
+No scientific blocker. `fc1c18e`: plan committed, migration 007, `eval-r5-train*`
+targets. `e3b8066`: contract skeleton (numbers amended after TRAIN CV, before DEV).
+
+## M6.1 TRAIN acquisition (`make eval-r5-train`, started 05:16 UTC)
+
+Qwen `R5-qwen-train` (4096, `cause_action_directed`, primed, session pid 586847) then
+Nemotron `R5-nemotron-train` (8192, restarted with unchanged flags, probed on
+S05-1000004, primed). Dataset acquisition only; the answer body persists to
+`learning.model_outputs` for producing cases (verified on the first S02 rows).
