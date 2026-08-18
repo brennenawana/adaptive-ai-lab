@@ -4,12 +4,12 @@
     "seq": 1
   },
   "qwen35-9b@9f010021daba": {
-    "entry_digest": "0d8d352de906f3d0398d48883b461014c60779b97781cd796684f7f0aedc9013",
-    "seq": 3
+    "entry_digest": "2aa3c132fbb617e15843c091b1b83c26eae8facbdc1cc9bd2310df1e8f93af74",
+    "seq": 4
   },
   "qwen38-27b-q3km@8528f049af75": {
-    "entry_digest": "b0af5bdc132a2766107abc3a6e2e29061f45f61cc195163693d5b88a49f1bb42",
-    "seq": 1
+    "entry_digest": "8e69369da4fce9853446ab8b94fc7569da7c3db4017772f07e0713af180cfb1f",
+    "seq": 2
   },
   "qwen38-27b-udq3kxl@d9d3f9771d67": {
     "entry_digest": "18544e12f96323dadabda0ef3bbccf9577788755b5542779044d51c0423547b0",

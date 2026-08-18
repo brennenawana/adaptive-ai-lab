@@ -74,7 +74,7 @@ ORDER = [TRAIN_COMPATIBLE, CONTRACT_FROZEN, DEV_EVALUATED, DEV_QUALIFIED, TEST_U
 
 @pytest.fixture
 def reg(tmp_path: Path) -> R6Registry:
-    return R6Registry(tmp_path / "registry")
+    return R6Registry(tmp_path / "registry", git_checks=False)
 
 
 def _artifact(tmp_path: Path, slug: str, *, family: str = "qwen35.9b",
@@ -84,7 +84,7 @@ def _artifact(tmp_path: Path, slug: str, *, family: str = "qwen35.9b",
     path.write_bytes(blob)
     fields: dict[str, Any] = {
         "slug": slug, "role": role, "family": family,
-        "base_model_repo": "Qwen/Qwen3.5-9B",
+        "base_model_repo": f"base/{family}",
         "quantizer_or_derivative_repo": "unsloth/Qwen3.5-9B-GGUF",
         "source_revision": "99a1b218", "source_url": f"https://example/{slug}.gguf",
         "filename": path.name, "quantization": "Q4_K_M",
@@ -163,13 +163,21 @@ def _step(reg: R6Registry, cid: str, to: str, **over: Any) -> dict[str, Any]:
     return reg.transition(cid, to, payload, require_clean_tree=False)
 
 
+def _finished_run(reg: R6Registry, cid: str, split: str, run_id: str, n: int,
+                  extra: dict[str, Any] | None = None) -> None:
+    """A run that started AND finished with every planned case — what DEV_EVALUATED /
+    TEST_EVALUATED require to see in the ledger."""
+    begin_run(reg, cid, split, run_id, n, extra)
+    end_run(reg, cid, run_id, cases_done=n, wall_s=1.0)
+
+
 def _walk(reg: R6Registry, cid: str, target: str) -> str:
     """Drive a candidate along the canonical path up to and including `target`."""
     for state in ORDER:
         if state == DEV_EVALUATED:
-            begin_run(reg, cid, "dev", _run_id(cid, "dev"), 48)
+            _finished_run(reg, cid, "dev", _run_id(cid, "dev"), 48)
         if state == TEST_EVALUATED:
-            begin_run(reg, cid, "test", _run_id(cid, "test"), 96)
+            _finished_run(reg, cid, "test", _run_id(cid, "test"), 96)
         _step(reg, cid, state)
         if state == target:
             return cid
@@ -310,7 +318,7 @@ def test_train_compatible_refuses_runs_that_are_not_train_runs(reg, tmp_path):
 def test_dev_and_test_refuse_a_contract_revision_that_moved(reg, tmp_path):
     cid = _candidate(reg, tmp_path)
     _walk(reg, cid, CONTRACT_FROZEN)
-    begin_run(reg, cid, "dev", _run_id(cid, "dev"), 48)
+    _finished_run(reg, cid, "dev", _run_id(cid, "dev"), 48)
     with pytest.raises(TransitionRefused, match="contract_revision"):
         _step(reg, cid, DEV_EVALUATED, contract_revision="b" * 40)
     _step(reg, cid, DEV_EVALUATED)
@@ -371,11 +379,13 @@ def test_a_second_quant_of_the_same_family_cannot_spend_the_dev_evaluation(reg, 
     first = _candidate(reg, tmp_path, "qwen35-9b-q4km")
     second = _candidate(reg, tmp_path, "qwen35-9b-q5km")            # same family, other quant
     _walk(reg, first, DEV_EVALUATED)
-    _walk(reg, second, CONTRACT_FROZEN)
-    begin_run(reg, second, "dev", _run_id(second, "dev"), 48)
+    _walk(reg, second, TRAIN_COMPATIBLE)
+    # the guard now fires at the FREEZE (before any DEV inference), and again in require_state
     with pytest.raises(TransitionRefused, match=f"candidate '{first}' of family"):
-        _step(reg, second, DEV_EVALUATED)
-    assert reg.current_state(second) == CONTRACT_FROZEN
+        _step(reg, second, CONTRACT_FROZEN)
+    assert reg.current_state(second) == TRAIN_COMPATIBLE
+    with pytest.raises(TransitionRefused, match="of family"):
+        require_state(reg, second, "dev", _run_id(second, "dev"))
     # a DIFFERENT family is unaffected
     third = _candidate(reg, tmp_path, "nemotron-30b-iq4xs", family="nemotron.30b")
     _walk(reg, third, DEV_EVALUATED)
@@ -448,7 +458,7 @@ def test_the_dev_result_is_written_exactly_once(reg, tmp_path):
     _walk(reg, cid, CONTRACT_FROZEN)
     reg.dev_result_file(cid).parent.mkdir(parents=True, exist_ok=True)
     reg.dev_result_file(cid).write_text(json.dumps({"planted": True}))
-    begin_run(reg, cid, "dev", _run_id(cid, "dev"), 48)
+    _finished_run(reg, cid, "dev", _run_id(cid, "dev"), 48)
     with pytest.raises(TransitionRefused, match="DEV is evaluated once"):
         _step(reg, cid, DEV_EVALUATED)
     assert json.loads(reg.dev_result_file(cid).read_text()) == {"planted": True}
@@ -459,7 +469,7 @@ def test_the_dev_transition_must_match_the_run_the_ledger_saw(reg, tmp_path):
     _walk(reg, cid, CONTRACT_FROZEN)
     with pytest.raises(TransitionRefused, match="the run ledger records DEV runs"):
         _step(reg, cid, DEV_EVALUATED)                      # no ledger entry at all
-    begin_run(reg, cid, "dev", _run_id(cid, "dev"), 48)
+    _finished_run(reg, cid, "dev", _run_id(cid, "dev"), 48)
     with pytest.raises(TransitionRefused, match="the run ledger records DEV runs"):
         _step(reg, cid, DEV_EVALUATED, dev_run_id="R6-other-dev")
     assert not reg.dev_result_file(cid).exists(), "a refused DEV must not leave a result"
@@ -522,7 +532,7 @@ def test_a_dirty_tree_refuses_the_edges_that_produce_evidence(reg, tmp_path, mon
         reg.transition(cid, TRAIN_COMPATIBLE, payload)
     # a "-dirty" head whose only modified paths are the registry's own bookkeeping is the
     # normal state at the moment a transition is recorded (the ledger is tracked): allowed.
-    monkeypatch.setattr(provenance, "dirty_paths_outside_registry", lambda: [])
+    monkeypatch.setattr(provenance, "dirty_paths_outside_registry", list)
     entry = reg.transition(cid, TRAIN_COMPATIBLE, payload)
     assert entry["tree_clean"] is True and entry["code_commit"] == "37742a7-dirty"
     monkeypatch.setattr(provenance, "git_head", lambda: "")
@@ -660,3 +670,81 @@ def test_no_command_can_relocate_the_root_or_erase_state():
     src = Path(provenance.__file__).read_text()
     assert src.count('path.open("a", encoding="utf-8")') == 1, "one append-only writer"
     assert "_append_line(path" in src and "_append_line(registry.ledger_file" in src
+
+
+# ------------------------------------------------------------------ 10. audit follow-ups (review A)
+
+def test_a_deleted_candidate_cannot_be_recreated_or_ignored(reg, tmp_path):
+    import shutil
+    cid = _candidate(reg, tmp_path)
+    shutil.rmtree(reg.candidate_dir(cid))
+    with pytest.raises(RegistryIntegrityError, match="cannot vanish"):
+        reg.candidate_ids()
+    with pytest.raises((RegistryIntegrityError, TransitionRefused)):
+        _candidate(reg, tmp_path)          # same slug/artifact/runtime -> same id -> refused
+
+
+def test_dev_and_test_results_need_a_finished_full_run(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, CONTRACT_FROZEN)
+    begin_run(reg, cid, "dev", _run_id(cid, "dev"), 48)               # started, never ended
+    with pytest.raises(TransitionRefused, match="no ledger end line"):
+        _step(reg, cid, DEV_EVALUATED)
+    end_run(reg, cid, _run_id(cid, "dev"), cases_done=40, wall_s=1.0)   # ended short
+    with pytest.raises(TransitionRefused, match="partial runs are not recorded"):
+        _step(reg, cid, DEV_EVALUATED)
+    assert reg.current_state(cid) == CONTRACT_FROZEN
+
+
+def test_the_family_key_cannot_be_dodged_with_a_new_family_for_the_same_base_model(reg, tmp_path):
+    _candidate(reg, tmp_path, "qwen35-9b-q4km", family="qwen35.9b")
+    art = _artifact(tmp_path, "qwen35-9b-q5km", family="other.family",
+                    base_model_repo="base/qwen35.9b")
+    reg.put_artifact(art)
+    with pytest.raises(TransitionRefused, match="shares base_model_repo"):
+        reg.register_candidate("qwen35-9b-q5km", art, _runtime(), "other.family", "modern_small")
+
+
+def test_freeze_requires_the_committed_contract_blob_when_git_checks_are_on(reg, tmp_path, monkeypatch):
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    reg.git_checks = True
+    monkeypatch.setattr(provenance, "contract_blob_sha", lambda path: "c" * 40)
+    with pytest.raises(TransitionRefused, match="not the blob committed at HEAD"):
+        _step(reg, cid, CONTRACT_FROZEN)                       # payload carries CONTRACT_REV
+    monkeypatch.setattr(provenance, "contract_blob_sha", lambda path: CONTRACT_REV)
+    _step(reg, cid, CONTRACT_FROZEN)
+    # after the freeze, DEV requires the committed contract to be the frozen blob (+ appends)
+    monkeypatch.setattr(provenance, "registry_ahead_of_git_only_by_appends", list)
+    monkeypatch.setattr(provenance, "committed_contract_extends", lambda blob, path=None: False)
+    with pytest.raises(TransitionRefused, match="rules changed after the freeze"):
+        require_state(reg, cid, "dev", _run_id(cid, "dev"))
+    monkeypatch.setattr(provenance, "committed_contract_extends", lambda blob, path=None: True)
+    require_state(reg, cid, "dev", _run_id(cid, "dev"))
+    monkeypatch.setattr(provenance, "registry_ahead_of_git_only_by_appends", lambda: ["ledger.jsonl: truncated"])
+    with pytest.raises(TransitionRefused, match="not append-only"):
+        require_state(reg, cid, "dev", _run_id(cid, "dev"))
+
+
+def test_capture_server_args_matches_exact_tokens_only(tmp_path):
+    proc = tmp_path / "proc"
+    for pid, argv in {"100": ["grep", "llama-server", "--port", "8085"],
+                      "200": ["/x/llama-server", "-m", "m.gguf", "--port", "8085", "-c", "8192"],
+                      "300": ["/x/llama-server", "--port", "80850"]}.items():
+        (proc / pid).mkdir(parents=True)
+        (proc / pid / "cmdline").write_bytes("\0".join(argv).encode() + b"\0")
+    got = provenance.capture_server_args(8085, proc=proc)
+    assert got is not None and got.material == ["-c", "8192"]
+    assert provenance.capture_server_args(9999, proc=proc) is None
+    assert provenance.llama_server_pids(proc) == ["200", "300"]
+    (proc / "400").mkdir(); (proc / "400" / "cmdline").write_bytes(b"/y/llama-server\0--port\08085\0")
+    with pytest.raises(TransitionRefused, match="claim --port 8085"):
+        provenance.capture_server_args(8085, proc=proc)
+
+
+def test_untracked_files_outside_the_registry_count_as_dirty(monkeypatch):
+    monkeypatch.setattr(provenance, "git_head", lambda: "abc1234")
+    monkeypatch.setattr(provenance.subprocess, "run",
+                        lambda *a, **k: type("R", (), {"stdout": "?? evals/runner/dotenv.py\n M learning/registry/r6/ledger.jsonl\n"})())
+    _commit, clean, dirty = provenance.tree_state()
+    assert clean is False and dirty == ["evals/runner/dotenv.py"]

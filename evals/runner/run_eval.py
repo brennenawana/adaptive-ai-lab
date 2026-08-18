@@ -81,8 +81,9 @@ def local_server_session(base_url: str) -> dict[str, str]:
             if not pid.isdigit():
                 continue
             with open(f"/proc/{pid}/cmdline", "rb") as f:
-                cmd = f.read().replace(b"\0", b" ").decode(errors="replace")
-            if "llama-server" in cmd and f"--port {port}" in cmd:
+                argv = [a for a in f.read().decode(errors="replace").split("\0") if a]
+            if (argv and Path(argv[0]).name == "llama-server"
+                    and ("--port", str(port)) in list(zip(argv, argv[1:]))):
                 with open(f"/proc/{pid}/stat") as f:
                     start_ticks = f.read().rsplit(")", 1)[1].split()[19]
                 with open("/proc/sys/kernel/random/boot_id") as f:
@@ -121,26 +122,36 @@ def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[st
     (registry, identity) for the run ledger.
     """
     from fis_platform.provenance import (
-        R6Registry, build_generation_config, capture_server_args, default_root, require_state,
-        sha256_file,
+        R6Registry, bind_running_server, build_generation_config, capture_server_args,
+        default_root, llama_server_pids, require_state, sha256_file, tree_state,
     )
+    if args.escalate_to:
+        raise SystemExit("R6: --candidate runs are local-only; no cascade/frontier calls (contract § 1)")
+    if args.split in ("dev", "test") and (args.limit or args.scenario_ids_file):
+        raise SystemExit("R6: DEV/TEST are evaluated on the whole split — --limit / --scenario-ids-file "
+                         "are TRAIN-only with --candidate")
     reg = R6Registry(default_root())
     ident = require_state(reg, args.candidate, args.split, run_id, args.resume)
-    from fis_platform.provenance import tree_state
     gh, code_clean, dirty = tree_state()
     runtime_context["code_tree_clean_except_registry"] = "true" if code_clean else "false"
     if dirty:
         runtime_context["dirty_paths_outside_registry"] = ",".join(dirty)[:500]
-    if args.split in ("dev", "test") and not code_clean:
-        raise SystemExit(f"R6: {args.split.upper()} inference needs a committed code tree "
-                         f"(git_head={gh!r}, dirty outside the registry: {dirty}); the only "
+    if not code_clean:
+        raise SystemExit(f"R6: candidate inference needs a committed code tree "
+                         f"(git_head={gh!r}, dirty/untracked outside the registry: {dirty}); the only "
                          "paths allowed to be ahead of HEAD are the registry's own append-only "
                          "records under learning/registry/r6/ (contract § 14)")
     if manifest.provider.value != "local_llamacpp":
         raise SystemExit("R6: --candidate applies to local llama.cpp arms only")
+    pids = llama_server_pids()
+    if len(pids) != 1:
+        raise SystemExit(f"R6: exactly one llama-server may be resident (found {pids}) — the "
+                         "resource footprint is measured as the card total")
     artifact = reg.get_artifact(ident["identity"]["artifact_id"])
     runtime = reg.get_runtime(ident["identity"]["runtime_id"])
-    if runtime_context.get("llamacpp_build", "") != (runtime.build_info_expected or ""):
+    if not runtime.build_info_expected:
+        raise SystemExit(f"R6: runtime {runtime.runtime_id} has no build_info_expected — cannot bind")
+    if runtime_context.get("llamacpp_build", "") != runtime.build_info_expected:
         raise SystemExit(f"R6: served build_info {runtime_context.get('llamacpp_build')!r} != registered "
                          f"runtime {runtime.runtime_id} ({runtime.build_info_expected!r}) — wrong binary")
     served_path = runtime_context.get("model_path", "")
@@ -156,6 +167,19 @@ def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[st
     sargs = capture_server_args(port)
     if sargs is None:
         raise SystemExit(f"R6: no llama-server process found on port {port}")
+    bound = bind_running_server(port, runtime)      # exe + mapped libs hash-match the record
+    runtime_context["server_ld_library_path"] = bound["ld_library_path"]
+    runtime_context["server_exe"] = bound["exe"]
+    runtime_context["server_libs_bound"] = str(len(bound["checked"]))
+    if bound["extra_libs"]:
+        runtime_context["server_extra_libs"] = ",".join(f"{k}={v[:12]}" for k, v in sorted(bound["extra_libs"].items()))
+    session = runtime_context.get("local_server_session", "")
+    if not session:
+        raise SystemExit("R6: could not identify the local server session (pid/start_ticks)")
+    prior = ident.get("prior_start") or {}
+    if prior and prior.get("local_server_session") and prior["local_server_session"] != session:
+        raise SystemExit(f"R6: --resume would mix server sessions ({prior['local_server_session']} vs "
+                         f"{session}); a {args.split.upper()} evaluation is one session (contract § 14)")
     genconf = build_generation_config(args.prompt, args.max_tokens)
     frozen = ident.get("execution_system") or {}
     if frozen:
@@ -344,6 +368,11 @@ async def main() -> None:
     gateway = ModelGateway(default_registry())
 
     manifest = gateway.registry.resolve(args.model_ref)
+    if manifest.provider.value == "local_llamacpp" and not args.candidate:
+        # R6: no local trajectory enters canonical storage without artifact + runtime identity;
+        # the historical arms (local-specialist, nemotron-lightning) are replay-only now.
+        raise SystemExit("R6: local llama.cpp arms require --candidate <registered candidate id> "
+                         "(contract § 14); historical local arms are replay-only")
     if args.max_tokens > manifest.max_output_tokens:
         raise SystemExit(f"--max-tokens {args.max_tokens} exceeds {args.model_ref}'s declared "
                          f"ceiling max_output_tokens={manifest.max_output_tokens}")
@@ -402,10 +431,24 @@ async def main() -> None:
               f"{len(pending)} to run")
         if r6_reg is not None:
             from fis_platform.provenance import begin_run
+            if args.split in ("dev", "test"):
+                # canonical storage is the authority on whether the look was spent
+                with owner.cursor() as cur:
+                    cur.execute(
+                        """SELECT DISTINCT cs.run_id FROM learning.case_scores cs
+                             JOIN learning.trajectories t ON t.trace_id = cs.trace_id
+                             JOIN ground_truth.scenario_manifests m ON m.scenario_id = cs.scenario_id
+                            WHERE t.payload->'runtime_context'->>'candidate_id' = %s AND m.split = %s""",
+                        (args.candidate, args.split))
+                    seen = {r[0] for r in cur.fetchall()}
+                if seen - {run_id}:
+                    raise SystemExit(f"R6: canonical storage already holds {args.split.upper()} rows for "
+                                     f"{args.candidate} under {sorted(seen)} — the look is spent")
             begin_run(r6_reg, args.candidate, args.split, run_id, planned_cases=len(manifests),
                       extra={"pending": len(pending), "resume": bool(args.resume),
                              "max_tokens": args.max_tokens, "prompt": args.prompt,
-                             "scenario_ids_digest": runtime_context.get("scenario_ids_digest", "")})
+                             "scenario_ids_digest": runtime_context.get("scenario_ids_digest", ""),
+                             "local_server_session": runtime_context.get("local_server_session", "")})
         print("runtime: " + "  ".join(f"{k}={v}" for k, v in runtime_context.items()
                                      if k not in ("run_id", "model_ref", "prompt")) + "\n")
 

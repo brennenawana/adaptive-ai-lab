@@ -906,16 +906,97 @@ def capture_server_args(port: int, proc: Path | str = "/proc") -> ServerArgs | N
     (`evals/runner/run_eval.py:local_server_session`): a `llama-server` process whose
     cmdline contains `--port <port>`. None when nothing is listening."""
     root = Path(proc)
+    matches: list[tuple[str, list[str]]] = []
     for pid in sorted(p.name for p in root.iterdir() if p.name.isdigit()):
         try:
             raw = (root / pid / "cmdline").read_bytes()
         except OSError:
             continue
-        flat = raw.replace(b"\0", b" ").decode(errors="replace")
-        if "llama-server" in flat and f"--port {port}" in flat:
-            argv = [a for a in raw.decode(errors="replace").split("\0") if a]
-            return ServerArgs(argv=argv)
-    return None
+        argv = [a for a in raw.decode(errors="replace").split("\0") if a]
+        if not argv or Path(argv[0]).name != "llama-server":
+            continue
+        pairs = list(zip(argv, argv[1:]))
+        if ("--port", str(port)) in pairs:
+            matches.append((pid, argv))
+    if not matches:
+        return None
+    if len(matches) > 1:
+        raise TransitionRefused(
+            f"{len(matches)} llama-server processes claim --port {port} ({[m[0] for m in matches]}) "
+            "— refusing to guess which one is the execution system")
+    return ServerArgs(argv=matches[0][1])
+
+
+def llama_server_pids(proc: Path | str = "/proc") -> list[str]:
+    """Every process whose argv[0] is llama-server — R6 requires exactly one resident."""
+    root = Path(proc)
+    out = []
+    for pid in sorted(p.name for p in root.iterdir() if p.name.isdigit()):
+        try:
+            raw = (root / pid / "cmdline").read_bytes()
+        except OSError:
+            continue
+        argv = [a for a in raw.decode(errors="replace").split("\0") if a]
+        if argv and Path(argv[0]).name == "llama-server":
+            out.append(pid)
+    return out
+
+
+def bind_running_server(port: int, runtime: RuntimeIdentity, proc: Path | str = "/proc") -> dict[str, Any]:
+    """Prove the RUNNING server on `port` is the registered runtime: hash /proc/pid/exe and
+    every mapped lib*.so* and require each to be in the runtime record with the same sha
+    (libs the record does not name — libstdc++/libgomp/libgcc from the CUDA env — are hashed
+    and reported, not refused, unless they are libggml*/libllama*/libcu*). Reads the server's
+    LD_LIBRARY_PATH and refuses any LLAMA_ARG_* environment (llama-server reads those as
+    arguments, invisible in /proc/cmdline). Fails closed on any mismatch."""
+    root = Path(proc)
+    pid = None
+    for cand in sorted(p.name for p in root.iterdir() if p.name.isdigit()):
+        try:
+            argv = [a for a in (root / cand / "cmdline").read_bytes().decode(errors="replace").split("\0") if a]
+        except OSError:
+            continue
+        if argv and Path(argv[0]).name == "llama-server" and ("--port", str(port)) in list(zip(argv, argv[1:])):
+            pid = cand
+            break
+    if pid is None:
+        raise TransitionRefused(f"no llama-server on port {port}")
+    known = {**runtime.binaries, **runtime.cuda_libs}
+    exe = os.readlink(root / pid / "exe")
+    mapped = sorted({ln.split()[5] for ln in (root / pid / "maps").read_text().splitlines()
+                     if len(ln.split()) >= 6 and ".so" in ln.split()[5]})
+    checked, extra, mismatched = {}, {}, []
+    for f in [exe] + mapped:
+        real = Path(f).resolve()
+        name = real.name
+        if f == exe or "llama.cpp" in str(real) or "cuda" in str(real).lower():
+            h = sha256_file(real)
+            if name in known:
+                checked[name] = h
+                if known[name] != h:
+                    mismatched.append(name)
+            else:
+                extra[name] = h
+                if name.startswith(("libggml", "libllama", "libcu")):
+                    mismatched.append(f"{name} (not in runtime record)")
+    if mismatched:
+        raise TransitionRefused(f"running server on port {port} is not the registered runtime "
+                                f"{runtime.runtime_id}: {mismatched}")
+    if Path(exe).resolve() != Path(runtime.bin_dir, "llama-server").resolve():
+        raise TransitionRefused(f"running exe {exe} is not {runtime.bin_dir}/llama-server")
+    env = {}
+    try:
+        for kv in (root / pid / "environ").read_bytes().decode(errors="replace").split("\0"):
+            if "=" in kv:
+                k, v = kv.split("=", 1)
+                env[k] = v
+    except OSError:
+        pass
+    llama_env = {k: v for k, v in env.items() if k.startswith(("LLAMA_ARG_", "GGML_"))}
+    if llama_env:
+        raise TransitionRefused(f"server process carries argument-bearing environment {llama_env}")
+    return {"pid": pid, "exe": exe, "checked": checked, "extra_libs": extra,
+            "ld_library_path": env.get("LD_LIBRARY_PATH", "")}
 
 
 # ------------------------------------------------------------------ state machine
@@ -989,7 +1070,7 @@ def dirty_paths_outside_registry() -> list[str]:
     (contract § 14 amendment 1). Returns the offending paths, empty if the code tree is clean.
     """
     try:
-        out = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
+        out = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"],
                              cwd=_ROOT, capture_output=True, text=True, timeout=10,
                              check=True).stdout
     except Exception:  # noqa: BLE001 — treated as dirty by the caller
@@ -1000,7 +1081,7 @@ def dirty_paths_outside_registry() -> list[str]:
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
         if not path.startswith(str(REGISTRY_REL) + "/"):
-            bad.append(path)
+            bad.append(path)      # modified OR untracked (gitignored files never appear)
     return bad
 
 
@@ -1012,12 +1093,77 @@ def tree_state() -> tuple[str, bool, list[str]]:
     code_commit = git_head()
     if not code_commit:
         return code_commit, False, ["(git unavailable)"]
-    if not code_commit.endswith("-dirty"):
-        return code_commit, True, []
-    outside = dirty_paths_outside_registry()
+    outside = dirty_paths_outside_registry()      # tracked-modified AND untracked, outside
     if outside == ["(git unavailable)"]:
         return code_commit, False, outside
+    if code_commit.endswith("-dirty") and not outside:
+        # `git_head` saw modified tracked files but every one is registry bookkeeping.
+        return code_commit, True, []
     return code_commit, len(outside) == 0, outside
+
+
+def registry_ahead_of_git_only_by_appends() -> list[str]:
+    """Every tracked append-only file under the registry must have its committed content
+    as a byte-prefix of the working copy, and every committed HEAD.json seq must be <= the
+    working seq. Returns the violations (empty = fine). Detects the two resets a chained log
+    cannot see by itself: a truncated log with a matching HEAD.json, and a `git checkout` /
+    `git stash` that silently dropped uncommitted run lines."""
+    problems: list[str] = []
+    try:
+        tracked = subprocess.run(["git", "ls-files", "--", str(REGISTRY_REL)], cwd=_ROOT,
+                                 capture_output=True, text=True, timeout=10, check=True).stdout.split()
+    except Exception:  # noqa: BLE001
+        return ["(git unavailable)"]
+    for rel in tracked:
+        if not rel.endswith((".jsonl",)):
+            continue
+        try:
+            committed = subprocess.run(["git", "show", f"HEAD:{rel}"], cwd=_ROOT,
+                                       capture_output=True, timeout=10, check=True).stdout
+        except Exception:  # noqa: BLE001 — new file (not yet in HEAD): nothing to compare
+            continue
+        working_path = _ROOT / rel
+        working = working_path.read_bytes() if working_path.exists() else b""
+        if not working.startswith(committed):
+            problems.append(f"{rel}: committed content is not a prefix of the working file")
+    head_rel = str(REGISTRY_REL / "HEAD.json")
+    if head_rel in tracked:
+        try:
+            committed_head = json.loads(subprocess.run(["git", "show", f"HEAD:{head_rel}"], cwd=_ROOT,
+                                                       capture_output=True, text=True, timeout=10,
+                                                       check=True).stdout or "{}")
+        except Exception:  # noqa: BLE001
+            committed_head = {}
+        working_path = _ROOT / head_rel
+        working_head = json.loads(working_path.read_text() or "{}") if working_path.exists() else {}
+        for cid, ref in committed_head.items():
+            cur = working_head.get(cid)
+            if cur is None or int(cur.get("seq", 0)) < int(ref.get("seq", 0)):
+                problems.append(f"HEAD.json: {cid} regressed or vanished vs the committed seq {ref.get('seq')}")
+    return problems
+
+
+def contract_blob_sha(path: str = "docs/R6_EXPERIMENT_CONTRACT.md") -> str | None:
+    """git blob sha of the CONTRACT as committed at HEAD (None if git/file unavailable)."""
+    try:
+        return subprocess.run(["git", "rev-parse", f"HEAD:{path}"], cwd=_ROOT, capture_output=True,
+                              text=True, timeout=10, check=True).stdout.strip() or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def committed_contract_extends(frozen_blob: str, path: str = "docs/R6_EXPERIMENT_CONTRACT.md") -> bool:
+    """True iff the contract committed at HEAD is byte-identical to the frozen blob or is
+    the frozen blob plus appended text (the § 17 amendment log grows; nothing above it may
+    change after the freeze)."""
+    try:
+        frozen = subprocess.run(["git", "cat-file", "-p", frozen_blob], cwd=_ROOT, capture_output=True,
+                                timeout=10, check=True).stdout
+        current = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=_ROOT, capture_output=True,
+                                 timeout=10, check=True).stdout
+    except Exception:  # noqa: BLE001
+        return False
+    return current.startswith(frozen)
 
 
 def _append_line(path: Path, obj: dict[str, Any]) -> None:
@@ -1067,8 +1213,11 @@ class R6Registry:
     it exists so a truncated log is detected instead of read as "fewer things happened".
     """
 
-    def __init__(self, root: Path | str) -> None:
+    def __init__(self, root: Path | str, *, git_checks: bool = True) -> None:
         self.root = Path(root)
+        # `git_checks=False` only for tmp registries in tests (no committed contract to bind
+        # against); the CLI and the runner always run with the checks on.
+        self.git_checks = bool(git_checks)
 
     # -------------------------------------------------------------- paths
     @property
@@ -1093,10 +1242,16 @@ class R6Registry:
     def test_result_file(self, cid: str) -> Path: return self.candidate_dir(cid) / "test_result.json"
 
     def candidate_ids(self) -> list[str]:
-        if not self.candidates_dir.exists():
-            return []
-        return sorted(p.name for p in self.candidates_dir.iterdir()
-                      if (p / "identity.json").exists())
+        on_disk = set()
+        if self.candidates_dir.exists():
+            on_disk = {p.name for p in self.candidates_dir.iterdir() if (p / "identity.json").exists()}
+        named = set(self._read_head())
+        missing = sorted(named - on_disk)
+        if missing:
+            raise RegistryIntegrityError(
+                f"HEAD.json names candidates with no identity/log on disk: {missing} — a candidate "
+                "cannot vanish; restore from git")
+        return sorted(on_disk | named)
 
     # -------------------------------------------------------------- records
     def _put(self, path: Path, record: _Record, kind: str, ident: str) -> Path:
@@ -1207,6 +1362,10 @@ class R6Registry:
     def _append(self, candidate_id: str, kind: str, from_state: str | None, to_state: str,
                 payload: dict[str, Any], code_commit: str, tree_clean: bool) -> dict[str, Any]:
         path = self.state_file(candidate_id)
+        if not path.exists() and candidate_id in self._read_head():
+            raise RegistryIntegrityError(
+                f"{candidate_id}: HEAD.json names this candidate but its state log is missing — "
+                "a deleted candidate cannot be re-created; restore the log from git")
         entries = self.read_state(candidate_id) if path.exists() else []
         entry = {
             "seq": len(entries) + 1,
@@ -1265,6 +1424,15 @@ class R6Registry:
         """
         art_path = self.models_dir / f"{artifact.artifact_id}.json"
         rt_path = self.runtimes_dir / f"{runtime.runtime_id}.json"
+        for other in self.candidate_ids():
+            oth = self.read_identity(other)
+            oth_art = self.get_artifact(oth["artifact_id"])
+            if (oth_art.base_model_repo == artifact.base_model_repo
+                    and oth.get("family") != (family or artifact.family)):
+                raise TransitionRefused(
+                    f"artifact {artifact.artifact_id} shares base_model_repo {artifact.base_model_repo!r} "
+                    f"with candidate {other} but declares family {family or artifact.family!r} != "
+                    f"{oth.get('family')!r} — the family key is what bounds one DEV look per base model")
         for path, rec, kind in ((art_path, artifact, "artifact"), (rt_path, runtime, "runtime")):
             if not path.exists():
                 raise TransitionRefused(
@@ -1432,6 +1600,19 @@ class R6Registry:
             frozen = (train or {}).get("payload", {}).get("execution_system_digest")
             _require_equal(payload, "execution_system_digest", frozen, cid, to,
                            "the execution system frozen at TRAIN_COMPATIBLE")
+            clash = self.family_members(identity["family"], (CONTRACT_FROZEN,) + DEV_OR_BEYOND, cid)
+            if clash:
+                other, state = clash[0]
+                raise TransitionRefused(
+                    f"{cid}: candidate {other!r} of family {identity['family']!r} is already at "
+                    f"{state} — only ONE quant per family may be frozen for DEV; withdraw the "
+                    "loser at TRAIN_COMPATIBLE first (contract § 7)")
+            blob = contract_blob_sha(str(payload["contract_path"])) if self.git_checks else payload["contract_revision"]
+            if blob != payload["contract_revision"]:
+                raise TransitionRefused(
+                    f"{cid}: contract_revision {str(payload['contract_revision'])[:12]}… is not the "
+                    f"blob committed at HEAD for {payload['contract_path']} ({(blob or '?')[:12]}…) — "
+                    "commit the contract, then freeze")
 
         elif to == DEV_EVALUATED:
             _require(payload, ("dev_run_id", "dev_result", "contract_revision",
@@ -1465,6 +1646,7 @@ class R6Registry:
                 raise TransitionRefused(
                     f"{cid}: the run ledger records DEV runs {dev_runs} but this transition "
                     f"claims {run_id!r} — exactly one DEV run, and it must be the one that ran")
+            self._require_complete_run(cid, run_id, int(payload.get("expected_cases", 48)))
             stored.pop("dev_result", None)
             stored["dev_result_digest"] = digest(result)
             side.append((path, result))
@@ -1519,6 +1701,8 @@ class R6Registry:
             path = self.test_result_file(cid)
             if path.exists():
                 raise TransitionRefused(f"{cid}: {path} already exists — TEST is scored once")
+            self._require_complete_run(cid, str(payload["test_run_id"]),
+                                       int(payload.get("expected_cases", 96)))
             stored.pop("test_result", None)
             stored["test_result_digest"] = digest(result)
             side.append((path, result))
@@ -1531,6 +1715,23 @@ class R6Registry:
                     "comparison is indistinguishable from a quietly dropped bad result")
 
         return stored, side
+
+    def _require_complete_run(self, cid: str, run_id: str, expected_cases: int) -> None:
+        """The ledger must hold a start AND an end line for `run_id`, and the end line must
+        report every planned case done — a partial DEV/TEST is not an evaluation."""
+        lines = [ln for ln in self.read_ledger(cid) if ln.get("run_id") == run_id]
+        starts = [ln for ln in lines if ln.get("event") == "start"]
+        ends = [ln for ln in lines if ln.get("event") == "end"]
+        if not starts:
+            raise TransitionRefused(f"{cid}: no ledger start line for {run_id!r}")
+        if not ends:
+            raise TransitionRefused(f"{cid}: run {run_id!r} has no ledger end line — it did not finish")
+        done = int(ends[-1].get("cases_done", 0))
+        planned = int(starts[0].get("planned_cases", 0))
+        if done != expected_cases or planned != expected_cases:
+            raise TransitionRefused(
+                f"{cid}: run {run_id!r} planned {planned} and completed {done} cases; "
+                f"a full evaluation is {expected_cases} — partial runs are not recorded as results")
 
     def _check_dev_result_digest(self, cid: str, entries: list[dict[str, Any]],
                                  payload: dict[str, Any], to: str) -> None:
@@ -1621,6 +1822,24 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
                 f"run id {run_id!r} is already recorded for candidate "
                 f"{line.get('candidate_id')!r} — one run id, one candidate")
 
+    if split in ("dev", "test"):
+        problems = registry_ahead_of_git_only_by_appends() if registry.git_checks else []
+        if problems:
+            raise TransitionRefused(
+                "registry files are not append-only relative to the committed tree: "
+                f"{problems} — a reset (git checkout/stash, truncation) is not a legal state")
+        clash = registry.family_members(identity["family"], (CONTRACT_FROZEN,) + DEV_OR_BEYOND,
+                                        candidate_id)
+        for other, _st in clash:
+            raise TransitionRefused(
+                f"{candidate_id}: {other!r} of family {identity['family']!r} is at {_st} — one "
+                "quant per family reaches DEV/TEST")
+        for other in registry.candidate_ids():
+            if other != candidate_id and registry.read_identity(other).get("family") == identity["family"]:
+                if registry.ledger_run_ids(other, split):
+                    raise TransitionRefused(
+                        f"{candidate_id}: {other!r} of the same family already has a {split} run "
+                        "in the ledger")
     if split == "train":
         if state not in (REGISTERED, TRAIN_COMPATIBLE, CONTRACT_FROZEN):
             raise TransitionRefused(
@@ -1654,7 +1873,19 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
     execution_system = (_entry_to(entries, TRAIN_COMPATIBLE) or {}).get("payload", {}).get(
         "execution_system")
     contract = (_entry_to(entries, CONTRACT_FROZEN) or {}).get("payload", {})
+    if split in ("dev", "test") and contract.get("contract_revision") and registry.git_checks:
+        if not committed_contract_extends(contract["contract_revision"], contract.get("contract_path", "docs/R6_EXPERIMENT_CONTRACT.md")):
+            raise TransitionRefused(
+                f"{candidate_id}: the contract committed at HEAD is not the frozen revision "
+                f"{contract['contract_revision'][:12]}… (or that revision plus appended § 17 "
+                "amendments) — the rules changed after the freeze")
+    prior_start = None
+    if resume:
+        for ln in registry.read_ledger(candidate_id):
+            if ln.get("run_id") == run_id and ln.get("event") == "start":
+                prior_start = ln
     return {
+        "prior_start": prior_start,
         "candidate_id": candidate_id,
         "state": state,
         "split": split,
@@ -1684,10 +1915,11 @@ def begin_run(registry: R6Registry, candidate_id: str, split: str, run_id: str,
     payload = {"split": split, "run_id": run_id, "planned_cases": planned_cases,
                "started_at": started_at, **(extra or {})}
     entry = registry._append(candidate_id, "run", state, state, payload, code_commit, tree_clean)
-    _append_line(registry.ledger_file, {
-        "candidate_id": candidate_id, "split": split, "run_id": run_id, "event": "start",
-        "planned_cases": planned_cases, "started_at": started_at, "code_commit": code_commit,
-    })
+    line = {"candidate_id": candidate_id, "split": split, "run_id": run_id, "event": "start",
+            "planned_cases": planned_cases, "started_at": started_at, "code_commit": code_commit}
+    if extra and extra.get("local_server_session"):
+        line["local_server_session"] = str(extra["local_server_session"])   # resume must not mix sessions
+    _append_line(registry.ledger_file, line)
     return entry
 
 
