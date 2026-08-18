@@ -1161,7 +1161,7 @@ report never stated — corrected in place, `2f40c42`).
 reconciliation 04:55–05:12 · tooling + contract 05:12–05:35 · Qwen TRAIN acquisition
 05:16–05:53 · audit 05:33–06:24 · Qwen TRAIN CV / amendment / state machine / DEV / TEST
 05:56–06:25 · Nemotron acquisition 05:55–08:59 · Nemotron CV / DEV / TEST / oracles
-09:00–09:15 · documentation interleaved and 09:15–09:50. **Total ≈ 4 h 55 min**, of which
+09:00–09:15 · documentation interleaved, final commits by 09:10. **Total ≈ 4 h 15 min** (04:55–09:10 UTC), of which
 3 h 41 min was local inference (288 calls); 0 frontier calls; 0 TEST model calls; every
 DEV/TEST number, oracle, reproduction and Pareto sweep by offline replay.
 

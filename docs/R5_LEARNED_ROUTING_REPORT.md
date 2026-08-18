@@ -329,8 +329,8 @@ any later router (R5b, R6) inherits these looks.
 | Qwen TRAIN CV, amendment, state machine, DEV selection | 05:56–06:22 | |
 | Qwen TEST replay | 06:24 (< 1 min) | offline |
 | Nemotron TRAIN CV, amendment, DEV selection, TEST | 09:00–09:15 (TRAIN CV both protocols 3 min, § 12a-N, DEV selection, TEST replay, oracles — all offline) | |
-| documentation | 06:30–09:45 interleaved (report drafting during the Nemotron acquisition; independent reviewer 06:40–06:57) | |
-| **total** | ≈ 4 h 50 min wall (04:55–09:45 UTC), of which 3 h 41 min was local model inference for TRAIN acquisition; everything after the acquisition finished took 45 min | vs ≈ 6 h for the Suite v3 release |
+| documentation | 06:30–09:10 interleaved (report drafting during the Nemotron acquisition; independent reviewer 06:40–06:57) | |
+| **total** | ≈ 4 h 15 min wall (04:55–09:10 UTC), of which 3 h 41 min was local model inference for TRAIN acquisition; everything after the Nemotron acquisition finished (CV, selection, TEST, oracles, report, docs) took ≈ 10 min of compute and ≈ 50 min of writing | vs ≈ 6 h for the Suite v3 release |
 
 Work answered by offline replay: every DEV and TEST number, every oracle, the R4
 reproduction, all Pareto sweeps (thousands of policy evaluations) — no frontier call.
