@@ -127,6 +127,11 @@ def summarize(rows: dict[str, dict]) -> dict:
                      for cls in sorted({s[:3] for s in ids})},
         "gpu_mem_used_mib": _gpu_mem(rows),
         "runtime_context": _rc(rows),
+        "n_server_sessions": len({(r["traj"].get("runtime_context") or {}).get("local_server_session")
+                                  for r in rows.values()}),
+        "n_execution_systems": len({(r["traj"].get("runtime_context") or {}).get("execution_system_digest")
+                                    or (r["traj"].get("runtime_context") or {}).get("server_args_digest")
+                                    for r in rows.values()}),
     }
 
 
