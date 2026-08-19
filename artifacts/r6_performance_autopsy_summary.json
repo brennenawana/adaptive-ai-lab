@@ -1,0 +1,144 @@
+{
+  "goal_at": "2026-08-18T20:59:46Z",
+  "end_at": "2026-08-19T21:02:56Z",
+  "total_elapsed_s": 86590.0,
+  "sum_run_windows_s": 80892.0,
+  "inter_segment_gaps": [
+    {
+      "before_run": "R6-qwen35-train-pilot",
+      "gap_s": 2232.0,
+      "from": "2026-08-18T20:59:46Z",
+      "to": "2026-08-18T21:36:58Z"
+    },
+    {
+      "before_run": "R6-qwen35-train-stab",
+      "gap_s": 89.0,
+      "from": "2026-08-18T22:23:40Z",
+      "to": "2026-08-18T22:25:09Z"
+    },
+    {
+      "before_run": "R6-qwen38-q3km-train-pilot",
+      "gap_s": 206.0,
+      "from": "2026-08-18T22:40:37Z",
+      "to": "2026-08-18T22:44:03Z"
+    },
+    {
+      "before_run": "R6-qwen38-udq3kxl-train-pilot",
+      "gap_s": 316.0,
+      "from": "2026-08-19T01:35:46Z",
+      "to": "2026-08-19T01:41:02Z"
+    },
+    {
+      "before_run": "R6-qwen38-q3km-train-stab",
+      "gap_s": 212.0,
+      "from": "2026-08-19T03:39:35Z",
+      "to": "2026-08-19T03:43:07Z"
+    },
+    {
+      "before_run": "R6-bonsai-train-pilot",
+      "gap_s": 169.0,
+      "from": "2026-08-19T04:30:36Z",
+      "to": "2026-08-19T04:33:25Z"
+    },
+    {
+      "before_run": "R6-bonsai-train-stab",
+      "gap_s": 53.0,
+      "from": "2026-08-19T05:26:59Z",
+      "to": "2026-08-19T05:27:52Z"
+    },
+    {
+      "before_run": "R6-bonsai-train-stab",
+      "gap_s": 34.0,
+      "from": "2026-08-19T05:38:33Z",
+      "to": "2026-08-19T05:39:07Z"
+    },
+    {
+      "before_run": "R6-qwen35-dev",
+      "gap_s": 1237.0,
+      "from": "2026-08-19T05:45:28Z",
+      "to": "2026-08-19T06:06:05Z"
+    },
+    {
+      "before_run": "R6-qwen38-q3km-dev",
+      "gap_s": 55.0,
+      "from": "2026-08-19T06:58:43Z",
+      "to": "2026-08-19T06:59:38Z"
+    },
+    {
+      "before_run": "R6-bonsai-dev",
+      "gap_s": 54.0,
+      "from": "2026-08-19T10:17:35Z",
+      "to": "2026-08-19T10:18:29Z"
+    },
+    {
+      "before_run": "R6-qwen38-q3km-test",
+      "gap_s": 69.0,
+      "from": "2026-08-19T11:31:43Z",
+      "to": "2026-08-19T11:32:52Z"
+    },
+    {
+      "before_run": "R6-bonsai-test",
+      "gap_s": 76.0,
+      "from": "2026-08-19T18:15:53Z",
+      "to": "2026-08-19T18:17:09Z"
+    },
+    {
+      "before_run": "(end: final commit 5f785a7)",
+      "gap_s": 896.0,
+      "from": "2026-08-19T20:48:00Z",
+      "to": "2026-08-19T21:02:56Z"
+    }
+  ],
+  "sum_gaps_s": 5698.0,
+  "per_model_window_s": {
+    "bonsai-27b": 17681.0,
+    "qwen3.5-9b": 6888.0,
+    "qwen3.8-27b-q3km": 49210.0,
+    "qwen3.8-27b-udq3kxl": 7113.0
+  },
+  "total_out_tokens": 2995273,
+  "total_in_tokens": 1555289,
+  "total_cases": 516,
+  "total_cap_hits": 145,
+  "total_cap_hit_wall_s_monotonic": 32895.1,
+  "monotonic_vs_realtime_by_run": {
+    "R6-qwen35-train-pilot": 1.0866,
+    "R6-qwen35-train-stab": 1.089,
+    "R6-qwen38-q3km-train-pilot": 1.1102,
+    "R6-qwen38-udq3kxl-train-pilot": 1.0912,
+    "R6-qwen38-q3km-train-stab": 1.1103,
+    "R6-bonsai-train-pilot": 1.1093,
+    "R6-bonsai-train-stab": 1.1044,
+    "R6-qwen35-dev": 1.0842,
+    "R6-qwen38-q3km-dev": 1.0903,
+    "R6-bonsai-dev": 1.0816,
+    "R6-qwen38-q3km-test": 1.0828,
+    "R6-bonsai-test": 1.0823
+  },
+  "surviving_server_logs": {
+    "R6-qwen35-dev": {
+      "requests": 49,
+      "load_s": 42.1,
+      "busy_s": 3143.3,
+      "request_p50_s": 62.0,
+      "idle_between_requests_s_sum": 21.4,
+      "idle_between_requests_s_median": 0.31
+    },
+    "R6-qwen38-q3km-test": {
+      "requests": 97,
+      "load_s": 4.1,
+      "busy_s": 24136.4,
+      "request_p50_s": 284.5,
+      "idle_between_requests_s_sum": 51.7,
+      "idle_between_requests_s_median": 0.4
+    },
+    "R6-bonsai-test": {
+      "requests": 97,
+      "load_s": 35.4,
+      "busy_s": 8980.7,
+      "request_p50_s": 82.0,
+      "idle_between_requests_s_sum": 81.1,
+      "idle_between_requests_s_median": 0.7
+    }
+  }
+}

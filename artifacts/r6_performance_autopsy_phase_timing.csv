@@ -1,0 +1,8 @@
+phase,start_utc,end_utc,elapsed_s,model_run_window_s,non_run_s,evidence
+R6.1-provenance,2026-08-18T21:26:20Z,2026-08-18T21:35:42Z,562.0,0,562.0,phases.jsonl + ledger + trajectories.created_at
+R6.2-train,2026-08-18T21:35:43Z,2026-08-19T05:46:05Z,29422.0,28231.0,1191.0,phases.jsonl + ledger + trajectories.created_at
+R6.3-freeze,2026-08-19T05:46:56Z,2026-08-19T06:05:11Z,1095.0,0,1095.0,phases.jsonl + ledger + trajectories.created_at
+R6.4-dev,2026-08-19T06:05:11Z,2026-08-19T11:32:38Z,19647.0,19429.0,218.0,phases.jsonl + ledger + trajectories.created_at
+R6.5-test,2026-08-19T11:32:38Z,2026-08-19T20:48:42Z,33364.0,33232.0,132.0,phases.jsonl + ledger + trajectories.created_at
+R6.6-analysis,2026-08-19T20:48:42Z,2026-08-19T21:02:17Z,815.0,0,815.0,phases.jsonl + ledger + trajectories.created_at
+R6.7-report,2026-08-19T21:02:17Z,2026-08-19T21:02:41Z,24.0,0,24.0,phases.jsonl + ledger + trajectories.created_at
