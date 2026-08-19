@@ -180,6 +180,13 @@ def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[st
     if prior and prior.get("local_server_session") and prior["local_server_session"] != session:
         raise SystemExit(f"R6: --resume would mix server sessions ({prior['local_server_session']} vs "
                          f"{session}); a {args.split.upper()} evaluation is one session (contract § 14)")
+    if args.split in ("dev", "test") and not prior:
+        # a DEV/TEST evaluation runs in a FRESH server session: one that no earlier ledger line
+        # (any candidate, any split) has seen — so no TRAIN case can pre-warm its prompt cache.
+        used = {ln.get("local_server_session") for ln in reg.read_ledger() if ln.get("local_server_session")}
+        if session in used:
+            raise SystemExit(f"R6: server session {session} already served an earlier run — "
+                             f"{args.split.upper()} needs a fresh session (contract § 10)")
     genconf = build_generation_config(args.prompt, args.max_tokens)
     frozen = ident.get("execution_system") or {}
     if frozen:

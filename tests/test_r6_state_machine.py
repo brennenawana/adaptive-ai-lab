@@ -148,7 +148,8 @@ def _payload(reg: R6Registry, cid: str, to: str) -> dict[str, Any]:
                 "contract_revision": CONTRACT_REV,
                 "execution_system_digest": system.record_digest}
     if to in (DEV_QUALIFIED, DEV_REJECTED):
-        return {"gate_evaluation": {"pass": to == DEV_QUALIFIED}, "gates_digest": GATES,
+        return {"gate_evaluation": {"qualified": to == DEV_QUALIFIED, "gates_digest": GATES},
+                "gates_digest": GATES,
                 "dev_result_digest": digest(DEV_RESULT), "contract_revision": CONTRACT_REV}
     if to == TEST_UNLOCKED:
         return {"test_run_id": _run_id(cid, "test"), "dev_result_digest": digest(DEV_RESULT),
@@ -751,3 +752,42 @@ def test_untracked_files_outside_the_registry_count_as_dirty(monkeypatch):
                         lambda *a, **k: type("R", (), {"stdout": "?? evals/runner/dotenv.py\n M learning/registry/r6/ledger.jsonl\n"})())
     _commit, clean, dirty = provenance.tree_state()
     assert clean is False and dirty == ["evals/runner/dotenv.py"]
+
+
+def test_a_resumed_full_run_counts_all_its_end_lines(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, CONTRACT_FROZEN)
+    rid = _run_id(cid, "dev")
+    begin_run(reg, cid, "dev", rid, 48)
+    end_run(reg, cid, rid, cases_done=44, wall_s=1.0)          # interrupted
+    end_run(reg, cid, rid, cases_done=4, wall_s=1.0)           # resumed, same run id
+    _step(reg, cid, DEV_EVALUATED)                              # 44 + 4 == 48 -> accepted
+    assert reg.current_state(cid) == DEV_EVALUATED
+
+
+def test_the_dev_verdict_is_the_gate_functions_not_the_operators(reg, tmp_path):
+    from fis_platform.r6_gates import GATES_DIGEST, evaluate_gates
+    cid = _candidate(reg, tmp_path)                            # role modern_small
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    _step(reg, cid, CONTRACT_FROZEN, gates_digest=GATES_DIGEST)   # frozen under the REAL gates
+    _finished_run(reg, cid, "dev", _run_id(cid, "dev"), 48)
+    metrics = {"all_pass": 30, "no_output": 2, "p50_wall_ms": 20000}
+    dev_result = {"metrics": metrics, "summary": {"n": 48}}
+    _step(reg, cid, DEV_EVALUATED, dev_result=dev_result)
+    ev = evaluate_gates("modern_small", metrics)
+    assert ev["qualified"] is True
+    forged = dict(ev, qualified=False)
+    kw = {"gates_digest": GATES_DIGEST, "dev_result_digest": digest(dev_result)}
+    with pytest.raises(TransitionRefused, match="does not support"):
+        _step(reg, cid, DEV_QUALIFIED, gate_evaluation=forged, **kw)
+    with pytest.raises(TransitionRefused, match="does not support"):
+        _step(reg, cid, DEV_REJECTED, gate_evaluation=ev, **kw)
+    wrong_digest = dict(ev, gates_digest="e" * 64)
+    with pytest.raises(TransitionRefused, match="produced under gates"):
+        _step(reg, cid, DEV_QUALIFIED, gate_evaluation=wrong_digest, **kw)
+    # an operator claiming REJECTED against metrics that qualify is refused by re-derivation
+    lying = dict(ev, qualified=False)
+    with pytest.raises(TransitionRefused, match="re-applying the frozen gates"):
+        _step(reg, cid, DEV_REJECTED, gate_evaluation=lying, **kw)
+    _step(reg, cid, DEV_QUALIFIED, gate_evaluation=ev, **kw)
+    assert reg.current_state(cid) == DEV_QUALIFIED and ev["gates_digest"] == GATES_DIGEST

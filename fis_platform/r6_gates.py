@@ -6,8 +6,12 @@ DEV_QUALIFIED / DEV_REJECTED transition can be produced by one function applied 
 DEV metrics, with the evaluation trace stored in the registry. Nothing in this module
 reads a result file or the database; it is pure.
 
-Historical DEV inputs (n = 48): Qwen3-8B all-pass 17, no-output 1, p50 12,864 ms;
-Nemotron all-pass 23, no-output 12, p50 53,840.5 ms (p50 = statistics.median of wall_ms).
+Historical DEV inputs (n = 48): Qwen3-8B all-pass 17, p50 12,864 ms; Nemotron all-pass 23,
+no-output 12, p50 53,840.5 ms (p50 = statistics.median of wall_ms, compared as int()).
+Erratum (contract § 17, review B): the "no_output: 1" recorded for Qwen3-8B in GATES["historical"]
+is its cap-hit count; under § 11's definition (no parsable answer) Qwen3-8B DEV no-output is 9
+(8 schema/parse + 1 cap). The dict is left as frozen so the gates digest is unchanged; the
+thresholds never depended on that entry.
 """
 
 from __future__ import annotations

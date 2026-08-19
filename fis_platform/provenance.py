@@ -1670,6 +1670,26 @@ class R6Registry:
             _require_equal(payload, "contract_revision", frozen.get("contract_revision"),
                            cid, to, "the contract frozen at CONTRACT_FROZEN")
             self._check_dev_result_digest(cid, entries, payload, to)
+            ge = payload["gate_evaluation"]
+            wanted = to == DEV_QUALIFIED
+            if ge.get("qualified") is not wanted:
+                raise TransitionRefused(
+                    f"{cid}: gate_evaluation.qualified={ge.get('qualified')!r} does not support "
+                    f"{to} — the verdict is the gate function's, not the operator's")
+            if ge.get("gates_digest") != frozen.get("gates_digest"):
+                raise TransitionRefused(
+                    f"{cid}: gate_evaluation was produced under gates {str(ge.get('gates_digest'))[:12]}…, "
+                    f"not the frozen {str(frozen.get('gates_digest'))[:12]}…")
+            # Re-derive the verdict from the once-written dev_result.json when it carries the
+            # gate inputs — the stored evaluation may not disagree with the stored metrics.
+            result = json.loads(self.dev_result_file(cid).read_text())
+            if isinstance(result, dict) and "metrics" in result and identity.get("role"):
+                from fis_platform.r6_gates import evaluate_gates
+                recomputed = evaluate_gates(identity["role"], result["metrics"], result.get("reference"))
+                if recomputed["qualified"] is not wanted:
+                    raise TransitionRefused(
+                        f"{cid}: re-applying the frozen gates to dev_result.json gives "
+                        f"qualified={recomputed['qualified']}, not {wanted}")
 
         elif to == TEST_UNLOCKED:
             _require(payload, ("test_run_id", "dev_result_digest", "contract_revision",
@@ -1734,7 +1754,7 @@ class R6Registry:
             raise TransitionRefused(f"{cid}: no ledger start line for {run_id!r}")
         if not ends:
             raise TransitionRefused(f"{cid}: run {run_id!r} has no ledger end line — it did not finish")
-        done = int(ends[-1].get("cases_done", 0))
+        done = sum(int(e.get("cases_done", 0)) for e in ends)   # a resumed run ends more than once
         planned = int(starts[0].get("planned_cases", 0))
         if done != expected_cases or planned != expected_cases:
             raise TransitionRefused(
