@@ -1265,10 +1265,10 @@ dominance, unique successes, tier coverage, by-class. Headline: Qwen3.8 + unchan
 TEST (FN 2, util 49 %); no local arm dominates another; Nemotron complementary (12 unique).
 
 ## M7.7 Report, docs, review C, tests, clean tree
-Report `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md` (one screen, provenance, TRAIN/DEV/TEST tables from `learning/registry/r6/analysis/*.json` via `scripts/r6_report_tables.py`, R4/oracle/overlap/dominance/tiers, silent-failure and residual-failure analysis, accounting, one next milestone); HANDOFF, experiment-log, routing-experiments, architecture (provenance registry section, port table) updated; independent review C (final challenge of the dominance/substrate conclusions) — {{REVIEW_C}}; full tests 627 passed + 1 skipped; tree clean at the final commit.
+Report `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md` (one screen, provenance, TRAIN/DEV/TEST tables from `learning/registry/r6/analysis/*.json` via `scripts/r6_report_tables.py`, R4/oracle/overlap/dominance/tiers, silent-failure and residual-failure analysis, accounting, one next milestone); HANDOFF, experiment-log, routing-experiments, architecture (provenance registry section, port table) updated; independent review C (final challenge of the dominance/substrate conclusions) — dominance/complementarity SUPPORTED, substrate/next-milestone SUPPORTED WITH CHANGES (truncation description corrected — 16/47 TEST cap hits were cut inside the JSON answer; selection-effect caveat on "right when it finishes"; Bonsai silent-burden sentence corrected to DEV-largest / TEST-second; two-local cascade quantified 77/96 FN 18 at 12.5 % util; Nemotron specialization named as the fallback; VRAM/latency feasibility constraint added; wall-time projections replaced by actuals) — all applied; full tests 627 passed + 1 skipped; tree clean at the final commit.
 
 ## M7.8 Timing and inference
-New inference 516 local cases (TRAIN 180 / DEV 144 / TEST 192), 0 frontier; model time 20.5 h (Qwen3.8 arms 14.3 h); wall by phase: R6.0 ~1.1 h (before `/goal`), R6.1 0.6 h, R6.2 8.2 h, R6.3 0.3 h, R6.4 5.5 h, R6.5 9.3 h, R6.6–7 ≈ 1.5 h — ≈ 25.4 h from `/goal` (20:59 UTC 08-18) to the final commit.
+New inference 516 local cases (TRAIN 180 / DEV 144 / TEST 192), 0 frontier; model time 20.5 h (Qwen3.8 arms 14.3 h); wall by phase: R6.0 ~1.1 h (before `/goal`), R6.1 0.6 h, R6.2 8.2 h, R6.3 0.3 h, R6.4 5.5 h, R6.5 9.3 h, R6.6–7 0.5 h — ≈ 24.3 h from `/goal` (20:59 UTC 08-18) to the final commit (~21:20 UTC 08-19).
 
 ## M7.9 Completion checklist
 | goal criterion | status |

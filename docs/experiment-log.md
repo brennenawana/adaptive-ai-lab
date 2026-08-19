@@ -1090,7 +1090,7 @@ Pairwise: no local arm dominates another on DEV or TEST (every pair complementar
 dominates all. Nemotron vs Qwen3.8 on TEST: 29 both / 19 Nemotron-only / 18 Qwen3.8-only /
 30 neither; Qwen3.8 unique among locals 15 (S01, S04), Nemotron 12 (S10, S06, S11).
 Stability probes 12/12 identical (Qwen3.8 across sessions). New inference 516 local cases,
-0 frontier calls; ~25 h wall.
+0 frontier calls; ~24 h wall.
 
 ### What it means
 A modern 27B at Q3 (Qwen3.8) is the strongest local and, under the *unchanged* R4 verifier
@@ -1099,9 +1099,10 @@ its failures are visible truncations at the 8192 cap, not silent wrong answers. 
 competitive with Nemotron on raw all-pass (47 vs 48), not better, and slower (265 s vs 56 s);
 the two are complementary. Qwen3.5-9B gains +6 DEV cases over Qwen3-8B (= Nemotron) but at
 4.5× the latency and with 10 cap hits — rejected by the pre-registered small-tier gate. Bonsai
-qualifies as an efficiency point (0.61× memory, 0.30× latency of Qwen3.8, ≥ floor) but
-carries the largest silent burden. The strongest local's residual failure is a reasoning
-budget, not a behaviour gap: QLoRA is not the next step, nor is a router. Recommended next
+qualifies as an efficiency point on DEV (0.61× memory, 0.30× latency of Qwen3.8, ≥ floor; on
+TEST 0.67× memory) and carries the largest silent burden on DEV, second-largest on TEST. The strongest local's residual failure is a reasoning
+budget, not a behaviour gap: QLoRA on Qwen3.8 is not the next step, nor is a router; Nemotron specialization (27 TEST
+silent failures at a fifth of the latency) is the fallback if the budget study fails to convert. Recommended next
 milestone (exactly one): R7 reasoning-budget calibration of the frozen Qwen3.8 execution
 system (caps > 8192 / thinking budget, TRAIN-selected, one DEV, one TEST). Not started.
 

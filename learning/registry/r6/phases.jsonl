@@ -10,3 +10,6 @@
 {"at": "2026-08-19T11:32:38+00:00", "code_commit": "3b3711f-dirty", "event": "start", "name": "R6.5-test", "note": null}
 {"at": "2026-08-19T20:48:42+00:00", "code_commit": "909a016-dirty", "event": "end", "name": "R6.5-test", "note": "qwen38 47/96, bonsai 34/96; both TEST_EVALUATED"}
 {"at": "2026-08-19T20:48:42+00:00", "code_commit": "909a016-dirty", "event": "start", "name": "R6.6-analysis", "note": null}
+{"at": "2026-08-19T21:02:17+00:00", "code_commit": "f2f89de-dirty", "event": "end", "name": "R6.6-analysis", "note": null}
+{"at": "2026-08-19T21:02:17+00:00", "code_commit": "f2f89de-dirty", "event": "start", "name": "R6.7-report", "note": "report/docs/review C"}
+{"at": "2026-08-19T21:02:41+00:00", "code_commit": "f2f89de-dirty", "event": "end", "name": "R6.7-report", "note": "final commit"}

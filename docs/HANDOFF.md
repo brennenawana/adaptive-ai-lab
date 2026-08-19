@@ -81,11 +81,11 @@ per-fold AUC before believing it.
   cap truncations at 8192, so the *unchanged* R4 verifier cascade reaches **93/96** (FN 2,
   util 49 %) vs 69/96 on Nemotron. Bonsai 34/96 (41 silent).
   No local arm dominates another; Nemotron keeps 12 unique TEST successes (S10/S06/S11).
-- **New inference:** 516 local cases, 0 frontier calls; ~25 h wall. TEST spent
+- **New inference:** 516 local cases, 0 frontier calls; ~24 h wall. TEST spent
   for `qwen38-27b-q3km` and `bonsai-27b` on Suite v3.
 - **Meaning:** the modern strong local's residual failure is a reasoning *budget* (8192
-  cap) not a behaviour gap — when it finishes it is right (47/49 on TEST); QLoRA is not the
-  next step; neither is a router.
+  cap) not a behaviour gap — when it finishes it is right (47/49 on TEST); QLoRA on Qwen3.8 is not the
+  next step; neither is a router (Nemotron specialization stays the fallback).
 
 ---
 
