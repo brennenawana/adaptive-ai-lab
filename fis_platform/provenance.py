@@ -966,19 +966,27 @@ def bind_running_server(port: int, runtime: RuntimeIdentity, proc: Path | str = 
     mapped = sorted({ln.split()[5] for ln in (root / pid / "maps").read_text().splitlines()
                      if len(ln.split()) >= 6 and ".so" in ln.split()[5]})
     checked, extra, mismatched = {}, {}, []
+    bin_root = Path(runtime.bin_dir).resolve()
+    cuda_root = Path(runtime.cuda_lib_dir).resolve().parent     # the CUDA env (…/cudaenv)
     for f in [exe] + mapped:
         real = Path(f).resolve()
         name = real.name
-        if f == exe or "llama.cpp" in str(real) or "cuda" in str(real).lower():
-            h = sha256_file(real)
-            if name in known:
-                checked[name] = h
-                if known[name] != h:
-                    mismatched.append(name)
-            else:
-                extra[name] = h
-                if name.startswith(("libggml", "libllama", "libcu")):
-                    mismatched.append(f"{name} (not in runtime record)")
+        in_runtime_tree = (f == exe or str(real).startswith((str(bin_root), str(cuda_root)))
+                           or "llama.cpp" in str(real))
+        if not (in_runtime_tree or "cuda" in str(real).lower()):
+            continue
+        h = sha256_file(real)
+        if name in known:
+            checked[name] = h
+            if known[name] != h:
+                mismatched.append(name)
+        else:
+            extra[name] = h
+            # anything the runtime tree provides but the record does not name is a hole in the
+            # record; the driver's user-mode libcuda (from /usr/lib/wsl or the system) is
+            # identified by driver version in the record and is reported, not refused.
+            if in_runtime_tree and name.startswith(("libggml", "libllama", "libcu")):
+                mismatched.append(f"{name} (not in runtime record)")
     if mismatched:
         raise TransitionRefused(f"running server on port {port} is not the registered runtime "
                                 f"{runtime.runtime_id}: {mismatched}")
