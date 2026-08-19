@@ -1079,18 +1079,18 @@ report `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md`; record `learning/registry
 | TRAIN pilot (36) | 8 | 15 | 13 | 20 (UD 16) | 15 | — |
 | DEV (48) | 17 | 23 | 23 | 25 | 21 | 48 |
 | DEV gate | — | — | REJECTED (p50 58 s > 38.6 s; no-output 10 > 8; quality met) | QUALIFIED | QUALIFIED | — |
-| TEST (96) | 27 | 48 | — | 47 | {{B_TEST}} | 95 |
-| silent DEV / TEST | 16 / 47 | 13 / 27 | 12 / — | 1 / 2 | 21 / {{B_TEST_SILENT}} | 0 / 1 |
-| no-output (cap) DEV / TEST | 9 (1) / 13 (1) | 12 (10) / 19 (15) | 10 (10) / — | 22 (22) / 47 (47) | 5 (4) / {{B_TEST_NOOUT}} | 0 |
-| unchanged R4 cascade DEV / TEST | 32 / 48 | 35 / 69 | 36 / — | 47 / 93 (FN 1 / 2) | 27 / {{B_R4_TEST}} | — |
-| p50 wall DEV / TEST | 12.9 / 13.2 s | 53.8 / 55.8 s | 58.1 s | 263 / 265 s | 79.5 / {{B_P50_TEST}} s | 37 s |
+| TEST (96) | 27 | 48 | — | 47 | 34 | 95 |
+| silent DEV / TEST | 16 / 47 | 13 / 27 | 12 / — | 1 / 2 | 21 / 41 | 0 / 1 |
+| no-output (cap) DEV / TEST | 9 (1) / 13 (1) | 12 (10) / 19 (15) | 10 (10) / — | 22 (22) / 47 (47) | 5 (4) / 8 (8) | 0 |
+| unchanged R4 cascade DEV / TEST | 32 / 48 | 35 / 69 | 36 / — | 47 / 93 (FN 1 / 2) | 27 / 55, FN 40 | — |
+| p50 wall DEV / TEST | 12.9 / 13.2 s | 53.8 / 55.8 s | 58.1 s | 263 / 265 s | 79.5 / 76.8 s | 37 s |
 | resident GPU (alone) | — | — | 7.1 GiB | 15.1 GiB | 9.1 GiB | — |
 
 Pairwise: no local arm dominates another on DEV or TEST (every pair complementary); frontier
 dominates all. Nemotron vs Qwen3.8 on TEST: 29 both / 19 Nemotron-only / 18 Qwen3.8-only /
 30 neither; Qwen3.8 unique among locals 15 (S01, S04), Nemotron 12 (S10, S06, S11).
-Stability probes 12/12 identical (Qwen3.8 across sessions). New inference {{CALLS}} local cases,
-0 frontier calls; ~{{WALL_TOTAL}} h wall.
+Stability probes 12/12 identical (Qwen3.8 across sessions). New inference 516 local cases,
+0 frontier calls; ~25 h wall.
 
 ### What it means
 A modern 27B at Q3 (Qwen3.8) is the strongest local and, under the *unchanged* R4 verifier

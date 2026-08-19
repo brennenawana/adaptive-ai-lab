@@ -857,11 +857,11 @@ against the frozen frontier rows.
 |---|---|---|---|---|---|
 | DEV local | 17/48 | 23/48 | 23/48 (REJECTED: p50 58 s, no-output 10) | 25/48 (QUALIFIED) | 21/48 (QUALIFIED) |
 | DEV R4 | 32/48 @ 31.2 %, FN 16 | 35/48 @ 25.0 %, FN 13 | 36/48 @ 27.1 %, FN 12 | **47/48 @ 45.8 %, FN 1** | 27/48 @ 12.5 %, FN 21 |
-| TEST local | 27/96 | 48/96 | — | 47/96 | {{B_TEST}}/96 |
-| TEST R4 | 48/96 @ 22.9 %, FN 47, $0.0513 | 69/96 @ 21.9 %, FN 26, $0.0380 | — | **93/96 @ 49.0 %, FN 2, $0.0628** | {{B_R4_TEST_LONG}} |
-| TEST silent (verifier-clean wrong) | 47 | 27 | — | 2 | {{B_TEST_SILENT}} |
-| TEST oracle (min-useful) | 95/96 @ 70.8 % | 95/96 @ 49.0 % | — | 95/96 @ 50.0 % | {{B_ORACLE}} |
-| p50 wall (TEST) | 13.2 s | 55.8 s | — | 265 s | {{B_P50_TEST}} s |
+| TEST local | 27/96 | 48/96 | — | 47/96 | 34/96 |
+| TEST R4 | 48/96 @ 22.9 %, FN 47, $0.0513 | 69/96 @ 21.9 %, FN 26, $0.0380 | — | **93/96 @ 49.0 %, FN 2, $0.0628** | 55/96 @ 21.9 %, FN 40, $0.0444 |
+| TEST silent (verifier-clean wrong) | 47 | 27 | — | 2 | 41 |
+| TEST oracle (min-useful) | 95/96 @ 70.8 % | 95/96 @ 49.0 % | — | 95/96 @ 50.0 % | 95/96 @ 63.5 % |
+| p50 wall (TEST) | 13.2 s | 55.8 s | — | 265 s | 76.8 s |
 
 Reading: with Qwen3.8-27B the silent-failure burden that motivated R5 almost disappears — its
 failures are visible cap truncations (47 of 49 on TEST), so the deterministic verifier gate

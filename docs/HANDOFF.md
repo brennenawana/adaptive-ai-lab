@@ -79,9 +79,9 @@ per-fold AUC before believing it.
 - **TEST (96), once each:** Qwen3.8 **47** (Nemotron 48, Qwen3-8B 27) — competitive, not
   better; but silent failures **2** vs 27 (Nemotron) / 47 (Qwen3-8B) — its 47 failures are
   cap truncations at 8192, so the *unchanged* R4 verifier cascade reaches **93/96** (FN 2,
-  util 49 %) vs 69/96 on Nemotron. Bonsai {{B_TEST}}/96 ({{B_TEST_SILENT}} silent).
+  util 49 %) vs 69/96 on Nemotron. Bonsai 34/96 (41 silent).
   No local arm dominates another; Nemotron keeps 12 unique TEST successes (S10/S06/S11).
-- **New inference:** {{CALLS}} local cases, 0 frontier calls; ~{{WALL_TOTAL}} h wall. TEST spent
+- **New inference:** 516 local cases, 0 frontier calls; ~25 h wall. TEST spent
   for `qwen38-27b-q3km` and `bonsai-27b` on Suite v3.
 - **Meaning:** the modern strong local's residual failure is a reasoning *budget* (8192
   cap) not a behaviour gap — when it finishes it is right (47/49 on TEST); QLoRA is not the
@@ -104,7 +104,7 @@ better operating point once the budget is not binding. No training, no router.
 
 ## State: Suite v3 released (tag `suite-v3` = `7764601`, unchanged through R5), DEV + TEST baselines done for Qwen, Nemotron, frontier; R5 learned routing done (see above)
 
-**~125 commits, {{NTESTS}} tests green** (`make test`; one live test skips unless
+**~125 commits, 627 passed + 1 skipped tests green** (`make test`; one live test skips unless
 `FIS_LIVE_TESTS=1` — it must never touch :8082 during a paired run; the DB-gated
 `test_corpus_live.py` skips unless the corpus in Postgres is this code's suite).
 

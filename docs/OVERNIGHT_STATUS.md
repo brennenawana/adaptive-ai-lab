@@ -1199,7 +1199,7 @@ DEV/TEST number, oracle, reproduction and Pareto sweep by offline replay.
 
 ---
 
-# Milestone 7 — R6 modern local specialist refresh (2026-08-18 20:59 UTC → 2026-08-19 {{END_HHMM}} UTC)
+# Milestone 7 — R6 modern local specialist refresh (2026-08-18 20:59 UTC → 2026-08-19 ~22:30 UTC)
 
 Plan `FIS_R6_Modern_Local_Specialist_Refresh_Plan.html`; contract `R6_EXPERIMENT_CONTRACT.md`;
 report `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md`; record `learning/registry/r6/`.
@@ -1253,10 +1253,10 @@ Qwen3.8 Q3_K_M 25/48 → DEV_QUALIFIED (clause 1; 22 cap-hit no-outputs, 1 silen
 Bonsai 21/48 → DEV_QUALIFIED (floor; memory 0.61×, p50 0.30× of Qwen3.8). Verdicts produced
 by `scripts/r6_dev_record.py` (the gate function, re-derived by the registry).
 
-## M7.5 TEST (11:24 UTC → {{TEST_END}} UTC)
+## M7.5 TEST (11:24 UTC → 20:35 UTC)
 Unlocks re-hashed the artifacts and bound DEV result digests + contract blob. Qwen3.8 Q3_K_M
-TEST 47/96 (47 cap hits, 2 silent; 6.2 h). Bonsai TEST {{B_TEST}}/96 ({{B_TEST_SILENT}} silent;
-{{B_TEST_HOURS}} h). Both TEST_EVALUATED (terminal). Qwen3.5-9B's TEST never opened.
+TEST 47/96 (47 cap hits, 2 silent; 6.2 h). Bonsai TEST 34/96 (41 silent;
+2.3 h). Both TEST_EVALUATED (terminal). Qwen3.5-9B's TEST never opened.
 
 ## M7.6 Offline analysis
 `scripts/r6_analysis.py` (DEV and TEST JSON under `learning/registry/r6/analysis/`): per-arm
@@ -1265,10 +1265,31 @@ dominance, unique successes, tier coverage, by-class. Headline: Qwen3.8 + unchan
 TEST (FN 2, util 49 %); no local arm dominates another; Nemotron complementary (12 unique).
 
 ## M7.7 Report, docs, review C, tests, clean tree
-{{M77}}
+Report `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md` (one screen, provenance, TRAIN/DEV/TEST tables from `learning/registry/r6/analysis/*.json` via `scripts/r6_report_tables.py`, R4/oracle/overlap/dominance/tiers, silent-failure and residual-failure analysis, accounting, one next milestone); HANDOFF, experiment-log, routing-experiments, architecture (provenance registry section, port table) updated; independent review C (final challenge of the dominance/substrate conclusions) — {{REVIEW_C}}; full tests 627 passed + 1 skipped; tree clean at the final commit.
 
 ## M7.8 Timing and inference
-{{M78}}
+New inference 516 local cases (TRAIN 180 / DEV 144 / TEST 192), 0 frontier; model time 20.5 h (Qwen3.8 arms 14.3 h); wall by phase: R6.0 ~1.1 h (before `/goal`), R6.1 0.6 h, R6.2 8.2 h, R6.3 0.3 h, R6.4 5.5 h, R6.5 9.3 h, R6.6–7 ≈ 1.5 h — ≈ 25.4 h from `/goal` (20:59 UTC 08-18) to the final commit.
 
 ## M7.9 Completion checklist
-{{M79}}
+| goal criterion | status |
+|---|---|
+| Suite v3 frozen, asserted start + end | ✔ |
+| Qwen3-8B official provenance backfilled | ✔ `Qwen/Qwen3-8B-GGUF@6a569868`, SHA `d98cdcbd…` |
+| both Qwen3.8 artifacts registered as Unsloth Qwen3.8 (not Bonsai) | ✔ |
+| Nemotron artifact/runtime reproducible | ✔ bartowski `be042bfc`, runtime record, server args |
+| Bonsai provenance/runtime requirement recorded | ✔ Prism `b1-9fcaed7` |
+| Qwen3.5-9B acquired from pinned source, digest-verified | ✔ |
+| every new trajectory carries artifact + runtime/config identity | ✔ 516/516 |
+| both Qwen3.8 quants compared on TRAIN only, one advanced | ✔ Q3_K_M |
+| generation/runtime calibration TRAIN-only, frozen before DEV | ✔ |
+| contract + numeric gates committed before new DEV | ✔ `b2f85d5` / `b4e9095` |
+| independent Fable pre-DEV review passes | ✔ A + B |
+| one DEV per eligible candidate; gates applied as registered | ✔ |
+| TEST once, only DEV-qualified; no post-TEST changes | ✔ |
+| no new frontier calls | ✔ 0 |
+| R4 + post-answer oracle for new candidates | ✔ |
+| overlap / unique rescue / dominance | ✔ |
+| report answers the plan's questions | ✔ report § 0, § 5–11 |
+| calls by split/artifact, wall by phase | ✔ report § 10 |
+| full tests pass; tree clean | ✔ 627 + 1 skipped |
+| exactly one next milestone, not started | ✔ R7 reasoning-budget calibration |
