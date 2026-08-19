@@ -3,3 +3,4 @@
 {"candidate_id": "qwen35-9b@9f010021daba", "code_commit": "ac81825-dirty", "event": "start", "planned_cases": 12, "run_id": "R6-qwen35-train-stab", "split": "train", "started_at": "2026-08-18T22:25:09+00:00"}
 {"all_pass": 5, "candidate_id": "qwen35-9b@9f010021daba", "cases_done": 12, "code_commit": "ac81825-dirty", "event": "end", "finished_at": "2026-08-18T22:40:37+00:00", "gpu_mem_used_mib_end": "8018", "run_id": "R6-qwen35-train-stab", "split": "train", "wall_s": 853.7}
 {"candidate_id": "qwen38-27b-q3km@8528f049af75", "code_commit": "644890b-dirty", "event": "start", "planned_cases": 36, "run_id": "R6-qwen38-q3km-train-pilot", "split": "train", "started_at": "2026-08-18T22:44:03+00:00"}
+{"all_pass": 20, "candidate_id": "qwen38-27b-q3km@8528f049af75", "cases_done": 36, "code_commit": "771949d", "event": "end", "finished_at": "2026-08-19T01:35:46+00:00", "gpu_mem_used_mib_end": "15442", "run_id": "R6-qwen38-q3km-train-pilot", "split": "train", "wall_s": 9294.3}
