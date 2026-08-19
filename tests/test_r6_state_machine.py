@@ -99,9 +99,12 @@ def _artifact(tmp_path: Path, slug: str, *, family: str = "qwen35.9b",
 
 
 def _runtime(tag: str = "c") -> RuntimeIdentity:
+    # registered_at pinned: two fixture runtimes built in different wall-clock seconds
+    # would otherwise digest differently and put_runtime would (correctly) refuse the second.
     return RuntimeIdentity(engine="llama.cpp-upstream",
                            git_rev="9b05354ec6fb58b4e665e9a39ebc40285c015638",
-                           binaries={"llama-server": tag * 64}, build_info_expected="b1-9b05354")
+                           binaries={"llama-server": tag * 64}, build_info_expected="b1-9b05354",
+                           registered_at="2026-08-18T00:00:00+00:00")
 
 
 def _candidate(reg: R6Registry, tmp_path: Path, slug: str = "qwen35-9b-q4km", *,
