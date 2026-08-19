@@ -47,13 +47,13 @@ For *why the platform exists*, see the Canonical Architecture doc in `docs/`.
 |---|---|---|
 | 5433 | FIS PostgreSQL + pgvector | offset deliberately |
 | 4222 | NATS JetStream | 8222 monitoring |
-| 8082 | local model (llama.cpp) | |
+| 8082 | historical local specialist — Qwen3-8B Q4_K_M (llama.cpp `b1-9b05354`) | `make serve-local`; **replay-only since R6** (session stopped 2026-08-18 21:35 UTC; `run_eval` refuses local arms without `--candidate`) |
 | 4000 | NeMo Switchyard (routing gateway) | `make serve-switchyard`; passthrough to 8082 in R1 |
-| 8083 | candidate weak arm — Nemotron 3.5 Lightning (llama.cpp, same build) | `make serve-nemotron`; hybrid GPU/RAM placement, `--no-mmap` (R3) |
+| 8083 | historical strong local — Nemotron 3.5 Lightning IQ4_XS (llama.cpp, same build) | `make serve-nemotron`; hybrid GPU/RAM placement, `--no-mmap` (R3); **replay-only since R6** |
 | 9000/9001 | MinIO | `artifacts` profile, not yet used |
 | **5432** | **pre-existing `thewall` Postgres** | **not ours — do not touch** |
 | **6379** | **pre-existing Redis** | **not ours** |
-| 8084 / 8085 / 8086 | R6 candidate servers — Qwen3.5-9B / Qwen3.8-27B (Unsloth quant, upstream llama.cpp) / Ternary Bonsai 27B (PrismML llama.cpp fork) | `make r6-serve …`; one resident at a time; identity = registry artifact SHA + runtime digest, never the port |
+| 8084 / 8085 / 8086 | R6 candidate servers — Qwen3.5-9B / Qwen3.8-27B Q3_K_M (Unsloth, upstream llama.cpp) / Ternary Bonsai 27B (PrismML llama.cpp fork) | `make r6-serve …`; one resident at a time (the 16 GB card holds one 27B); identity = registry artifact SHA + runtime digest, never the port. After R6 no model server is left running; 8082/8083 (historical Qwen3-8B / Nemotron sessions) were stopped at R6.2 and those arms are replay-only |
 | **8080/8081** | historically reserved by other projects (8081 once served the **Unsloth Qwen3.8-27B** file — it was never Bonsai; nothing listens on either today) | **not ours** |
 
 ---
@@ -282,6 +282,29 @@ append-only), telemetry to `learning.routing_decisions` (migration 008; no gold)
 and R4 reproduction. **Known property of this benchmark:** under FIXED_EVIDENCE the
 tool-call shape and `input_tokens` are case constants that identify the scenario class
 for 45/48 DEV cases, so any learned gain must be read net of the class-identity ceiling.
+
+### Provenance registry (`fis_platform/provenance.py`, `learning/registry/r6/`, R6)
+The model identity layer. Filename, endpoint and alias are not identity: every local
+execution system is `ModelArtifact` (SHA-256, byte size, upstream repo + revision,
+`gguf_metadata_digest_v1` over the header's KV pairs + tensor layout, license, lineage)
+× `RuntimeIdentity` (engine, git revision, digest over the `llama-server` launcher and
+every `lib*.so*` it maps, CUDA libs, driver/KMD/UMD versions, GPU) × server args (the
+material `/proc` argv — `-c`, `-ngl`, KV types, `--jinja`, `--parallel`; host/port/alias
+dropped) × `GenerationConfig` (the adapter's request body minus messages: prompt variant
++ sha256, temperature, seed, cap, strict json_schema digest), bound into one
+`ExecutionSystem` digest. `R6Registry` keeps per-candidate hash-chained append-only state
+logs (`REGISTERED → TRAIN_COMPATIBLE → CONTRACT_FROZEN → DEV_EVALUATED → DEV_QUALIFIED |
+DEV_REJECTED → TEST_UNLOCKED → TEST_EVALUATED`, `WITHDRAWN` only before the freeze),
+`HEAD.json`, a run ledger and phase markers; no env var or flag relocates the root;
+resets are refused (committed logs must be byte-prefix-extended). `run_eval --candidate`
+(mandatory for every local llama.cpp arm since R6) refuses a model call unless the state
+allows the split, the code tree is committed (only the registry may be ahead), exactly one
+`llama-server` is resident and the **running** server's build, model-file SHA (re-hashed),
+args, executable and mapped libraries match the record; every trajectory then carries
+the identities in `runtime_context`. Two llama.cpp runtimes are registered: upstream
+`b1-9b05354` (every historical arm, Qwen3.5-9B, Qwen3.8-27B) and the PrismML fork
+`b1-9fcaed7` (Ternary Bonsai only — both define `GGML_TYPE_Q2_0 = 42` with different block
+geometry, so the runtime digest is the only thing that tells them apart).
 
 ### Tool broker (`fis_platform/tool_broker/`)
 Eight narrow, typed, read-only tools. Parameterised SQL only.

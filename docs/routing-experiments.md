@@ -840,3 +840,33 @@ lessons: tie-break by frontier calls picks the least-escalating survivor; U = ca
 unnecessary degenerates at unsafe rate ≥ 0.5; pooled LOGO AUC is null-biased under
 class-clustered labels. Next (exactly one): QLoRA specialization of the local tier,
 Nemotron first — not started.
+
+## R6 — modern local specialist refresh (2026-08-18/19; Suite v3; no router, no training)
+
+Contract `R6_EXPERIMENT_CONTRACT.md`; report `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md`;
+record `learning/registry/r6/`. Question: how much residual FIS failure disappears when the
+local specialist is refreshed to modern operating points — before changing weights. Candidates
+(each a cryptographically registered execution system: artifact SHA-256 + runtime digest +
+server-args digest + generation-config digest): Qwen3.5-9B Q4_K_M, Qwen3.8-27B Q3_K_M (TRAIN-
+selected over UD-Q3_K_XL, 20 vs 16 on the 36-case pilot), Ternary Bonsai 27B Q2_0 on the
+Prism llama.cpp fork. All at cap 8192 (no allowed cap met the truncation tolerance), the
+historical Qwen server args, one resident server. Unchanged R4 (`verifier` policy) replayed
+against the frozen frontier rows.
+
+| | Qwen3-8B | Nemotron | Qwen3.5-9B | Qwen3.8-27B Q3_K_M | Bonsai |
+|---|---|---|---|---|---|
+| DEV local | 17/48 | 23/48 | 23/48 (REJECTED: p50 58 s, no-output 10) | 25/48 (QUALIFIED) | 21/48 (QUALIFIED) |
+| DEV R4 | 32/48 @ 31.2 %, FN 16 | 35/48 @ 25.0 %, FN 13 | 36/48 @ 27.1 %, FN 12 | **47/48 @ 45.8 %, FN 1** | 27/48 @ 12.5 %, FN 21 |
+| TEST local | 27/96 | 48/96 | — | 47/96 | {{B_TEST}}/96 |
+| TEST R4 | 48/96 @ 22.9 %, FN 47, $0.0513 | 69/96 @ 21.9 %, FN 26, $0.0380 | — | **93/96 @ 49.0 %, FN 2, $0.0628** | {{B_R4_TEST_LONG}} |
+| TEST silent (verifier-clean wrong) | 47 | 27 | — | 2 | {{B_TEST_SILENT}} |
+| TEST oracle (min-useful) | 95/96 @ 70.8 % | 95/96 @ 49.0 % | — | 95/96 @ 50.0 % | {{B_ORACLE}} |
+| p50 wall (TEST) | 13.2 s | 55.8 s | — | 265 s | {{B_P50_TEST}} s |
+
+Reading: with Qwen3.8-27B the silent-failure burden that motivated R5 almost disappears — its
+failures are visible cap truncations (47 of 49 on TEST), so the deterministic verifier gate
+is already the oracle (93 vs 95). The price is frontier utilization (49 %) and local latency
+(265 s p50). Nemotron is complementary (29 both / 19 / 18 / 30 on TEST; unique successes in
+S10/S06/S11 where Qwen3.8 never finishes) but its 27 silent failures are what no gate sees.
+No local arm dominates another. Next (exactly one): R7 reasoning-budget calibration of the
+frozen Qwen3.8 execution system — not a router, not QLoRA; not started.

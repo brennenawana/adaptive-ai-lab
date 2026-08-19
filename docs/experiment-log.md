@@ -1056,3 +1056,57 @@ Suite v3 (corpus, scorer, verifier), prompts, budgets, evidence plan, the R4 gat
 configurations; no R6 multi-tier learned routing, no QLoRA, no dynamic harness work; nothing
 re-selected or re-run after a DEV or TEST look. Both models' TEST is now spent for learned
 routing on Suite v3.
+
+## 2026-08-18/19 — R6: modern local specialist refresh (Qwen3.5-9B, Qwen3.8-27B, Ternary Bonsai; cryptographic provenance; TRAIN-only selection, DEV gates, TEST once)
+
+Plan `FIS_R6_Modern_Local_Specialist_Refresh_Plan.html`; contract `R6_EXPERIMENT_CONTRACT.md`
+(pre-registered before the first TRAIN pilot, frozen at `b4e9095`, amendments appended only);
+report `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md`; record `learning/registry/r6/`.
+
+### Configuration
+| | |
+|---|---|
+| Suite | v3 unchanged (corpus `1e7c5278…`, scorer 3, verifier 3, prompt `cause_action_directed`, FIXED_EVIDENCE), asserted at start and end |
+| Controls (replay only) | Qwen3-8B Q4_K_M (`d98cdcbd…`, cap 4096), Nemotron 3.5 Lightning IQ4_XS (`c7be5d2c…`, cap 8192), frontier `E4-v3-*` |
+| Candidates | Qwen3.5-9B Q4_K_M (`03b74727…`, acquired from the pinned revision), Qwen3.8-27B Q3_K_M (`7f3b845b…`, TRAIN-selected over UD-Q3_K_XL `00cf92e6…`), Ternary Bonsai 27B Q2_0 (`868c1171…`) on the Prism llama.cpp fork |
+| Execution system (all candidates) | upstream llama.cpp `b1-9b05354` (Bonsai: Prism `b1-9fcaed7`), `-c 16384 -ngl 99 --flash-attn on` q8_0 KV `--jinja --parallel 1`, cap 8192 (calibration: no allowed cap met the ≤ 3/36 truncation tolerance), greedy seed 42, one resident server, fresh session + 8-token prime |
+| Provenance | every trajectory carries artifact SHA-256, GGUF metadata digest, runtime digest (binary set + CUDA/driver/GPU), server-args digest, generation-config digest, execution-system digest, session; runner binds the running server to the record before any call |
+| Splits | TRAIN: 36-case stratified pilot (digest `fde034b0…`) + 12-case stability probes; DEV: one run per frozen candidate after the contract freeze and two independent Fable reviews; TEST: once per DEV-qualified candidate |
+
+### Results (report § 4–7)
+| | Qwen3-8B | Nemotron | Qwen3.5-9B | Qwen3.8-27B Q3_K_M | Bonsai | frontier |
+|---|---|---|---|---|---|---|
+| TRAIN pilot (36) | 8 | 15 | 13 | 20 (UD 16) | 15 | — |
+| DEV (48) | 17 | 23 | 23 | 25 | 21 | 48 |
+| DEV gate | — | — | REJECTED (p50 58 s > 38.6 s; no-output 10 > 8; quality met) | QUALIFIED | QUALIFIED | — |
+| TEST (96) | 27 | 48 | — | 47 | {{B_TEST}} | 95 |
+| silent DEV / TEST | 16 / 47 | 13 / 27 | 12 / — | 1 / 2 | 21 / {{B_TEST_SILENT}} | 0 / 1 |
+| no-output (cap) DEV / TEST | 9 (1) / 13 (1) | 12 (10) / 19 (15) | 10 (10) / — | 22 (22) / 47 (47) | 5 (4) / {{B_TEST_NOOUT}} | 0 |
+| unchanged R4 cascade DEV / TEST | 32 / 48 | 35 / 69 | 36 / — | 47 / 93 (FN 1 / 2) | 27 / {{B_R4_TEST}} | — |
+| p50 wall DEV / TEST | 12.9 / 13.2 s | 53.8 / 55.8 s | 58.1 s | 263 / 265 s | 79.5 / {{B_P50_TEST}} s | 37 s |
+| resident GPU (alone) | — | — | 7.1 GiB | 15.1 GiB | 9.1 GiB | — |
+
+Pairwise: no local arm dominates another on DEV or TEST (every pair complementary); frontier
+dominates all. Nemotron vs Qwen3.8 on TEST: 29 both / 19 Nemotron-only / 18 Qwen3.8-only /
+30 neither; Qwen3.8 unique among locals 15 (S01, S04), Nemotron 12 (S10, S06, S11).
+Stability probes 12/12 identical (Qwen3.8 across sessions). New inference {{CALLS}} local cases,
+0 frontier calls; ~{{WALL_TOTAL}} h wall.
+
+### What it means
+A modern 27B at Q3 (Qwen3.8) is the strongest local and, under the *unchanged* R4 verifier
+gate, yields 93/96 on TEST at 49 % frontier utilization with two false negatives — because
+its failures are visible truncations at the 8192 cap, not silent wrong answers. It is
+competitive with Nemotron on raw all-pass (47 vs 48), not better, and slower (265 s vs 56 s);
+the two are complementary. Qwen3.5-9B gains +6 DEV cases over Qwen3-8B (= Nemotron) but at
+4.5× the latency and with 10 cap hits — rejected by the pre-registered small-tier gate. Bonsai
+qualifies as an efficiency point (0.61× memory, 0.30× latency of Qwen3.8, ≥ floor) but
+carries the largest silent burden. The strongest local's residual failure is a reasoning
+budget, not a behaviour gap: QLoRA is not the next step, nor is a router. Recommended next
+milestone (exactly one): R7 reasoning-budget calibration of the frozen Qwen3.8 execution
+system (caps > 8192 / thinking budget, TRAIN-selected, one DEV, one TEST). Not started.
+
+### Deliberately NOT changed
+Suite v3, prompts, tools, evidence plan, scorer, verifier, frontier rows, the R4 gate; no
+training, no learned router, no model-specific prompt tuning, no cap/quant/prompt change after
+DEV, no rerun after TEST. Qwen3.5-9B's TEST was never opened. TEST is now spent on Suite v3
+for `qwen38-27b-q3km` and `bonsai-27b` as well.

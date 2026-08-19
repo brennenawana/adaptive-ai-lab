@@ -1,10 +1,12 @@
-# Handoff — 2026-08-18 (R5 learned routing done; Suite v3 unchanged; next: QLoRA specialization of the local tier (not started))
+# Handoff — 2026-08-19 (R6 modern local refresh done; Suite v3 unchanged; next: R7 reasoning-budget calibration of the frozen Qwen3.8-27B execution system (not started))
 
 Written deliberately at a context boundary. Everything needed to resume is here or
 in the other docs. Read `architecture.md` and `task-ontology.md` before coding,
 `SUITE_V3_RELEASE_CONTRACT.md` / `SUITE_V3_RELEASE_REPORT.md` for what Suite v3 is,
-`R5_EXPERIMENT_CONTRACT.md` / `R5_LEARNED_ROUTING_REPORT.md` for R5, and
-`OVERNIGHT_STATUS.md` § Milestone 6 for the live log.
+`R5_EXPERIMENT_CONTRACT.md` / `R5_LEARNED_ROUTING_REPORT.md` for R5,
+`R6_EXPERIMENT_CONTRACT.md` / `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md` for R6 (and
+`learning/registry/r6/` for the cryptographic record), and `OVERNIGHT_STATUS.md`
+§ Milestone 6–7 for the live log.
 
 **If you read one thing, read this.** Six times now, a number that looked like model
 weakness was a harness or scenario defect instead — unreachable webhook evidence, a
@@ -53,25 +55,56 @@ per-fold AUC before believing it.
 
 ---
 
-## THE NEXT TASK — QLoRA specialization of the local tier (recommended, NOT started)
+## R6 in one screen (2026-08-18/19; commits `b2f85d5` … see OVERNIGHT_STATUS M7)
 
-Exactly one recommendation (report § 13): specialize the local tier (Nemotron 3.5 Lightning
-first, Qwen second) with QLoRA on the TRAIN split, targeted at evidence-citation
-discipline on the systematically failing templates (S01/S03/S06/S10/S11 evidence-short
-answers; S12/S02 root cause), measured with the R5 replay/oracle instrument and the R4/R5
-gates unchanged, selected on DEV, one TEST look. Why: the residual is a capability
-deficit (evidence reachable at 1.000, frontier 99 % on the same bundles), prompting is
-exhausted on this dimension (E6/E6b), routing has been taken to its last lever (template
-prior), and R6 multi-tier is not yet supported (the Nemotron-sufficient band is not
-template-clean). Pre-register a quality-first tie-break and a threshold rule that charges
-escalation. Frontier TRAIN outputs do not exist (never acquired); if the training signal
-needs them, that acquisition is part of the next milestone and must be recorded as such.
+- **Built:** `fis_platform/provenance.py` — pure-Python GGUF header reader + metadata digest,
+  self-digested `ModelArtifact` / `RuntimeIdentity` / `GenerationConfig` / `ExecutionSystem`
+  records, `R6Registry` (hash-chained append-only per-candidate state logs, `HEAD.json`, run
+  ledger, explicit transition table, no env/flag root, reset guards); `scripts/r6_registry.py`;
+  `run_eval --candidate` (fail-closed: registry state, committed code tree, one resident
+  server, running exe/libs/args/model-SHA bound to the record; local llama.cpp arms now
+  require it); `infra/serve-r6.sh`; `scripts/r6_{pilot,metrics,analysis,dev_record,
+  accounting,report_tables,runtime_compat}.py`; `fis_platform/r6_gates.py`; ~100 new tests.
+- **Provenance closed:** six artifacts pinned by SHA-256 + upstream revision (Qwen3-8B
+  official; Nemotron bartowski `be042bfc` — the file was re-uploaded upstream; Qwen3.5-9B
+  acquired from `unsloth/Qwen3.5-9B-GGUF@99a1b218`; both `Qwen3.8-27B-*` are **Unsloth
+  Qwen3.8, not Bonsai**; Bonsai is the Prism file), two runtimes (upstream `b1-9b05354`,
+  Prism `b1-9fcaed7` — Q2_0 block geometry differs, so Bonsai runs only on Prism).
+- **TRAIN-only:** 36-case stratified pilot; Q3_K_M beat UD-Q3_K_XL 20 vs 16 (quality-first
+  rule) → UD withdrawn; every cap calibration landed at 8192 (truncation recorded);
+  Bonsai eligible; probes 12/12 bit-identical (Qwen3.8 across sessions).
+- **DEV (48):** Qwen3.5-9B 23 (REJECTED on latency 58 s and 10 cap-hit no-outputs;
+  quality clause met), Qwen3.8-27B Q3_K_M 25 (QUALIFIED), Bonsai 21 (QUALIFIED: floor +
+  0.61× memory, 0.30× latency of Qwen3.8). Controls: Qwen3-8B 17, Nemotron 23.
+- **TEST (96), once each:** Qwen3.8 **47** (Nemotron 48, Qwen3-8B 27) — competitive, not
+  better; but silent failures **2** vs 27 (Nemotron) / 47 (Qwen3-8B) — its 47 failures are
+  cap truncations at 8192, so the *unchanged* R4 verifier cascade reaches **93/96** (FN 2,
+  util 49 %) vs 69/96 on Nemotron. Bonsai {{B_TEST}}/96 ({{B_TEST_SILENT}} silent).
+  No local arm dominates another; Nemotron keeps 12 unique TEST successes (S10/S06/S11).
+- **New inference:** {{CALLS}} local cases, 0 frontier calls; ~{{WALL_TOTAL}} h wall. TEST spent
+  for `qwen38-27b-q3km` and `bonsai-27b` on Suite v3.
+- **Meaning:** the modern strong local's residual failure is a reasoning *budget* (8192
+  cap) not a behaviour gap — when it finishes it is right (47/49 on TEST); QLoRA is not the
+  next step; neither is a router.
+
+---
+
+## THE NEXT TASK — R7: reasoning-budget calibration of the frozen Qwen3.8-27B execution system (recommended, NOT started)
+
+Exactly one recommendation (R6 report § 11): a pre-registered TRAIN-only study of caps above
+8192 (e.g. 12288 at `-c 16384`, or a larger context) and, if the chat template supports it,
+a declared thinking-budget toggle, on `qwen3.8-27b-q3_k_m@7f3b845b5638` /
+`llama.cpp-upstream-9b05354@0e90f9139596`; select on TRAIN, freeze, one DEV, one TEST,
+same Suite v3, same registry/state machine, R4 replay + latency/VRAM reported. Question:
+how much of the 49 % truncation converts to passes, at what wall time, and whether the
+UD-Q3_K_XL quant (39 % faster, frozen out by the quality-first rule at 8192) becomes the
+better operating point once the budget is not binding. No training, no router.
 
 ---
 
 ## State: Suite v3 released (tag `suite-v3` = `7764601`, unchanged through R5), DEV + TEST baselines done for Qwen, Nemotron, frontier; R5 learned routing done (see above)
 
-**~90 commits, 534 tests green** (`make test`; one live test skips unless
+**~125 commits, {{NTESTS}} tests green** (`make test`; one live test skips unless
 `FIS_LIVE_TESTS=1` — it must never touch :8082 during a paired run; the DB-gated
 `test_corpus_live.py` skips unless the corpus in Postgres is this code's suite).
 
@@ -87,12 +120,16 @@ needs them, that acquisition is part of the next milestone and must be recorded 
 | Event layer | done — generator publishes, consumers materialise; projection == live rows asserted for all 288 |
 | Prompt registry (`prompts.py`) | done, 8 named variants; `DEFAULT_PROMPT` is the control; **unchanged in suite v3** |
 | Suite identity | `fis_platform/suite.py` `SUITE_VERSION = "3"`; migration 006; `compare.py` labels every row; analysis scripts refuse cross-suite pairs without `--allow-cross-suite`; `scenarios/manifests/corpus_v3.json` is the corpus identity |
-| Experiments | Suite v2: E2/E4/E6/E6b/R0–R4/R3/R3b (historical, labelled v2). **Suite v3: DEV + TEST baselines for all three arms, pairwise matrices, unchanged R4 replay** — `SUITE_V3_RELEASE_REPORT.md`; **R5 learned routing** — `R5_LEARNED_ROUTING_REPORT.md` |
+| Experiments | Suite v2: E2/E4/E6/E6b/R0–R4/R3/R3b (historical, labelled v2). **Suite v3: DEV + TEST baselines for all three arms, pairwise matrices, unchanged R4 replay** — `SUITE_V3_RELEASE_REPORT.md`; **R5 learned routing** — `R5_LEARNED_ROUTING_REPORT.md`; **R6 modern local refresh** (Qwen3.5-9B, Qwen3.8-27B Q3_K_M, Ternary Bonsai; provenance registry) — `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md` |
+| Provenance registry (R6) | `learning/registry/r6/` — artifacts (SHA-256 + upstream revision + GGUF metadata digest), runtimes (binary-set digest, CUDA/driver/GPU), generation configs, candidates with hash-chained state logs, run ledger, analyses; `fis_platform/provenance.py`, `scripts/r6_registry.py` |
 | Routing gateway / cascade | unchanged: Switchyard 0.2.0 on :4000 (R0.1 key-order fix), `cascade.py` policy `verifier`; **R5** `fis_platform/routing/` (snapshot v1, learner), `scripts/r5_replay.py` (offline replay, selection/unlock state machine), frozen policies under `learning/registry/r5/frozen/` |
 
-Infra (all healthy): Postgres+pgvector `:5433`, NATS JetStream `:4222`,
-Qwen3-8B on llama.cpp `:8082`, Nemotron 3.5 Lightning on `:8083`. Start with
-`make up-core`, `make serve-local`, `make serve-nemotron`.
+Infra: Postgres+pgvector `:5433`, NATS JetStream `:4222`. **No model server is left
+running after R6**: the historical 8082/8083 sessions were stopped at the start of R6.2
+(their execution systems are recorded in `learning/registry/r6/historical_controls.json`;
+the historical arms are replay-only and `run_eval` now refuses to run a local arm without
+`--candidate`). R6 candidates are served one at a time with `make r6-serve …`
+(ports 8084/8085/8086). Start with `make up-core`.
 
 **Suite version is now `3`** (`fis_platform/suite.py`), frozen at tag `suite-v3`
 (`7764601`), corpus digest `1e7c5278ba1f4cc1cc96fa8a1f04946ab622270eaba4c5671274c21e9d39e528`

@@ -1196,3 +1196,79 @@ DEV/TEST number, oracle, reproduction and Pareto sweep by offline replay.
 | full automated tests pass | ✔ 534 + 1 skipped |
 | documentation updated | ✔ report, contract, experiment-log, HANDOFF, routing-experiments, architecture |
 | working tree clean except intentional artifacts | ✔ at the final commit |
+
+---
+
+# Milestone 7 — R6 modern local specialist refresh (2026-08-18 20:59 UTC → 2026-08-19 {{END_HHMM}} UTC)
+
+Plan `FIS_R6_Modern_Local_Specialist_Refresh_Plan.html`; contract `R6_EXPERIMENT_CONTRACT.md`;
+report `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md`; record `learning/registry/r6/`.
+Orchestrated by Fable; Opus subagents for inspection and the provenance module; three Fable
+independent reviews (provenance/state audit, contract/gates, final challenge).
+
+## M7.0 Read-only reconciliation (bootstrap, before `/goal`)
+Six inspectors + a critic over docs, Suite v3 freeze, registry surfaces, code surface, the R5
+state machine and runtime identity; SHA-256 of all five local GGUFs recomputed and matched to
+the packet and to the upstream LFS digests (Nemotron's pin recovered: bartowski file-upload
+commit `be042bfc`; the upstream file had been re-uploaded); `Ternary-Bonsai-27B-Q2_0.gguf`
+moved from `~/archive/bonsai-eval/models` to `~/infra/models`; Q2_0 block-geometry divergence
+between upstream and Prism found (same type id 42, QK 64 vs 128); two "Bonsai" mislabels found;
+Qwen3.5-9B confirmed absent. Report returned, stop, `/goal` received 20:59 UTC.
+
+## M7.1 Provenance hardening (21:00–21:36 UTC; `b2f85d5`, `ac81825`)
+`fis_platform/provenance.py` (GGUF reader, digests, records, `R6Registry`, transition table),
+`scripts/r6_registry.py`, `scripts/r6_pilot.py`, `scripts/r6_metrics.py`, `fis_platform/r6_gates.py`,
+`run_eval --candidate` + `--scenario-ids-file`, gateway manifests, `infra/serve-r6.sh`, Makefile
+targets; Qwen3.5-9B downloaded from the pinned revision and digest-verified (21:05 UTC); six
+artifacts, two runtimes, three generation configs, four candidates registered; historical
+8082/8083 server args captured from `/proc`; contract pre-registered (pilot, cap rule, quant
+rule, Bonsai eligibility, numeric DEV gates from historical DEV metrics only) and committed
+before any pilot. Registry-aware clean-tree rule (only `learning/registry/r6/**` may be ahead
+of HEAD) made normative.
+
+## M7.2 TRAIN (21:36 UTC → 05:46 UTC; 8.2 h)
+Historical servers stopped (GPU idle baseline 1,734 MiB). Qwen3.5-9B pilot 13/36 (10 cap hits,
+p50 68.5 s), probe 12/12 identical, TRAIN_COMPATIBLE. Qwen3.8 Q3_K_M: `--fit` probe → 66/66
+layers fit, frozen `-ngl 99`; pilot 20/36 (15 cap hits, p50 288.6 s, 28 tok/s). UD-Q3_K_XL pilot
+16/36 (18 cap hits, 38.8 tok/s) → WITHDRAWN by § 7 rule 1. Q3_K_M cross-session probe 12/12
+identical. Bonsai on Prism: compat probe OK (json_schema, timings, fingerprint, reasoning);
+pilot 15/36 (4 cap hits, p50 72 s, 9.2 GiB); probe 12/12 identical (interrupted after 8 by a
+tool timeout, resumed same session). Every cap calibration → 8192 (no allowed cap within
+tolerance). Independent audit A (provenance/state) ran during the Q3_K_M pilot — no blockers,
+4 must-fixes landed before DEV (`364428b`): mandatory `--candidate`, family guard at freeze
+and in `require_state`, running-server binding (exe + mapped libs + env), registry reset
+guards + ledger-vs-git prefix check + DB one-look check, untracked-aware cleanliness,
+finished-full-run requirement, session-consistent resume, exact pid matching.
+
+## M7.3 Freeze (05:46–06:05 UTC; `b4e9095`, `f4ae5f5`)
+Contract § 10 frozen (three execution systems, run ids, gates digest `6b9699fe…`);
+CONTRACT_FROZEN ×3 bound to blob `0604d661…`. Independent review B (contract/gates) — no
+blockers; follow-ups landed: no-output erratum (Qwen3-8B DEV no-output is 9 by § 11's
+definition; thresholds unchanged), resumed-run counting, gate-verdict binding + re-derivation,
+fresh-session guard, wording/disclosure/fallback rows (§ 17).
+
+## M7.4 DEV (06:05–11:24 UTC; 5.5 h)
+Qwen3.5-9B 23/48 → DEV_REJECTED (p50 58.1 s > 38.6 s; no-output 10 > 8; all-pass clause met).
+Qwen3.8 Q3_K_M 25/48 → DEV_QUALIFIED (clause 1; 22 cap-hit no-outputs, 1 silent).
+Bonsai 21/48 → DEV_QUALIFIED (floor; memory 0.61×, p50 0.30× of Qwen3.8). Verdicts produced
+by `scripts/r6_dev_record.py` (the gate function, re-derived by the registry).
+
+## M7.5 TEST (11:24 UTC → {{TEST_END}} UTC)
+Unlocks re-hashed the artifacts and bound DEV result digests + contract blob. Qwen3.8 Q3_K_M
+TEST 47/96 (47 cap hits, 2 silent; 6.2 h). Bonsai TEST {{B_TEST}}/96 ({{B_TEST_SILENT}} silent;
+{{B_TEST_HOURS}} h). Both TEST_EVALUATED (terminal). Qwen3.5-9B's TEST never opened.
+
+## M7.6 Offline analysis
+`scripts/r6_analysis.py` (DEV and TEST JSON under `learning/registry/r6/analysis/`): per-arm
+quality/failure shape/runtime, unchanged R4 replay, post-answer oracle, pairwise A/B/C/D and
+dominance, unique successes, tier coverage, by-class. Headline: Qwen3.8 + unchanged R4 = 93/96
+TEST (FN 2, util 49 %); no local arm dominates another; Nemotron complementary (12 unique).
+
+## M7.7 Report, docs, review C, tests, clean tree
+{{M77}}
+
+## M7.8 Timing and inference
+{{M78}}
+
+## M7.9 Completion checklist
+{{M79}}
