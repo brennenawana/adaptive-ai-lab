@@ -166,9 +166,31 @@ fraction of identical `output_digest` and identical `all_pass` is reported. No g
 ## 10. Server configuration per candidate **[frozen at R6.3]**
 
 Recorded as `execution_system_digest` in each candidate's `TRAIN_COMPATIBLE` entry
-(`learning/registry/r6/candidates/<id>/state.jsonl`): `-c`, `-ngl N`, cap, generation-config
-digest, server-args digest, runtime digest, artifact SHA. The freeze commit lists them in
-§ 17.
+(`learning/registry/r6/candidates/<id>/state.jsonl`). All three candidates run with the
+historical Qwen server args — `-c 16384 -ngl 99 --flash-attn on --cache-type-k q8_0
+--cache-type-v q8_0 --jinja --parallel 1` (server-args digest `7c6f27cb47785cb7…`, identical
+to the historical 8082 arm) — cap **8192** (`gc@5d1e73fdadd7`), one server resident at a time,
+served by `infra/serve-r6.sh`:
+
+| Candidate | Execution-system digest | Runtime | Port / alias | TRAIN pilot (36) | Cap rule § 6 |
+|---|---|---|---|---|---|
+| `qwen35-9b@9f010021daba` (Qwen3.5-9B Q4_K_M) | `e9d7d722d78ba6a2372a0526337bfddef4df1318f331757fb818d8c4901edc17` | upstream `b1-9b05354` | 8084 `fis-qwen35-9b` | 13/36, no-output 11 (10 cap hits), p50 68.5 s, 7.9 GiB resident | none of {4096: 29, 6144: 14, 8192: 10} ≤ 3 → **8192** (27.8 % truncation) |
+| `qwen38-27b-q3km@8528f049af75` (Qwen3.8-27B Q3_K_M, selected) | `47a46418e7590e3d9adc78d433d184038d16fc70497622065a7f88143c6e3d4f` | upstream `b1-9b05354` | 8085 `fis-qwen38-27b` | 20/36, no-output 15 (all cap hits), p50 288.6 s, 15.7 GiB resident (66/66 layers on GPU) | none of {4096: 33, 6144: 26, 8192: 15} ≤ 3 → **8192** (41.7 % truncation) |
+| `bonsai-27b@ddd13c20e0e8` (Ternary Bonsai 27B Q2_0) | `c038861a027a89b12691f7be3443f9cbdde9e8c377f735191e6f477cf79f9488` | prism `b1-9fcaed7` | 8086 `fis-bonsai-27b` | 15/36, no-output 5 (4 cap hits), p50 72.2 s, 9.2 GiB resident | none of {4096: 18, 6144: 7, 8192: 4} ≤ 3 → **8192** (11.1 % truncation) |
+
+Withdrawn: `qwen38-27b-udq3kxl@d9d3f9771d67` (Qwen3.8-27B UD-Q3_K_XL) — § 7 rule 1: 16/36 vs
+20/36 (no-output 18 vs 15; faster, 38.8 vs 28.0 tok/s; pairwise 13 both / 7 Q3_K_M-only /
+3 UD-only / 13 neither). Stability probes (§ 9): Qwen3.5-9B 12/12 identical output digests
+(same session); Qwen3.8 Q3_K_M 12/12 identical **across** sessions; Bonsai 12/12 identical
+(same session). Bonsai § 8 eligibility: (a) `/props` + strict json_schema OK; (b) 31/36
+parsable (5 no-output ≤ 6); (c) `timings`, `system_fingerprint = b1-9fcaed7`,
+`reasoning_content` present; (d) resident GPU memory captured → **ELIGIBLE**.
+
+DEV run ids (one each, split `dev`, 48 cases, fresh server session, standard 8-token prime):
+`R6-qwen35-dev`, `R6-qwen38-q3km-dev`, `R6-bonsai-dev`. TEST run ids for DEV-qualified
+candidates: `R6-qwen35-test`, `R6-qwen38-q3km-test`, `R6-bonsai-test`. Order of DEV:
+Qwen3.5-9B, Qwen3.8 Q3_K_M, Bonsai (the Bonsai efficiency gate reads the Qwen3.8 DEV
+numbers). Gates digest (`fis_platform/r6_gates.py`): `6b9699fe97a9f5b09ed6d22fcd9808dcf1d85eff910c7adbbb674ef1920a133f`.
 
 ## 11. DEV qualification gates (numeric; fixed here from historical DEV metrics only)
 
@@ -256,3 +278,4 @@ challenge of the conclusions. No subagent decides TEST unlock.
 | `ac81825` | § 14 | cleanliness rule made precise: the registry's own tracked append-only files may be ahead of HEAD (they are written by the guarded run itself); nothing else may |
 | `364428b` | § 13, § 14 | pre-DEV independent audit (Fable, review A) follow-ups, all enforced in code before any DEV call: (1) every local llama.cpp run needs `--candidate` (historical local arms are replay-only, refused by the runner); (2) the one-quant-per-family guard fires at `CONTRACT_FROZEN` and in `require_state` for DEV/TEST, not only at `DEV_EVALUATED` — the Qwen3.8 loser must be `WITHDRAWN` at `TRAIN_COMPATIBLE`; (3) the runner binds the RUNNING server to the runtime record (exe + every mapped `lib*.so*` hashed against `binaries ∪ cuda_libs`, `LD_LIBRARY_PATH` recorded, any `LLAMA_ARG_*`/`GGML_*` server environment refused, exactly one `llama-server` resident); (4) registry resets are refused fail-closed (a candidate named in `HEAD.json` cannot vanish or be re-created; tracked `*.jsonl` must have their committed content as a byte-prefix; committed `HEAD.json` seqs may not regress) and canonical storage is consulted before DEV/TEST (rows already stored under another run id for the candidate/split ⇒ refused); (5) untracked files outside the registry count as dirty; a dirty tree is refused for TRAIN as well; (6) DEV/TEST results require a finished full-split run in the ledger (48/96) and `--resume` may not mix server sessions; `--limit`/`--scenario-ids-file` are TRAIN-only; (7) `contract_revision` is computed from git at the freeze and DEV/TEST refuse to start unless the committed contract is the frozen blob or that blob plus appended § 17 rows; (8) `capture_server_args` matches exact `--port` tokens on `argv[0]==llama-server` and refuses ambiguity; (9) `family` cannot be dodged by re-registering the same `base_model_repo` under a new family. Recorded deviation: `R6-qwen35-train-stab` (12 TRAIN cases) ran with `evals/runner/run_eval.py` modified (the tree-state telemetry stamp of commit `644890b`, no semantic change) — its trajectories say so (`code_tree_clean_except_registry=false`); the 36-case pilot ran on committed code. Disclosure: this llama.cpp build has `--fit` ON by default; the frozen systems are fit-immune because `-c` and `-ngl` are explicit (fit only acts on unset parameters). Wording: the upstream runtime record covers the historical arms by *attribution* (`llamacpp_build=b1-9b05354` on their trajectories + on-disk hashes taken 2026-08-18 for sessions started 2026-08-17/18); `historical_controls.json` says so. |
 | (this commit) | § 9 | Qwen3.8 stability probe: the two quants' pilots must run in separate server sessions and the winner is known only after both, so the same-session probe of § 9 cannot be run for the winner without probing both quants (~1.8 h of TRAIN inference for information the Qwen3.5-9B probe already gave: 12/12 bit-identical within a session). Amended before any Qwen3.8 probe: for the `qwen3.8-27b` family the probe is run once, for the SELECTED quant, in a fresh server session before DEV (12 first-per-class TRAIN cases, compared with that quant's pilot session) — a cross-session reproducibility probe, which is the R5-relevant question (restarts moved 23/48 outcomes for Qwen3-8B). The probe session is stopped and the DEV session started fresh with the standard prime, so DEV's prompt cache is not pre-warmed by TRAIN cases. Bonsai keeps the same-session probe. Also recorded: the Q3_K_M pilot's first case (`S01-1000000`, 367.7 s) includes a ~4-minute first-request warm-up at ~1 tok/s (GPU memory commit at 15.5/16.3 GiB) that the 8-token prime did not absorb; all other cases ran at ~26 tok/s with occasional short stalls. |
+| (this commit) | § 10 | **R6.3 freeze.** TRAIN phase results entered (pilots, cap rule outcomes, quant winner, Bonsai eligibility, stability probes), DEV/TEST run ids and DEV order fixed, gates digest recorded. New TRAIN inference so far: Qwen3.5-9B 36+12, Qwen3.8 Q3_K_M 36+12, Qwen3.8 UD-Q3_K_XL 36, Bonsai 36+12 (+1 synthetic compat request) = 180 corpus cases; no DEV/TEST/frontier calls. Nothing above § 17 changes after this commit except by appended rows here. |
