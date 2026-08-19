@@ -3,3 +3,4 @@
 {"at": "2026-08-18T21:35:43+00:00", "code_commit": "ac81825-dirty", "event": "start", "name": "R6.2-train", "note": "stopping historical servers 8082 (pid 586847) and 8083 (pid 1184619); controls are replay-only"}
 {"at": "2026-08-18T21:35:56+00:00", "code_commit": "ac81825-dirty", "event": "start", "name": "R6.2-gpu-idle-baseline", "note": "GPU memory.used with no llama-server resident: 1734 MiB of 16303"}
 {"at": "2026-08-19T05:46:05+00:00", "code_commit": "e9c5b0c-dirty", "event": "end", "name": "R6.2-train", "note": "3 candidates TRAIN_COMPATIBLE, UD-Q3_K_XL withdrawn"}
+{"at": "2026-08-19T05:46:56+00:00", "code_commit": "b4e9095-dirty", "event": "start", "name": "R6.3-freeze", "note": "contract blob 0604d661fcd6b6f43b875760600eb5782c5f3bb4 at b4e9095"}
