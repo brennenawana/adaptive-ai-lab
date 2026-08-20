@@ -1,7 +1,10 @@
 # NEXT STEP — M0: Truncation Diagnostic + Telemetry Floor + $4 GPU Benchmark
 
 > STATUS: CURRENT / NORMATIVE — the single authorized next step
-> Current as of: 2026-08-20 (rev 3 — pre-launch correction: the R7 decision now keys
+> Current as of: 2026-08-20 (rev 4 — decision precedence made explicit:
+> `n_control_reconfirmed < 10` → INCONCLUSIVE/RE-SCOPE regardless of `f_rescue`,
+> and poor reconfirmation can never support DROP; `f_rescue` undefined at
+> denominator 0. rev 3 — pre-launch correction: the R7 decision now keys
 > on **useful task rescue** (`f_rescue`), not completion; the primary population is
 > pinned to the 15 verified Qwen3.8 TRAIN cap-hit cases; the causal comparison is a
 > contemporaneous same-session paired control at 8192 vs the raised cap, with
@@ -182,7 +185,7 @@ store.
 | `n_control_reconfirmed` | controls with `stop_reason=length` at 8192 in M0 |
 | `f_reconfirm` | `n_control_reconfirmed / n_hist_cap` |
 | `n_rescue` | treatment passes among reconfirmed cases |
-| **`f_rescue`** | **`n_rescue / n_control_reconfirmed` — the primary decision metric** |
+| **`f_rescue`** | **`= n_rescue / n_control_reconfirmed` — the primary decision metric. Undefined when `n_control_reconfirmed = 0` (reported as UNDEFINED, never silently coerced to 0%)** |
 | `n_wrong_complete`, `f_wrong_complete` | treatment completes (parseable, no length stop) but fails, among reconfirmed |
 | `n_still_truncated` | treatment still `stop_reason=length`, among reconfirmed; with convergent (c) vs degenerate (d) counts |
 | `f_complete` | completions ((a)+(b)) among reconfirmed — secondary |
@@ -221,9 +224,22 @@ only by the scientific owner (§11).
 
 ## 7. Decision table (pre-registered; frozen before inference)
 
-**Primary decision metric: `f_rescue`** — treatment passes among contemporaneously
-reconfirmed 8192 cap-hits. Completion (`f_complete`) is diagnostic context and **can
-never by itself produce a GO**. Band sanity check at the verified n: with
+**Primary decision metric: `f_rescue = n_rescue / n_control_reconfirmed`** —
+treatment passes among contemporaneously reconfirmed 8192 cap-hits (undefined at
+`n_control_reconfirmed = 0`). Completion (`f_complete`) is diagnostic context and
+**can never by itself produce a GO**.
+
+**Precedence gate (applied before the bands):**
+
+```
+if n_control_reconfirmed < 10:
+    verdict = RE-SCOPE / INCONCLUSIVE, regardless of f_rescue.
+    Poor reconfirmation means the historical premise / causal denominator is
+    unstable — it is NOT evidence that extra budget fails to rescue, and it
+    can never support DROP.
+else:
+    apply the frozen rescue bands below (GO / RE-SCOPE / DROP).
+``` Band sanity check at the verified n: with
 `n_hist_cap = 15`, one case ≈ 6.7pp, so ≥ ~30% ≈ ≥ 5 rescues and < ~10% ≈ ≤ 1; in
 whole-task terms, 47 of Qwen3.8's 49 TEST failures are cap truncations, so ~30%
 rescue — *if it transported, which the selection-bias caveat says is optimistic* —
@@ -234,8 +250,8 @@ as-is.
 | M0 finding | Consequence (recommendation to the owner) |
 |---|---|
 | **STRONG R7 GO** — `f_rescue ≥ ~30%` (≥ ~5 of 15 if all reconfirm), absent contradictory evidence | R7 as designed: material deterministic rescue, not just completion (caps from WP-C's envelope; UD-Q3_K_XL re-enters under the elimination rule; `f_wrong_complete` tempers the conversion expectation) |
-| **R7 RE-SCOPE / INCONCLUSIVE** — `f_rescue` ~10–30%; **or** high `f_complete` with low `f_rescue` (budget buys completions, not correctness); **or** low reconfirmation (`n_control_reconfirmed` < 10 → default INCONCLUSIVE); **or** many still-truncated cases remain convergent (probe cap likely too small) | R7 re-scoped at what the probe shows converts (larger caps / thinking-budget arm / different target), honest wall cost restated before any freeze — or returned to the owner as INCONCLUSIVE |
-| **R7 DROP / R9 MOVES UP** — `f_rescue < ~10%` with the diagnostic pattern (wrong-complete-dominant, degenerate reasoning among (c)/(d), or poor reconfirmation) showing extra budget is not the main bottleneck | **R7 dropped**; **R9 moves up**; Nemotron-tier specialization returns as the live alternative (R6 report §11 fallback) |
+| **R7 RE-SCOPE / INCONCLUSIVE** — `n_control_reconfirmed < 10` (the precedence gate: INCONCLUSIVE regardless of `f_rescue`); **or**, with the gate passed: `f_rescue` ~10–30%; **or** high `f_complete` with low `f_rescue` (budget buys completions, not correctness); **or** many still-truncated cases remain convergent (probe cap likely too small) | R7 re-scoped at what the probe shows converts (larger caps / thinking-budget arm / different target), honest wall cost restated before any freeze — or returned to the owner as INCONCLUSIVE |
+| **R7 DROP / R9 MOVES UP** — requires `n_control_reconfirmed ≥ 10` **and** `f_rescue < ~10%`, with the diagnostic pattern (wrong-complete-dominant, degenerate reasoning among (c)/(d)) showing extra budget is not the main bottleneck. Poor reconfirmation is never evidence for DROP | **R7 dropped**; **R9 moves up**; Nemotron-tier specialization returns as the live alternative (R6 report §11 fallback) |
 | WP-C: no cap > 8192 fits the 5080 safely | R7 infeasible locally as designed → rented-node R7 priced in the memo, or R7 dropped per the rows above |
 | Benchmark: desktop 3090 ≥ ~1.2× laptop decode | Designated trigger-buy stays "used 3090"; ledger continues |
 | Benchmark: 3090 < ~1.2× laptop (incl. parity or slower) | Designated buy reconsidered — 5090-class at Stage-3 conditions, or continued rental; trigger itself unchanged |
