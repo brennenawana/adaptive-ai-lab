@@ -404,3 +404,11 @@ evidence, oracles (post-answer per model; three-tier descriptive), R4 reproducti
 against the release report, TRAIN CV results and artifact digests, DEV Pareto and
 selection, silent-failure recovery, TEST (or "TEST NOT OPENED"), timing by phase, number
 of new model calls, next recommendation (exactly one).
+
+---
+
+> **STATUS (appended 2026-08-20): FROZEN CONTRACT — binding record of a completed
+> experiment/release.** Kept byte-stable above this line by the freeze discipline
+> (marker appended, nothing edited). It is not a plan. New experiments use
+> `docs/current/EXPERIMENT_CONTRACT_TEMPLATE.md`; sequencing lives in
+> `docs/current/AI_SYSTEMS_LAB_MASTER_PLAN.md`.

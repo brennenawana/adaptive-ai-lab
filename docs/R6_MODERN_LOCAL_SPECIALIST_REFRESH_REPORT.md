@@ -1,5 +1,10 @@
 # R6 — Modern Local Specialist Refresh: Report
 
+> STATUS: HISTORICAL EVIDENCE (marker added 2026-08-20; content otherwise unchanged)
+> Authoritative record of this completed work — cite it for facts.
+> It is not the current project plan. Sequencing: `current/AI_SYSTEMS_LAB_MASTER_PLAN.md`; index: `README.md`.
+> Its §11 "R7 next" recommendation is now **conditional on M0** — see `current/NEXT_STEP_M0.md`.
+
 **Milestone:** R6 (`docs/FIS_R6_Modern_Local_Specialist_Refresh_Plan.html`) · **Contract:** `docs/R6_EXPERIMENT_CONTRACT.md` (frozen blob `0604d661…` at `b4e9095`; amendments appended only, § 17) · **Registry:** `learning/registry/r6/` (records, hash-chained state logs, run ledger, analyses) · **Suite:** v3, unchanged · **Window:** 2026-08-18 20:59 UTC (`/goal`) → 2026-08-19 21:05 UTC.
 
 ## 0. One screen

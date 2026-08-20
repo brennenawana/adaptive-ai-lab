@@ -1,5 +1,8 @@
 # Clean-Room Boundary
 
+> STATUS: CURRENT / NORMATIVE (operational). Marker added 2026-08-20.
+> Program sequencing lives in `current/AI_SYSTEMS_LAB_MASTER_PLAN.md`; index: `README.md`.
+
 FIS is a learning and demonstration artifact. Its value depends on being provably
 independent of any employer system. This document is the standing rule and the
 answer to "how do I know none of your client's material is in here."

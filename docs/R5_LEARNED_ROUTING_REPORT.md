@@ -1,5 +1,9 @@
 # R5 — Learned Silent-Failure Routing: Report
 
+> STATUS: HISTORICAL EVIDENCE (marker added 2026-08-20; content otherwise unchanged)
+> Authoritative record of this completed work — cite it for facts.
+> It is not the current project plan. Sequencing: `current/AI_SYSTEMS_LAB_MASTER_PLAN.md`; index: `README.md`.
+
 Milestone R5 of the Fintech Integration Sandbox. Governing plan
 `docs/FIS_R5_Learned_Silent_Failure_Routing_Plan.html`; pre-registered contract
 `docs/R5_EXPERIMENT_CONTRACT.md` (skeleton `e3b8066`, amendments `76a7ec1`, `4b10da0`,

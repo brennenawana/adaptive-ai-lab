@@ -1,5 +1,8 @@
 # FIS Architecture
 
+> STATUS: CURRENT / NORMATIVE (operational). Marker added 2026-08-20.
+> Program sequencing lives in `current/AI_SYSTEMS_LAB_MASTER_PLAN.md`; index: `README.md`.
+
 Concrete shape of the Fintech Integration Sandbox, and the decisions behind it.
 For *why the platform exists*, see the Canonical Architecture doc in `docs/`.
 

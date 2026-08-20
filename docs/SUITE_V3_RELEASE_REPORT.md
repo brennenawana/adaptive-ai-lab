@@ -1,5 +1,10 @@
 # Suite v3 — Release Report
 
+> STATUS: HISTORICAL EVIDENCE (marker added 2026-08-20; content otherwise unchanged)
+> Authoritative record of this completed work — cite it for facts.
+> It is not the current project plan. Sequencing: `current/AI_SYSTEMS_LAB_MASTER_PLAN.md`; index: `README.md`.
+> Its §10 "next: R5" recommendation was executed long ago (R5, then R6).
+
 Suite v3 is a **benchmark revision**. Every number below was measured against the
 Suite v3 corpus, scorer and verifier; nothing here is comparable to a Suite v2 number
 by subtraction (§ 8). Governing documents: `FIS_Suite_v3_Benchmark_Release_Goal_Prompt.txt`

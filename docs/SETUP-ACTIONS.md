@@ -1,5 +1,10 @@
 # FIS Setup — Actions That Require You
 
+> STATUS: HISTORICAL EVIDENCE (marker added 2026-08-20; content otherwise unchanged)
+> Authoritative record of this completed work — cite it for facts.
+> It is not the current project plan. Sequencing: `current/AI_SYSTEMS_LAB_MASTER_PLAN.md`; index: `README.md`.
+> One-time bootstrap checklist; open items (A2–A4, B1–B2) were resolved in practice — the repo is long past setup.
+
 Everything here needs your hands (root, a browser login, a GUI, or a physical decision).
 Once these are done I can build the entire Fintech Integration Sandbox without further input.
 

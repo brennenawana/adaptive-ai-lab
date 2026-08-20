@@ -1,5 +1,8 @@
 # Task Ontology
 
+> STATUS: CURRENT / NORMATIVE (operational). Marker added 2026-08-20.
+> Program sequencing lives in `current/AI_SYSTEMS_LAB_MASTER_PLAN.md`; index: `README.md`.
+
 The closed vocabulary of the investigation workflow: what a case can be about, what
 can have caused it, what may be recommended, and which claims are out of bounds.
 

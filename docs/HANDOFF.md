@@ -1,4 +1,20 @@
-# Handoff — 2026-08-19 (R6 modern local refresh done; Suite v3 unchanged; next: R7 reasoning-budget calibration of the frozen Qwen3.8-27B execution system (not started))
+# Handoff — 2026-08-20 (R6 done; research synthesis done; next: M0 — see docs/current/NEXT_STEP_M0.md)
+
+> **2026-08-20 update.** The documentation tree was reorganized and the program
+> re-planned after two deep-research reports (`docs/research/`). Start at
+> **`docs/README.md`**; sequencing authority is
+> **`docs/current/AI_SYSTEMS_LAB_MASTER_PLAN.md`**; the next task is
+> **`docs/current/NEXT_STEP_M0.md`** (truncation diagnostic + telemetry floor + $4
+> rented-GPU benchmark). **R7 is no longer the automatic next step — it is
+> conditional on M0's outcome.** The methodology is now
+> `docs/current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` (consequence-bearing
+> tolerances, cluster-robust statistics with MDE/effective-N, round-robin ordering,
+> SMOKE state, TEST-look ledger); new contracts use
+> `docs/current/EXPERIMENT_CONTRACT_TEMPLATE.md`. Key statistical reframe: Suite v3
+> TEST has effective N ≈ 22 under measured class clustering — R6's +13.5pp headline
+> is not significant cluster-robustly; Suite v3 supports gross gates, not fine
+> ranking between local arms. Everything below this block is the operational record
+> as of 2026-08-19 and remains accurate for environment, infra, and history.
 
 Written deliberately at a context boundary. Everything needed to resume is here or
 in the other docs. Read `architecture.md` and `task-ontology.md` before coding,
@@ -89,7 +105,7 @@ per-fold AUC before believing it.
 
 ---
 
-## THE NEXT TASK — R7: reasoning-budget calibration of the frozen Qwen3.8-27B execution system (recommended, NOT started)
+## R7: reasoning-budget calibration of the frozen Qwen3.8-27B execution system (NOT started; **no longer the next task — conditional on M0**, see `current/NEXT_STEP_M0.md`)
 
 Exactly one recommendation (R6 report § 11): a pre-registered TRAIN-only study of caps above
 8192 (e.g. 12288 at `-c 16384`, or a larger context) and, if the chat template supports it,

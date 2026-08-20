@@ -320,3 +320,11 @@ work proceeds.
   its input-token accounting under-reports (strong cost is a floor).
 - `_phase_two`'s limit of 6 provider refs bounds which webhook histories the model
   sees in fixed-evidence mode (unchanged from v2).
+
+---
+
+> **STATUS (appended 2026-08-20): FROZEN CONTRACT — binding record of a completed
+> experiment/release.** Kept byte-stable above this line by the freeze discipline
+> (marker appended, nothing edited). It is not a plan. New experiments use
+> `docs/current/EXPERIMENT_CONTRACT_TEMPLATE.md`; sequencing lives in
+> `docs/current/AI_SYSTEMS_LAB_MASTER_PLAN.md`.

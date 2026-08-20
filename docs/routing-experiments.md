@@ -1,5 +1,10 @@
 # Routing experiments — the R-series
 
+> STATUS: CURRENT RECORD (append-only). Marker added 2026-08-20.
+> Facts here are authoritative. Each entry's "recommended next milestone" line is a
+> point-in-time recommendation, superseded by later entries and by
+> `current/AI_SYSTEMS_LAB_MASTER_PLAN.md` (sequencing authority).
+
 Protocol and results for the routing track defined in
 `FIS_MSI_Pivot_Guide_Switchyard_Nemotron.html`. A separate series so routing
 experiments cannot be confused with the prompt/context E-series. Same rules:

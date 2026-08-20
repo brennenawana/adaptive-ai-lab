@@ -1,5 +1,10 @@
 # Overnight status — routing-foundation milestone (R0–R2)
 
+> STATUS: HISTORICAL EVIDENCE (marker added 2026-08-20; content otherwise unchanged)
+> Authoritative record of this completed work — cite it for facts.
+> It is not the current project plan. Sequencing: `current/AI_SYSTEMS_LAB_MASTER_PLAN.md`; index: `README.md`.
+> M1–M7 here are live-log session markers for 2026-08-16→19, unrelated to program milestone M0.
+
 Live log for the autonomous run started 2026-08-16. Newest entries at the bottom of
 each section; the **Morning summary** at the end is rewritten last.
 

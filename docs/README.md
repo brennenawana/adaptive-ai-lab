@@ -9,7 +9,7 @@ Last reorganized: 2026-08-20. If you read nothing else, read this page.
 3. **[current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md](current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md)** — the experimental methodology every experiment follows.
 4. **[current/EXPERIMENT_CONTRACT_TEMPLATE.md](current/EXPERIMENT_CONTRACT_TEMPLATE.md)** — how to write the next contract (v2).
 5. **[HANDOFF.md](HANDOFF.md)** — operational state: what runs where, gotchas, verification commands.
-6. **[research/](research/)** — the two 2026-08 deep-research reports (the evidence base for the current plan).
+6. **[research/](research/)** — the two 2026-08 deep-research reports (the evidence base for the current plan). *Caveat:* the 08-20 report's §2.3 gap-matrix retains two stale pre-correction rows suggesting SPRT-style rules; its own §2.2/Appendix C corrections (and the playbook) govern — SPRT was rejected.
 
 **When documents conflict:** master plan → next-step plan → playbook/contract-template →
 HANDOFF → everything else. Historical **final reports** stay authoritative for the
@@ -24,6 +24,7 @@ facts of their own experiments but never override the current plan. Historical
 | `current/NEXT_STEP_M0.md` | The next task |
 | `current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` | Methodology (v1.0) |
 | `current/EXPERIMENT_CONTRACT_TEMPLATE.md` | Contract template (v2) |
+| `current/TEST_LOOK_LEDGER.md` | TEST-look ledger (append-only; 7 historical looks backfilled; look #8 needs the Suite-v4 trigger review) |
 | `HANDOFF.md` | Operational state & environment record |
 | `architecture.md` | Component map, ports, event topology (normative event-driven requirement) |
 | `task-ontology.md` | Scenario classes, root causes, cause→action table |
@@ -34,10 +35,11 @@ facts of their own experiments but never override the current plan. Historical
 
 `SUITE_V3_RELEASE_CONTRACT.md`, `R5_EXPERIMENT_CONTRACT.md`, `R6_EXPERIMENT_CONTRACT.md`
 remain the binding definitions of their frozen baselines and completed experiments.
-They carry **no status headers by design**: `R6_EXPERIMENT_CONTRACT.md` is bound by git
-blob SHA in the provenance registry (`committed_contract_extends` — append-only after
-freeze), and the freeze discipline applies to all three in spirit. They are records,
-not plans. New experiments use the v2 template, never these files.
+They carry a status note **appended at the end only**: `R6_EXPERIMENT_CONTRACT.md` is
+bound by git blob SHA in the provenance registry (`committed_contract_extends` —
+append-only after freeze; a prepended header would break the binding), and the freeze
+discipline applies to all three in spirit. They are records, not plans. New
+experiments use the v2 template, never these files.
 
 ## HISTORICAL EVIDENCE — safe to cite for facts, not current instructions
 

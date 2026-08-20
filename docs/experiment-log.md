@@ -1,5 +1,10 @@
 # Experiment Log
 
+> STATUS: CURRENT RECORD (append-only). Marker added 2026-08-20.
+> Facts here are authoritative. Each entry's "recommended next milestone" line is a
+> point-in-time recommendation, superseded by later entries and by
+> `current/AI_SYSTEMS_LAB_MASTER_PLAN.md` (sequencing authority).
+
 Append-only. Each entry records what was run, what was found, and — importantly —
 what was **not** changed as a result, so later readers can tell a principled
 decision from a convenient one.
@@ -1111,3 +1116,38 @@ Suite v3, prompts, tools, evidence plan, scorer, verifier, frontier rows, the R4
 training, no learned router, no model-specific prompt tuning, no cap/quant/prompt change after
 DEV, no rerun after TEST. Qwen3.5-9B's TEST was never opened. TEST is now spent on Suite v3
 for `qwen38-27b-q3km` and `bonsai-27b` as well.
+
+## 2026-08-20 — Methodology synthesis after external research (no new experiment, no new inference)
+
+Two deep-research reports landed in `docs/research/` (2026-08-19 NVIDIA audit;
+2026-08-20 methodology/hardware/testbed study — the latter re-derived its statistics
+against this repo's own trajectory store). A synthesis session reconciled them against
+the R0–R6 record and reorganized `docs/` (see `docs/README.md`). What changed for the
+record kept in this log:
+
+- **Sequencing.** R6's "exactly one next milestone: R7" is superseded: **M0**
+  (truncation diagnostic + telemetry floor + $4 rented-GPU benchmark) runs first and
+  decides R7's fate (`docs/current/NEXT_STEP_M0.md`). R7 remains defined, conditional.
+- **Statistical reframe of standing results** (no numbers change; readings do):
+  Suite v3 TEST paired-difference ICC across the 12 classes is 0.475 → effective
+  N ≈ 22 → R6's Qwen3.8-vs-Bonsai +13.5pp is **not significant cluster-robustly**
+  (t=0.98, df=11). Suite v3 supports gross configuration gates, descriptive
+  comparison, and certain-bound exclusion — not significance claims between local
+  arms. DEV gates at 1–2-case margins sit an order of magnitude inside their own MDE.
+  Future contracts carry MDE + effective-N + INCONCLUSIVE
+  (`docs/current/EXPERIMENT_CONTRACT_TEMPLATE.md`).
+- **R6 cap-burn re-diagnosis.** A decision-quality failure, not a stopping-rule
+  failure: the 36-case pilot measured the breach (15/36 cap-hits vs ≤3/36) and the
+  contract's escape hatch proceeded unpriced. Fix adopted: consequence-bearing
+  tolerances, enforced fail-closed (`docs/current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` §5).
+- **UD-Q3_K_XL withdrawal flagged as sub-MDE** (McNemar p≈0.22–0.48 on a
+  cap-confounded metric). The new elimination rule forbids the class; UD re-enters
+  selection in R7's contract if M0 opens R7. Registry state untouched today.
+- **Hardware.** Buy nothing (documented 2026 memory-crunch prices; second purchased
+  GPU saves 0.0 min on the measured critical path). Rent the second node per
+  multi-arm milestone; pre-committed purchase trigger; $4 benchmark rides in M0.
+
+**Deliberately NOT changed:** Suite v3 (frozen; v4 waits for the TEST-look-ledger
+trigger and will add classes before replications); all frozen contracts and registry
+states; R4 policy; the R3b verdict; no run was re-scored, no historical number edited
+— only the *reading* of R6's headline comparison changed, disclosed here.

@@ -1,3 +1,4 @@
+# New here? docs/README.md is the documentation index (current vs historical vs superseded).
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 PY := .venv/bin/python
@@ -307,7 +308,7 @@ eval-r5-train: ## R5 — both local arms on TRAIN, sequentially (nothing else on
 	$(MAKE) eval-r5-train-nemotron
 
 # ---------------------------------------------------------------- R6 modern local refresh
-# R6 (docs/FIS_R6_Modern_Local_Specialist_Refresh_Plan.html) evaluates NEW local
+# R6 (docs/superseded/FIS_R6_Modern_Local_Specialist_Refresh_Plan.html) evaluates NEW local
 # execution systems under the frozen Suite v3 configuration. Every R6 run names a
 # registered candidate (learning/registry/r6): the runner refuses to start unless the
 # candidate's state allows the split, and unless the served file/binary/args match the
