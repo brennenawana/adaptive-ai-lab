@@ -1,0 +1,10 @@
+applicable,cap,completion_tokens,ctx,decode_tok_s,error,finish_reason,fit,kv_size,note,predicted_ms,prompt_ms,prompt_tokens,server_alive_after,server_args_digest,vram_load_mib,vram_peak_mib,wall_s
+True,8192,8192,12288,25.692702678975692,,length,OK,,,318806.476,4234.988,3700,True,41afc9591fc107fcf28b7340329330cb0ca29ed20c61bf6000414556387e045c,15558,15686,323.1
+False,10240,,12288,,,,N/A,,prompt allowance + cap > ctx,,,,,,,,
+False,12288,,12288,,,,N/A,,prompt allowance + cap > ctx,,,,,,,,
+True,8192,,16384,,,,OK-derived,,derived: worst-case cap 12288 passed at this ctx (KV is allocated per ctx),,,,,,,,
+True,10240,,16384,,,,OK-derived,,derived: worst-case cap 12288 passed at this ctx (KV is allocated per ctx),,,,,,,,
+True,12288,12288,16384,20.801630224793435,,length,OK,,,590674.859,5151.201,3700,True,7c6f27cb47785cb7fd0b22ceb23be1f5532ab4e96570663b2eb858beeeded18a,15524,15715,595.8
+True,8192,,20480,,,,OK-derived,,derived: worst-case cap 12288 passed at this ctx (KV is allocated per ctx),,,,,,,,
+True,10240,,20480,,,,OK-derived,,derived: worst-case cap 12288 passed at this ctx (KV is allocated per ctx),,,,,,,,
+True,12288,12288,20480,25.099377868398555,,length,OK,,,489534.046,4056.77,3700,True,97f1d42d777338d983d000308f599feaab3fea6406d8dd6d264ea7e34f1bdb6b,15443,15727,493.6
