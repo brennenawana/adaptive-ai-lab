@@ -13,8 +13,8 @@ CONTEXT=$(cat <<'EOF'
 Fintech Integration Sandbox (FIS).
 
 Repo location depends on where this session was started:
-  from WSL:     ~/fintech-integration-sandbox        (preferred - native tooling)
-  from Windows: \\wsl.localhost\Ubuntu-24.04\home\wall\fintech-integration-sandbox
+  from WSL:     ~/adaptive-ai-lab        (preferred - native tooling)
+  from Windows: \\wsl.localhost\Ubuntu-24.04\home\wall\adaptive-ai-lab
 
 READ FIRST, in this order (docs/README.md is the full index):
   docs/README.md               the documentation index: what is CURRENT, what is
