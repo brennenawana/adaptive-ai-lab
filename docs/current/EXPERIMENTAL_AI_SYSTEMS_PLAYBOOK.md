@@ -145,6 +145,13 @@ Every pre-registered tolerance **names its breach consequence** in the contract:
 - **Deterministic graders wherever the task is objectively checkable** (vindicated by
   JudgeBench: LLM judges ≈ chance on verifiable tasks). Adding any LLM judge requires a
   κ-corrected, bias-audited, human-anchored calibration protocol — otherwise no judge.
+- **Contemporaneous paired control for causal claims across sessions.** When a
+  historical-vs-new-run comparison is confounded by measured runtime/session
+  nondeterminism (the restart instability below), causal attribution to one
+  intervention requires a contemporaneous paired control — both arms in the same
+  server session, everything except the intervention held fixed, order
+  pre-registered and counterbalanced (e.g. AB/BA) — or the causal claim must be
+  explicitly declared unavailable and the comparison labeled descriptive.
 - **Same-session single-slot rule** for case-level local comparisons (measured: 23/48
   outcomes flip across a restart). Restart the `--no-mmap` endpoint before its arm;
   probe only with TRAIN cases; never probe mid-run; `FIS_LIVE_TESTS` off during paired
