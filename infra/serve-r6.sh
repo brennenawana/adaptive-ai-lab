@@ -58,7 +58,11 @@ case "$RUNTIME" in
   prism)    BIN="$FIS_PRISM_LLAMA_DIR/build-cuda/bin/llama-server"; CUDA_LIB="$FIS_PRISM_CUDA_LIB";;
   *) echo "!! --runtime must be upstream or prism"; exit 2;;
 esac
-LOG="/tmp/fis-r6-${ALIAS}.log"
+# One log file PER SESSION, never truncated by a relaunch (the R6 autopsy lost 8 of
+# 11 session logs to the old fixed-name `> $LOG`). The fixed name stays valid as a
+# symlink to the current session so callers that copy "the server log" keep working.
+LOG="/tmp/fis-r6-${ALIAS}-$(date -u +%Y%m%dT%H%M%SZ)-$$.log"
+ln -sfn "$LOG" "/tmp/fis-r6-${ALIAS}.log"
 
 # The build bakes a dead absolute RUNPATH (pre-restructure path + a trailing-colon cwd
 # entry), so the binary's OWN directory must come first, then the CUDA runtime that

@@ -145,8 +145,20 @@ class LocalLlamaCppAdapter(ModelAdapter):
         # `reasoning_content` beside `content`. A `length` stop with empty content and
         # a long reasoning_content is the budget meeting the model mid-thought — the
         # R3 failure mode — and this is the only place that split is observable.
+        # M0/WP-A: the text itself is carried on the response now, not just its length
+        # — a capped case writes no model_outputs row, so without this the population
+        # M0 diagnoses would leave no evidence of what the budget was spent on.
         reasoning = msg.get("reasoning_content")
         reasoning_chars = len(reasoning) if isinstance(reasoning, str) else None
+
+        # TTFT ≈ the backend's own prompt-processing time. The autopsy (§13) found
+        # ttft_ms None on every R6 row; this is the only non-streaming source of it.
+        ttft_ms = None
+        if "prompt_ms" in timings:
+            try:
+                ttft_ms = int(round(float(timings["prompt_ms"])))
+            except (TypeError, ValueError):
+                ttft_ms = None
 
         resp = GenerationResponse(
             text=msg.get("content") or "",
@@ -158,10 +170,12 @@ class LocalLlamaCppAdapter(ModelAdapter):
             tier=self.manifest.tier,
             usage=usage,
             cost=self._price(usage),
-            latency=LatencyRecord(wall_ms=wall_ms, api_ms=api_ms),
+            latency=LatencyRecord(wall_ms=wall_ms, api_ms=api_ms, ttft_ms=ttft_ms),
             stop_reason=choice.get("finish_reason"),
             runtime_fingerprint=payload.get("system_fingerprint"),
             reasoning_chars=reasoning_chars,
+            reasoning_content=reasoning if isinstance(reasoning, str) else None,
+            timings=dict(timings) if timings else None,
             raw=payload,
         )
         return self._annotate(resp, headers)

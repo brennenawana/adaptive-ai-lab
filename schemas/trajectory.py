@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
 from pydantic import Field
@@ -116,6 +117,23 @@ class ModelInvocation(Base):
     # router. None where the adapter cannot observe it.
     reasoning_chars: int | None = None
     content_chars: int | None = None
+
+    # M0/WP-A (2026-08-20). The texts themselves, persisted per invocation because the
+    # cap-hit population produces no parseable output and therefore no
+    # learning.model_outputs row — a column there would miss exactly the cases that
+    # need diagnosing. `reasoning_text` is kept whenever the adapter exposes it;
+    # `content_text` only when the strict-grammar parse produced no object (a parsed
+    # answer already lands in model_outputs). Never read by the model, the router, or
+    # any routing feature (tests/test_routing_features_no_gold_leak.py governs that
+    # surface). None on every record written before the fields existed.
+    reasoning_text: str | None = None
+    content_text: str | None = None
+
+    # M0/WP-D (2026-08-20). The backend's own timing block (llama.cpp `timings`),
+    # verbatim: prompt_n/prompt_ms/predicted_n/predicted_ms/predicted_per_second/….
+    # The autopsy (§13) had to reconstruct all of these by hand; `ttft_ms` on
+    # `latency` is derived from prompt_ms. None where the backend reports none.
+    timings: dict[str, Any] | None = None
 
 
 class RetrievalRef(FrozenBase):

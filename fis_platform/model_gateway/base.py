@@ -83,6 +83,18 @@ class GenerationResponse(Base):
         description="Length of the backend's separately-returned reasoning text (llama.cpp "
                     "`reasoning_content`), when it exposes one. Telemetry: says how much of "
                     "the generation budget went to thinking rather than to the answer.")
+    reasoning_content: str | None = Field(
+        default=None,
+        description="The backend's separately-returned reasoning text itself (llama.cpp "
+                    "`reasoning_content`), when it exposes one. M0/WP-A: the cap-hit "
+                    "population produces no parseable output, so the reasoning text is the "
+                    "only evidence of WHAT the budget was spent on. Response-side only — "
+                    "never placed into a request body.")
+    timings: dict[str, Any] | None = Field(
+        default=None,
+        description="The backend's own timing block (llama.cpp `timings`: prompt_n/prompt_ms/"
+                    "predicted_n/predicted_ms/…), verbatim, when the backend reports one. "
+                    "The only non-streaming source of TTFT and decode rate (autopsy §13).")
     is_error: bool = False
     error: str | None = None
 

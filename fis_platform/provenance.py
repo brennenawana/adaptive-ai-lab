@@ -52,6 +52,8 @@ from fis_platform.routing.learn import digest
 from fis_platform.suite import git_head
 
 __all__ = [
+    "DIAGNOSTIC_STATES",
+    "RUN_KINDS",
     "STATES",
     "TERMINAL_STATES",
     "TRANSITIONS",
@@ -1812,10 +1814,20 @@ def _as_execution_system(raw: Any, to: str) -> ExecutionSystem:
 # ------------------------------------------------------------------ runner interface
 
 _SPLITS = ("train", "dev", "test")
+RUN_KINDS = ("eval", "diagnostic")
+
+# The one M0-authorized extension (docs/current/NEXT_STEP_M0.md § 5): states a
+# `diagnostic` run may execute in. TRAIN's states, PLUS the terminal TEST_EVALUATED —
+# because the question a diagnostic answers ("why did the frozen system truncate?")
+# only exists once the system is frozen and evaluated. Nothing in between: a
+# diagnostic at DEV_EVALUATED/TEST_UNLOCKED would be a side-channel look while a
+# split decision is still open, which is exactly what the machine forbids.
+DIAGNOSTIC_STATES = (REGISTERED, TRAIN_COMPATIBLE, CONTRACT_FROZEN, TEST_EVALUATED)
 
 
 def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: str,
-                  resume: bool = False) -> dict[str, Any]:
+                  resume: bool = False, *, kind: str = "eval",
+                  purpose: str | None = None) -> dict[str, Any]:
     """The runner's fail-closed precondition, called BEFORE any model is loaded.
 
     This is the only thing standing between "the harness is configured wrong" and a TEST
@@ -1829,9 +1841,29 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
       dev    CONTRACT_FROZEN exactly — before the freeze there is nothing to be judged
              against, after DEV_EVALUATED the split is spent
       test   TEST_UNLOCKED exactly, on the run id the unlock was spent on
+
+    kind="diagnostic" (M0, docs/current/NEXT_STEP_M0.md § 5): TRAIN-split-only,
+    additionally permitted at the terminal TEST_EVALUATED, mandatory non-empty
+    `purpose`, run id must say "diag". Recorded through begin_run/end_run as ledger
+    lines only — no state transition, no chain entry, no effect on promotability.
     """
     if split not in _SPLITS:
         raise TransitionRefused(f"split must be one of {list(_SPLITS)}, got {split!r}")
+    if kind not in RUN_KINDS:
+        raise TransitionRefused(f"run kind must be one of {list(RUN_KINDS)}, got {kind!r}")
+    if kind == "diagnostic":
+        if split != "train":
+            raise TransitionRefused(
+                f"diagnostic runs are TRAIN-only (got split {split!r}) — a diagnostic that "
+                "touched DEV or TEST would be an unledgered look at a decision split")
+        if not (isinstance(purpose, str) and purpose.strip()):
+            raise TransitionRefused(
+                "diagnostic runs require a non-empty purpose tag (e.g. 'M0-truncation-diag') "
+                "— an unexplained diagnostic is indistinguishable from an unrecorded rerun")
+        if "diag" not in run_id.lower():
+            raise TransitionRefused(
+                f"diagnostic run id {run_id!r} must say 'diag' — run ids are how the ledger "
+                "tells run kinds apart")
     entries = registry.read_state(candidate_id)
     identity = registry.read_identity(candidate_id)
     state = entries[-1]["to"]
@@ -1869,7 +1901,13 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
                         f"{candidate_id}: {other!r} of the same family already has a {split} run "
                         "in the ledger")
     if split == "train":
-        if state not in (REGISTERED, TRAIN_COMPATIBLE, CONTRACT_FROZEN):
+        if kind == "diagnostic":
+            if state not in DIAGNOSTIC_STATES:
+                raise TransitionRefused(
+                    f"{candidate_id} is at {state}: diagnostic TRAIN inference is allowed "
+                    f"only at {list(DIAGNOSTIC_STATES)} — no non-terminal DEV/TEST state "
+                    "may be bypassed")
+        elif state not in (REGISTERED, TRAIN_COMPATIBLE, CONTRACT_FROZEN):
             raise TransitionRefused(
                 f"{candidate_id} is at {state}: TRAIN inference is allowed only at "
                 f"{[REGISTERED, TRAIN_COMPATIBLE, CONTRACT_FROZEN]}")
@@ -1919,6 +1957,8 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
         "split": split,
         "run_id": run_id,
         "resume": bool(resume),
+        "kind": kind,
+        "purpose": purpose,
         "identity": identity,
         "execution_system": execution_system,
         "execution_system_digest": (execution_system or {}).get("record_digest"),
@@ -1928,18 +1968,39 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
 
 
 def begin_run(registry: R6Registry, candidate_id: str, split: str, run_id: str,
-              planned_cases: int, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+              planned_cases: int, extra: dict[str, Any] | None = None, *,
+              kind: str = "eval", purpose: str | None = None) -> dict[str, Any]:
     """Record that a run STARTED, in both the candidate's chain and the global ledger.
 
     Both, not one: the chain says what this candidate has done, and the ledger is what
     the DEV/TEST "exactly once" guards read — a run that dies mid-way still leaves its
     start line, which is what makes an unnoticed second attempt impossible.
     Call `require_state` first; this does not re-derive the split rules.
+
+    kind="diagnostic" (M0): the run is recorded in the GLOBAL LEDGER ONLY, tagged with
+    its kind and mandatory purpose. No chain entry is appended, so the candidate's
+    state log and HEAD.json stay byte-identical — a diagnostic observes a frozen
+    system, it is not an event in that system's history of decisions
+    (docs/current/NEXT_STEP_M0.md § 5/§ 8: HEAD/state byte-identical across M0's runs).
     """
+    if kind not in RUN_KINDS:
+        raise TransitionRefused(f"run kind must be one of {list(RUN_KINDS)}, got {kind!r}")
     entries = registry.read_state(candidate_id)
     state = entries[-1]["to"]
     started_at = _now()
     code_commit, tree_clean, _ = tree_state()
+    if kind == "diagnostic":
+        if not (isinstance(purpose, str) and purpose.strip()):
+            raise TransitionRefused(
+                "diagnostic runs require a non-empty purpose tag (e.g. 'M0-truncation-diag')")
+        line = {"candidate_id": candidate_id, "split": split, "run_id": run_id,
+                "event": "start", "run_kind": "diagnostic", "purpose": purpose,
+                "planned_cases": planned_cases, "started_at": started_at,
+                "code_commit": code_commit, "state_at_run": state}
+        if extra and extra.get("local_server_session"):
+            line["local_server_session"] = str(extra["local_server_session"])
+        _append_line(registry.ledger_file, line)
+        return line
     payload = {"split": split, "run_id": run_id, "planned_cases": planned_cases,
                "started_at": started_at, **(extra or {})}
     entry = registry._append(candidate_id, "run", state, state, payload, code_commit, tree_clean)
@@ -1963,5 +2024,9 @@ def end_run(registry: R6Registry, candidate_id: str, run_id: str, cases_done: in
     line = {"candidate_id": candidate_id, "split": starts[-1].get("split"), "run_id": run_id,
             "event": "end", "cases_done": cases_done, "wall_s": round(float(wall_s), 3),
             "finished_at": _now(), "code_commit": git_head(), **(extra or {})}
+    if starts[-1].get("run_kind"):        # a diagnostic's end line names its kind too
+        line["run_kind"] = starts[-1]["run_kind"]
+        if starts[-1].get("purpose"):
+            line["purpose"] = starts[-1]["purpose"]
     _append_line(registry.ledger_file, line)
     return line

@@ -232,6 +232,13 @@ async def investigate(
             max_tokens=max_tokens,
             reasoning_chars=resp.reasoning_chars,
             content_chars=len(resp.text) if resp.text else 0,
+            # M0/WP-A: reasoning text whenever the adapter exposes it; the raw answer
+            # text only when the strict-grammar parse produced no object — a parsed
+            # answer is already persisted in learning.model_outputs, an unparseable
+            # one (the cap-hit population) would otherwise leave no record at all.
+            reasoning_text=resp.reasoning_content,
+            content_text=(resp.text or None) if resp.structured is None else None,
+            timings=resp.timings,
         ))
 
         if resp.is_error:

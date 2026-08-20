@@ -31,6 +31,7 @@ from fis_platform.model_gateway import ModelGateway, default_registry  # noqa: E
 from fis_platform.suite import (  # noqa: E402
     ONTOLOGY_VERSION, SUITE_VERSION, SuiteMismatch, corpus_suite, git_head, suite_of_run,
 )
+from fis_platform.telemetry import ResourceSampler, RunEventLog  # noqa: E402
 from fis_platform.tool_broker.broker import ToolBroker  # noqa: E402
 from fis_platform.verification.verifier import VERIFIER_VERSION  # noqa: E402
 from schemas.scenario import EvalRun, SeedSplit  # noqa: E402
@@ -459,6 +460,20 @@ async def main() -> None:
         print("runtime: " + "  ".join(f"{k}={v}" for k, v in runtime_context.items()
                                      if k not in ("run_id", "model_ref", "prompt")) + "\n")
 
+        # M0 telemetry floor (autopsy §13): dual-clock lifecycle events with a
+        # signal-safe run_end, plus a GPU/RAM sampler for local candidate runs.
+        # evals/reports/ is gitignored operational telemetry, same as the run report.
+        events = RunEventLog(ROOT / "evals" / "reports" / f"{run_id}.events.jsonl",
+                             run_id=run_id, arm=args.arm, split=args.split,
+                             model_ref=args.model_ref)
+        events.run_start(planned_cases=len(manifests), pending=len(pending),
+                         resume=bool(args.resume), max_tokens=args.max_tokens,
+                         local_server_session=runtime_context.get("local_server_session", ""))
+        sampler = None
+        if args.candidate:
+            sampler = ResourceSampler(ROOT / "evals" / "reports" / f"{run_id}.samples.jsonl",
+                                      interval_s=5.0, context={"run_id": run_id}).start()
+
         # The suite a score is measured against is `fis_platform.suite.SUITE_VERSION`
         # (v2: the event migration; v3: the four benchmark-defect fixes of
         # SUITE_V3_RELEASE_CONTRACT.md). Numbers are never comparable across it.
@@ -471,6 +486,7 @@ async def main() -> None:
         escalations = 0
 
         for i, m in enumerate(pending, 1):
+            events.event("case_start", scenario_id=m["scenario_id"], index=i)
             if r6_reg is not None:
                 runtime_context["gpu_mem_used_mib_now"] = gpu_mem_used_mib()
             with ToolBroker(TOOLS_DSN) as broker:
@@ -498,6 +514,8 @@ async def main() -> None:
                         )
                 except Exception as exc:  # noqa: BLE001 — one bad case must not kill the run
                     print(f"[{i}/{len(pending)}] {m['scenario_id']}  EXCEPTION {exc}")
+                    events.event("case_end", scenario_id=m["scenario_id"], index=i,
+                                 status="exception", error=str(exc)[:500])
                     continue
 
             score = score_case(result=result, trajectory=traj, manifest=m, run_id=run_id)
@@ -523,6 +541,12 @@ async def main() -> None:
             # First invocation = the model under test (the weak stage in a cascade).
             inv = traj.model_invocations[0] if traj.model_invocations else None
             gen = (f"{inv.usage.output_tokens:>5}tok/{inv.stop_reason or '?'}" if inv else "")
+            events.event("case_end", scenario_id=m["scenario_id"], index=i,
+                         status="scored", all_pass=score.all_pass,
+                         stop_reason=inv.stop_reason if inv else None,
+                         output_tokens=inv.usage.output_tokens if inv else None,
+                         ttft_ms=inv.latency.ttft_ms if inv else None,
+                         wall_ms=score.wall_ms)
             print(f"[{i}/{len(pending)}] {m['scenario_id']:<12} {mark:<4} "
                   f"rc={'ok' if score.root_cause_correct else 'X'} "
                   f"ev={score.required_evidence_recall:.2f} "
@@ -542,6 +566,18 @@ async def main() -> None:
     out = ROOT / "evals" / "reports" / f"{run_id}.json"
     out.write_text(run.model_dump_json(indent=2))
     print(f"report             : {out}")
+    if sampler is not None:
+        sampler.stop()
+    # Preserve the server log with the run (autopsy §13: 8 of 11 session logs were
+    # destroyed by log truncation). Best-effort: the alias names the serve-r6 log.
+    alias = runtime_context.get("model_alias", "")
+    if alias:
+        src = Path(f"/tmp/fis-r6-{alias}.log")
+        if src.exists():
+            import shutil
+            shutil.copyfile(src, ROOT / "evals" / "reports" / f"{run_id}.server.log")
+    events.run_end(status="completed", cases_done=len(run.scores),
+                   wall_s=round(_time.monotonic() - run_started, 1))
     if r6_reg is not None:
         from fis_platform.provenance import end_run
         end_run(r6_reg, args.candidate, run_id, cases_done=len(run.scores),
