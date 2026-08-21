@@ -132,13 +132,13 @@ Findings and dispositions:
    the machine does not text-scan reasons for selection language under
    non-comparative categories — the playbook explicitly licenses those
    categories, and the structured record makes misuse auditable.
-5. **Minor (documented, deferred):** SMOKE→REGISTERED validates the ledgered
-   36-case round-robin smoke run but `smoke_violations` is operator-reported and
-   no runner `--smoke` lane executes the 36 cases yet. Non-promotability — the
-   load-bearing property — is fully enforced and was not bypassable (laundering
-   attempts refused on `run_kind`, not run-id strings). Wiring the runner smoke
-   lane + a scored violation definition is the operational follow-up before the
-   tier is used in anger (R7's contract can require it).
+5. **Minor (documented at M-STAT close; CLOSED by the 2026-08-21 closeout
+   addendum, §12):** SMOKE→REGISTERED validated the ledgered 36-case round-robin
+   smoke run but `smoke_violations` was operator-reported and no runner `--smoke`
+   lane executed the 36 cases. Non-promotability — the load-bearing property —
+   was fully enforced throughout and was never bypassable (laundering attempts
+   refused on `run_kind`, not run-id strings). See §12 for the operational lane
+   and the machine-derived violation count.
 
 Verdicts after fixes: Q2/Q3/Q6 NO BYPASS; Q1/Q4 bypasses closed; Q5 strengthened
 with a documented residual boundary; Q7 doc claims now match code.
@@ -159,8 +159,8 @@ with a documented residual boundary; Q7 doc claims now match code.
    procedurally by playbook §1 and the freeze checklist; mechanical enforcement
    covers all case execution and all canonical-storage writes (runner gate +
    persist choke point, §8 finding 2). r5's own unlock gate is spent and closed.
-7. **SMOKE runner lane** (`--smoke` execution of the 36 cases with a scored
-   violation definition) — follow-up before first operational use (§8 finding 5).
+7. **SMOKE runner lane** — was deferred here at M-STAT close; **closed by the
+   2026-08-21 closeout addendum (§12)**.
 8. **No housekeeping**: dead seed placeholders (`scenarios/*_seeds.txt`), the
    stale `Makefile` `eval-smoke` target (dead against the registry since R6), and
    `r6_analysis.py`'s side-by-side descriptive tables are recorded as cleanup /
@@ -193,3 +193,65 @@ with a documented residual boundary; Q7 doc claims now match code.
 | registry (r5/r6) | byte-untouched; verifies |
 | new files | 13 modules/scripts, 11 test files, 1 migration, machine ledger, standing-facts artifact |
 | tests | 672+2 → **1023 passed + 2 skipped** |
+
+## 12. Closeout addendum (2026-08-21, post-commit `67a2647`): SMOKE operational lane
+
+The one operational residual from §8 finding 5 is closed. This addendum is a
+separate, dated closeout — the original M-STAT commit did not contain it.
+
+**Sanctioned runner lane.** `run_eval --smoke` (requires `--candidate`; the
+candidate must be at state SMOKE; `--split train` only — DEV/TEST refused;
+`--limit`, `--scenario-ids-file`, `--escalate-to`, `--tolerance-spec`,
+`--curtail-bar` all refused so the canonical population cannot be substituted,
+subset, cascaded, or wrapped). The runner selects the canonical 36 TRAIN cases
+via `smoke_case_selection` (first 3 per class, round-robin order), pins them
+with `smoke_case_digest`, runs under the existing `smoke` run kind
+(ledger-line-only, planned_cases must be 36), and leaves the candidate at SMOKE
+— the transition is a separate, explicit registry act.
+
+**Machine-derived violations** (`smoke-violation-rule-v1`, frozen in
+`fis_platform/provenance.py` before any live validation; digested): per scored
+case, a violation iff (a) any tool call has status ≠ success (under
+FIXED_EVIDENCE the tool sequence is harness-chosen, so non-success is
+harness/protocol breakage), or (b) the trajectory has zero model invocations
+(gateway breakage). Task failures, cap-hits, and wrong answers are deliberately
+NOT violations — SMOKE is breakage detection, not a quality benchmark. A case
+that raises never persists a score, so an excepted run fails the completeness
+gate rather than being counted.
+
+**Evidence + gate.** At 36/36 scored, the runner writes a per-run smoke result
+record (`candidates/<cid>/smoke/<run_id>.json` — candidate/run/split/suite/
+corpus digest, ordered case ids + selection digest, rule identity/digest,
+per-case `tool_call_statuses`/`n_model_invocations`/trace ids/derived flags,
+total, eligibility) and binds its digest into the smoke run's end ledger line.
+SMOKE→REGISTERED now loads that record, verifies the ledger digest binding,
+**recomputes every per-case flag from the raw statuses**, and requires
+payload `smoke_violations` == recomputed == 0 — a caller-claimed zero cannot
+override the persisted evidence (`test_gate_refuses_payload_zero_when_the_
+persisted_result_derives_one`). `scripts/r6_registry.py smoke-eligibility`
+derives the transition payload from the record; it never invents one.
+
+**Verification.** Focused suite 197 passed; full suite **1064 passed + 2
+skipped** (from 1023+2 at M-STAT close; +41 lane tests). Live TRAIN inference
+was **skipped deliberately**: every registered candidate is beyond SMOKE, and a
+disposable candidate would permanently contaminate the append-only live
+registry — fixtures exercise the lane end-to-end through the real APIs instead.
+TEST looks remain **7**; Suite-v3 digest re-verified unchanged; live registry
+verifies read-only; historical chains unaffected (write-time-only gate on an
+edge no historical chain takes). A bounded adversarial re-check of the six
+fabrication/laundering/override/consumption questions ran before commit:
+NO BYPASS on override/adoption/elimination/DEV-TEST/history; one hardening it
+surfaced was applied (every smoke end ledger line carrying a
+`smoke_result_digest` must agree — a re-appended, sum-neutral end line can no
+longer re-bind the result file); the two remaining items are the documented
+boundaries below.
+
+**Residual, stated:** fabricating a full smoke pass would require hand-writing
+the result record AND its ledger binding — the same trust boundary as
+hand-writing `dev_result.json` plus ledger lines in the pre-existing
+architecture, backstopped by the committed-tree and append-only-vs-git rules;
+no new weaker path was introduced. The structural gate pins population shape
+(36 ids, 12×3, canonical round-robin, digest-bound); pinning to the exact
+corpus-canonical id set at transition time would need DB access inside the
+file-based registry and is deliberately left to the runner (the only sanctioned
+writer), documented here.

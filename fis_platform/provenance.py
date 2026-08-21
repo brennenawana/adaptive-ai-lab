@@ -48,7 +48,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from fis_platform.ordering import class_of, round_robin
+from fis_platform.ordering import class_of, is_round_robin, round_robin
 from fis_platform.routing.learn import digest
 from fis_platform.suite import git_head
 
@@ -58,6 +58,8 @@ __all__ = [
     "SMOKE",
     "SMOKE_CASES_PER_CLASS",
     "SMOKE_TOTAL_CASES",
+    "SMOKE_VIOLATION_RULE",
+    "SMOKE_VIOLATION_RULE_DIGEST",
     "STATES",
     "TERMINAL_STATES",
     "TRANSITIONS",
@@ -86,7 +88,10 @@ __all__ = [
     "read_gguf_header",
     "require_state",
     "sha256_file",
+    "smoke_case_flags",
     "smoke_case_selection",
+    "validate_smoke_result",
+    "write_smoke_result",
 ]
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -1336,6 +1341,12 @@ class R6Registry:
     def dev_result_file(self, cid: str) -> Path: return self.candidate_dir(cid) / "dev_result.json"
     def test_result_file(self, cid: str) -> Path: return self.candidate_dir(cid) / "test_result.json"
 
+    def smoke_result_file(self, cid: str, run_id: str) -> Path:
+        """One SMOKE result per (candidate, run) — `dev_result.json`'s pattern, keyed by
+        run id because (unlike DEV) a candidate may attempt SMOKE more than once before
+        a clean pass, and every attempt's evidence is worth keeping."""
+        return self.candidate_dir(cid) / "smoke" / f"{run_id}.json"
+
     def candidate_ids(self) -> list[str]:
         on_disk = set()
         if self.candidates_dir.exists():
@@ -1731,6 +1742,51 @@ class R6Registry:
                     f"{cid}: the SMOKE start line recorded smoke_case_digest "
                     f"{str(logged_digest)[:12]}… but this payload claims "
                     f"{str(payload['smoke_case_digest'])[:12]}… — refusing")
+            # Machine-derived evidence gate (below): everything above is the payload's own
+            # shape; everything below binds that payload to the PERSISTED run record, so a
+            # caller-supplied smoke_violations can never disagree with what was measured.
+            result_path = self.smoke_result_file(cid, run_id)
+            if not result_path.exists():
+                raise TransitionRefused(
+                    f"{cid}: no SMOKE result file at {result_path} — the persisted run is "
+                    "the record of evidence, and SMOKE -> REGISTERED cannot cite a run that "
+                    "left no result behind")
+            record = json.loads(result_path.read_text())
+            recomputed_result_digest = digest(record)
+            # EVERY end line that carries a smoke_result_digest must agree — binding only
+            # ends[-1] would let a re-appended end line (cases_done=0 keeps the completeness
+            # sum intact) swap in a caller-chosen digest after the run.
+            end_digests = {ln["smoke_result_digest"] for ln in ends
+                           if ln.get("smoke_result_digest")}
+            if not end_digests:
+                raise TransitionRefused(
+                    f"{cid}: SMOKE run {run_id!r}'s ledger end line carries no "
+                    "smoke_result_digest — refusing")
+            if len(end_digests) != 1:
+                raise TransitionRefused(
+                    f"{cid}: SMOKE run {run_id!r}'s end ledger lines disagree on "
+                    f"smoke_result_digest ({sorted(d[:12] for d in end_digests)}) — a "
+                    "re-appended end line cannot re-bind the result file")
+            end_result_digest = end_digests.pop()
+            if recomputed_result_digest != end_result_digest:
+                raise TransitionRefused(
+                    f"{cid}: {result_path} digests to {recomputed_result_digest[:12]}… but the "
+                    f"SMOKE end ledger line recorded {str(end_result_digest)[:12]}… — the "
+                    "result file was edited after the run")
+            validate_smoke_result(record, cid, run_id)
+            if record["smoke_case_digest"] != payload["smoke_case_digest"]:
+                raise TransitionRefused(
+                    f"{cid}: the persisted SMOKE result's smoke_case_digest "
+                    f"{record['smoke_case_digest'][:12]}… does not match this payload's "
+                    f"{str(payload['smoke_case_digest'])[:12]}…")
+            derived = int(record["total_violations"])
+            if derived != violations:
+                raise TransitionRefused(
+                    f"{cid}: payload smoke_violations={violations} does not equal the "
+                    f"persisted SMOKE result's mechanically derived total_violations="
+                    f"{derived} — the caller-supplied count is only accepted when it equals "
+                    "the mechanical derivation, and any nonzero derivation refuses "
+                    "regardless (contract template §13)")
 
         elif to == TRAIN_COMPATIBLE:
             _require(payload, ("execution_system", "train_run_ids", "pilot_record_digest",
@@ -2114,6 +2170,42 @@ DIAGNOSTIC_STATES = (REGISTERED, TRAIN_COMPATIBLE, CONTRACT_FROZEN, TEST_EVALUAT
 SMOKE_CASES_PER_CLASS = 3
 SMOKE_TOTAL_CASES = SMOKE_CASES_PER_CLASS * 12
 
+# The frozen mechanical violation rule (M-STAT closeout). Frozen BEFORE any live
+# validation runs against it — the rule is fixed here, in code, not decided case by
+# case when a real SMOKE result comes in.
+SMOKE_VIOLATION_RULE = {
+    "version": "smoke-violation-rule-v1",
+    "violation_iff": ["tool_call_status_not_success", "zero_model_invocations"],
+    "notes": (
+        "SMOKE detects schema/tool-contract/runner breakage, not model quality "
+        "(playbook §3) — under FIXED_EVIDENCE the tool sequence is harness-chosen, "
+        "so any non-success tool status is harness/protocol breakage; a "
+        "zero-invocation trajectory is gateway breakage; task failures (all_pass "
+        "false), cap-hits, and wrong answers are deliberately NOT violations; a "
+        "case that raises an exception never persists a score, so an excepted run "
+        "is refused by the completeness gate rather than counted here."
+    ),
+}
+SMOKE_VIOLATION_RULE_DIGEST = digest(SMOKE_VIOLATION_RULE)
+
+
+def smoke_case_flags(case: dict[str, Any]) -> list[str]:
+    """The mechanical violation flags that fire on one SMOKE case's raw evidence, per
+    `SMOKE_VIOLATION_RULE`. `case` needs only `tool_call_statuses` (list[str]) and
+    `n_model_invocations` (int) — every other field a case might carry (all_pass,
+    scenario_id, trace_id, ...) is ignored here, which is the point: the rule reads
+    harness/protocol evidence only, never task correctness.
+
+      "tool_call_status_not_success"  iff any status in tool_call_statuses != "success"
+      "zero_model_invocations"        iff n_model_invocations == 0
+    """
+    flags: list[str] = []
+    if any(status != "success" for status in case.get("tool_call_statuses", [])):
+        flags.append("tool_call_status_not_success")
+    if case.get("n_model_invocations", 0) == 0:
+        flags.append("zero_model_invocations")
+    return flags
+
 
 def smoke_case_selection(train_ids: list[str]) -> list[str]:
     """The fixed 36-case SMOKE population (playbook §3): the first
@@ -2142,6 +2234,109 @@ def smoke_case_selection(train_ids: list[str]) -> list[str]:
     selected = [sid for cls in sorted(groups)
                for sid in sorted(groups[cls])[:SMOKE_CASES_PER_CLASS]]
     return round_robin(selected)
+
+
+def validate_smoke_result(record: dict[str, Any], cid: str, run_id: str) -> dict[str, Any]:
+    """Fail-closed shape + mechanical-recompute check on a SMOKE result record — the
+    single validator both `write_smoke_result` (write time) and the SMOKE->REGISTERED
+    gate (`R6Registry._validate_payload`, read time) call, so a record that could ever
+    be written is exactly a record the gate would accept, and no other.
+
+    Every per-case `violations` entry is recomputed from the case's own raw evidence via
+    `smoke_case_flags` and must match exactly what is stored — a hand-edited or stale
+    `violations` list is refused, not merely warned about. Returns `record` unchanged on
+    success; raises `TransitionRefused` (fail closed) on the first inconsistency.
+    """
+    required = ("candidate_id", "smoke_run_id", "split", "suite_version", "corpus_digest",
+               "ordering", "violation_rule_version", "violation_rule_digest", "case_ids",
+               "smoke_case_digest", "cases", "total_violations", "eligible")
+    missing = [k for k in required if k not in record]
+    if missing:
+        raise TransitionRefused(f"SMOKE result record is missing {missing}")
+    if record["candidate_id"] != cid:
+        raise TransitionRefused(
+            f"SMOKE result candidate_id {record['candidate_id']!r} != {cid!r}")
+    if record["smoke_run_id"] != run_id:
+        raise TransitionRefused(
+            f"SMOKE result smoke_run_id {record['smoke_run_id']!r} != {run_id!r}")
+    if record["split"] != "train":
+        raise TransitionRefused(f"SMOKE result split must be 'train', got {record['split']!r}")
+    if record["ordering"] != "round_robin":
+        raise TransitionRefused(
+            f"SMOKE result ordering must be 'round_robin', got {record['ordering']!r}")
+    if record["violation_rule_version"] != SMOKE_VIOLATION_RULE["version"]:
+        raise TransitionRefused(
+            f"SMOKE result violation_rule_version {record['violation_rule_version']!r} != "
+            f"the frozen rule {SMOKE_VIOLATION_RULE['version']!r}")
+    if record["violation_rule_digest"] != SMOKE_VIOLATION_RULE_DIGEST:
+        raise TransitionRefused(
+            "SMOKE result violation_rule_digest does not match the frozen rule "
+            f"{SMOKE_VIOLATION_RULE_DIGEST[:12]}…")
+    case_ids = record["case_ids"]
+    if not isinstance(case_ids, list) or len(case_ids) != SMOKE_TOTAL_CASES:
+        got = len(case_ids) if isinstance(case_ids, list) else type(case_ids).__name__
+        raise TransitionRefused(
+            f"SMOKE result case_ids must have exactly {SMOKE_TOTAL_CASES} entries, got {got}")
+    class_counts: dict[str, int] = {}
+    for sid in case_ids:
+        cls = class_of(sid)
+        class_counts[cls] = class_counts.get(cls, 0) + 1
+    if len(class_counts) != 12 or any(n != SMOKE_CASES_PER_CLASS for n in class_counts.values()):
+        raise TransitionRefused(
+            f"SMOKE result case_ids are not exactly 12 classes x {SMOKE_CASES_PER_CLASS}: "
+            f"{class_counts}")
+    if not is_round_robin(case_ids):
+        raise TransitionRefused("SMOKE result case_ids are not the canonical round-robin order")
+    if record["smoke_case_digest"] != digest(case_ids):
+        raise TransitionRefused(
+            f"SMOKE result smoke_case_digest {str(record['smoke_case_digest'])[:12]}… != "
+            f"digest(case_ids) {digest(case_ids)[:12]}…")
+    cases = record["cases"]
+    if not isinstance(cases, list) or len(cases) != len(case_ids):
+        got = len(cases) if isinstance(cases, list) else type(cases).__name__
+        raise TransitionRefused(
+            f"SMOKE result cases must have exactly one entry per case_id ({len(case_ids)}), "
+            f"got {got}")
+    total = 0
+    for sid, case in zip(case_ids, cases):
+        if not isinstance(case, dict) or case.get("scenario_id") != sid:
+            got = case.get("scenario_id") if isinstance(case, dict) else case
+            raise TransitionRefused(
+                f"SMOKE result cases are not in case_ids order: expected {sid!r} here, got "
+                f"{got!r}")
+        recomputed = smoke_case_flags(case)
+        if case.get("violations") != recomputed:
+            raise TransitionRefused(
+                f"SMOKE result case {sid!r} records violations {case.get('violations')!r} but "
+                f"recomputes to {recomputed!r} from its own tool_call_statuses/"
+                "n_model_invocations — refusing a record that disagrees with its own evidence")
+        total += len(recomputed)
+    if record["total_violations"] != total:
+        raise TransitionRefused(
+            f"SMOKE result total_violations {record['total_violations']!r} != the recomputed "
+            f"sum {total}")
+    if record["eligible"] != (total == 0):
+        raise TransitionRefused(
+            f"SMOKE result eligible {record['eligible']!r} != (total_violations == 0)")
+    return record
+
+
+def write_smoke_result(registry: R6Registry, cid: str, run_id: str,
+                       record: dict[str, Any]) -> str:
+    """Write one SMOKE result record exactly once — the `dev_result`/`test_result`
+    pattern (a plain dict plus a digest, no new provenance system): validated
+    fail-closed by `validate_smoke_result`, refuses to overwrite an existing file, and
+    returns `digest(record)` — the value the SMOKE end ledger line and the
+    SMOKE->REGISTERED payload both have to name for the gate to accept it.
+    """
+    validate_smoke_result(record, cid, run_id)
+    path = registry.smoke_result_file(cid, run_id)
+    if path.exists():
+        raise TransitionRefused(
+            f"{path} already exists — a SMOKE result is written once, exactly like "
+            "dev_result.json/test_result.json")
+    _dump(path, record)
+    return digest(record)
 
 
 def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: str,

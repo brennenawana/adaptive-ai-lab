@@ -30,6 +30,8 @@ from dotenv import load_dotenv  # noqa: E402
 from evals.scorers.score import SCORER_VERSION, score_case  # noqa: E402
 from fis_platform.model_gateway import ModelGateway, default_registry  # noqa: E402
 from fis_platform.ordering import class_of, round_robin_rows  # noqa: E402
+from fis_platform.provenance import SMOKE_TOTAL_CASES  # noqa: E402
+from fis_platform.routing.learn import digest as content_digest  # noqa: E402
 from fis_platform.suite import (  # noqa: E402
     ONTOLOGY_VERSION, SUITE_VERSION, SuiteMismatch, corpus_suite, git_head, suite_of_run,
 )
@@ -117,7 +119,8 @@ def gpu_mem_used_mib() -> str:
         return ""
 
 
-def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[str, str]):
+def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[str, str],
+                           kind: str = "eval"):
     """R6 fail-closed provenance gate (docs/R6_EXPERIMENT_CONTRACT.md § 13–14).
 
     Before a single model call: the candidate's registry state must allow this split and
@@ -128,6 +131,12 @@ def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[st
     the generation config this run would send must digest to the frozen values. Every
     identity is stamped into `runtime_context` so each trajectory carries it. Returns
     (registry, identity) for the run ledger.
+
+    `kind` (default "eval") is passed straight through to `require_state`; `--smoke`
+    passes `kind="smoke"` so `require_state` runs its SMOKE branch (train-only, state
+    must be SMOKE exactly) instead of the ordinary TRAIN/DEV/TEST rules. Every other
+    check below runs unconditionally — SMOKE is served/hashed/session-bound exactly
+    like an ordinary TRAIN run, it just measures a different split of the population.
     """
     from fis_platform.provenance import (
         R6Registry, bind_running_server, build_generation_config, capture_server_args,
@@ -139,7 +148,7 @@ def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[st
         raise SystemExit("R6: DEV/TEST are evaluated on the whole split — --limit / --scenario-ids-file "
                          "are TRAIN-only with --candidate")
     reg = R6Registry(default_root())
-    ident = require_state(reg, args.candidate, args.split, run_id, args.resume)
+    ident = require_state(reg, args.candidate, args.split, run_id, args.resume, kind=kind)
     gh, code_clean, dirty = tree_state()
     runtime_context["code_tree_clean_except_registry"] = "true" if code_clean else "false"
     if dirty:
@@ -356,6 +365,82 @@ def check_corpus_pinned(live_digest: str) -> None:
             f"corpus digest mismatch: live digest {live_digest} != pinned digest "
             f"{pinned_digest!r} ({manifest_path}) — the corpus in the database has drifted "
             f"from the suite-{SUITE_VERSION} identity this code was pinned against")
+
+
+def validate_smoke_args(args) -> None:
+    """Fail-closed guards for `--smoke`, checkable with no DB connection (extracted so
+    the test suite can drive every refusal directly against a parsed `args`, the same
+    way `apply_ordering`/`check_corpus_pinned` are driven directly elsewhere in this
+    module). Mirrors `require_state`'s smoke branch (TRAIN-only, run id must say
+    "smoke") but fires here first, at arg-validation time, before a connection or a
+    model call — `require_state` still enforces its own copy independently.
+
+    A no-op when `--smoke` was not passed at all.
+    """
+    if not getattr(args, "smoke", False):
+        return
+    if not args.candidate:
+        raise SystemExit("--smoke requires --candidate — SMOKE is a per-candidate lifecycle "
+                         "gate (playbook §3), not a bare model probe")
+    if args.split != "train":
+        raise SystemExit(f"--smoke is TRAIN-only (got --split {args.split!r}) — SMOKE measures "
+                         "the fixed 36-case population before any REGISTERED work opens")
+    if args.limit is not None:
+        raise SystemExit("--smoke refuses --limit — the canonical 36-case population may not "
+                         "be subset")
+    if args.scenario_ids_file is not None:
+        raise SystemExit("--smoke refuses --scenario-ids-file — the canonical 36 may not be "
+                         "substituted")
+    if args.escalate_to:
+        raise SystemExit("--smoke refuses --escalate-to — the canonical 36 may not be cascaded")
+    if args.tolerance_spec is not None:
+        raise SystemExit("--smoke refuses --tolerance-spec — SMOKE may not be wrapped in "
+                         "tolerance machinery")
+    if args.curtail_bar is not None:
+        raise SystemExit("--smoke refuses --curtail-bar — SMOKE may not be wrapped in "
+                         "curtailment machinery")
+    run_id = args.run_id or f"{args.arm}-{args.model_ref}-{args.split}"
+    if "smoke" not in run_id.lower():
+        raise SystemExit(f"--smoke run id {run_id!r} must contain 'smoke' — run ids are how "
+                         "the ledger tells run kinds apart (require_state enforces this too, "
+                         "but --smoke fails fast here)")
+
+
+def reconstruct_smoke_cases(conn, run_id: str,
+                            scenario_ids: set[str]) -> dict[str, dict[str, Any]]:
+    """`--resume`'s reconstruction of already-persisted SMOKE case evidence, keyed by
+    scenario_id (canonical storage — `learning.case_scores` joined to
+    `learning.trajectories` — is the authority, not in-memory state from a crashed
+    process). Same pattern as `reconstruct_tolerance_trackers`: a trajectory's payload
+    carries `tool_calls[].status` and `model_invocations`, which is exactly the raw
+    evidence `smoke_case_flags` needs.
+    """
+    if not scenario_ids:
+        return {}
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """SELECT cs.scenario_id AS scenario_id, cs.all_pass AS all_pass,
+                      t.payload AS payload
+                 FROM learning.case_scores cs
+                 JOIN learning.trajectories t ON t.trace_id = cs.trace_id
+                WHERE cs.run_id = %s""",
+            (run_id,))
+        rows = cur.fetchall()
+    out: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        if r["scenario_id"] not in scenario_ids:
+            continue
+        payload = r["payload"]
+        tool_calls = payload.get("tool_calls") or []
+        model_invocations = payload.get("model_invocations") or []
+        out[r["scenario_id"]] = {
+            "scenario_id": r["scenario_id"],
+            "trace_id": str(payload.get("trace_id", "")),
+            "tool_call_statuses": [c.get("status") for c in tool_calls],
+            "n_model_invocations": len(model_invocations),
+            "all_pass": bool(r["all_pass"]),
+        }
+    return out
 
 
 def test_look_gate(split: str, run_id: str, resume: bool, ledger_path: Path | None = None,
@@ -714,7 +799,10 @@ def persist(conn, run_id: str, score, trajectory, result=None) -> None:
     conn.commit()
 
 
-async def main() -> None:
+def build_arg_parser() -> argparse.ArgumentParser:
+    """The production CLI parser, extracted from `main()` so tests can build a real
+    `args` (defaults included) with no DB and no event loop — the same pattern
+    `scripts/r6_registry.py`'s `build_parser()` uses."""
     ap = argparse.ArgumentParser(description="Run a FIS experiment arm.")
     ap.add_argument("--arm", required=True, help="E2, E4, ... — recorded on every trajectory")
     ap.add_argument("--model-ref", required=True)
@@ -767,9 +855,21 @@ async def main() -> None:
                     help="Playbook §6: certainty curtailment. Abort this arm the instant its "
                          "remaining cases cannot reach ceil(bar * n_total) passes; reports "
                          "the certain interval only, never a point estimate.")
-    args = ap.parse_args()
+    ap.add_argument("--smoke", action="store_true",
+                    help=f"R6/playbook §3: run the fixed {SMOKE_TOTAL_CASES}-case SMOKE "
+                         "population instead of the ordinary split content. TRAIN-only, "
+                         "requires --candidate, and refuses --limit/--scenario-ids-file/"
+                         "--escalate-to/--tolerance-spec/--curtail-bar — the canonical "
+                         "population may not be substituted, subset, cascaded, or wrapped in "
+                         "other machinery (validate_smoke_args).")
+    return ap
+
+
+async def main() -> None:
+    args = build_arg_parser().parse_args()
     if args.max_tokens < 256:
         raise SystemExit(f"--max-tokens {args.max_tokens} is below the manifest minimum (256)")
+    validate_smoke_args(args)   # fail-closed, before a connection or a model call
 
     # Parsed and metric-checked before anything else runs (E): a spec this runner
     # cannot evaluate is refused by name now, not discovered case-by-case mid-run.
@@ -822,7 +922,8 @@ async def main() -> None:
 
     r6_reg = r6_ident = None
     if args.candidate:
-        r6_reg, r6_ident = r6_candidate_preflight(args, run_id, manifest, runtime_context)
+        r6_reg, r6_ident = r6_candidate_preflight(args, run_id, manifest, runtime_context,
+                                                  kind="smoke" if args.smoke else "eval")
 
     # The suite a score is measured against is `fis_platform.suite.SUITE_VERSION`
     # (v2: the event migration; v3: the four benchmark-defect fixes of
@@ -848,14 +949,40 @@ async def main() -> None:
             runtime_context["scenario_ids_file"] = str(args.scenario_ids_file)
             runtime_context["scenario_ids_digest"] = __import__("hashlib").sha256(
                 "\n".join(scenario_ids).encode()).hexdigest()
-        manifests = load_manifests(owner, args.split, scenario_ids)
-        # B: canonical class-balanced round-robin order + prefix, right after load —
-        # see apply_ordering's docstring for the consequence and the comparability
-        # boundary (playbook §4).
-        manifests = apply_ordering(manifests, args.limit)
+        canonical_smoke_ids: list[str] | None = None
+        if args.smoke:
+            # The canonical 36-case SMOKE population (playbook §3): selected from every
+            # TRAIN scenario id in the DB, never a caller-supplied subset.
+            from fis_platform.provenance import smoke_case_selection
+            with owner.cursor() as cur:
+                cur.execute("SELECT scenario_id FROM ground_truth.scenario_manifests "
+                           "WHERE split = 'train'")
+                train_ids = [r[0] for r in cur.fetchall()]
+            canonical_smoke_ids = smoke_case_selection(train_ids)
+            manifests = load_manifests(owner, args.split, canonical_smoke_ids)
+            manifests = apply_ordering(manifests, None)
+            if [m["scenario_id"] for m in manifests] != canonical_smoke_ids:
+                raise SystemExit(
+                    "R6: SMOKE manifest ordering diverges from the canonical selection — "
+                    "refusing (smoke_case_selection and apply_ordering both use round_robin, "
+                    "so this should be unreachable)")
+            runtime_context["smoke_case_digest"] = content_digest(canonical_smoke_ids)
+        else:
+            manifests = load_manifests(owner, args.split, scenario_ids)
+            # B: canonical class-balanced round-robin order + prefix, right after load —
+            # see apply_ordering's docstring for the consequence and the comparability
+            # boundary (playbook §4).
+            manifests = apply_ordering(manifests, args.limit)
         runtime_context["ordering"] = "round_robin"
         done = already_done(owner, run_id) if args.resume else set()
         pending = [m for m in manifests if m["scenario_id"] not in done]
+
+        # SMOKE-only: per-case harness evidence, reconstructed from canonical storage for
+        # already-persisted (resumed) cases and collected in memory for the rest, then
+        # assembled into the SMOKE result record once (and only if) all 36 have scored.
+        smoke_case_evidence: dict[str, dict[str, Any]] = {}
+        if args.smoke and args.resume and done:
+            smoke_case_evidence.update(reconstruct_smoke_cases(owner, run_id, done))
 
         # E: reconstruct trackers from persisted rows on --resume; fresh otherwise.
         tolerance_trackers = (reconstruct_tolerance_trackers(owner, run_id, tolerance_specs)
@@ -892,11 +1019,14 @@ async def main() -> None:
                 if seen - {run_id}:
                     raise SystemExit(f"R6: canonical storage already holds {args.split.upper()} rows for "
                                      f"{args.candidate} under {sorted(seen)} — the look is spent")
+            begin_extra = {"pending": len(pending), "resume": bool(args.resume),
+                          "max_tokens": args.max_tokens, "prompt": args.prompt,
+                          "scenario_ids_digest": runtime_context.get("scenario_ids_digest", ""),
+                          "local_server_session": runtime_context.get("local_server_session", "")}
+            if args.smoke:
+                begin_extra["smoke_case_digest"] = runtime_context.get("smoke_case_digest", "")
             begin_run(r6_reg, args.candidate, args.split, run_id, planned_cases=len(manifests),
-                      extra={"pending": len(pending), "resume": bool(args.resume),
-                             "max_tokens": args.max_tokens, "prompt": args.prompt,
-                             "scenario_ids_digest": runtime_context.get("scenario_ids_digest", ""),
-                             "local_server_session": runtime_context.get("local_server_session", "")})
+                      kind="smoke" if args.smoke else "eval", extra=begin_extra)
         print("runtime: " + "  ".join(f"{k}={v}" for k, v in runtime_context.items()
                                      if k not in ("run_id", "model_ref", "prompt")) + "\n")
 
@@ -981,6 +1111,17 @@ async def main() -> None:
             run.scores.append(score)
             persist(owner, run_id, score, traj, result)   # commit per case: resume stays exact
 
+            if args.smoke:
+                # Raw evidence only — smoke_case_flags derives the violation flags once
+                # the record is assembled after the loop, from tool_call_statuses and
+                # n_model_invocations exactly as recorded here.
+                smoke_case_evidence[m["scenario_id"]] = {
+                    "scenario_id": m["scenario_id"], "trace_id": str(traj.trace_id),
+                    "tool_call_statuses": [c.status for c in traj.tool_calls],
+                    "n_model_invocations": len(traj.model_invocations),
+                    "all_pass": score.all_pass,
+                }
+
             route = ""
             if out is not None:
                 # The weak stage is scored and persisted under its own run id so the
@@ -1054,12 +1195,60 @@ async def main() -> None:
             shutil.copyfile(src, ROOT / "evals" / "reports" / f"{run_id}.server.log")
     events.run_end(status="completed", cases_done=len(run.scores),
                    wall_s=round(_time.monotonic() - run_started, 1))
+
+    smoke_extra: dict[str, Any] = {}
+    if args.smoke and r6_reg is not None:
+        assert canonical_smoke_ids is not None   # set whenever args.smoke, above
+        if len(smoke_case_evidence) == SMOKE_TOTAL_CASES:
+            from fis_platform.provenance import (
+                SMOKE_VIOLATION_RULE, SMOKE_VIOLATION_RULE_DIGEST, smoke_case_flags,
+                write_smoke_result,
+            )
+            cases = []
+            total_violations = 0
+            for sid in canonical_smoke_ids:
+                case = dict(smoke_case_evidence[sid])
+                flags = smoke_case_flags(case)
+                case["violations"] = flags
+                total_violations += len(flags)
+                cases.append(case)
+            eligible = total_violations == 0
+            record = {
+                "candidate_id": args.candidate, "smoke_run_id": run_id, "split": "train",
+                "suite_version": SUITE_VERSION,
+                "corpus_digest": runtime_context.get("corpus_digest", ""),
+                "ordering": "round_robin",
+                "violation_rule_version": SMOKE_VIOLATION_RULE["version"],
+                "violation_rule_digest": SMOKE_VIOLATION_RULE_DIGEST,
+                "case_ids": canonical_smoke_ids,
+                "smoke_case_digest": runtime_context["smoke_case_digest"],
+                "cases": cases, "total_violations": total_violations, "eligible": eligible,
+            }
+            smoke_result_digest = write_smoke_result(r6_reg, args.candidate, run_id, record)
+            smoke_extra = {"smoke_result_digest": smoke_result_digest,
+                           "smoke_case_digest": runtime_context["smoke_case_digest"],
+                           "smoke_violations": total_violations}
+            print(f"\nSMOKE {run_id}: {total_violations} violation(s) of "
+                  f"{SMOKE_TOTAL_CASES} cases — eligible={eligible}")
+            if eligible:
+                print("  operator may now attempt: scripts/r6_registry.py smoke-eligibility "
+                     f"--candidate {args.candidate} --run-id {run_id} | "
+                     f"scripts/r6_registry.py transition --candidate {args.candidate} "
+                     "--to REGISTERED --payload-json -")
+            else:
+                print("  SMOKE -> REGISTERED will be refused (smoke_violations must be 0)")
+        else:
+            print(f"\nSMOKE {run_id}: only {len(smoke_case_evidence)}/{SMOKE_TOTAL_CASES} cases "
+                 "scored — no SMOKE result was recorded; the completeness gate refuses "
+                 "SMOKE -> REGISTERED until a full 36-case pass is recorded")
+
     if r6_reg is not None:
         from fis_platform.provenance import end_run
         end_run(r6_reg, args.candidate, run_id, cases_done=len(run.scores),
                 wall_s=round(_time.monotonic() - run_started, 1),
                 extra={"all_pass": sum(1 for sc in run.scores if sc.all_pass),
-                       "gpu_mem_used_mib_end": gpu_mem_used_mib()})
+                       "gpu_mem_used_mib_end": gpu_mem_used_mib(),
+                       **smoke_extra})
 
 
 def _pct(v: float | None) -> str:

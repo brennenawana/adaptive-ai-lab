@@ -38,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fis_platform.provenance import (
     ROLES,
+    SMOKE_TOTAL_CASES,
     TRAIN_COMPATIBLE,
     TRANSITIONS,
     WITHDRAWN,
@@ -55,6 +56,7 @@ from fis_platform.provenance import (
     gguf_summary,
     read_gguf_header,
     sha256_file,
+    validate_smoke_result,
 )
 
 # The two edges a dirty tree is tolerable on: TRAIN compatibility is a fact about the
@@ -190,6 +192,27 @@ def cmd_unlock_test(args: argparse.Namespace, reg: R6Registry) -> int:
         "artifact_sha256_now": sha_now,
     })
     _emit(entry)
+    return 0
+
+
+def cmd_smoke_eligibility(args: argparse.Namespace, reg: R6Registry) -> int:
+    """Load a persisted SMOKE result and print the SMOKE->REGISTERED transition
+    payload it derives — never invented, never hand-typed. Pipe the output's
+    `transition_payload` into `transition --payload-json -` to spend it."""
+    path = reg.smoke_result_file(args.candidate, args.run_id)
+    if not path.exists():
+        raise TransitionRefused(
+            f"no SMOKE result at {path} — run the SMOKE lane (evals/runner/run_eval.py "
+            "--smoke) for this candidate/run first")
+    record = json.loads(path.read_text())
+    validate_smoke_result(record, args.candidate, args.run_id)
+    payload = {
+        "smoke_run_id": args.run_id, "smoke_cases": SMOKE_TOTAL_CASES,
+        "smoke_violations": record["total_violations"],
+        "smoke_case_digest": record["smoke_case_digest"], "ordering": "round_robin",
+    }
+    _emit({"eligible": record["eligible"], "total_violations": record["total_violations"],
+          "transition_payload": payload})
     return 0
 
 
@@ -364,6 +387,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dev-result-digest", required=True)
     p.add_argument("--execution-system-digest", required=True)
     p.set_defaults(func=cmd_unlock_test)
+
+    p = sub.add_parser("smoke-eligibility",
+                       help="derive the SMOKE->REGISTERED transition payload from a persisted "
+                            "SMOKE result (pipe transition_payload into `transition`)")
+    p.add_argument("--candidate", required=True)
+    p.add_argument("--run-id", required=True)
+    p.set_defaults(func=cmd_smoke_eligibility)
 
     p = sub.add_parser("capture-server-args", help="the running server's material argv")
     p.add_argument("--port", required=True, type=int)

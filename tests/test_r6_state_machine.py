@@ -43,7 +43,10 @@ from fis_platform.provenance import (
     DEV_REJECTED,
     REGISTERED,
     SMOKE,
+    SMOKE_CASES_PER_CLASS,
     SMOKE_TOTAL_CASES,
+    SMOKE_VIOLATION_RULE,
+    SMOKE_VIOLATION_RULE_DIGEST,
     TERMINAL_STATES,
     TEST_EVALUATED,
     TEST_UNLOCKED,
@@ -62,8 +65,12 @@ from fis_platform.provenance import (
     default_root,
     end_run,
     require_state,
+    smoke_case_flags,
+    smoke_case_selection,
+    write_smoke_result,
 )
 from fis_platform.routing.learn import digest
+from fis_platform.suite import SUITE_VERSION
 from scripts import r6_registry
 
 CONTRACT_REV = "a" * 40
@@ -131,15 +138,64 @@ def _smoke_run_id(candidate_id: str) -> str:
     return f"R6-{candidate_id.split('@')[0]}-train-smoke"
 
 
+def _smoke_case_ids() -> list[str]:
+    """36 canonical SMOKE case ids (12 classes x `SMOKE_CASES_PER_CLASS`), in
+    round-robin order — fixture-only, the same shape `smoke_case_selection` would
+    carve out of a live TRAIN corpus, without needing one here."""
+    ids = [f"S{c:02d}-{1000000 + s:07d}" for c in range(1, 13) for s in range(SMOKE_CASES_PER_CLASS)]
+    return smoke_case_selection(ids)
+
+
+def _smoke_cases(canonical: list[str], violations: int) -> list[dict[str, Any]]:
+    """One evidence dict per canonical id, in order. The first `violations` cases carry
+    a non-success tool status (so each mechanically derives exactly one violation flag);
+    the rest are clean — a real, self-consistent SMOKE result, never a hand-typed count."""
+    cases = []
+    for i, sid in enumerate(canonical):
+        bad = i < violations
+        case = {
+            "scenario_id": sid, "trace_id": f"trace-{i:04d}",
+            "tool_call_statuses": ["denied"] if bad else ["success"],
+            "n_model_invocations": 1, "all_pass": not bad,
+        }
+        case["violations"] = smoke_case_flags(case)
+        cases.append(case)
+    return cases
+
+
+def _smoke_result_record(cid: str, run_id: str, canonical: list[str],
+                         cases: list[dict[str, Any]]) -> dict[str, Any]:
+    total = sum(len(c["violations"]) for c in cases)
+    return {
+        "candidate_id": cid, "smoke_run_id": run_id, "split": "train",
+        "suite_version": SUITE_VERSION, "corpus_digest": "c" * 64, "ordering": "round_robin",
+        "violation_rule_version": SMOKE_VIOLATION_RULE["version"],
+        "violation_rule_digest": SMOKE_VIOLATION_RULE_DIGEST,
+        "case_ids": canonical, "smoke_case_digest": digest(canonical),
+        "cases": cases, "total_violations": total, "eligible": total == 0,
+    }
+
+
 def _pass_smoke(reg: R6Registry, cid: str, *, run_id: str | None = None,
                 violations: int = 0, **over: Any) -> dict[str, Any]:
-    """Run and pass the fixed 36-case SMOKE population, then transition SMOKE ->
-    REGISTERED. `violations` / `over` let a caller construct a FAILING attempt."""
+    """Run and pass the fixed 36-case SMOKE population through the real evidence path
+    (`write_smoke_result` + `begin_run`/`end_run`), then transition SMOKE -> REGISTERED.
+    `violations` builds that many genuinely-violating cases into the PERSISTED result
+    (so a real mechanical derivation backs the payload, not a hand-typed int); `over`
+    perturbs the TRANSITION payload only (e.g. a mismatched smoke_case_digest, a bad
+    ordering label) without touching the underlying evidence."""
     run_id = run_id or _smoke_run_id(cid)
-    begin_run(reg, cid, "train", run_id, SMOKE_TOTAL_CASES, kind="smoke")
-    end_run(reg, cid, run_id, cases_done=SMOKE_TOTAL_CASES, wall_s=1.0)
+    canonical = _smoke_case_ids()
+    case_digest = digest(canonical)
+    cases = _smoke_cases(canonical, violations)
+    record = _smoke_result_record(cid, run_id, canonical, cases)
+    result_digest = write_smoke_result(reg, cid, run_id, record)
+    begin_run(reg, cid, "train", run_id, SMOKE_TOTAL_CASES, kind="smoke",
+             extra={"smoke_case_digest": case_digest})
+    end_run(reg, cid, run_id, cases_done=SMOKE_TOTAL_CASES, wall_s=1.0,
+           extra={"smoke_result_digest": result_digest, "smoke_case_digest": case_digest})
     payload = {"smoke_run_id": run_id, "smoke_cases": SMOKE_TOTAL_CASES,
-              "smoke_violations": violations, "smoke_case_digest": "d" * 64,
+              "smoke_violations": violations, "smoke_case_digest": case_digest,
               "ordering": "round_robin"}
     payload.update(over)
     return reg.transition(cid, REGISTERED, payload, require_clean_tree=False)
