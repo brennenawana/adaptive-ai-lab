@@ -1,6 +1,21 @@
 # Repository Restructuring — Pass A Migration Design
 
-**STATUS: PROPOSAL — awaiting owner review. No files have been moved.**
+**STATUS: ACCEPTED WITH AMENDMENTS — Pass B authorized 2026-08-21. See the addendum below; where it conflicts with the body, the addendum governs.**
+
+## Addendum (2026-08-21): owner decisions D1–D6 authorizing Pass B
+
+- **D1 — Full implementation move: YES.** Stage 4 (the FIS implementation/runtime unit) executes now, not deferred. The final root is `README.md · Makefile · playbook/ · research/ · docs/ · projects/fis/`.
+- **D2 — Track `corpus_v3.json`: YES.** Verify with `--check` against the frozen Suite-v3 identity first; `--write` is an explicit suite-identity operation and is not used. Suite v3 is not regenerated or altered.
+- **D3 — Scope FIS clean-tree semantics: YES** (supersedes the body's D3 recommendation to keep whole-repo semantics). After the migration, re-enumerate the FIS provenance dependency closure and scope both dirty-path determination and the recorded `-dirty` commit-identity to that closure via one shared implementation, fail-closed. Edits to `playbook/`, `research/`, or lab-governance prose no longer dirty an unchanged FIS execution system.
+- **D4 — `OWNER_DECISIONS.md` stays FIS-scoped** (supersedes §9c, which sent it to `docs/`). Its rows move FIS program state, so it lands at `projects/fis/OWNER_DECISIONS.md`, append-only history intact. A distinct lab-governance record (`docs/LAB_DECISIONS.md`) is created for repository-level decisions, and the restructuring authorization/acceptance is recorded there — not mixed into the FIS state log.
+- **D5 — Archive this document after Pass B** into a dated history location (`docs/history/2026-08-21-restructuring/`, alongside the final migration report). The root stays small and product-oriented.
+- **D6 — `docs/R6_EXPERIMENT_CONTRACT.md` MOVES** (supersedes the body's "pinned exception permanently in `docs/`", §1/§9b/§10). The owner rejects a stranded FIS artifact in `docs/`. The contract moves to `projects/fis/R6_EXPERIMENT_CONTRACT.md` via a narrow, explicit, fail-closed **provenance relocation mechanism**: historical recorded locators (sealed `contract_path` strings, the digested `GATES` path string, chained entries) remain byte-identical; the verifier maps the historical locator to the audited current canonical path; unknown relocations fail closed; the frozen blob's prefix-extension rule still validates against the moved bytes; R6 is **not** rerun and consumes no new look. Mechanism, call-site inventory, and required tamper/fail-closed tests are recorded with the implementation.
+
+Execution discipline is unchanged: pure `git mv` for provenance-sensitive artifacts before any permitted living-document edits; snapshot/copy/verify for untracked evidence; no history rewrite; no `suite-v3` tag changes; staged green commits; the full validation battery plus the new relocation and scoped-dirty tests.
+
+---
+
+**Original proposal as reviewed (body unchanged below; D1–D6 above govern):**
 Date: 2026-08-21 · Author: Claude (planning pass) · Scope: information architecture only — no methodology changes, no playbook version bump, no experimental-state changes.
 
 Evidence base: 11-agent parallel inventory + adversarial verification over all 391 tracked files, the reference graph, every hash binding, and git/environment state. Every load-bearing claim below was verified by reading the implementing code or data; file:line citations are to HEAD (`bb44afa`).
