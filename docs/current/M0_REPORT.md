@@ -118,7 +118,8 @@ duplication 0.16–0.24, tail novelty 0.66–0.84, all 12 ontology hypotheses
 considered, new evidence tokens still appearing in the tail.
 
 The pre-declared manual read of every case **agrees with the rubric on all five**
-(recorded separately; it never overrode a rubric verdict): the tails are
+(recorded per-case in `artifacts/m0_manual_read.md`; it never overrode a rubric
+verdict): the tails are
 late-stage answer construction, not loops — four of five had already left
 reasoning and begun emitting the JSON answer (content 344–3647 chars); the fifth
 (S07-1001006) was drafting the facts array with tool citations inside its
@@ -276,8 +277,21 @@ outside it**; nothing normative, frozen, or executable moved. The probe process
 was already running on the `da49701` code (imports resolved at start) and every
 integrity assertion (session identity per generation, server binding, registry
 byte-identity) held independently of git HEAD. The run ledger records this
-honestly: start lines carry `code_commit=da49701`, the ctrl/treat end lines
+honestly: the ctrl/treat start lines carry `code_commit=da49701-dirty` (the
+"dirt" being the sessionprobe's own registry ledger append moments earlier —
+inside the registry, which the committed-tree rule permits) and the end lines
 `c93ac13`. Assessed impact on the causal comparison: none.
+
+**Adversarial review (independent, post-hoc).** A separate reviewer re-derived
+every load-bearing number from the primary record (DB recomputation of the
+population, pairing, session identity, caps, execution order from timestamps,
+the 9 passes; git-history freeze checks; byte-identical regeneration of
+`m0_metrics.json`): all 15 checklist items PASS; verdict **"no defect found that
+changes the recommendation."** Residual findings, all disclosed above or
+cosmetic: WP-E undelivered (§ 5); the S07-1000006 slot-ceiling allowance gap
+(frozen pre-outcome, bias direction against rescue); the manual-read record now
+committed as `artifacts/m0_manual_read.md`; the ledger `-dirty` wording fixed in
+this paragraph; ledger row 2.98 h includes the live smoke (probe alone 2.97 h).
 
 ## 8. Deliberately not done
 
