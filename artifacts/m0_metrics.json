@@ -1,0 +1,35 @@
+{
+  "decision": {
+    "note": "Recommendation to the scientific owner, not an autonomous gate; completion alone can never produce GO (f_complete is context).",
+    "reason": "f_rescue=60% >= 30% \u2014 material deterministic rescue, not just completion",
+    "row": "STRONG R7 GO"
+  },
+  "frozen_bands": {
+    "drop": 0.1,
+    "go": 0.3,
+    "precedence_min_reconfirmed": 10
+  },
+  "metrics": {
+    "f_complete": 0.6667,
+    "f_reconfirm": 1.0,
+    "f_rescue": 0.6,
+    "f_wrong_complete": 0.0667,
+    "input_tokens_all_equal": true,
+    "n_completed_unparseable_edge": 0,
+    "n_control_reconfirmed": 15,
+    "n_hist_cap": 15,
+    "n_rescue": 9,
+    "n_still_truncated": 5,
+    "n_still_truncated_convergent": 5,
+    "n_still_truncated_degenerate": 0,
+    "n_wrong_complete": 1,
+    "non_reconfirmed_cases": [],
+    "order_balance": {
+      "AB": 8,
+      "BA": 7,
+      "rescues_AB": 4,
+      "rescues_BA": 5
+    },
+    "pass_given_completion": 0.9
+  }
+}
