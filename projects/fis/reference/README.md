@@ -1,8 +1,9 @@
 # REFERENCE DESIGNS — consult, don't execute
 
 > STATUS: REFERENCE ONLY
-> Nothing here is a current task. Program sequencing lives in
-> `../current/AI_SYSTEMS_LAB_MASTER_PLAN.md`; the index is `../README.md`.
+> Nothing here is a current task. Project sequencing lives in
+> `../PROJECT_PLAN.md` (formerly AI_SYSTEMS_LAB_MASTER_PLAN.md); the index is
+> `../README.md`.
 
 | File | Status |
 |---|---|
@@ -12,5 +13,6 @@
 | `Harness_Intelligence_Roadmap_H0_H3.html` | Deferred H-series (harness science) roadmap — not started; self-labeled "not current FIS execution scope"; its FIS-state snapshot (R5/R6 framing) is stale. |
 | `Developer_Agent_Telemetry_D0_Initial_Plan.html` | Dormant D-series (developer-agent telemetry) plan — not started; M0 absorbs its dual-clock/run-lifecycle ideas for FIS's own runs. |
 
-Historical documents cite these files at their old `docs/<name>` paths; those
-citations are intentionally left unedited.
+Historical documents cite these files at their old `docs/<name>` paths (and,
+between 2026-08-20 and the 2026-08-21 restructuring, at `docs/reference/<name>`);
+those citations are intentionally left unedited — see `../README.md` § Path map.

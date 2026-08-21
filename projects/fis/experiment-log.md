@@ -1151,3 +1151,42 @@ record kept in this log:
 trigger and will add classes before replications); all frozen contracts and registry
 states; R4 policy; the R3b verdict; no run was re-scored, no historical number edited
 — only the *reading* of R6's headline comparison changed, disclosed here.
+
+## 2026-08-21 — Repository restructuring (no new experiment, no new inference)
+
+The lab repository was re-identified (owner decisions D1–D6, recorded in
+`../../docs/LAB_DECISIONS.md`; design + execution record in
+`../../docs/history/2026-08-21-restructuring/`). Everything FIS — this log, all
+contracts and reports, the registries, artifacts, and the entire implementation —
+moved into `projects/fis/`, filenames preserved, byte-identical (`git mv`).
+Method-relevant consequences, disclosed here because they change how future
+records read:
+
+- **The R6 contract moved** to `R6_EXPERIMENT_CONTRACT.md` (this directory). Its
+  sealed registry locator `docs/R6_EXPERIMENT_CONTRACT.md`, the frozen blob, the
+  `GATES` digest, and every chained entry are byte-unchanged; the verifier maps
+  the historical locator via the audited relocation record
+  (`fis_platform/provenance.py::CONTRACT_PATH_RELOCATIONS`,
+  `tests/test_contract_relocation.py`). R6 was NOT rerun; no DEV/TEST look was
+  consumed; the TEST-look ledger still holds exactly 7 looks.
+- **Clean-tree semantics were scoped** (owner decision D3): `-dirty` commit
+  identity and the dirty-path run guard now both mean "inside `projects/fis/`"
+  (same pathspec in `suite.git_head` and
+  `provenance.dirty_paths_outside_registry`; `tests/test_fis_scope.py`). Future
+  `code_commit` values in the registries are read under this rule; historical
+  values were recorded under whole-repo semantics — at every historical entry the
+  two rules coincide (the recorded trees were clean repo-wide).
+- **The corpus identity manifest is now tracked** (owner decision D2):
+  `scenarios/manifests/corpus_v3.json`, verified `--check`-identical to the
+  frozen Suite-v3 identity before tracking. Suite v3 itself is unchanged.
+- **Future registry/analysis records cite canonical paths**
+  (`projects/fis/...`); already-sealed records keep their historical path strings
+  (`docs/...`) — resolve via the path map in `README.md`. Regenerated
+  machine-derived artifacts (e.g. `artifacts/mstat_standing_facts.json`) will
+  cite `research/...` for the methodology report after this date; the committed
+  copies keep `docs/research/...`.
+
+**Deliberately NOT changed:** Suite v3; every frozen contract's content above its
+append line; all registry chains; all committed evidence in `artifacts/` and
+`evals/reports/`; the `suite-v3` tag; git history. Numbers of record are
+untouched — only where files live and how paths are read changed.

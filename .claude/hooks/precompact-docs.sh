@@ -16,11 +16,15 @@ Before continuing, bring the durable design docs fully up to date. Anything that
 exists only in conversation history is about to be lost; anything written to
 these files survives.
 
-In the FIS repo:
-  docs/architecture.md         component map, ports, event topology
-  docs/task-ontology.md        case categories, root causes, cause->action table
-  docs/clean-room-boundary.md  what may and may not enter this sandbox
-  docs/experiment-log.md       results so far, AND decisions deliberately NOT taken
+In the Adaptive AI Lab repo:
+  projects/fis/architecture.md         FIS component map, ports, event topology
+  projects/fis/task-ontology.md        case categories, root causes, cause->action table
+  projects/fis/clean-room-boundary.md  what may and may not enter the sandbox
+  projects/fis/experiment-log.md       results so far, AND decisions deliberately NOT taken
+  projects/fis/HANDOFF.md              operational state, gotchas, environment facts
+  playbook/ + docs/playbook-development/EVIDENCE_MAP.md
+                                       if the session changed generic methodology
+  docs/LAB_DECISIONS.md                if the session moved repository/lab state
 
 Capture, in full:
   1. Any architectural decision made this session, and the reason for it
@@ -38,7 +42,7 @@ EOF
 printf '%s' "$CONTEXT" | "$FIS_PY" -c '
 import json, sys
 print(json.dumps({
-    "systemMessage": "Compaction imminent - flush design decisions to docs/ first.",
+    "systemMessage": "Compaction imminent - flush design decisions to the durable docs first.",
     "hookSpecificOutput": {
         "hookEventName": "PreCompact",
         "additionalContext": sys.stdin.read(),

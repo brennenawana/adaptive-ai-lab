@@ -1,89 +1,136 @@
-# FIS / AI Systems Lab — Documentation Index
+# FIS — Fintech Integration Sandbox
 
-Last reorganized: 2026-08-20 (playbook pointer added 2026-08-21). If you read nothing else, read this page.
+The Adaptive AI Lab's **first project implementation**: a realistic synthetic
+fintech laboratory for AI-systems methodology — eval-driven model/routing/specialist
+selection under frozen contracts, deterministic ground truth, and fail-closed
+provenance. FIS is the empirical source of the playbook's real case studies
+(`../../playbook/examples/CASE-*`). Its domain is disposable by design
+(`clean-room-boundary.md`); the method it exercises is the asset.
 
-> **Reusable methodology lives in [`../playbook/`](../playbook/README.md)** — the
-> Adaptive AI Systems Playbook (v0.1.0): the generic, project-independent
-> methodology extracted from this lab. Division of authority: `playbook/` =
-> reusable methodology for any project; `docs/current/` = this project's specific
-> application of it (normative for FIS work); historical reports = empirical
-> evidence/provenance. Neither overrides the other in its own domain: FIS
-> experiments follow `docs/current/`; new/other projects start at
-> `playbook/QUICKSTART.md`.
+Last reorganized: 2026-08-21 (the repository restructuring — see § Path map). If you
+read nothing else, read this page.
+
+> **Division of authority.** Reusable methodology lives in
+> [`../../playbook/`](../../playbook/README.md) (the Adaptive AI Systems Playbook —
+> generic, project-independent); THIS directory is normative for everything FIS:
+> its plan, parameters, execution, and records. **Neither overrides the other in
+> its own domain.** Lab-level governance (charter, compute policy, lab decisions,
+> playbook-development process) lives in [`../../docs/`](../../docs/README.md).
+> New/other projects start at `../../playbook/QUICKSTART.md`, never here.
 
 ## START HERE (strict reading order)
 
-1. **[current/AI_SYSTEMS_LAB_MASTER_PLAN.md](current/AI_SYSTEMS_LAB_MASTER_PLAN.md)** — what we are building, where we are, what changed after the 2026-08 research, milestones.
-2. **[current/NEXT_STEP_M0.md](current/NEXT_STEP_M0.md)** — the single authorized next task (implementation-ready).
-3. **[current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md](current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md)** — the experimental methodology every experiment follows.
-4. **[current/EXPERIMENT_CONTRACT_TEMPLATE.md](current/EXPERIMENT_CONTRACT_TEMPLATE.md)** — how to write the next contract (v2).
-5. **[HANDOFF.md](HANDOFF.md)** — operational state: what runs where, gotchas, verification commands.
-6. **[../research/](../research/)** — the two 2026-08 deep-research reports, now at repo root (the evidence base for the current plan). *Caveat:* the 08-20 report's §2.3 gap-matrix retains two stale pre-correction rows suggesting SPRT-style rules; its own §2.2/Appendix C corrections (and the playbook) govern — SPRT was rejected.
+1. **[PROJECT_PLAN.md](PROJECT_PLAN.md)** — what FIS is building, where it is,
+   methodology corrections, series roadmap, milestones. (Formerly
+   AI_SYSTEMS_LAB_MASTER_PLAN.md; its lab-level §1/§8/§11 moved to `../../docs/`.)
+2. **[SUITE_V4_TRIGGER_REVIEW_PROCEDURE.md](SUITE_V4_TRIGGER_REVIEW_PROCEDURE.md)**
+   — the next owner-level task (M0 and M-STAT are executed and accepted;
+   `OWNER_DECISIONS.md`).
+3. **[PLAYBOOK_ADAPTATION.md](PLAYBOOK_ADAPTATION.md)** — the FIS instantiation of
+   the methodology; every FIS experiment follows it. "playbook §N" citations in FIS
+   code bind here.
+4. **[EXPERIMENT_CONTRACT_TEMPLATE.md](EXPERIMENT_CONTRACT_TEMPLATE.md)** — how to
+   write the next contract (v2; new contracts land flat in this directory).
+5. **[HANDOFF.md](HANDOFF.md)** — operational state: what runs where, gotchas,
+   verification commands.
+6. **[`../../research/`](../../research/)** — the two 2026-08 deep-research reports
+   (the evidence base for the current plan; see that index's SPRT caveat).
 
-**When documents conflict:** master plan → next-step plan → playbook/contract-template →
-HANDOFF → everything else. Historical **final reports** stay authoritative for the
-facts of their own experiments but never override the current plan. Historical
-**plans** are never instructions.
+**When documents conflict:** PROJECT_PLAN → PLAYBOOK_ADAPTATION /
+contract-template → HANDOFF → everything else. Historical **final reports** stay
+authoritative for the facts of their own experiments but never override the current
+plan. Historical **plans** are never instructions. Milestone transitions require
+owner acceptance recorded in **[OWNER_DECISIONS.md](OWNER_DECISIONS.md)**
+(append-only).
 
-## CURRENT / NORMATIVE (the complete set — nothing else is normative)
+## CURRENT / NORMATIVE (the complete set — nothing else here is normative)
 
 | Doc | Role |
 |---|---|
-| `current/AI_SYSTEMS_LAB_MASTER_PLAN.md` | Program strategy + sequencing authority |
-| `current/NEXT_STEP_M0.md` | The next task |
-| `current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` | Methodology (v1.0) |
-| `current/EXPERIMENT_CONTRACT_TEMPLATE.md` | Contract template (v2) |
-| `current/TEST_LOOK_LEDGER.md` | TEST-look ledger (append-only; 7 historical looks backfilled; look #8 needs the Suite-v4 trigger review) |
+| `PROJECT_PLAN.md` | Project strategy + sequencing authority |
+| `PLAYBOOK_ADAPTATION.md` | FIS methodology (v1.0) — instantiation of playbook v0.1.1 |
+| `EXPERIMENT_CONTRACT_TEMPLATE.md` | Contract template (v2, FIS extension) |
+| `SUITE_V4_TRIGGER_REVIEW_PROCEDURE.md` | Standing procedure for the next owner task |
+| `TEST_LOOK_LEDGER.md` | TEST-look ledger mirror (machine ledger `learning/registry/test_looks.jsonl` is the record of record; mirror validated fail-closed at every TEST gate) |
+| `OWNER_DECISIONS.md` | Owner decision record (append-only; FIS program state) |
 | `HANDOFF.md` | Operational state & environment record |
 | `architecture.md` | Component map, ports, event topology (normative event-driven requirement) |
 | `task-ontology.md` | Scenario classes, root causes, cause→action table |
 | `clean-room-boundary.md` | What must never enter this sandbox |
-| `experiment-log.md`, `routing-experiments.md` | Append-only experiment records (current through their last dated entry; **their per-entry "next milestone" lines are historical recommendations — sequencing lives in the master plan**) |
+| `experiment-log.md`, `routing-experiments.md` | Append-only experiment records (current through their last dated entry; per-entry "next milestone" lines are historical — sequencing lives in PROJECT_PLAN) |
 
 ## FROZEN EXPERIMENT CONTRACTS (binding records — do not edit)
 
-`SUITE_V3_RELEASE_CONTRACT.md`, `R5_EXPERIMENT_CONTRACT.md`, `R6_EXPERIMENT_CONTRACT.md`
-remain the binding definitions of their frozen baselines and completed experiments.
-They carry a status note **appended at the end only**: `R6_EXPERIMENT_CONTRACT.md` is
-bound by git blob SHA in the provenance registry (`committed_contract_extends` —
-append-only after freeze; a prepended header would break the binding), and the freeze
-discipline applies to all three in spirit. They are records, not plans. New
-experiments use the v2 template, never these files.
+`SUITE_V3_RELEASE_CONTRACT.md`, `R5_EXPERIMENT_CONTRACT.md`,
+`R6_EXPERIMENT_CONTRACT.md` remain the binding definitions of their frozen
+baselines and completed experiments; amendments are appended below the freeze line,
+never inserted. The R6 contract is bound by git blob SHA in the provenance
+registry; its freeze-time recorded path `docs/R6_EXPERIMENT_CONTRACT.md` is mapped
+to its current location by the audited provenance-relocation record
+(`fis_platform/provenance.py::CONTRACT_PATH_RELOCATIONS`, tested by
+`tests/test_contract_relocation.py`) — the sealed registry entries and the digested
+`GATES` path string keep the historical locator byte-for-byte. They are records,
+not plans. New experiments use the v2 template, never these files.
 
-## HISTORICAL EVIDENCE — safe to cite for facts, not current instructions
+## HISTORICAL EVIDENCE — cite for facts, not current instructions
 
 `SUITE_V3_RELEASE_REPORT.md` · `R5_LEARNED_ROUTING_REPORT.md` ·
 `R6_MODERN_LOCAL_SPECIALIST_REFRESH_REPORT.md` · `R6_PERFORMANCE_AUTOPSY.md` ·
-`OVERNIGHT_STATUS.md` (live log of the 2026-08-16→19 milestones M1–M7 — session
-markers, unrelated to program milestone M0) · `SETUP-ACTIONS.md` (bootstrap record).
+`M0_REPORT.md` · `M_STAT_REPORT.md` · `M_STAT_IMPLEMENTATION_MAP.md` (its living
+§16 is extracted to `SUITE_V4_TRIGGER_REVIEW_PROCEDURE.md`) · `NEXT_STEP_M0.md`
+(executed plan) · `OVERNIGHT_STATUS.md` (live log of the 2026-08-16→19 milestones
+M1–M7 — session markers, unrelated to program milestone M0; carries the R3/R3b
+pre-registrations) · `SETUP-ACTIONS.md` (bootstrap record).
 
-Each report's "recommended next milestone" was true when written and is superseded by
-the master plan. The R6 report's §11 R7 recommendation is now **conditional on M0**.
+Each report's "recommended next milestone" was true when written and is superseded
+by PROJECT_PLAN. The R6 report's §11 R7 recommendation was accepted via M0
+(`OWNER_DECISIONS.md`) and remains gated on the Suite-v4 trigger review.
 
 ## REFERENCE DESIGNS (`reference/`) — consult, don't execute
 
-| Doc | What it is |
-|---|---|
-| `Company_Intelligence_Platform_Canonical_Architecture_v1.html` | The production north-star design (two planes, five memory types, specialist definition, ladder, phases 0–9). Still the design reference; program sequencing is the master plan's. |
-| `Company_Intelligence_Platform_MSI_Experimentation_and_Fintech_Sandbox_Guide.html` | The original FIS spec (12 classes, tool contracts, E0–E8 matrix). Scenario/tool definitions remain definitional; the E-matrix is closed/absorbed (master plan §6). |
-| `Company_Intelligence_Platform_MacBook_Pro_Hybrid_Deployment_Guide.html` | A **different machine** (24 GB M4 Pro Mac). Ignore unless working on that deployment. |
-| `Harness_Intelligence_Roadmap_H0_H3.html` | Deferred harness-science roadmap (H-series). Not started; its FIS-state snapshot is stale. |
-| `Developer_Agent_Telemetry_D0_Initial_Plan.html` | Dormant D-series telemetry plan. Not started; M0 absorbs its dual-clock/lifecycle ideas for FIS runs. |
+See [`reference/README.md`](reference/README.md): the Canonical Architecture HTML
+(two planes, five memory types, specialization ladder), the MSI FIS spec HTML (12
+scenario classes, tool contracts; its E0–E8 matrix is closed), the MacBook guide (a
+DIFFERENT machine — ignore), and the deferred H0–H3/D0 roadmaps.
+`history/superseded/` holds executed launch plans — never instructions
+([`history/superseded/README.md`](history/superseded/README.md)).
 
-## SUPERSEDED (`superseded/`) — DO NOT USE FOR CURRENT TASKS
+## Path map (historical citations resolve here; never "fix" them in frozen/historical documents)
 
-Executed launch plans/prompts, kept for provenance: `FIS_MSI_Pivot_Guide_Switchyard_Nemotron.html`,
-`FIS_R5_Learned_Silent_Failure_Routing_Plan.html`, `FIS_R6_Modern_Local_Specialist_Refresh_Plan.html`,
-`FIS_Suite_v3_Benchmark_Release_Goal_Prompt.txt`. See `superseded/README.md`.
-
-**Path map (2026-08-20 moves):** historical documents written before this date cite
-these files at `docs/<name>`; they now live at `docs/superseded/<name>` (the four
-above) or `docs/reference/<name>` (the five reference designs). Do not "fix" those
-citations inside frozen/historical documents.
+- **2026-08-20 moves (pre-restructuring):** historical documents written before
+  that date cite the superseded launch plans and reference designs at `docs/<name>`;
+  those files then lived at `docs/superseded/<name>` / `docs/reference/<name>`.
+- **2026-08-21 restructuring:** everything FIS moved into this directory, filenames
+  preserved. `docs/<name>` and `docs/current/<name>` → `projects/fis/<name>`
+  (two hops for the sets above: → `projects/fis/history/superseded/<name>` /
+  `projects/fis/reference/<name>`). Two living docs were renamed:
+  `AI_SYSTEMS_LAB_MASTER_PLAN.md` → `PROJECT_PLAN.md` and
+  `EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` → `PLAYBOOK_ADAPTATION.md` (bare-name
+  citations of the old names are historical). Also: `docs/research/<name>` →
+  `research/<name>` (repo root); `docs/current/GPU_HOURS_LEDGER.md` and
+  `docs/current/OWNER_DECISIONS.md` → `docs/GPU_HOURS_LEDGER.md` stayed lab-level /
+  `projects/fis/OWNER_DECISIONS.md` respectively; playbook build scaffolding →
+  `docs/history/playbook-v0.1/`. The R6 contract's sealed registry locator is
+  handled by the code-level relocation record (see § Frozen contracts). Design and
+  execution record: `../../docs/history/2026-08-21-restructuring/`.
 
 ## EXPERIMENT ARCHIVE (where the data lives)
 
-- `learning/registry/r5/`, `learning/registry/r6/` — cryptographic records (frozen policies, candidate state logs, run ledger).
-- Postgres `learning.*` — trajectories, model outputs, routing decisions, case scores (append-only by convention; never truncated by `make corpus`).
-- `scenarios/manifests/corpus_v3.json` — corpus identity. `artifacts/` — autopsy + analysis CSVs/JSON.
-- `evals/reports/` is gitignored — numbers of record are copied into `experiment-log.md` / `routing-experiments.md`.
+- `learning/registry/r5/`, `learning/registry/r6/` — cryptographic records (frozen
+  policies, candidate state logs, run ledger). `learning/registry/test_looks.jsonl`
+  — the hash-chained TEST-look ledger (7 looks spent).
+- Postgres `learning.*` — trajectories, model outputs, routing decisions, case
+  scores (append-only by convention; never truncated by `make corpus`).
+- `scenarios/manifests/corpus_v3.json` — the pinned corpus identity (tracked since
+  2026-08-21, owner decision D2; verify with `make corpus-check`, never `--write`
+  casually). `artifacts/` — tracked autopsy + analysis CSVs/JSON.
+- `evals/reports/` is gitignored raw run output — numbers of record are copied into
+  `experiment-log.md` / `routing-experiments.md`.
+
+## Working here
+
+Operate from this directory: `make ps && make test` (see HANDOFF § "Verify
+everything is alive"). `.venv` and `.env` live at this root. Clean-tree/provenance
+semantics are scoped to this tree (owner decision D3): edits elsewhere in the lab
+repo don't dirty FIS runs; anything modified or untracked inside this tree still
+refuses fail-closed.

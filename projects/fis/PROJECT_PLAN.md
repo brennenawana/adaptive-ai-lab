@@ -1,14 +1,22 @@
-# AI Systems Lab — Master Plan
+# FIS Project Plan
 
-> STATUS: CURRENT / NORMATIVE
-> Current as of: 2026-08-21
+> STATUS: CURRENT / NORMATIVE for the FIS project
+> Current as of: 2026-08-21. Restructured 2026-08-21 from
+> `AI_SYSTEMS_LAB_MASTER_PLAN.md` (see `README.md` § path map): lab-level content
+> moved to `../../docs/` — §1 identity and §11 definition-of-done to
+> `LAB_CHARTER.md`, §8 hardware/compute policy to `COMPUTE_POLICY.md`. Section
+> numbers are preserved (stubs point to the new homes) so historical citations of
+> §2–§7/§9–§10 keep resolving.
 > Supersedes: all prior program sequencing (the R6 report §11 "R7 next" recommendation is
 > re-scoped by §3 below; the E0–E8 matrix, the FIS_MSI Pivot Guide sequence, and all
-> pre-2026-08-20 next-step statements are historical).
-> On conflict: this plan > `NEXT_STEP_M0.md` > `EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` /
-> `EXPERIMENT_CONTRACT_TEMPLATE.md` > `../HANDOFF.md` > historical plans.
+> pre-2026-08-20 next-step statements are historical). `NEXT_STEP_M0.md` is executed
+> (M0 accepted 2026-08-21 — `OWNER_DECISIONS.md` row 1); the next owner-level task is
+> the Suite-v4 trigger review (`SUITE_V4_TRIGGER_REVIEW_PROCEDURE.md`).
+> On conflict: this plan > `PLAYBOOK_ADAPTATION.md` /
+> `EXPERIMENT_CONTRACT_TEMPLATE.md` > `HANDOFF.md` > historical plans.
 > Historical **final reports** remain authoritative for the facts of their own
-> experiments; they never override this plan's sequencing.
+> experiments; they never override this plan's sequencing. For the division of
+> authority against the generic `playbook/` and lab governance, see `README.md`.
 
 Evidence basis: `../../research/2026-08-19_NVIDIA_AI_Lab_Playbook_Research.md` and
 `../../research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md` (both adversarially
@@ -20,11 +28,16 @@ R6 performance autopsy, provenance registry).
 
 ## 1. What we are building
 
-Not "benchmark local models." The product of this lab is a **reusable company AI
-systems methodology and platform**: the demonstrated ability to discover, for each
-company task, which combination of *model, runtime, harness, context, tools, workflow,
-verifier, routing policy, and (only when justified) training intervention* solves it
-most reliably and economically — and to prove it with evidence a client can audit.
+Lab identity and the definition of done moved to the lab level in the 2026-08
+restructuring: **`../../docs/LAB_CHARTER.md`**. The operative statement for this
+project:
+
+**FIS (the Fintech Integration Sandbox) is the realistic synthetic laboratory** in
+which the lab's methodology is learned safely: 12 scenario classes, deterministic
+ground truth, replayable corpus, fail-closed provenance. FIS is the means; the
+transferable methodology — shipped as the **Adaptive AI Systems Playbook**
+(`../../playbook/`, with `PLAYBOOK_ADAPTATION.md` as its FIS instantiation) — is
+the end.
 
 The target production topology (from the Canonical Architecture, unchanged):
 
@@ -37,11 +50,6 @@ the incumbent pattern), **controlled promotion** (frozen evals, one-look discipl
 shadow/canary when a client system exists), and a learning plane that harvests
 production failures back into evals, retrieval fixes, and — last on the ladder —
 training data.
-
-**FIS (the Fintech Integration Sandbox) is the realistic synthetic laboratory** in
-which this methodology is being learned safely: 12 scenario classes, deterministic
-ground truth, replayable corpus, fail-closed provenance. FIS is the means; the
-transferable methodology is the end.
 
 ## 2. Where we are now
 
@@ -217,7 +225,7 @@ Four numbering series exist. Their relation, made explicit:
 | **R-series** (R0–R6 done; R7/R8/R9 defined) | FIS specialist / routing / model science | Active — the main track |
 | **M-series** (M0, M-STAT — new) | Methodology, diagnostics, telemetry; cheap, non-promotable, no TEST spend | Active — M0 is next |
 | **E-series** (E0–E8, original MSI matrix) | Prompt/tool/context experiments | **Closed/absorbed**: E2/E4/E6/E6b done; E5→R4; E7→R8; E8→Discovery Controller (future); E3 demoted, revisit via §5 when evidence indicates |
-| **H-series** (H0–H3) + **D-series** (D0–D5) | Harness/execution-surface science; developer-agent telemetry | **Deferred** — reference designs in `../reference/`; D0's telemetry-floor ideas are partially absorbed into M0 (dual clocks, lifecycle events, per-invocation stats) |
+| **H-series** (H0–H3) + **D-series** (D0–D5) | Harness/execution-surface science; developer-agent telemetry | **Deferred** — reference designs in `reference/`; D0's telemetry-floor ideas are partially absorbed into M0 (dual clocks, lifecycle events, per-invocation stats) |
 
 Disambiguation: `OVERNIGHT_STATUS.md`'s M1–M7 are *live-log session markers* for past
 work, unrelated to program milestones M0/M-STAT.
@@ -262,31 +270,20 @@ reference designs, not commitments.
 
 ## 8. Hardware / compute policy
 
-Owned: RTX 5080 Laptop 16 GB (tier-1 node; measured 353–496 GB/s effective decode;
-watch the live llama.cpp sm_120 bugs — CUDA-graph hang workaround
-`GGML_CUDA_DISABLE_GRAPHS=1`). Ports/infra per `../architecture.md`.
+The lab-level policy (rent-don't-buy, the $4-benchmark-first rule, the pre-committed
+purchase trigger read against the GPU-hours ledger, the bandwidth lever, DGX-Spark
+revisit conditions, price re-verification discipline) moved to
+**`../../docs/COMPUTE_POLICY.md`** beside its instrument
+**`../../docs/GPU_HOURS_LEDGER.md`** in the 2026-08 restructuring — it spans
+projects, per the playbook's one-demand-ledger-per-lab doctrine.
 
-Policy (adopted from the adversarially-corrected hardware study; §3.5 there):
-- **Rent, don't buy, now.** Second node per multi-arm milestone (~$5–12, Secure-tier
-  3090/A6000 class; captures the full measured 8.8 h overlap saving) with
-  pre-registered cross-node arm placement. Training jobs rented ($5–30 each).
-- **The $4 benchmark first** (in M0): pinned artifact + pinned build on rented 3090 and
-  5090 — measures the only number the purchase decision turns on.
-- **GPU-hours/month ledger** starts with M0. **Purchase trigger** (pre-committed):
-  3 consecutive months > ~$150/mo rented spend, or a committed always-on client
-  serving tier. On trigger: **one** benchmark-chosen GPU (default used 3090) on a
-  minimal native-Linux host (~$2,050–2,700), with a thermal/decode acceptance test
-  before it becomes an execution system.
-- **Bandwidth lever** (only compresses the dominant chain): 5090-class, post-R7 and
-  post-bubble — buy at ≤~$2.5K street or rent at $0.99/hr; never at ~$4,900 mid-crunch.
-- **DGX Spark** becomes correct only under the pre-registered conditions (any two of:
-  capacity-bound MoE/agent residency; single-box CUDA 70B QLoRA/long-context need;
-  price ≤~$3.5K; power/acoustics dominate; client targets Spark). Track quarterly.
-- **Capacity** (48 GB pooling / 128 GB) and cloud training: rent per session until the
-  ledger proves sustained demand. **Re-verify all prices at order time** — the 2026
-  memory crunch makes every recorded price a floor with weeks of shelf life.
-- WSL2 clock skew (8–12%) stands until dual-clock telemetry lands (M0); a purchased
-  node would run native Linux, retiring the skew for that node.
+FIS-operational facts stay here: the owned tier-1 node is the RTX 5080 Laptop 16 GB
+(measured 353–496 GB/s effective decode; watch the live llama.cpp sm_120 bugs —
+CUDA-graph hang workaround `GGML_CUDA_DISABLE_GRAPHS=1`); ports/infra per
+`architecture.md`; second rented node per multi-arm milestone with pre-registered
+cross-node arm placement; the WSL2 clock skew (8–12%) stands until dual-clock
+telemetry is adopted in every long run (mechanism landed with M0), and a purchased
+node would run native Linux, retiring the skew for that node.
 
 ## 9. Fine-tuning roadmap
 
@@ -321,9 +318,10 @@ Using Claude to *evaluate* is unaffected.
 ## 10. Milestones (next 3–6)
 
 Execution is conditional — later milestones run only if their gate opens.
-**Milestone transitions after M0 require the scientific owner's acceptance of the
-prior milestone's report; `NEXT_STEP_M0.md` §11's STOP governs post-M0 continuation
-notwithstanding this plan's precedence order.** No agent self-assesses a GO.
+**Milestone transitions require the scientific owner's acceptance of the prior
+milestone's report, recorded in `OWNER_DECISIONS.md`** (M0 accepted and M-STAT
+closed out there, 2026-08-21; the executed `NEXT_STEP_M0.md` §11 STOP was the
+mechanism for the M0 boundary). No agent self-assesses a GO.
 
 | # | Milestone | Question | Why now | Prereqs | Cost class | Go/No-Go | Unlocks |
 |---|---|---|---|---|---|---|---|
@@ -339,23 +337,7 @@ purchase is *triggered* (§8), not scheduled.
 
 ## 11. Definition of done ("ready to transfer to a client")
 
-The lab is done enough to sell when every row below has been exercised at least once
-inside FIS **and** exists as a written, reusable procedure:
-
-| Capability | Status 2026-08-20 |
-|---|---|
-| Task-specific trustworthy eval creation (ceilings, versioning, leakage guards) | **Done** (Suite v1→v3) |
-| Local specialist selection under provenance + frozen contracts | **Done** (R6 method) |
-| Reasoning-budget calibration as a procedure | M0/R7 |
-| Frontier escalation with a deterministic gate | **Done** (R4; reliability qualification pending R9) |
-| Measured routing economics (break-even, pass^k) | R9 |
-| Self-hosted/rented tier operation (cross-node arms, pinned artifacts) | M0 onward |
-| Training intervention when justified (rig, own-trace SFT, forgetting gate) | FT-rig/R8 |
-| Serving characterization (AIPerf method, dual clocks, operating points) | Partial (autopsy); M0 telemetry + adoption |
-| Shadow/canary promotion process | Doctrine written; exercised at first client system |
-| Production failure harvesting into evals/training | Designed-in; exercised at first client system |
-| Reproducible lineage end-to-end (incl. trained artifacts) | Done for downloads; `TrainedArtifact` pending |
-| Publishable credibility artifacts | 3 identified (deterministic-gate cascade; class-identity ceiling; transport-serialization defect) — write-ups pending |
-
-When the table is green (client-dependent rows may be green-by-doctrine), the next
-engagement starts from procedure, not from research.
+Moved to the lab level in the 2026-08 restructuring:
+**`../../docs/LAB_CHARTER.md` § Definition of done**. The capability table spans
+projects; its FIS status column continues to be updated from this project's
+milestone reports.

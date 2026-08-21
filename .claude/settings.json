@@ -9,7 +9,7 @@
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/precompact-docs.sh\"",
             "timeout": 20,
-            "statusMessage": "Flushing design decisions to docs/"
+            "statusMessage": "Flushing design decisions to the durable docs"
           }
         ]
       }

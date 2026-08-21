@@ -1,9 +1,11 @@
 # GPU-Hours Ledger
 
 > STATUS: CURRENT / NORMATIVE — the demand instrument for the hardware purchase
-> trigger (master plan § 8: 3 consecutive months > ~$150/mo rented spend, or a
-> committed always-on client serving tier, triggers the ONE benchmark-chosen buy).
-> Append-only. Opened by M0 (2026-08-20) as required by NEXT_STEP_M0.md § 6-E.
+> trigger (`COMPUTE_POLICY.md`, formerly master plan § 8: 3 consecutive months
+> > ~$150/mo rented spend, or a committed always-on client serving tier, triggers
+> the ONE benchmark-chosen buy). One ledger per lab, not per project. Append-only.
+> Opened by M0 (2026-08-20) as required by NEXT_STEP_M0.md § 6-E; moved from
+> docs/current/ to lab governance in the 2026-08-21 restructuring, rows untouched.
 >
 > Columns: date, milestone, node (owned/rented + GPU), purpose, GPU-hours
 > (authoritative clock: monotonic-derived wall of the serving/benchmark session),

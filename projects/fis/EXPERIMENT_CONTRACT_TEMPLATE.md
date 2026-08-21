@@ -1,15 +1,22 @@
-# Experiment Contract Template — v2
+# FIS Experiment Contract Template — v2
 
-> STATUS: CURRENT / NORMATIVE
-> Current as of: 2026-08-20
+> STATUS: CURRENT / NORMATIVE for FIS. This is the **project extension** of the
+> generic `playbook/templates/EXPERIMENT_CONTRACT.md`: same 18-section apparatus,
+> plus the FIS bindings the generic template deliberately genericizes (SMOKE
+> registry-state precondition, DEV/TEST split names, git-blob contract binding,
+> Suite-v3 N_eff ≈ 22 standing facts). New FIS contracts use this file; a new
+> *project* starts from the generic template instead.
+> Current as of: 2026-08-20 (copy-target re-pathed 2026-08-21 in the restructuring)
 > Supersedes: the implicit v1 structure (R5/R6 contracts' section pattern). v1
 > contracts remain the binding records of their own experiments; v2 governs every
 > contract frozen after this date.
-> Governed by: `EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` (the rules), and
-> `AI_SYSTEMS_LAB_MASTER_PLAN.md` (whether the experiment should run at all).
+> Governed by: `PLAYBOOK_ADAPTATION.md` (the rules), and
+> `PROJECT_PLAN.md` (whether the experiment should run at all).
 
-Copy this file to `docs/<ID>_EXPERIMENT_CONTRACT.md`, fill every section, commit
-**before** any TRAIN inference. Sections marked ⊕ are new in v2 relative to the R6
+Copy this file to `projects/fis/<ID>_EXPERIMENT_CONTRACT.md` (flat, beside the
+existing frozen contracts — the canonical contract landing zone since the 2026-08
+restructuring; the freeze records this repo-root-relative path), fill every
+section, commit **before** any TRAIN inference. Sections marked ⊕ are new in v2 relative to the R6
 contract structure. `[...]` are placeholders. Delete no section — write "N/A —
 <reason>" instead, so absence is a decision, not an omission.
 

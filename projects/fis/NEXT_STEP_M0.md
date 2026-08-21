@@ -1,5 +1,14 @@
 # NEXT STEP — M0: Truncation Diagnostic + Telemetry Floor + $4 GPU Benchmark
 
+> **STATUS UPDATE (appended 2026-08-21, restructuring):** EXECUTED. M0 ran
+> 2026-08-20/21; its report (`M0_REPORT.md`) was accepted by the owner
+> (`OWNER_DECISIONS.md` row 1, 2026-08-21 — STRONG R7 GO, f_rescue 9/15). This plan
+> is now a historical record ("historical plans are never instructions"); its §5
+> remains the standing authorization record for the diagnostic run-kind state
+> machine, and its §11 STOP was honored at the M0 boundary. The next owner-level
+> task is the Suite-v4 trigger review (`SUITE_V4_TRIGGER_REVIEW_PROCEDURE.md`).
+> The original header follows, unedited.
+
 > STATUS: CURRENT / NORMATIVE — the single authorized next step
 > Current as of: 2026-08-20 (rev 4 — decision precedence made explicit:
 > `n_control_reconfirmed < 10` → INCONCLUSIVE/RE-SCOPE regardless of `f_rescue`,

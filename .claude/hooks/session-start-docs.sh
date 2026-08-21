@@ -10,44 +10,59 @@ cat > /dev/null 2>&1 || true
 . "$(dirname "${BASH_SOURCE[0]}")/_resolve-python.sh"
 
 CONTEXT=$(cat <<'EOF'
-Fintech Integration Sandbox (FIS).
+Adaptive AI Lab. The product is the Adaptive AI Systems Playbook (playbook/);
+research/ holds its generic evidence; docs/ is lab governance; projects/fis/ is
+the first project implementation (the Fintech Integration Sandbox) and the source
+of the playbook's real case studies. FIS is a project in this lab, not the repo's
+identity.
 
 Repo location depends on where this session was started:
   from WSL:     ~/projects/adaptive-ai-lab        (preferred - native tooling)
   from Windows: \\wsl.localhost\Ubuntu-24.04\home\wall\projects\adaptive-ai-lab
 
-READ FIRST, in this order (docs/README.md is the full index):
-  docs/README.md               the documentation index: what is CURRENT, what is
-                               HISTORICAL EVIDENCE, what is SUPERSEDED. Start here.
-  docs/current/AI_SYSTEMS_LAB_MASTER_PLAN.md
-                               program strategy + sequencing authority
-  docs/current/NEXT_STEP_M0.md the single authorized next task
-  docs/current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md
-                               the experimental methodology (normative)
-  docs/HANDOFF.md              operational state, environment gotchas, harness-bug
+READ FIRST, in this order:
+  README.md                    the lab front page and navigation
+  docs/README.md               governance index: authority model, repository model
+  projects/fis/README.md       the FIS index: reading order, what is CURRENT vs
+                               FROZEN vs HISTORICAL, and the path map for
+                               pre-restructuring citations. Start here for any
+                               FIS work.
+  projects/fis/PROJECT_PLAN.md project strategy + sequencing authority
+  projects/fis/PLAYBOOK_ADAPTATION.md
+                               the FIS methodology (normative for FIS; "playbook
+                               §N" citations in FIS code bind here)
+  projects/fis/HANDOFF.md      operational state, environment gotchas, harness-bug
                                history, verification commands
-  docs/architecture.md         component map, ports, event topology, and the
+  projects/fis/architecture.md component map, ports, event topology, and the
                                NORMATIVE event-driven requirement
-  docs/task-ontology.md        case categories, root causes, cause->action table
-  docs/clean-room-boundary.md  what must never enter this sandbox
-  docs/experiment-log.md       results, and their comparability status
+  projects/fis/task-ontology.md  case categories, root causes, cause->action table
+  projects/fis/clean-room-boundary.md  what must never enter the sandbox
+  projects/fis/experiment-log.md results, and their comparability status
 
-On conflict: master plan > next-step plan > playbook/contract-template > HANDOFF >
+On conflict (FIS): PROJECT_PLAN > PLAYBOOK_ADAPTATION/contract-template > HANDOFF >
 historical plans. Historical FINAL REPORTS stay authoritative for the facts of
-their own experiments but never override the current plan.
+their own experiments but never override the current plan. Generic playbook/ and
+project adaptation each govern their own domain. Milestone transitions require
+owner acceptance in projects/fis/OWNER_DECISIONS.md; repository-level decisions in
+docs/LAB_DECISIONS.md. M0 and M-STAT are executed and accepted; the next
+owner-level task is the Suite-v4 trigger review
+(projects/fis/SUITE_V4_TRIGGER_REVIEW_PROCEDURE.md).
 
-REFERENCE DESIGNS (docs/reference/ - consult, don't execute): the Canonical
-Architecture HTML (two planes, five memory types, specialization ladder), the MSI
-FIS spec HTML (12 scenario classes, tool contracts; its E0-E8 matrix is closed),
-the MacBook guide (a DIFFERENT machine - ignore), and the deferred H0-H3/D0
-roadmaps. docs/superseded/ holds executed launch plans - never instructions.
+Reference designs (projects/fis/reference/ - consult, don't execute); executed
+launch plans (projects/fis/history/superseded/ - never instructions). Historical
+documents cite pre-restructuring paths (docs/..., docs/current/...) - do NOT "fix"
+those citations; the path map in projects/fis/README.md resolves them.
 
 Standing environment facts:
+  - FIS operations run FROM projects/fis/ (its Makefile, .venv, .env live there).
   - Ports: 5433 FIS Postgres, 4222 NATS, 8082 local model.
     5432 and 6379 belong to a separate pre-existing project - do not touch.
     8080/8081 belong to Bonsai and a Qwen3.8-27B server - also not ours.
   - The ground_truth schema is the eval answer key. The fis_tools DB role holds
     no grant on it. Never route a model-facing tool there.
+  - FIS clean-tree/provenance checks are scoped to projects/fis/ (owner decision
+    D3): edits elsewhere in the lab do not dirty FIS runs; anything modified or
+    untracked inside that tree still refuses fail-closed.
   - Sudo is passwordless in WSL. Windows sudo.exe is a different program and
     has no effect on WSL.
   - If running from Windows, WSL commands must be written to a script file first:

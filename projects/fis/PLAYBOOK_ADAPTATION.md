@@ -1,13 +1,21 @@
-# FIS Experimental AI Systems Playbook — v1.0
+# FIS Playbook Adaptation (Experimental AI Systems Playbook v1.0)
 
-> STATUS: CURRENT / NORMATIVE
+> STATUS: CURRENT / NORMATIVE for FIS. Renamed 2026-08-21 from
+> `EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` in the repository restructuring — this is
+> the **FIS instantiation** of the generic Adaptive AI Systems Playbook
+> (`../../playbook/`, v0.1.1). Division of authority (recorded 2026-08-21, upheld):
+> the generic playbook is normative for any project's methodology; this adaptation
+> is normative for FIS's parameters, instantiated procedures, and project
+> decisions — **neither overrides the other in its own domain**. "playbook §N"
+> citations in FIS code (`fis_platform/`, `scripts/`, `tests/`) bind to THIS
+> document's sections, whose numbering is preserved.
 > Current as of: 2026-08-21
 > Supersedes: nothing by that name — no playbook file existed before this one. The
-> de-facto methodology lived in `../HANDOFF.md` ("rules that carry"), the R5/R6
-> experiment contracts, and `../routing-experiments.md`'s standing rules. §10 records
-> the delta against that practice. New experiments follow this playbook via
+> de-facto methodology lived in `HANDOFF.md` ("rules that carry"), the R5/R6
+> experiment contracts, and `routing-experiments.md`'s standing rules. §10 records
+> the delta against that practice. New experiments follow this adaptation via
 > `EXPERIMENT_CONTRACT_TEMPLATE.md`.
-> Governed by: `AI_SYSTEMS_LAB_MASTER_PLAN.md` (sequencing and strategy live there).
+> Governed by: `PROJECT_PLAN.md` (sequencing and strategy live there).
 
 This document is the operating methodology: the rules every FIS experiment follows.
 It encodes the corrections adopted after the 2026-08 external research

@@ -1,5 +1,16 @@
 # Handoff — 2026-08-20 (R6 done; research synthesis done; next: M0 — see docs/current/NEXT_STEP_M0.md)
 
+> **2026-08-21 update (repository restructuring).** FIS now lives at
+> `projects/fis/` inside the Adaptive AI Lab repository; every FIS doc this file
+> cites sits flat in this directory (old `docs/…` and `docs/current/…` citations
+> resolve via the path map in `README.md`). Start at **`README.md`** (this
+> directory); sequencing authority is **`PROJECT_PLAN.md`** (formerly
+> AI_SYSTEMS_LAB_MASTER_PLAN.md); M0 is executed and accepted — the next
+> owner-level task is the Suite-v4 trigger review
+> (`SUITE_V4_TRIGGER_REVIEW_PROCEDURE.md`). Operate from `projects/fis/`
+> (`make …` there; `.venv` and `.env` live at that root). The body below is the
+> 2026-08-19/20 snapshot and remains accurate for environment, infra, and history.
+
 > **2026-08-20 update.** The documentation tree was reorganized and the program
 > re-planned after two deep-research reports (`research/`, at repo root). Start at
 > **`docs/README.md`**; sequencing authority is

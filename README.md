@@ -1,15 +1,38 @@
-# Fintech Integration Sandbox (FIS) — AI Systems Lab
+# Adaptive AI Lab
 
-A realistic synthetic fintech laboratory for learning company-AI-systems methodology:
-eval-driven model/routing/specialist selection under frozen contracts, deterministic
-ground truth, and fail-closed provenance.
+This lab develops and validates the **[Adaptive AI Systems
+Playbook](playbook/README.md)** — an evidence-driven, project-independent
+methodology for designing, evaluating, optimizing, deploying, and continuously
+improving AI systems. The lab runs real project implementations, harvests their
+frozen experimental evidence into curated case studies, and promotes what survives
+into the playbook:
 
-**Start at [`docs/README.md`](docs/README.md)** — it is the documentation index and
-says what is CURRENT, what is HISTORICAL EVIDENCE, and what is SUPERSEDED.
+```
+research evidence → playbook → project implementations → primary records
+        ↑                                                      ↓
+        └──────── playbook evolution ← curated case studies ←──┘
+```
 
-- Program plan & sequencing: `docs/current/AI_SYSTEMS_LAB_MASTER_PLAN.md`
-- The next task: `docs/current/NEXT_STEP_M0.md`
-- Methodology: `docs/current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md`
-- Operational state & environment: `docs/HANDOFF.md`
+| I want to… | Go to |
+|---|---|
+| Start a new AI project with the methodology | [`playbook/QUICKSTART.md`](playbook/QUICKSTART.md) |
+| Read the methodology | [`playbook/`](playbook/README.md) |
+| See the evidence behind it | [`research/`](research/README.md) · [`playbook/references/SOURCES.md`](playbook/references/SOURCES.md) |
+| See a real implementation | [`projects/fis/`](projects/fis/README.md) |
+| Read the curated case studies | [`playbook/examples/`](playbook/examples/README.md) |
+| Understand how the lab itself is governed | [`docs/`](docs/README.md) |
 
-Quick health check: `make ps && make test` (see HANDOFF §"Verify everything is alive").
+**FIS — the Fintech Integration Sandbox** ([`projects/fis/`](projects/fis/README.md))
+is the lab's first project implementation: a realistic synthetic fintech laboratory
+with deterministic ground truth, frozen eval suites, and fail-closed cryptographic
+provenance. It is the empirical source of every real case study shipped so far. It
+is a project *in* this lab, not the lab itself.
+
+**Authority in one breath:** `playbook/` is normative for reusable methodology;
+`projects/<name>/` for that project's plan and execution; `docs/` for lab
+governance; frozen records for the facts of their own events — and none of them
+overrides another in its own domain (details: [`docs/README.md`](docs/README.md)).
+
+Health check: `make test` (FIS suite + provenance verifiers) and
+`make playbook-check` (the playbook's 7-check release validator). FIS operations
+run from `projects/fis/` — start at its [README](projects/fis/README.md).
