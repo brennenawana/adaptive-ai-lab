@@ -269,6 +269,16 @@ look is #8) before any contract freeze.**
 | registry | state logs + HEAD.json byte-identical before/after (verified twice: by the probe and independently against the pre-M0 sha256 snapshot); 8 diagnostic ledger lines appended | |
 | tests | 672 passed + 2 skipped (baseline 627+1, +45 new M0 tests, +1 live smoke — run live: passed) | |
 
+**Disclosure — concurrent commit mid-probe.** While WP-B was decoding, the owner
+committed `c93ac13` (“Playbook planning pass”, 22:09 UTC) to the repository.
+Verified scope: **only the new `playbook/` documentation tree — zero files
+outside it**; nothing normative, frozen, or executable moved. The probe process
+was already running on the `da49701` code (imports resolved at start) and every
+integrity assertion (session identity per generation, server binding, registry
+byte-identity) held independently of git HEAD. The run ledger records this
+honestly: start lines carry `code_commit=da49701`, the ctrl/treat end lines
+`c93ac13`. Assessed impact on the causal comparison: none.
+
 ## 8. Deliberately not done
 
 1. **No R7 work**: the probe cap is a diagnostic instrument; no cap was *selected*,
