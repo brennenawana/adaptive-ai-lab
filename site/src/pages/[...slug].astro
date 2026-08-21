@@ -1,0 +1,41 @@
+---
+/**
+ * Catch-all router for every canonical-content page, in the current space and
+ * every materialized historical version. Static pages (home, learn, about,
+ * versions index) live in their own files and take route priority.
+ */
+import DocPage from '../components/DocPage.astro';
+import GlossaryPage from '../components/GlossaryPage.astro';
+import SourcesLedger from '../components/SourcesLedger.astro';
+import ChangelogView from '../components/ChangelogView.astro';
+import TemplatesIndex from '../components/TemplatesIndex.astro';
+import { allPages, type PageDef } from '../lib/corpus.ts';
+
+export function getStaticPaths(): { params: { slug: string }; props: { page: PageDef } }[] {
+  const seen = new Set<string>();
+  const out: { params: { slug: string }; props: { page: PageDef } }[] = [];
+  for (const page of allPages()) {
+    const slug = page.fullRoute.replace(/^\/|\/$/g, '');
+    if (!slug || seen.has(slug)) continue; // e.g. SOURCES.md and sources.yaml share a route
+    seen.add(slug);
+    out.push({ params: { slug }, props: { page } });
+  }
+  return out;
+}
+
+const { page } = Astro.props;
+---
+
+{
+  page.kind === 'glossary' ? (
+    <GlossaryPage page={page} />
+  ) : page.kind === 'sources' ? (
+    <SourcesLedger page={page} />
+  ) : page.kind === 'changelog' ? (
+    <ChangelogView page={page} />
+  ) : page.kind === 'templates-index' ? (
+    <TemplatesIndex page={page} />
+  ) : (
+    <DocPage page={page} />
+  )
+}

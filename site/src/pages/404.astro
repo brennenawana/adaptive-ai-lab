@@ -1,0 +1,20 @@
+---
+import Layout from '../components/Layout.astro';
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+---
+
+<Layout title="Not found" section="">
+  <div class="hero">
+    <p class="overline">404</p>
+    <h1>No page lives here.</h1>
+    <p class="lede">
+      The canonical content may have moved with a repository restructuring — the playbook index is the
+      reliable way back in.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href={u('/playbook/')}>Playbook index</a>
+      <a class="btn secondary" href={u('/')}>Home</a>
+    </div>
+  </div>
+</Layout>

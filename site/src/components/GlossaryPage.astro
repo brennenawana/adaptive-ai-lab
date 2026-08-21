@@ -1,0 +1,134 @@
+---
+/** The glossary as a first-class learning surface: searchable, filterable, anchored. */
+import Layout from './Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import VersionBar from './VersionBar.astro';
+import CanonicalNote from './CanonicalNote.astro';
+import { loadGlossary } from '../lib/glossary.ts';
+import { makeCtx } from '../lib/rendering.ts';
+import { renderFragment, renderInlineFragment } from '../lib/markdown/render.ts';
+import { sidebarFor } from '../lib/nav.ts';
+import type { PageDef } from '../lib/corpus.ts';
+
+interface Props {
+  page: PageDef;
+}
+const { page } = Astro.props;
+const base = import.meta.env.BASE_URL;
+
+const g = loadGlossary(page.space);
+const ctx = makeCtx(page.space, 'playbook/GLOSSARY.md', base);
+const intro = renderFragment(g.introMarkdown, ctx);
+
+const themeOf = new Map<string, string[]>();
+for (const th of g.themes) {
+  for (const s of th.slugs) {
+    themeOf.set(s, [...(themeOf.get(s) ?? []), th.name]);
+  }
+}
+
+const entries = g.terms.map((t) => ({
+  ...t,
+  html: renderInlineFragment(t.defMarkdown, ctx),
+  themes: themeOf.get(t.slug) ?? [],
+}));
+---
+
+<Layout
+  title={page.space ? `Glossary (v${page.space})` : 'Glossary'}
+  description="Every defined term of the Adaptive AI Systems Playbook, searchable, with thematic filters."
+  section="playbook"
+  sidebar={sidebarFor('playbook', page.space)}
+  space={page.space}
+  route={page.route}
+>
+  <header class="doc-head">
+    <div class="doc-eyebrow">
+      <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'Playbook', href: '/playbook/' }, { label: 'Glossary' }]} />
+      <span class="version-bar"><VersionBar space={page.space} route={page.route} /></span>
+    </div>
+    <h1>Glossary</h1>
+    <p class="doc-meta-row"><span>{entries.length} terms</span><span class="sep">·</span><span>hover any dotted term anywhere on the site for its definition</span></p>
+  </header>
+
+  <div class="prose" style="margin-bottom:1.4rem"><Fragment set:html={intro} /></div>
+
+  <div class="glossary-controls ui">
+    <input
+      type="search"
+      id="gloss-filter"
+      class="glossary-filter"
+      placeholder="Filter terms… (press f)"
+      aria-label="Filter glossary terms"
+    />
+    <div class="glossary-themes" id="gloss-themes" role="group" aria-label="Filter by theme">
+      {g.themes.map((t) => (
+        <button type="button" data-theme={t.name} aria-pressed="false">{t.name} <span aria-hidden="true">({t.slugs.length})</span></button>
+      ))}
+    </div>
+  </div>
+
+  <div id="gloss-list">
+    {entries.map((e) => (
+      <section
+        class="glossary-entry"
+        id={e.slug}
+        data-term={e.term.toLowerCase()}
+        data-themes={e.themes.join('|')}
+      >
+        <h3>
+          {e.term}
+          <a class="heading-anchor" href={`#${e.slug}`} aria-label={`Link to ${e.term}`}>#</a>
+          {e.themes.length > 0 && <span class="entry-themes">{e.themes.join(' · ')}</span>}
+        </h3>
+        <div class="prose"><p set:html={e.html} /></div>
+      </section>
+    ))}
+    <p class="glossary-empty" id="gloss-empty" hidden>No terms match.</p>
+  </div>
+
+  <CanonicalNote repoPath="playbook/GLOSSARY.md" space={page.space} />
+
+  <script>
+    const input = document.getElementById('gloss-filter') as HTMLInputElement;
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>('#gloss-themes button')];
+    const entries = [...document.querySelectorAll<HTMLElement>('.glossary-entry')];
+    const empty = document.getElementById('gloss-empty')!;
+    let theme: string | null = null;
+
+    function apply(): void {
+      const q = input.value.trim().toLowerCase();
+      let shown = 0;
+      for (const e of entries) {
+        const matchQ =
+          !q || e.dataset.term!.includes(q) || (e.textContent ?? '').toLowerCase().includes(q);
+        const matchT = !theme || (e.dataset.themes ?? '').split('|').includes(theme);
+        const show = matchQ && matchT;
+        e.hidden = !show;
+        if (show) shown++;
+      }
+      empty.hidden = shown > 0;
+    }
+
+    input.addEventListener('input', apply);
+    buttons.forEach((b) =>
+      b.addEventListener('click', () => {
+        theme = theme === b.dataset.theme ? null : b.dataset.theme!;
+        buttons.forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.theme === theme)));
+        apply();
+      }),
+    );
+    document.addEventListener('keydown', (e) => {
+      const t = e.target as HTMLElement;
+      if (e.key === 'f' && t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        input.focus();
+      }
+    });
+    // if arriving with a #term anchor, make sure the entry is visible
+    if (location.hash) {
+      const el = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+      el?.scrollIntoView();
+    }
+  </script>
+</Layout>

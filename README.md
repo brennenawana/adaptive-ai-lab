@@ -17,6 +17,7 @@ research evidence → playbook → project implementations → primary records
 |---|---|
 | Start a new AI project with the methodology | [`playbook/QUICKSTART.md`](playbook/QUICKSTART.md) |
 | Read the methodology | [`playbook/`](playbook/README.md) |
+| Read and study it as a website (search, glossary popovers, versions) | `make site` — see [`site/README.md`](site/README.md) |
 | See the evidence behind it | [`research/`](research/README.md) · [`playbook/references/SOURCES.md`](playbook/references/SOURCES.md) |
 | See a real implementation | [`projects/fis/`](projects/fis/README.md) |
 | Read the curated case studies | [`playbook/examples/`](playbook/examples/README.md) |

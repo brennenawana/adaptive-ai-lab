@@ -1,0 +1,209 @@
+/* Base reset + app shell. Long-form content styles live in prose.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-h) + 1.25rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: var(--accent-ink);
+  text-decoration: none;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink-strong);
+}
+
+/* Firefox + WebKit scrollbars, subtle */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  z-index: 200;
+  padding: 0.5rem 0.9rem;
+  background: var(--bg-raised);
+  color: var(--ink-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  transition: top 120ms var(--ease);
+}
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+/* ---------- shell grid ---------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.shell.no-sidebar {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.main-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--toc-w);
+  gap: 2.5rem;
+  flex: 1;
+  padding: 0 clamp(1rem, 4vw, 3.5rem);
+  width: 100%;
+  max-width: calc(var(--measure) + var(--toc-w) + 8rem);
+  margin: 0 auto;
+}
+
+.content-row.no-toc {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: calc(var(--measure) + 8rem);
+}
+
+.content-row.wide {
+  max-width: calc(var(--measure-wide) + var(--toc-w) + 8rem);
+}
+
+article.page {
+  min-width: 0;
+  padding: 2.25rem 0 5rem;
+}
+
+@media (max-width: 1180px) {
+  .content-row,
+  .content-row.wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .toc-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- generic UI bits ---------- */
+
+.ui {
+  font-family: var(--font-ui);
+}
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-muted);
+  background: var(--bg-raised);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.badge.accent {
+  color: var(--accent-ink);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-soft);
+}
+
+.badge.evidence {
+  color: var(--evidence-ink);
+  border-color: color-mix(in srgb, var(--evidence) 45%, transparent);
+  background: var(--evidence-soft);
+}
+
+.overline {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raise);
+}

@@ -1,0 +1,38 @@
+---
+import type { NavItem } from '../lib/nav.ts';
+
+interface Props {
+  prev: NavItem | null;
+  next: NavItem | null;
+}
+const { prev, next } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+---
+
+{
+  (prev || next) && (
+    <nav class="prev-next" aria-label="Sequential reading">
+      {prev ? (
+        <a href={u(prev.fullRoute)} rel="prev">
+          <span class="pn-dir">← Previous</span>
+          <span class="pn-title">
+            {prev.tag && `${prev.tag} · `}
+            {prev.label}
+          </span>
+        </a>
+      ) : (
+        <span />
+      )}
+      {next && (
+        <a href={u(next.fullRoute)} rel="next" class="pn-next">
+          <span class="pn-dir">Next →</span>
+          <span class="pn-title">
+            {next.tag && `${next.tag} · `}
+            {next.label}
+          </span>
+        </a>
+      )}
+    </nav>
+  )
+}

@@ -1,0 +1,48 @@
+---
+/** Visual lifecycle map — a navigation/learning aid over the playbook's own lifecycle. */
+import { STAGES } from '../lib/lifecycle.ts';
+import { pagesInSpace, titleOf } from '../lib/corpus.ts';
+
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+
+const chapterInfo = new Map(
+  pagesInSpace(null)
+    .filter((p) => /^playbook\/\d\d_/.test(p.repoPath))
+    .map((p) => {
+      const num = p.repoPath.match(/^playbook\/(\d\d)_/)![1]!;
+      return [num, { route: p.fullRoute, title: titleOf(null, p.repoPath).replace(/^\d\d\.\s*/, '') }];
+    }),
+);
+---
+
+<div class="pb-map" aria-label="Playbook lifecycle map">
+  <ol>
+    {STAGES.map((s, i) => (
+      <li class="map-stage">
+        <span class="map-rail" aria-hidden="true">
+          <span class="map-dot" />
+          <span class="map-line" />
+        </span>
+        <div class="map-card">
+          <span class="stage-name">{i + 1}. {s.name}</span>
+          <p class="stage-desc">{s.desc}</p>
+          <span class="stage-links">
+            {s.chapters.map((c) => (
+              <a href={u(chapterInfo.get(c)?.route ?? '/playbook/')}>
+                {c} · {chapterInfo.get(c)?.title ?? ''}
+              </a>
+            ))}
+          </span>
+        </div>
+      </li>
+    ))}
+  </ol>
+  <p class="map-loop">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M13 8a5 5 0 1 1-2.2-4.15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M11.2 1.2v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    Production evidence flows back into the evaluation substrate (12 → 03) — the loop never ends.
+  </p>
+</div>

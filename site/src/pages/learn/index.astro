@@ -1,0 +1,110 @@
+---
+import Layout from '../../components/Layout.astro';
+import PlaybookMap from '../../components/PlaybookMap.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { CROSS_CUTTING } from '../../lib/lifecycle.ts';
+import { loadGlossary } from '../../lib/glossary.ts';
+import { pagesInSpace, titleOf } from '../../lib/corpus.ts';
+
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+
+const chapterInfo = new Map(
+  pagesInSpace(null)
+    .filter((p) => /^playbook\/\d\d_/.test(p.repoPath))
+    .map((p) => {
+      const num = p.repoPath.match(/^playbook\/(\d\d)_/)![1]!;
+      return [num, { route: p.fullRoute, title: titleOf(null, p.repoPath).replace(/^\d\d\.\s*/, '') }];
+    }),
+);
+const themes = loadGlossary(null).themes;
+
+/** Reading contracts stated in playbook/README.md ("Reading contracts: …"). */
+const contracts = [
+  { rule: '02 before any cross-run comparison', chapters: ['02'] },
+  { rule: '04 gates every selection or intervention experiment', chapters: ['04'] },
+  { rule: '11 is consulted three times — intake, capacity, deployment — not read once', chapters: ['11'] },
+  { rule: '13 is instantiated at intake for Tier-3 work', chapters: ['13'] },
+  { rule: '12 closes the loop back to 03', chapters: ['12', '03'] },
+];
+---
+
+<Layout
+  title="Learn the Playbook"
+  description="The playbook lifecycle as a visual map, chapter dependencies, and the major concept clusters."
+  section="learn"
+>
+  <header class="doc-head">
+    <div class="doc-eyebrow">
+      <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'Learn' }]} />
+    </div>
+    <h1>Learn the playbook</h1>
+    <p class="doc-meta-row">
+      <span>The lifecycle as a map, the chapter dependencies, and the concept clusters — visual entry points into the methodology.</span>
+    </p>
+  </header>
+
+  <p class="disclaimer-line">
+    This map is a navigation and learning aid derived from the playbook's own lifecycle — the chapters
+    themselves are the normative source.
+  </p>
+
+  <h2 class="section-h">The lifecycle</h2>
+  <p class="section-sub">
+    Wherever a project enters, work proceeds through this loop. Each stage links to the chapter that
+    owns its procedure.
+  </p>
+  <PlaybookMap />
+
+  <h2 class="section-h">Cross-cutting chapters</h2>
+  <div class="card-grid ui">
+    {
+      CROSS_CUTTING.map((c) => (
+        <a class="card" href={u(chapterInfo.get(c.num)?.route ?? '/playbook/')}>
+          <span class="card-title">{c.num} · {chapterInfo.get(c.num)?.title}</span>
+          {c.role}
+        </a>
+      ))
+    }
+  </div>
+
+  <h2 class="section-h">How chapters depend on each other</h2>
+  <p class="section-sub">The book's own reading contracts — the ordering rules that prevent expensive mistakes.</p>
+  <div class="card-grid ui">
+    {
+      contracts.map((c) => (
+        <a class="card" href={u(chapterInfo.get(c.chapters[0]!)?.route ?? '/playbook/')}>
+          <span class="card-title">{c.chapters.map((n) => n).join(' → ')}</span>
+          {c.rule}
+        </a>
+      ))
+    }
+  </div>
+
+  <h2 class="section-h">Major concepts</h2>
+  <p class="section-sub">
+    The glossary's own seven thematic clusters — each opens the filtered glossary.
+  </p>
+  <div class="card-grid ui">
+    {
+      themes.map((t) => (
+        <a class="card" href={u('/playbook/glossary/')}>
+          <span class="card-title">{t.name}</span>
+          {t.slugs.length} terms, from “{t.slugs[0]!.replace(/-/g, ' ')}” on.
+        </a>
+      ))
+    }
+  </div>
+
+  <h2 class="section-h">Coming later: agent prompt recipes</h2>
+  <p class="section-sub" style="max-width:46rem">
+    The same canonical chapters and templates that render these reading pages can be assembled into
+    bounded, agent-ready stage prompts — “Start a Project”, “Freeze an Eval Suite”, “Run a Performance
+    Autopsy”. That layer is deliberately not built yet; the content pipeline already exposes every
+    section it would need, so it can be added without a second source of truth.
+  </p>
+
+  <footer class="site-footer">
+    Map, dependencies and clusters derive at build time from the canonical playbook files.
+  </footer>
+</Layout>

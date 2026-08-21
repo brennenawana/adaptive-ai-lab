@@ -1,0 +1,22 @@
+---
+/** "Where did this page come from?" — the canonical-source link. */
+import { githubBlobUrl } from '../lib/repo.ts';
+import { VERSIONS } from '../lib/versions.ts';
+import type { Space } from '../lib/corpus.ts';
+
+interface Props {
+  repoPath: string;
+  space: Space;
+}
+const { repoPath, space } = Astro.props;
+const ref = space === null ? 'main' : (VERSIONS.find((v) => v.version === space)?.commit ?? 'main');
+const href = githubBlobUrl(repoPath, ref);
+const refLabel = space === null ? 'main' : ref.slice(0, 12);
+---
+
+<p class="canonical-note">
+  This page is rendered from the canonical repository file
+  <a href={href} rel="noopener"><code>{repoPath}</code></a>
+  {space === null ? ' (branch ' : ' (commit '}<code>{refLabel}</code>). The repository Markdown—not this
+  website—is the source of record.
+</p>

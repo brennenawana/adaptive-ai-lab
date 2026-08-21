@@ -1,0 +1,21 @@
+---
+interface Crumb {
+  label: string;
+  href?: string;
+}
+interface Props {
+  crumbs: Crumb[];
+}
+const { crumbs } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+---
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  {crumbs.map((c, i) => (
+    <>
+      {i > 0 && <span aria-hidden="true">/</span>}
+      {c.href ? <a href={u(c.href)}>{c.label}</a> : <span aria-current="page">{c.label}</span>}
+    </>
+  ))}
+</nav>

@@ -1,0 +1,33 @@
+---
+import type { NavGroup } from '../lib/nav.ts';
+
+interface Props {
+  groups: NavGroup[];
+  space?: string | null;
+  currentPath: string;
+}
+const { groups, currentPath } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+const isCurrent = (full: string) => u(full) === currentPath || u(full) === currentPath + '/';
+---
+
+<nav class="sidebar ui" id="sidebar" aria-label="Section">
+  <div class="sidebar-inner">
+    {groups.map((g) => (
+      <div class="nav-group">
+        {g.title && <p class="overline nav-group-title">{g.title}</p>}
+        <ul>
+          {g.items.map((it) => (
+            <li>
+              <a href={u(it.fullRoute)} aria-current={isCurrent(it.fullRoute) ? 'page' : undefined}>
+                {it.tag && <span class="nav-tag">{it.tag}</span>}
+                <span>{it.label}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+</nav>

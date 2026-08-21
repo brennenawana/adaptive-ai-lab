@@ -1,0 +1,39 @@
+{
+  "name": "adaptive-ai-lab-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Derived human-learning web interface over the Adaptive AI Systems Playbook. Canonical content lives in the repository; this site is a presentation layer only.",
+  "scripts": {
+    "predev": "node scripts/materialize-versions.mjs",
+    "dev": "astro dev",
+    "prebuild": "node scripts/materialize-versions.mjs",
+    "build": "astro build && pagefind --site dist && node scripts/validate-links.mjs",
+    "preview": "astro preview",
+    "check": "astro check",
+    "validate": "node scripts/validate-links.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
+    "@fontsource-variable/source-serif-4": "^5.2.8",
+    "astro": "^7.2.4",
+    "github-slugger": "^2.0.0",
+    "js-yaml": "^4.1.0",
+    "mdast-util-to-string": "^4.0.0",
+    "mermaid": "^11.12.0",
+    "pagefind": "^1.5.2",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^26.2.0",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,77 @@
+---
+/** Generated index over playbook/templates/ — derived from the files themselves. */
+import Layout from './Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import VersionBar from './VersionBar.astro';
+import { pagesInSpace, readCanonical, titleOf, type PageDef } from '../lib/corpus.ts';
+import { sidebarFor } from '../lib/nav.ts';
+
+interface Props {
+  page: PageDef;
+}
+const { page } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+
+const templates = pagesInSpace(page.space)
+  .filter((p) => p.group === 'templates')
+  .map((p) => {
+    const src = readCanonical(page.space, p.repoPath);
+    const body = src.replace(/^# .*\n/, '');
+    // description = the header-blockquote lede (text before its "Index:" line)
+    // when present, else the first plain paragraph after the H1
+    let raw = '';
+    const bq = body.match(/^(?:\s*\n)*((?:> ?[^\n]*\n)+)/);
+    if (bq) {
+      raw = bq[1]!.replace(/^> ?/gm, '');
+      const idx = raw.indexOf('Index:');
+      if (idx >= 0) raw = raw.slice(0, idx);
+    }
+    if (!raw.trim()) {
+      const m = body.match(/^(?:>.*\n|\s*\n)*([^>\s#][^\n]*(?:\n[^\n>#][^\n]*)*)/);
+      raw = m ? m[1]! : '';
+    }
+    const desc = raw
+      .replace(/\s+/g, ' ')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[*`]/g, '')
+      .trim();
+    return { ...p, title: titleOf(page.space, p.repoPath), desc: desc.length > 220 ? `${desc.slice(0, 217)}…` : desc };
+  });
+---
+
+<Layout
+  title={page.space ? `Templates (v${page.space})` : 'Templates'}
+  description="The playbook's nine working artifacts: profiles, contracts, ledgers, autopsies, handoffs."
+  section="playbook"
+  sidebar={sidebarFor('playbook', page.space)}
+  space={page.space}
+  route={page.route}
+>
+  <header class="doc-head">
+    <div class="doc-eyebrow">
+      <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'Playbook', href: '/playbook/' }, { label: 'Templates' }]} />
+      <span class="version-bar"><VersionBar space={page.space} route={page.route} /></span>
+    </div>
+    <h1>Templates</h1>
+    <p class="doc-meta-row">
+      <span>{templates.length} working artifacts.</span>
+      <span>Each states its purpose, when to use it, required sections (“delete no section — write N/A + reason”), and a filled miniature example.</span>
+    </p>
+  </header>
+
+  <div class="card-grid ui" style="grid-template-columns:repeat(auto-fill,minmax(19rem,1fr))">
+    {
+      templates.map((t) => (
+        <a class="card" href={u(t.fullRoute)}>
+          <span class="card-title">{t.title}</span>
+          {t.desc}
+        </a>
+      ))
+    }
+  </div>
+
+  <p class="disclaimer-line">
+    This index is generated from the template files; the files themselves are canonical.
+  </p>
+</Layout>

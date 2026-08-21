@@ -1,0 +1,277 @@
+---
+/** Standard rendered-document page: chapters, templates, cases, research, quickstart… */
+import Layout from './Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import VersionBar from './VersionBar.astro';
+import PrevNext from './PrevNext.astro';
+import CanonicalNote from './CanonicalNote.astro';
+import { renderCanonicalDoc, makeCtx } from '../lib/rendering.ts';
+import { renderInlineFragment } from '../lib/markdown/render.ts';
+import { sidebarFor, prevNext } from '../lib/nav.ts';
+import { STAGES, stageForChapter, CROSS_CUTTING } from '../lib/lifecycle.ts';
+import { catalogFor } from '../lib/research.ts';
+import { spacePrefix } from '../lib/routes.ts';
+import { CURRENT_VERSION } from '../lib/versions.ts';
+import { pagesInSpace, type PageDef } from '../lib/corpus.ts';
+
+interface Props {
+  page: PageDef;
+}
+const { page } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+const pre = spacePrefix(page.space);
+
+const doc = renderCanonicalDoc(page.space, page.repoPath, base);
+const title = doc.title ?? page.repoPath;
+const sidebar = sidebarFor(page.section, page.space);
+const { prev, next } = prevNext(page);
+
+const isPlaybookScope = page.repoPath.startsWith('playbook/');
+const chapterNum = page.repoPath.match(/^playbook\/(\d\d)_/)?.[1] ?? null;
+const isCase = /CASE-\d+_/.test(page.repoPath);
+const isResearchReport = /^research\/\d{4}-/.test(page.repoPath);
+const fileName = page.repoPath.split('/').pop()!;
+
+/* chapter orientation */
+const chapterRoute = new Map(
+  pagesInSpace(page.space)
+    .filter((p) => /^playbook\/\d\d_/.test(p.repoPath))
+    .map((p) => [p.repoPath.match(/^playbook\/(\d\d)_/)![1]!, p.fullRoute]),
+);
+const stageIdx = chapterNum ? stageForChapter(chapterNum) : -1;
+const crossCutting = chapterNum ? CROSS_CUTTING.find((c) => c.num === chapterNum) : undefined;
+const jumpSections = doc.toc.filter((t) =>
+  /^(3\. Decisions|5\. Default procedure|7\. Decision gates|9\. Failure modes|12\. Outputs|13\. Sources)/.test(t.text),
+);
+
+/* research metadata (catalog rows are markdown-ish: render inline) */
+const researchCtx = isResearchReport ? makeCtx(null, 'research/README.md', base) : null;
+const researchRaw = isResearchReport ? catalogFor(fileName) : null;
+const research = researchRaw
+  ? {
+      row: researchRaw.row
+        ? {
+            whatItIs: renderInlineFragment(researchRaw.row.whatItIs, researchCtx!),
+            extractionStatus: renderInlineFragment(researchRaw.row.extractionStatus, researchCtx!),
+          }
+        : null,
+      annotations: researchRaw.annotations.map((a) => renderInlineFragment(a, researchCtx!)),
+    }
+  : null;
+
+/* breadcrumbs */
+const sectionCrumb: Record<string, { label: string; route: string }> = {
+  playbook: { label: 'Playbook', route: `${pre}/playbook/` },
+  references: { label: 'References', route: `${pre}/references/sources/` },
+  cases: { label: 'Cases', route: `${pre}/cases/` },
+  research: { label: 'Research', route: '/research/' },
+  changelog: { label: 'Changelog', route: `${pre}/changelog/` },
+};
+const crumbs = [
+  { label: 'Home', href: '/' },
+  ...(page.space ? [{ label: `v${page.space}`, href: `/versions/` }] : []),
+  { label: sectionCrumb[page.section]?.label ?? page.section, href: sectionCrumb[page.section]?.route },
+  { label: title },
+];
+
+const description = `${title} — Adaptive AI Systems Playbook${page.space ? ` v${page.space} (historical snapshot)` : ` v${CURRENT_VERSION}`}`;
+---
+
+<Layout
+  title={page.space ? `${title} (v${page.space})` : title}
+  description={description}
+  section={page.section}
+  sidebar={sidebar}
+  toc={doc.toc}
+  space={page.space}
+  route={page.route}
+>
+  <header class="doc-head">
+    <div class="doc-eyebrow" data-pagefind-ignore="all">
+      <Breadcrumbs crumbs={crumbs} />
+      {isPlaybookScope && (
+        <span class="version-bar">
+          <VersionBar space={page.space} route={page.route} />
+        </span>
+      )}
+    </div>
+    <h1>{title}</h1>
+    {
+      (doc.meta.readingTime || doc.meta.governingChapter) && (
+        <p class="doc-meta-row">
+          {doc.meta.readingTime && <span>Reading time {doc.meta.readingTime}</span>}
+          {doc.meta.governingChapter && (
+            <span>
+              Governing chapter: <Fragment set:html={doc.meta.governingChapter} />
+            </span>
+          )}
+        </p>
+      )
+    }
+    {doc.meta.templateLede && <p class="doc-meta-row"><Fragment set:html={doc.meta.templateLede} /></p>}
+  </header>
+
+  {/* chapter orientation panel */}
+  {
+    chapterNum && (
+      <div class="orientation ui">
+        {stageIdx >= 0 ? (
+          <p class="lifecycle-strip" aria-label="Position in the playbook lifecycle">
+            {STAGES.map((s, i) => (
+              <span class:list={['stage', { here: i === stageIdx }]}>
+                {i === stageIdx ? (
+                  s.name
+                ) : (
+                  <a href={u(chapterRoute.get(s.chapters[0]!) ?? `${pre}/playbook/`)} title={`${s.name} — chapter ${s.chapters[0]}`} aria-label={s.name}>
+                    ·
+                  </a>
+                )}
+              </span>
+            ))}
+          </p>
+        ) : (
+          crossCutting && <p class="lifecycle-strip">Cross-cutting: {crossCutting.role}.</p>
+        )}
+        <dl>
+          {doc.meta.prerequisites && (
+            <>
+              <dt>Read first</dt>
+              <dd><Fragment set:html={doc.meta.prerequisites} /></dd>
+            </>
+          )}
+          {stageIdx >= 0 && (
+            <>
+              <dt>Lifecycle stage</dt>
+              <dd>
+                {STAGES[stageIdx]!.name} — {STAGES[stageIdx]!.desc}{' '}
+                <a href={u('/learn/')}>(full map)</a>
+              </dd>
+            </>
+          )}
+          {jumpSections.length > 0 && (
+            <>
+              <dt>Jump to</dt>
+              <dd class="jump-links">
+                {jumpSections.map((j) => (
+                  <a href={`#${j.slug}`}>{j.text.replace(/^\d+\.\s*/, '')}</a>
+                ))}
+              </dd>
+            </>
+          )}
+        </dl>
+      </div>
+    )
+  }
+
+  {/* research report: evidence banner + frozen metadata */}
+  {
+    isResearchReport && (
+      <div class="evidence-banner" role="note">
+        <div>
+          <p class="overline">Frozen research report — evidence, not methodology</p>
+          <p>
+            Research is informative, never normative: a report changes nothing by itself. Findings reach the
+            playbook only through the promotion path (evidence-map adjudication → chapter rule → changelog).
+            This report is frozen on landing and rendered here exactly as recorded.
+          </p>
+          {research?.row && (
+            <p>
+              <strong>Catalog:</strong> <Fragment set:html={research.row.whatItIs} /> ·{' '}
+              <strong>Extraction status:</strong> <Fragment set:html={research.row.extractionStatus} />
+            </p>
+          )}
+          {research?.annotations.map((a) => (
+            <p>
+              <strong>Standing annotation:</strong> <Fragment set:html={a} />
+            </p>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  {
+    isResearchReport && doc.meta.researchFields && (
+      <div class="provenance-panel ui">
+        <dl>
+          {doc.meta.researchFields.map((f) => (
+            <>
+              <dt>{f.label}</dt>
+              <dd><Fragment set:html={f.value} /></dd>
+            </>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+
+  {/* CASE provenance panel + evidence chain */}
+  {
+    isCase && doc.meta.caseHeader && (
+      <div class="provenance-panel ui">
+        <p class="overline">Curated case study — real project evidence</p>
+        {doc.meta.caseHeader.disclaimer && <p><Fragment set:html={doc.meta.caseHeader.disclaimer} /></p>}
+        <dl>
+          {doc.meta.caseHeader.sourceId && (
+            <>
+              <dt>Source ID</dt>
+              <dd>
+                <a href={u(`${pre}/references/sources/`) + `#${doc.meta.caseHeader.sourceId.toLowerCase()}`}>
+                  {doc.meta.caseHeader.sourceId}
+                </a>{' '}
+                (source ledger)
+              </dd>
+            </>
+          )}
+          {doc.meta.caseHeader.dates && (
+            <>
+              <dt>Dates</dt>
+              <dd>{doc.meta.caseHeader.dates}</dd>
+            </>
+          )}
+          {doc.meta.caseHeader.citedBy && (
+            <>
+              <dt>Cited by</dt>
+              <dd><Fragment set:html={doc.meta.caseHeader.citedBy} /></dd>
+            </>
+          )}
+        </dl>
+        <div class="evidence-chain" aria-label="Evidence chain">
+          <span class="step">
+            <strong>Generic rule</strong>
+            playbook chapters citing this case
+          </span>
+          <span class="arrow" aria-hidden="true">→</span>
+          <span class="step here">
+            <strong>Case study</strong>
+            curated empirical example (this page)
+          </span>
+          <span class="arrow" aria-hidden="true">→</span>
+          <span class="step">
+            <strong>Primary records</strong>
+            <a href="https://github.com/brennenawana/adaptive-ai-lab/tree/main/projects/fis" rel="noopener">
+              projects/fis/
+            </a>{' '}
+            — record citations in the text link directly
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  {doc.meta.synthDisclaimer && (
+    <div class="evidence-banner" role="note">
+      <div>
+        <p class="overline">Synthetic worked example</p>
+        <p><Fragment set:html={doc.meta.synthDisclaimer} /></p>
+      </div>
+    </div>
+  )}
+
+  <div class="prose">
+    <Fragment set:html={doc.html} />
+  </div>
+
+  <PrevNext prev={prev} next={next} />
+  <CanonicalNote repoPath={page.repoPath} space={page.space} />
+</Layout>

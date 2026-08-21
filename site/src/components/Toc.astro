@@ -1,0 +1,21 @@
+---
+import type { TocEntry } from '../lib/markdown/render.ts';
+
+interface Props {
+  toc: TocEntry[];
+}
+const { toc } = Astro.props;
+---
+
+<aside class="toc-panel ui" aria-label="On this page">
+  <nav id="toc">
+    <p class="overline">On this page</p>
+    <ul>
+      {toc.map((t) => (
+        <li class={`toc-d${t.depth}`}>
+          <a href={`#${t.slug}`}>{t.text}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</aside>

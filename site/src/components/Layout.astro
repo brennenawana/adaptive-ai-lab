@@ -1,0 +1,112 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/source-serif-4';
+import '@fontsource-variable/jetbrains-mono';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/prose.css';
+import '../styles/components.css';
+import Header from './Header.astro';
+import Sidebar from './Sidebar.astro';
+import Toc from './Toc.astro';
+import type { NavGroup } from '../lib/nav.ts';
+import type { TocEntry } from '../lib/markdown/render.ts';
+
+interface Props {
+  title: string;
+  description?: string;
+  section?: string;
+  sidebar?: NavGroup[] | null;
+  toc?: TocEntry[] | null;
+  /** null = current space; version string for historical snapshots */
+  space?: string | null;
+  /** space-relative route of this page (used for cross-version links) */
+  route?: string;
+  wide?: boolean;
+  /** exclude from the search index (historical snapshots) */
+  noSearchIndex?: boolean;
+}
+
+const {
+  title,
+  description,
+  section = '',
+  sidebar = null,
+  toc = null,
+  space = null,
+  wide = false,
+  noSearchIndex = false,
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const hasToc = !!toc && toc.length > 1;
+const indexed = !noSearchIndex && space === null;
+---
+
+<!doctype html>
+<html lang="en" data-mode="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Adaptive AI Lab</title>
+    {description && <meta name="description" content={description} />}
+    <meta name="generator" content={Astro.generator} />
+    <script is:inline>
+      (() => {
+        try {
+          var m = localStorage.getItem('aial-mode');
+          if (m !== 'light' && m !== 'dim' && m !== 'dark') {
+            m = matchMedia('(prefers-color-scheme: dark)').matches ? 'dim' : 'light';
+          }
+          document.documentElement.dataset.mode = m;
+        } catch (e) {
+          document.documentElement.dataset.mode = 'light';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Header section={section} space={space} />
+    <div class:list={['shell', { 'no-sidebar': !sidebar }]}>
+      {sidebar && <Sidebar groups={sidebar} space={space} currentPath={Astro.url.pathname} />}
+      <div class="main-col">
+        <div class:list={['content-row', { 'no-toc': !hasToc, wide }]}>
+          <article
+            class="page"
+            id="main"
+            data-pagefind-body={indexed ? '' : undefined}
+            data-pagefind-filter={indexed && section ? `section:${section}` : undefined}
+          >
+            <slot />
+          </article>
+          {hasToc && <Toc toc={toc!} />}
+        </div>
+      </div>
+    </div>
+
+    <!-- glossary term popover (filled by script from the per-space glossary JSON) -->
+    <div id="gloss-popover" class="gloss-popover" role="tooltip" hidden></div>
+
+    <!-- search -->
+    <dialog id="search-dialog" class="search-dialog" aria-label="Search the playbook">
+      <div class="search-box">
+        <div id="search-mount"></div>
+        <p class="search-hint ui">
+          <kbd>Esc</kbd> to close · results cover the current playbook, cases, research and references
+        </p>
+      </div>
+    </dialog>
+
+    <script>
+      import '../scripts/theme.ts';
+      import '../scripts/search.ts';
+      import '../scripts/popover.ts';
+      import '../scripts/toc-spy.ts';
+      import '../scripts/mermaid.ts';
+    </script>
+    <script is:inline define:vars={{ base, space }}>
+      window.__aial = { base, space };
+    </script>
+  </body>
+</html>

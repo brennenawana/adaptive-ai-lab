@@ -1,0 +1,108 @@
+---
+import Layout from '../components/Layout.astro';
+import { CURRENT_VERSION } from '../lib/versions.ts';
+
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+---
+
+<Layout
+  title="Adaptive AI Systems Playbook"
+  description="An evidence-driven, project-independent methodology for building AI systems — read, navigate, and learn it here."
+  section=""
+>
+  <div class="hero">
+    <p class="overline">Adaptive AI Lab · Playbook v{CURRENT_VERSION}</p>
+    <h1>The Adaptive AI Systems Playbook, built for deep reading.</h1>
+    <p class="lede">
+      An evidence-driven, project-independent methodology for designing, evaluating, optimizing,
+      deploying, and continuously improving AI systems. Every rule carries its evidence and its strength
+      label; every case study traces back to primary project records.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href={u('/playbook/quickstart/')}>Start with the Quickstart</a>
+      <a class="btn secondary" href={u('/playbook/')}>Browse the book</a>
+      <a class="btn secondary" href={u('/learn/')}>See the lifecycle map</a>
+    </div>
+  </div>
+
+  <h2 class="section-h">What the playbook answers</h2>
+  <p class="section-sub">
+    For a concrete project: what should I do next, why, what evidence do I need, what should I measure,
+    what can I skip, what should force me to stop — and when is an expensive intervention justified?
+  </p>
+
+  <div class="card-grid ui">
+    <a class="card" href={u('/playbook/')}>
+      <span class="card-title">The book</span>
+      Chapters 00–14: principles, evaluation, experiment design, selection, optimization, economics,
+      deployment, governance.
+    </a>
+    <a class="card" href={u('/playbook/glossary/')}>
+      <span class="card-title">Glossary</span>
+      101 defined terms with hover definitions across the whole site — the fastest way into the
+      methodology's vocabulary.
+    </a>
+    <a class="card" href={u('/playbook/templates/project-profile/')}>
+      <span class="card-title">Templates</span>
+      Nine working artifacts, from the project profile to experiment contracts and the three ledgers.
+    </a>
+    <a class="card" href={u('/cases/')}>
+      <span class="card-title">Case studies</span>
+      Twelve real, provenance-linked cases plus ten synthetic worked examples and a full walkthrough.
+    </a>
+    <a class="card" href={u('/research/')}>
+      <span class="card-title">Research</span>
+      Frozen research reports — the evidence layer behind the rules, clearly separated from the rules.
+    </a>
+    <a class="card" href={u('/references/sources/')}>
+      <span class="card-title">Source ledger</span>
+      Every cited source with a verdict (FOLLOW / ADAPT / REFERENCE / DEPRECATED), strength, and
+      verification date.
+    </a>
+    <a class="card" href={u('/changelog/')}>
+      <span class="card-title">Changelog</span>
+      Evidence-backed release history, linked to browsable historical versions.
+    </a>
+    <a class="card" href={u('/versions/')}>
+      <span class="card-title">Versions</span>
+      Read any released playbook version exactly as it was, extracted from its Git commit.
+    </a>
+  </div>
+
+  <h2 class="section-h">How knowledge flows here</h2>
+  <p class="section-sub">
+    The lab runs real project implementations, harvests their frozen experimental evidence into curated
+    case studies, and promotes what survives into the playbook. The playbook is the product; projects
+    are its proving grounds.
+  </p>
+  <div class="pb-map" style="max-width:44rem">
+    <ol>
+      {
+        [
+          { n: 'Research evidence', d: 'frozen, dated reports — informative, never normative', href: '/research/' },
+          { n: 'Playbook', d: 'the generic methodology — rules with evidence classes and strength labels', href: '/playbook/' },
+          { n: 'Project implementations', d: 'real projects instantiate the playbook and produce primary records', href: '/about/' },
+          { n: 'Curated case studies', d: 'frozen project evidence, curated with full provenance', href: '/cases/' },
+          { n: 'Playbook evolution', d: 'what survives promotion becomes rule changes — recorded in the changelog', href: '/changelog/' },
+        ].map((s) => (
+          <li class="map-stage">
+            <span class="map-rail" aria-hidden="true">
+              <span class="map-dot" />
+              <span class="map-line" />
+            </span>
+            <a class="map-card" href={u(s.href)} style="display:block">
+              <span class="stage-name">{s.n}</span>
+              <p class="stage-desc" style="margin-bottom:0">{s.d}</p>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+
+  <footer class="site-footer">
+    This site is a derived presentation layer: the repository's Markdown, YAML and Git history remain
+    the canonical source of record. · <a href={u('/about/')}>About the lab</a>
+  </footer>
+</Layout>

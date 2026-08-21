@@ -1,0 +1,71 @@
+---
+import Layout from '../../components/Layout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { VERSIONS, CURRENT_VERSION, versionMeta } from '../../lib/versions.ts';
+import { githubCommitUrl } from '../../lib/repo.ts';
+
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+const metas = VERSIONS.map((v) => versionMeta(v.version));
+---
+
+<Layout
+  title="Playbook Versions"
+  description="Read any released playbook version exactly as it was, extracted from its Git commit at build time."
+  section="versions"
+>
+  <header class="doc-head">
+    <div class="doc-eyebrow">
+      <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'Versions' }]} />
+    </div>
+    <h1>Playbook versions</h1>
+    <p class="doc-meta-row">
+      <span>
+        Historical versions are materialized from Git history at build time — nothing is duplicated by
+        hand, and every historical page names the exact commit it came from.
+      </span>
+    </p>
+  </header>
+
+  <div class="card-grid ui" style="grid-template-columns:1fr;max-width:44rem">
+    <a class="card" href={u('/playbook/')}>
+      <span class="card-title">Current — v{CURRENT_VERSION}</span>
+      Built from the working canonical <code>playbook/</code> tree on <code>main</code>. This is the
+      living methodology.
+    </a>
+    {
+      metas.map((m) => (
+        <a class="card" href={u(`/versions/${m.version}/playbook/`)}>
+          <span class="card-title">v{m.version} — {m.label.replace(/^v[\d.]+\s*—\s*/, '')}</span>
+          Released {m.date} · commit <code>{m.commit.slice(0, 12)}</code> · {m.fileCount} files
+          extracted byte-for-byte.
+        </a>
+      ))
+    }
+  </div>
+
+  <div class="prose" style="margin-top:2rem">
+    <h2>How this works</h2>
+    <p>
+      <code>site/versions.json</code> maps each released version to its exact commit (derived from the
+      history of <code>playbook/VERSION</code>, which changes only at releases). At build time the site
+      extracts <code>playbook/</code> from each commit with <code>git show</code> and refuses to build
+      if the committed <code>VERSION</code> file disagrees with the manifest. Authoring scaffolding
+      that lived inside <code>playbook/</code> at release time but was never part of the book
+      (later archived to <code>docs/history/</code>) is excluded — the commit link above always shows
+      the complete original tree.
+    </p>
+    <p>
+      Historical snapshots render with the same reading experience but are marked with an archive
+      banner, excluded from search, and never mix current research or reference content into
+      version-scoped pages. Adding a future release means appending one manifest entry.
+    </p>
+    <ul>
+      {metas.map((m) => (
+        <li>
+          v{m.version}: <a href={githubCommitUrl(m.commit)} rel="noopener"><code>{m.commit}</code></a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Layout>

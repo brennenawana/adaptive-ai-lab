@@ -1,0 +1,197 @@
+/*
+ * Theme tokens — three deliberate reading modes.
+ *
+ *   light — warm paper, high legibility, default in bright environments
+ *   dim   — low-contrast dark for long reading sessions: softened text peaks,
+ *           slightly warm dark ground, muted accents (never pure white on black)
+ *   dark  — true dark, higher contrast, for dark environments
+ *
+ * Mode is set as data-mode="light|dim|dark" on <html>. First visit follows
+ * prefers-color-scheme (dark systems get "dim" — the gentler dark — by design);
+ * an explicit choice persists in localStorage. All body-text pairs meet WCAG AA.
+ */
+
+:root {
+  /* ---- typography scale (mode-independent) ---- */
+  --font-body: 'Source Serif 4 Variable', 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8438rem;
+  --text-base: 1.0625rem; /* 17px body for sustained reading */
+  --text-md: 1.1875rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.25rem;
+
+  --leading-body: 1.7;
+  --leading-tight: 1.3;
+
+  --measure: 46rem;       /* ~70ch at body size — long-form column */
+  --measure-wide: 64rem;  /* wide tables/diagrams */
+
+  --radius-sm: 4px;
+  --radius: 7px;
+  --radius-lg: 12px;
+
+  --sidebar-w: 17.5rem;
+  --toc-w: 15rem;
+  --header-h: 3.5rem;
+
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ======================= LIGHT ======================= */
+:root,
+:root[data-mode='light'] {
+  color-scheme: light;
+
+  --bg: #faf9f7;            /* warm paper */
+  --bg-raised: #ffffff;     /* cards, popovers */
+  --bg-sunken: #f1efeb;     /* code blocks, wells */
+  --bg-hover: #edeae4;
+
+  --ink: #1f2328;           /* body text */
+  --ink-strong: #101418;    /* headings */
+  --ink-muted: #59616b;     /* secondary text */
+  --ink-faint: #8a919b;     /* metadata, hints */
+
+  --line: #e0dcd4;          /* hairlines */
+  --line-strong: #c9c4ba;
+
+  --accent: #31557f;        /* desaturated indigo — normative/methodology */
+  --accent-ink: #274566;    /* accent used as text on bg */
+  --accent-soft: #e8eef5;   /* accent wash */
+
+  --evidence: #8a5a18;      /* ochre — evidence/research/cases */
+  --evidence-ink: #744c13;
+  --evidence-soft: #f6eedd;
+
+  --ok: #2f6b3f;
+  --ok-soft: #e4efe6;
+  --warn: #92400e;
+  --warn-soft: #f8ecdd;
+  --danger: #9f2f2f;
+  --danger-soft: #f7e6e4;
+  --info: #31557f;
+  --info-soft: #e8eef5;
+  --neutral-soft: #eceae5;
+
+  --code-bg: #f1efeb;
+  --code-ink: #24292f;
+  --kbd-bg: #ffffff;
+
+  --shadow-pop: 0 4px 20px rgba(31, 35, 40, 0.12), 0 1px 4px rgba(31, 35, 40, 0.08);
+  --shadow-raise: 0 1px 3px rgba(31, 35, 40, 0.07);
+
+  --mark: #f4e9c8;
+
+  --scrollbar: #c9c4ba;
+}
+
+/* ======================= DIM ========================= */
+:root[data-mode='dim'] {
+  color-scheme: dark;
+
+  --bg: #23262c;            /* warm slate, not black */
+  --bg-raised: #2a2e35;
+  --bg-sunken: #1e2126;
+  --bg-hover: #31353d;
+
+  --ink: #b8bdc7;           /* softened peaks — no white */
+  --ink-strong: #d3d7de;
+  --ink-muted: #8c93a0;
+  --ink-faint: #6b7280;
+
+  --line: #363b44;
+  --line-strong: #454b56;
+
+  --accent: #7d9cc0;
+  --accent-ink: #8fabca;
+  --accent-soft: #2b3441;
+
+  --evidence: #c0985c;
+  --evidence-ink: #c7a26b;
+  --evidence-soft: #363023;
+
+  --ok: #7fae8c;
+  --ok-soft: #273229;
+  --warn: #c29a63;
+  --warn-soft: #352d20;
+  --danger: #c08080;
+  --danger-soft: #372628;
+  --info: #7d9cc0;
+  --info-soft: #2b3441;
+  --neutral-soft: #2e323a;
+
+  --code-bg: #1e2126;
+  --code-ink: #adb3bd;
+  --kbd-bg: #2a2e35;
+
+  --shadow-pop: 0 4px 24px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(0, 0, 0, 0.3);
+  --shadow-raise: 0 1px 3px rgba(0, 0, 0, 0.25);
+
+  --mark: #4a4128;
+
+  --scrollbar: #454b56;
+}
+
+/* ======================= DARK ======================== */
+:root[data-mode='dark'] {
+  color-scheme: dark;
+
+  --bg: #101214;
+  --bg-raised: #191c1f;
+  --bg-sunken: #0a0c0d;
+  --bg-hover: #24282c;
+
+  --ink: #ced3d9;
+  --ink-strong: #eef1f4;
+  --ink-muted: #939aa3;
+  --ink-faint: #6e757e;
+
+  --line: #272b30;
+  --line-strong: #3a4046;
+
+  --accent: #85a8d0;
+  --accent-ink: #9ab8dc;
+  --accent-soft: #1d2733;
+
+  --evidence: #cfa25e;
+  --evidence-ink: #d9af6f;
+  --evidence-soft: #2b2417;
+
+  --ok: #85bb93;
+  --ok-soft: #1a2a1e;
+  --warn: #d0a260;
+  --warn-soft: #2e2415;
+  --danger: #d18585;
+  --danger-soft: #331d1e;
+  --info: #85a8d0;
+  --info-soft: #1d2733;
+  --neutral-soft: #23272c;
+
+  --code-bg: #0a0c0d;
+  --code-ink: #c2c8cf;
+  --kbd-bg: #191c1f;
+
+  --shadow-pop: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4);
+  --shadow-raise: 0 1px 3px rgba(0, 0, 0, 0.35);
+
+  --mark: #4d431f;
+
+  --scrollbar: #3a4046;
+}
+
+/* Shiki dual-theme code colors: light theme vars by default, dark vars in dim/dark */
+:root[data-mode='dim'] .astro-code,
+:root[data-mode='dim'] .astro-code span,
+:root[data-mode='dark'] .astro-code,
+:root[data-mode='dark'] .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: transparent !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}

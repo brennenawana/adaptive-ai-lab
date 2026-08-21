@@ -1,0 +1,179 @@
+---
+/**
+ * The source ledger, rendered from references/sources.yaml — the record of
+ * record (SOURCES.md is generated from the same file by the playbook's tool).
+ */
+import Layout from './Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import VersionBar from './VersionBar.astro';
+import CanonicalNote from './CanonicalNote.astro';
+import { loadSources, CLASSIFICATION_ORDER, CLASSIFICATION_BLURB } from '../lib/sources.ts';
+import { sidebarFor } from '../lib/nav.ts';
+import { spacePrefix } from '../lib/routes.ts';
+import { pagesInSpace, type PageDef } from '../lib/corpus.ts';
+
+interface Props {
+  page: PageDef;
+}
+const { page } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+const pre = spacePrefix(page.space);
+
+const sources = loadSources(page.space);
+const counts = Object.fromEntries(
+  CLASSIFICATION_ORDER.map((c) => [c, sources.filter((s) => s.classification === c).length]),
+);
+
+const chapterRoute = new Map(
+  pagesInSpace(page.space)
+    .filter((p) => /^playbook\/\d\d_/.test(p.repoPath))
+    .map((p) => [p.repoPath.match(/^playbook\/(\d\d)_/)![1]!, p.fullRoute]),
+);
+
+function titleCell(s: (typeof sources)[number]): { href: string | null; label: string; locator: string | null } {
+  if (s.url && /^https?:\/\//.test(s.url)) return { href: s.url, label: s.title, locator: null };
+  if (s.url) return { href: null, label: s.title, locator: s.url };
+  return { href: null, label: s.title, locator: null };
+}
+---
+
+<Layout
+  title={page.space ? `Source ledger (v${page.space})` : 'Source ledger'}
+  description="Every source the playbook cites, with verdicts, strengths and verification dates — rendered from sources.yaml, the record of record."
+  section="references"
+  sidebar={sidebarFor('references', page.space)}
+  space={page.space}
+  route={page.route}
+  wide
+>
+  <header class="doc-head">
+    <div class="doc-eyebrow">
+      <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'References' }, { label: 'Source ledger' }]} />
+      <span class="version-bar"><VersionBar space={page.space} route={page.route} /></span>
+    </div>
+    <h1>Source ledger</h1>
+    <p class="doc-meta-row">
+      <span>{sources.length} sources</span>
+      <span class="sep">·</span>
+      <span>{CLASSIFICATION_ORDER.map((c) => `${c} ${counts[c]}`).join(' · ')}</span>
+    </p>
+    <p class="doc-meta-row">
+      <span>
+        Every citation token like <code>[EXT-STATS-001]</code> anywhere on this site links to its entry
+        here. Rendered from <code>references/sources.yaml</code>, the record of record.
+      </span>
+    </p>
+  </header>
+
+  <div class="ledger-controls">
+    <input
+      type="search"
+      id="ledger-filter"
+      class="ledger-filter"
+      placeholder="Filter by ID, org, title, claim…"
+      aria-label="Filter sources"
+    />
+    <div class="verdict-tabs" id="verdict-tabs" role="group" aria-label="Filter by verdict">
+      {CLASSIFICATION_ORDER.map((c) => (
+        <button type="button" data-verdict={c} aria-pressed="false">{c} ({counts[c]})</button>
+      ))}
+    </div>
+  </div>
+
+  {
+    CLASSIFICATION_ORDER.map((cls) => (
+      <section data-verdict-group={cls}>
+        <p class="verdict-blurb">
+          <span class:list={['verdict-pill', cls.toLowerCase()]}>{cls}</span> {CLASSIFICATION_BLURB[cls]}
+        </p>
+        {sources
+          .filter((s) => s.classification === cls)
+          .map((s) => {
+            const t = titleCell(s);
+            return (
+              <article
+                class="source-card"
+                id={s.id.toLowerCase()}
+                data-verdict={s.classification}
+                data-search={`${s.id} ${s.org} ${s.title} ${s.claims}`.toLowerCase()}
+              >
+                <div class="source-head">
+                  <span class="source-id"><a href={`#${s.id.toLowerCase()}`}>{s.id}</a></span>
+                  <span class:list={['verdict-pill', s.classification.toLowerCase()]}>{s.classification}</span>
+                  <span class="source-title">
+                    {t.href ? <a href={t.href} rel="noopener" class="ext">{t.label}</a> : t.label}
+                    {t.locator && <> (<code>{t.locator}</code>)</>}
+                  </span>
+                  <span class="source-org">{s.org}</span>
+                </div>
+                <p class="source-claims">{s.claims}</p>
+                <div class="source-meta">
+                  <span class="m">{s.type}</span>
+                  <span class="m">maturity: {s.maturity}</span>
+                  <span class="m">strength: {s.evidence_strength}</span>
+                  <span class="m">freshness: {s.freshness}</span>
+                  {s.last_verified && <span class="m verified">verified {s.last_verified}</span>}
+                  {s.pub_date && <span class="m">published {s.pub_date}</span>}
+                  {s.tool_version && <span class="m">tool {s.tool_version}</span>}
+                  {s.superseded_by && <span class="m">superseded by {s.superseded_by}</span>}
+                  {s.chapters.length > 0 && (
+                    <span class="m chapters">
+                      cited in{' '}
+                      {s.chapters.map((c, i) => (
+                        <>
+                          {i > 0 && ', '}
+                          <a href={u(chapterRoute.get(c) ?? `${pre}/playbook/`)}>{c}</a>
+                        </>
+                      ))}
+                    </span>
+                  )}
+                </div>
+                {s.notes && <p class="source-claims" style="margin-bottom:0"><em>{s.notes}</em></p>}
+              </article>
+            );
+          })}
+      </section>
+    ))
+  }
+  <p class="glossary-empty" id="ledger-empty" hidden>No sources match.</p>
+
+  <CanonicalNote repoPath="playbook/references/sources.yaml" space={page.space} />
+
+  <script>
+    const input = document.getElementById('ledger-filter') as HTMLInputElement;
+    const tabs = [...document.querySelectorAll<HTMLButtonElement>('#verdict-tabs button')];
+    const cards = [...document.querySelectorAll<HTMLElement>('.source-card')];
+    const groups = [...document.querySelectorAll<HTMLElement>('[data-verdict-group]')];
+    const empty = document.getElementById('ledger-empty')!;
+    let verdict: string | null = null;
+
+    function apply(): void {
+      const q = input.value.trim().toLowerCase();
+      let shown = 0;
+      for (const c of cards) {
+        const ok = (!q || c.dataset.search!.includes(q)) && (!verdict || c.dataset.verdict === verdict);
+        c.hidden = !ok;
+        if (ok) shown++;
+      }
+      for (const g of groups) {
+        g.hidden = ![...g.querySelectorAll<HTMLElement>('.source-card')].some((c) => !c.hidden);
+      }
+      empty.hidden = shown > 0;
+    }
+
+    input.addEventListener('input', apply);
+    tabs.forEach((b) =>
+      b.addEventListener('click', () => {
+        verdict = verdict === b.dataset.verdict ? null : b.dataset.verdict!;
+        tabs.forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.verdict === verdict)));
+        apply();
+      }),
+    );
+    // arriving on #ext-stats-001: reveal even if filters were left on
+    if (location.hash) {
+      const el = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+      el?.scrollIntoView();
+    }
+  </script>
+</Layout>

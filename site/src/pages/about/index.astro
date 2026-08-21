@@ -1,0 +1,80 @@
+---
+import Layout from '../../components/Layout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { GITHUB_REPO } from '../../lib/repo.ts';
+import { CURRENT_VERSION } from '../../lib/versions.ts';
+
+const base = import.meta.env.BASE_URL;
+const u = (r: string) => base.replace(/\/$/, '') + r;
+---
+
+<Layout
+  title="About the Lab"
+  description="How the Adaptive AI Lab works: playbook → projects → evidence → evolution, and what is normative where."
+  section="about"
+>
+  <header class="doc-head">
+    <div class="doc-eyebrow">
+      <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'About' }]} />
+    </div>
+    <h1>About the lab</h1>
+  </header>
+
+  <div class="prose">
+    <p>
+      The <strong>Adaptive AI Lab</strong> develops and validates the
+      <a href={u('/playbook/')}>Adaptive AI Systems Playbook</a> — an evidence-driven,
+      project-independent methodology for building AI systems. The playbook is the lab's product.
+      Everything else exists to make it trustworthy.
+    </p>
+
+    <h2>The loop</h2>
+    <p>
+      The lab runs <em>real project implementations</em>, harvests their frozen experimental evidence
+      into <a href={u('/cases/')}>curated case studies</a>, and promotes what survives into the
+      playbook:
+    </p>
+    <pre class="ascii-diagram">research evidence → playbook → project implementations → primary records
+        ↑                                                      ↓
+        └──────── playbook evolution ← curated case studies ←──┘</pre>
+    <p>
+      The first project implementation is <strong>FIS — the Fintech Integration Sandbox</strong>: a
+      realistic synthetic fintech laboratory with deterministic ground truth, frozen eval suites, and
+      fail-closed cryptographic provenance. It is the empirical source of every real case study shipped
+      so far. It is a project <em>in</em> this lab, not the lab itself — which is why its operational
+      records appear here only where case-study provenance reaches them, at
+      <a href={`${GITHUB_REPO}/tree/main/projects/fis`} rel="noopener"><code>projects/fis/</code></a>.
+    </p>
+
+    <h2>Authority in one breath</h2>
+    <ul>
+      <li><code>playbook/</code> is normative for reusable methodology (this site renders v{CURRENT_VERSION});</li>
+      <li><code>projects/&lt;name&gt;/</code> is normative for that project's plan and execution;</li>
+      <li><code>docs/</code> is normative for lab governance;</li>
+      <li>frozen records are authoritative for the facts of their own events;</li>
+      <li>none of them overrides another in its own domain.</li>
+    </ul>
+    <p>
+      <a href={u('/research/')}>Research reports</a> are evidence, never rules: a report changes nothing
+      by itself. Findings reach the playbook only through the promotion path — evidence-map
+      adjudication, then a chapter rule with a strength label, then a
+      <a href={u('/changelog/')}>changelog</a> entry.
+    </p>
+
+    <h2>This website</h2>
+    <p>
+      This site is a <strong>derived presentation layer</strong> for humans: reading, navigation,
+      search, cross-referencing, and visual learning over the canonical repository files. It maintains
+      no content of its own — every page is generated from the repository's Markdown, YAML, and Git
+      history at build time, and every page links back to its canonical source. Historical playbook
+      versions are extracted from the exact release commits (see <a href={u('/versions/')}>Versions</a>).
+      The repository — not this website — is the evidence of record:
+      <a href={GITHUB_REPO} rel="noopener">{GITHUB_REPO.replace('https://', '')}</a>.
+    </p>
+  </div>
+
+  <footer class="site-footer">
+    Governance details live in the repository's <code>docs/</code> directory — the canonical index is
+    <a href={`${GITHUB_REPO}/blob/main/docs/README.md`} rel="noopener">docs/README.md</a>.
+  </footer>
+</Layout>
