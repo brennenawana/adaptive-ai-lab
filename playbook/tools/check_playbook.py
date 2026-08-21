@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Release validation for the Adaptive AI Systems Playbook (build scaffolding).
+"""Release validation for the Adaptive AI Systems Playbook.
+
+Ships with the product in playbook/tools/ (moved out of the v0.1 build scaffolding,
+now archived at docs/history/playbook-v0.1/, during the 2026-08 repository
+restructuring). Run from anywhere: python3 playbook/tools/check_playbook.py
 
 Checks (each prints PASS/FAIL + details; exit 1 if any FAIL):
   1. inventory   — every required file exists
   2. portability — banned project strings outside examples/CASE-* (with allowlist)
   3. skeleton    — chapters 00-13 carry the 13-section skeleton
-  4. links       — relative markdown links resolve; no links into ../docs
+  4. links       — relative markdown links resolve; no link escapes playbook/
   5. citations   — every [SRC-ID] cited exists in sources.yaml
   6. sources     — sources.yaml valid + SOURCES.md up to date (render --check)
   7. anchors     — GLOSSARY.md#anchor links resolve to real headings
@@ -13,7 +17,7 @@ Checks (each prints PASS/FAIL + details; exit 1 if any FAIL):
 import re, subprocess, sys
 from pathlib import Path
 
-PB = Path(__file__).resolve().parents[2]  # playbook/
+PB = Path(__file__).resolve().parents[1]  # playbook/
 
 CHAPTERS = [
     '00_PRINCIPLES_AND_SCOPE.md', '01_PROJECT_INTAKE_AND_DECISION_CONTEXT.md',
@@ -63,6 +67,7 @@ BANNED = [
     (re.compile(r'\bNATS\b'), None),
     (re.compile(r'ground_truth\b'), None),
     (re.compile(r'adaptive-ai-lab|/home/wall'), None),
+    (re.compile(r'projects/fis'), None),
     (re.compile(r'N_eff\s*[≈~]=?\s*22'), None),
     (re.compile(r'\blearning\.(registry|case_scores|trajectories)'), None),
 ]
@@ -70,18 +75,17 @@ BANNED = [
 LINK_RE = re.compile(r'\[[^\]]*\]\(([^)#\s]+)?(#[^)\s]*)?\)')
 CITE_RE = re.compile(r'\[((?:NV|EXT|INT)-[A-Z0-9-]+-\d{3})\]')
 
-# Build scaffolding at playbook/ root: committed planning artifacts, not shipped
-# playbook content (their own STATUS headers say PLANNING ARTIFACT). Excluded from
-# shipped-content checks; excluded from extraction at 1.0 alongside planning/.
-SCAFFOLDING = {'PLAYBOOK_BUILD_PLAN.md', 'SOURCE_MAP_DRAFT.md', 'PASS2_AUTHORING_SPEC.md'}
-
+# tools/ is the validator's own home — its source contains the banned patterns and
+# escape-link examples as data, so it is excluded from the shipped-content scans.
+# (The v0.1 build scaffolding this file once lived beside is archived at
+# docs/history/playbook-v0.1/ and no longer inside the product tree.)
 def shipped_files():
     out = []
     for p in sorted(PB.rglob('*')):
         if p.is_dir():
             continue
         rel = p.relative_to(PB)
-        if rel.parts[0] == 'planning' or (len(rel.parts) == 1 and rel.name in SCAFFOLDING):
+        if rel.parts[0] == 'tools':
             continue
         out.append(p)
     return out
@@ -146,10 +150,12 @@ def main():
                 target = m.group(1)
                 if not target or target.startswith(('http://', 'https://', 'mailto:')):
                     continue
-                if target.startswith('../docs') or '/docs/' in target:
-                    badlinks.append(f'{p.relative_to(PB)}:{i}: link into docs/: {target}')
-                    continue
                 t = (p.parent / target).resolve()
+                if target.startswith('/') or not t.is_relative_to(PB):
+                    # Self-containment: shipped files may not link outside playbook/
+                    # (docs/, projects/, research/, absolute paths — anything).
+                    badlinks.append(f'{p.relative_to(PB)}:{i}: link escapes playbook/: {target}')
+                    continue
                 if not t.exists():
                     badlinks.append(f'{p.relative_to(PB)}:{i}: broken link: {target}')
     print(('FAIL' if badlinks else 'PASS') + f' [4 links] {len(badlinks)} problems')

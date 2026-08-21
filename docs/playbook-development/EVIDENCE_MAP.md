@@ -14,7 +14,8 @@ GLOSSARY), derived from the operating task-ontology's cause→action discipline 
 only taxonomy with measured usage) and generalized against the intervention-ladder
 diagnosis list. The two historical taxonomies map into it as follows (both extracted
 verbatim from the reference HTMLs on 2026-08-21; see
-`playbook/planning/pass2/w1_verification.json`, agent `taxonomies-local`).
+`docs/history/playbook-v0.1/planning/pass2/w1_verification.json`, agent
+`taxonomies-local`).
 
 ### Canonical Architecture v1 — 13-category discovery taxonomy → RC
 
