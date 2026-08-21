@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fis_platform.r6_gates import GATES, GATES_DIGEST, evaluate_gates  # noqa: E402
 from fis_platform.suite import require_comparable  # noqa: E402
+from fis_platform.tolerances import refuse_curtailed  # noqa: E402
 from scripts.r5_oracles import fail_pattern, no_output  # noqa: E402
 
 DSN = os.environ.get("FIS_PG_DSN", "postgresql://fis:fis_local_dev@127.0.0.1:5433/fis")
@@ -162,6 +163,19 @@ def _gpu_mem(rows: dict[str, dict]) -> int | None:
 
 # ------------------------------------------------------------------ pairwise / oracles
 
+def pairwise_cmd(conn, a: str, b: str) -> dict:
+    """The `pairwise` subcommand's full path: guard C first (`fis_platform.tolerances.
+    refuse_curtailed` — playbook §6 guard 3, a curtailed arm never enters a paired
+    comparison), then suite comparability, then load + compare. `refuse_curtailed`
+    runs before `conn` is touched at all, so a curtailed run id is refused before any
+    query — not merely before the comparison is computed."""
+    refuse_curtailed([a, b])
+    require_comparable(conn, [a, b])
+    out = pairwise(load_run(conn, a), load_run(conn, b))
+    out.update({"a": a, "b": b})
+    return out
+
+
 def pairwise(a: dict[str, dict], b: dict[str, dict]) -> dict:
     ids = sorted(set(a) & set(b))
     both = [s for s in ids if a[s]["all_pass"] and b[s]["all_pass"]]
@@ -260,14 +274,15 @@ def main() -> None:
         if args.cmd == "summary":
             out = summarize(load_run(conn, args.run)); out["run_id"] = args.run
         elif args.cmd == "pairwise":
-            require_comparable(conn, [args.a, args.b])
-            out = pairwise(load_run(conn, args.a), load_run(conn, args.b)); out.update({"a": args.a, "b": args.b})
+            out = pairwise_cmd(conn, args.a, args.b)
         elif args.cmd == "oracle":
+            refuse_curtailed([args.weak, args.strong])   # guard 3: curtailed arms never pair
             require_comparable(conn, [args.weak, args.strong])
             out = post_answer_oracle(load_run(conn, args.weak), load_run(conn, args.strong))
             out.update({"weak": args.weak, "strong": args.strong})
         elif args.cmd == "tiers":
             runs = [r.strip() for r in args.order.split(",") if r.strip()]
+            refuse_curtailed(runs)                       # guard 3: curtailed arms never pair
             require_comparable(conn, runs)
             out = tier_coverage([(r, load_run(conn, r)) for r in runs])
             out.pop("per_case")
@@ -275,6 +290,7 @@ def main() -> None:
             m = summarize(load_run(conn, args.run))
             ref = None
             if args.reference_run:
+                refuse_curtailed([args.run, args.reference_run])  # guard 3
                 ref = summarize(load_run(conn, args.reference_run)); ref["label"] = args.reference_run
             out = evaluate_gates(args.role, m, ref)
             out["run_id"] = args.run
@@ -283,6 +299,7 @@ def main() -> None:
         elif args.cmd == "cap-calibration":
             out = cap_calibration(load_run(conn, args.run), args.tolerance); out["run_id"] = args.run
         elif args.cmd == "quant-select":
+            refuse_curtailed([args.a, args.b])           # guard 3: curtailed arms never pair
             out = quant_select(args.a_label, load_run(conn, args.a), args.b_label, load_run(conn, args.b))
             out.update({"a": args.a, "b": args.b})
         else:  # pragma: no cover

@@ -41,6 +41,7 @@ from fis_platform.events.envelope import Subject  # noqa: E402
 from fis_platform.events.projection import project  # noqa: E402
 from fis_platform.suite import SUITE_VERSION  # noqa: E402
 from scenarios.generator import catalog  # noqa: E402,F401  (registers builders)
+from scenarios.generator.canary import canary_token  # noqa: E402
 from scenarios.generator.catalog import BUILDERS  # noqa: E402
 from scenarios.generator.world import EPOCH, Clock, Ids, World  # noqa: E402
 from services.integration_service.consumer import IntegrationConsumer  # noqa: E402
@@ -105,12 +106,42 @@ def build(code: str, seed: int) -> tuple[World, dict]:
     world = World(scenario_id=scenario_id, seed=seed, rng=rng,
                   clock=Clock(base=scenario_epoch(seed)), ids=Ids(rng, seed))
     manifest = BUILDERS[code](world)
+    split = split_for_seed(seed)
     manifest |= {
         "scenario_id": scenario_id,
         "seed": seed,
-        "split": split_for_seed(seed),
+        "split": split,
     }
+    _inject_canary(world, SUITE_VERSION, split)
     return world, manifest
+
+
+def _inject_canary(world: World, suite_version: str, split: str) -> None:
+    """Leakage-canary injection point (playbook §8, implementation-map §9).
+
+    `canary_token` is `None` on every call for `SUITE_VERSION="3"` (this suite), on
+    every split — so for the frozen Suite v3 corpus this loop never executes its body
+    and every `ProviderEvent.raw_payload` this generator produces is byte-identical to
+    the pre-canary generator. That is required: `scripts/corpus_digest.py` hashes every
+    row of every table the corpus writes, and Suite v3's digest is a matter of record
+    (`SUITE_V3_RELEASE_CONTRACT.md` § 4). Activation is a future-suite event only —
+    see `scenarios.generator.canary.activate_canary`.
+
+    Injection target: `ProviderEvent.raw_payload`, chosen because (a) it is the one
+    piece of scenario content every event-driven class hands to `World.publish()`
+    regardless of what the class is about, so one injection point covers every future
+    TEST scenario rather than one per builder; and (b) it is model-observable through
+    an existing tool unmodified — `services/integration_service/consumer.normalized_row`
+    copies `raw_payload` verbatim into `integration.events.raw_payload`, which
+    `get_webhook_history` (`fis_platform/tool_broker/broker.py`) returns to the model
+    as-is. A future TEST-split canary therefore appears in the same place a model
+    already reads provider payloads from, with no new tool and no schema change.
+    """
+    token = canary_token(suite_version, split)
+    if token is None:
+        return
+    for event in world.published:
+        event.raw_payload["canary"] = token
 
 
 # Authoritative service state only.

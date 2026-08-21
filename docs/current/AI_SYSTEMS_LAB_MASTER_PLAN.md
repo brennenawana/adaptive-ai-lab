@@ -231,9 +231,9 @@ reference designs, not commitments.
 
 - **Splits**: TRAIN (iterate freely) / DEV (one look) / TEST (one look, ledgered).
   TEST looks are counted in the machine TEST-look ledger
-  (`learning/registry/test_looks.jsonl`, landed by M-STAT; until then
-  `TEST_LOOK_LEDGER.md` is the interim count of record, and thereafter its
-  mechanically validated human-readable mirror — 7 historical looks backfilled);
+  (`learning/registry/test_looks.jsonl`, landed by M-STAT 2026-08-21;
+  `TEST_LOOK_LEDGER.md` is its mechanically validated human-readable mirror —
+  7 historical looks backfilled);
   look #8 on Suite v3 requires the v4 trigger review.
 - **pass^k on TEST** spends **one ledgered look** comprising k samples per case on a
   declared frozen subset; no selection decision may key off it (measurement only).

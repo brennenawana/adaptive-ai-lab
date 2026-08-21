@@ -36,6 +36,7 @@ import psycopg
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fis_platform.suite import require_comparable  # noqa: E402
+from fis_platform.tolerances import refuse_curtailed  # noqa: E402
 from scripts.model_migration_matrix import _load, _no_output, _silent  # noqa: E402
 from scripts.routing_cascade_report import _signals  # noqa: E402
 from services.ai_orchestrator.cascade import EscalationPolicy, should_escalate  # noqa: E402
@@ -75,6 +76,12 @@ def main() -> None:
                     help="Proceed even if the runs (or the corpus) span suite versions; the "
                          "caveat is printed. Cross-suite numbers are structural, not causal.")
     args = ap.parse_args()
+
+    # Guard C (playbook §6 guard 3, paired firewall): a curtailed arm never enters a
+    # paired comparison. Checked before any run id touches the DB — this script
+    # computes the cell-B (Qwen pass / Nemotron fail) regression counts directly.
+    refuse_curtailed([args.qwen_a, args.qwen_b, args.nemotron, args.strong,
+                       args.historical_nemotron])
 
     with psycopg.connect(DSN) as conn:
         require_comparable(conn, [args.qwen_a, args.qwen_b, args.nemotron, args.strong, args.historical_nemotron], allow_cross_suite=args.allow_cross_suite,

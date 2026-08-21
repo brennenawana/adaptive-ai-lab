@@ -1,6 +1,7 @@
 # M-STAT Implementation Map
 
-> STATUS: CURRENT — the M-STAT work plan (implementation-ready map, not yet executed).
+> STATUS: EXECUTED 2026-08-21 — this was the M-STAT work plan; the completion
+> record is `M_STAT_REPORT.md`, which supersedes this map's status column.
 > Governed by: `AI_SYSTEMS_LAB_MASTER_PLAN.md` (sequencing) and
 > `EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` (methodology). This map adds no normative
 > authority of its own; where it restates doctrine, the playbook/master plan govern.

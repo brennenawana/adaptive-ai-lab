@@ -29,14 +29,17 @@ It encodes the corrections adopted after the 2026-08 external research
   experiment, including offline replays) is a ledgered look, spent at the first
   executed case. **Authority model (owner decision 2026-08-21):** the record of
   record is the machine append-only ledger `learning/registry/test_looks.jsonl`
-  (landed by M-STAT, seeded faithfully from the seven historical looks — no
-  reinterpretation of historical decisions; every TEST execution path must consult
-  it fail-closed). `TEST_LOOK_LEDGER.md` is the human-readable mirror — generated
-  from, or mechanically validated against, the machine ledger; any divergence
-  between mirror and machine record fails validation. Until M-STAT lands the
-  machine ledger, the Markdown file is the interim count of record. Seven
-  historical looks are backfilled (V3 baselines ×3 with R4 replays counted within,
-  R5 replays ×2, R6 ×2). **Look #8 requires the Suite-v4 trigger review first.**
+  (landed by M-STAT 2026-08-21, seeded faithfully from the seven historical looks —
+  no reinterpretation of historical decisions). Mechanical enforcement: the
+  runner's TEST gate (every arm, before any execution) plus a persist-time choke
+  point (no TEST-split row enters canonical storage without a planned look).
+  Offline replay looks are bound by this rule procedurally — planned in the
+  ledger at contract-freeze time (template §5) — since a replay reads stored
+  labels without executing cases. `TEST_LOOK_LEDGER.md` is the human-readable
+  mirror — mechanically validated against the machine ledger; any divergence
+  between mirror and machine record fails validation. Seven historical looks are
+  backfilled (V3 baselines ×3 with R4 replays counted within, R5 replays ×2,
+  R6 ×2). **Look #8 requires the Suite-v4 trigger review first.**
 - **Suite refresh trigger**: when the ledger review concludes accumulated TEST exposure
   threatens validity, Suite v4 is released as a versioned suite (cross-suite comparison
   refused by tooling, as v2→v3). **v4 design rule: add scenario classes before adding
@@ -233,8 +236,34 @@ replaces it).
 
 ## 11. Enforcement status
 
-This playbook is normative now; code enforcement lands as **M-STAT** (runner
-consequence guards, SMOKE state, round-robin ordering, ledgers, canary GUIDs,
-`TrainedArtifact`). Until M-STAT ships, any experiment that would rely on an
-unenforced guard must implement it in its own contract tooling first. The next
-contract freeze (R7's, if M0 opens it) requires template v2 + M-STAT guards in place.
+**M-STAT shipped 2026-08-21** (`M_STAT_REPORT.md` is the completion record). The
+guards are code now, fail-closed:
+
+- consequence-bearing tolerances + certainty curtailment with all three guards
+  (`fis_platform/tolerances.py`, wired into the runner; pairing tools refuse
+  curtailed arms);
+- SMOKE as a literal registry state (`fis_platform/provenance.py`: new candidates
+  open at SMOKE; non-promotable; can justify neither adoption nor elimination);
+- deterministic round-robin ordering (`fis_platform/ordering.py`; the runner's
+  class-blocked decision-prefix path no longer exists);
+- cluster-robust statistics, exact McNemar, ICC/DEFF/effective-N, MDE, verdict
+  vocabulary (`fis_platform/stats.py`; the §7 standing facts regenerate
+  mechanically via `scripts/mstat_stats.py` → `artifacts/mstat_standing_facts.json`);
+- the machine TEST-look ledger as source of truth (`learning/registry/test_looks.jsonl`
+  + `fis_platform/test_looks.py`; the runner gates every arm's TEST run, local or
+  frontier; look #8 fails closed without a trigger-review reference);
+- machine-checkable contract specs required at freeze (`fis_platform/contract_spec.py`;
+  `CONTRACT_FROZEN` refuses without a validated spec naming the candidate);
+- the prediction ledger (`fis_platform/predictions.py`, append-only, frozen entries);
+- the elimination rule (structured WITHDRAWN categories; below-pilot-MDE
+  selection withdrawals refused);
+- the canary GUID mechanism (`scenarios/generator/canary.py` — inactive for frozen
+  Suite v3 by construction; activation is a future suite-release act);
+- `TrainedArtifact` provenance and the pass^k protocol (`fis_platform/passk.py`;
+  R9 runs the first measurement);
+- M0-deferred telemetry: TOOLS spans, CLOCK-offset sampling, DB `inserted_at`
+  (migration 009, historical rows untouched). The full D-series HARNESS schema
+  remains deferred.
+
+The next contract freeze (R7's) requires template v2 + these guards — now in
+place. R7 additionally awaits the owner-gated Suite-v4 trigger review (look #8).

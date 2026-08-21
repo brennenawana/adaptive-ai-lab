@@ -6,13 +6,13 @@
 > `../experiment-log.md` / `../routing-experiments.md`. Every future TEST evaluation
 > appends a row **at contract-freeze time** (planned) and updates it at execution.
 > **Authority model (owner decision 2026-08-21; playbook §1):** the record of record
-> is the machine append-only ledger `learning/registry/test_looks.jsonl`, which
-> M-STAT lands seeded faithfully from the seven rows below (no reinterpretation of
-> historical decisions). From that point this file is the generated / mechanically
-> validated **mirror**: any divergence between mirror and machine ledger fails
-> validation; every TEST execution path (local or frontier) must consult the machine
-> ledger fail-closed; a look is spent at the first executed case. Until the machine
-> ledger lands, this file remains the interim count of record.
+> is the machine append-only ledger `learning/registry/test_looks.jsonl` — landed by
+> M-STAT 2026-08-21, seeded faithfully from the seven rows below (no reinterpretation
+> of historical decisions; hash-chained, verified on every read). This file is the
+> mechanically validated **mirror**: any divergence between mirror and machine ledger
+> fails validation (the runner's TEST gate runs the check); every TEST execution path
+> (local or frontier) must consult the machine ledger fail-closed; a look is spent at
+> the first executed case.
 > Rule (playbook §1): **look #8 requires the Suite-v4 refresh-trigger review first.**
 
 **Counting convention:** a look = one arm's outcomes on TEST being read for a decision

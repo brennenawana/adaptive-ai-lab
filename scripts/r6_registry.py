@@ -12,16 +12,17 @@ never write. `build-execution-system` prints a record for a human to paste into 
 transition payload rather than writing one, because binding an execution system to a
 candidate is a state change and state changes go through `transition`.
 
-    register-artifact       hash a GGUF, read its header, write models/<artifact_id>.json
-    register-runtime        photograph the engine build -> runtimes/<runtime_id>.json
-    register-genconfig      read the request config out of the adapter -> genconfigs/
-    register-candidate      bind artifact x runtime, open the log at REGISTERED
-    transition              one legal edge, with its payload guards
-    unlock-test             re-hash the artifact, then spend the single TEST unlock
-    capture-server-args     the running llama-server's material argv
-    build-execution-system  artifact + runtime + server args + genconfig, checked against /props
-    show / verify           read the chains; `verify` exits 1 if anything does not verify
-    phase                   append a wall-time marker to phases.jsonl
+    register-artifact          hash a GGUF, read its header, write models/<artifact_id>.json
+    register-runtime           photograph the engine build -> runtimes/<runtime_id>.json
+    register-genconfig         read the request config out of the adapter -> genconfigs/
+    register-trained-artifact  record a self-produced weights file -> trained/<artifact_id>.json
+    register-candidate         bind artifact x runtime, open the log at SMOKE
+    transition                 one legal edge, with its payload guards
+    unlock-test                re-hash the artifact, then spend the single TEST unlock
+    capture-server-args        the running llama-server's material argv
+    build-execution-system     artifact + runtime + server args + genconfig, checked against /props
+    show / verify              read the chains; `verify` exits 1 if anything does not verify
+    phase                      append a wall-time marker to phases.jsonl
 """
 
 from __future__ import annotations
@@ -44,6 +45,7 @@ from fis_platform.provenance import (
     ModelArtifact,
     R6Registry,
     RegistryIntegrityError,
+    TrainedArtifact,
     TransitionRefused,
     build_generation_config,
     capture_runtime,
@@ -131,6 +133,16 @@ def cmd_register_runtime(args: argparse.Namespace, reg: R6Registry) -> int:
 def cmd_register_genconfig(args: argparse.Namespace, reg: R6Registry) -> int:
     record = build_generation_config(args.prompt, args.max_tokens)
     reg.put_genconfig(record)
+    _emit(record.model_dump(mode="json"))
+    return 0
+
+
+def cmd_register_trained_artifact(args: argparse.Namespace, reg: R6Registry) -> int:
+    """Record a self-produced (trained) weights file. Schema/provenance only — no
+    training happens here; the caller supplies a JSON object with the full
+    `TrainedArtifact` field list (master plan §9)."""
+    record = TrainedArtifact(**_load_payload(args.json))
+    reg.put_trained_artifact(record)
     _emit(record.model_dump(mode="json"))
     return 0
 
@@ -236,6 +248,10 @@ def cmd_build_execution_system(args: argparse.Namespace, reg: R6Registry) -> int
 
 
 def cmd_show(args: argparse.Namespace, reg: R6Registry) -> int:
+    if getattr(args, "trained", None):
+        record = reg.get_trained_artifact(args.trained)
+        _emit(record.model_dump(mode="json"))
+        return 0
     ids = [args.candidate] if args.candidate else reg.candidate_ids()
     if not ids:
         print(f"no candidates under {reg.candidates_dir}")
@@ -320,6 +336,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-tokens", required=True, type=int)
     p.set_defaults(func=cmd_register_genconfig)
 
+    p = sub.add_parser("register-trained-artifact",
+                       help="record a self-produced (trained) weights file")
+    p.add_argument("--json", required=True, help="path to a JSON object, or - for stdin")
+    p.set_defaults(func=cmd_register_trained_artifact)
+
     p = sub.add_parser("register-candidate", help="bind artifact x runtime (re-hashes the file)")
     p.add_argument("--slug", required=True)
     p.add_argument("--artifact-id", required=True)
@@ -356,6 +377,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("show", help="states and chains")
     p.add_argument("--candidate")
+    p.add_argument("--trained", help="show one TrainedArtifact record by artifact_id instead")
     p.set_defaults(func=cmd_show)
 
     p = sub.add_parser("verify", help="re-derive every digest; exit 1 on any problem")

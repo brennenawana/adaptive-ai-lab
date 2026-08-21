@@ -31,6 +31,7 @@ import psycopg
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fis_platform.suite import require_comparable  # noqa: E402
+from fis_platform.tolerances import refuse_curtailed  # noqa: E402
 from scripts.r6_metrics import (  # noqa: E402
     load_run, pairwise, post_answer_oracle, summarize, tier_coverage,
 )
@@ -105,6 +106,13 @@ def main() -> None:
     ap.add_argument("--json-out")
     args = ap.parse_args()
     arms_spec = dict(a.split("=", 1) for a in args.arm)
+
+    # Guard C (playbook §6 guard 3, paired firewall): a curtailed arm never enters a
+    # paired comparison. Checked before any run id touches the DB — this script calls
+    # scripts.r6_metrics.pairwise/post_answer_oracle and its own dominance_matrix
+    # directly (not r6_metrics.pairwise_cmd, which carries its own guard), so the
+    # check has to happen here instead.
+    refuse_curtailed([*arms_spec.values(), args.strong])
 
     with psycopg.connect(DSN) as conn:
         require_comparable(conn, [*arms_spec.values(), args.strong])

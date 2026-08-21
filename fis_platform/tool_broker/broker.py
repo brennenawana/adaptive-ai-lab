@@ -17,6 +17,7 @@ from typing import Any, Callable
 import psycopg
 from psycopg.rows import dict_row
 
+from fis_platform.telemetry.clocks import dual_clock
 from schemas.tool import ToolCall
 
 from .definitions import BY_NAME
@@ -242,10 +243,18 @@ def _search_runbooks(conn, args):
 
 # -------------------------------------------------------------------- broker
 class ToolBroker:
-    def __init__(self, dsn: str) -> None:
+    def __init__(self, dsn: str, *, on_event: Callable[..., Any] | None = None) -> None:
+        """`on_event`, keyword-only and optional, is a telemetry hook (M-STAT; NEXT_STEP_M0.md
+        §6-D "TOOLS spans"): every existing caller (`ToolBroker(dsn)`) keeps working unchanged.
+        When set, `invoke()` calls it as `on_event(event_name, **fields)` around every call,
+        `tool_call_start` then `tool_call_end` — including the denied/unknown-tool path, since
+        that is still a call the trajectory needs a span for. A raising `on_event` must never
+        break a tool call: failures are swallowed in `_emit`, telemetry-only by design.
+        """
         self.dsn = dsn
         self._conn: psycopg.Connection | None = None
         self.calls: list[ToolCall] = []
+        self.on_event = on_event
 
     def __enter__(self) -> "ToolBroker":
         self._conn = psycopg.connect(self.dsn)
@@ -256,15 +265,31 @@ class ToolBroker:
             self._conn.close()
             self._conn = None
 
+    def _emit(self, event: str, **fields: Any) -> None:
+        """Best-effort telemetry emission. Wrapped so a broken `on_event` (wrong
+        signature, a raising sink) degrades to "no telemetry for this call", never
+        to a tool call failing for a reason that has nothing to do with the tool."""
+        if self.on_event is None:
+            return
+        try:
+            self.on_event(event, **fields)
+        except Exception:  # noqa: BLE001 — telemetry only, never breaks a tool call
+            pass
+
     def invoke(self, name: str, args: dict[str, Any]) -> tuple[Any, ToolCall]:
         started = time.perf_counter()
         seq = len(self.calls)
+        dc_start = dual_clock()
+        self._emit("tool_call_start", tool=name, sequence=seq, **dc_start)
 
         if name not in BY_NAME:
             call = ToolCall(tool=name, version=0, args_hash=_hash(args), status="denied",
                             error_code="unknown_tool",
-                            latency_ms=int((time.perf_counter() - started) * 1000), sequence=seq)
+                            latency_ms=int((time.perf_counter() - started) * 1000), sequence=seq,
+                            ts_realtime=dc_start["ts_realtime"], ts_monotonic=dc_start["ts_monotonic"])
             self.calls.append(call)
+            self._emit("tool_call_end", tool=name, sequence=seq, status=call.status,
+                       error_code=call.error_code, latency_ms=call.latency_ms, **dual_clock())
             return {"error": f"unknown tool {name!r}"}, call
 
         definition = BY_NAME[name]
@@ -286,8 +311,11 @@ class ToolBroker:
             status=status, error_code=error_code,
             result_digest=_hash(result),
             latency_ms=int((time.perf_counter() - started) * 1000), sequence=seq,
+            ts_realtime=dc_start["ts_realtime"], ts_monotonic=dc_start["ts_monotonic"],
         )
         self.calls.append(call)
+        self._emit("tool_call_end", tool=name, sequence=seq, status=status,
+                   error_code=error_code, latency_ms=call.latency_ms, **dual_clock())
         return result, call
 
 

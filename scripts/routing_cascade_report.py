@@ -46,6 +46,7 @@ from psycopg.rows import dict_row
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fis_platform.suite import require_comparable  # noqa: E402
+from fis_platform.tolerances import refuse_curtailed  # noqa: E402
 from services.ai_orchestrator.cascade import (  # noqa: E402
     EscalationPolicy, EscalationSignals, should_escalate,
 )
@@ -136,6 +137,10 @@ def main() -> None:
         raise SystemExit("need --cascade RUN (live) or --weak RUN (replay)")
 
     weak_id = args.weak or f"{args.cascade}.weak"
+    # Guard C (playbook §6 guard 3, paired firewall): a curtailed arm never enters a
+    # paired comparison. Checked before any of the paired run ids touches the DB —
+    # this script computes the paired oracle cells (weak vs strong-ref) directly.
+    refuse_curtailed([weak_id, args.strong, *([args.cascade] if args.cascade else [])])
     with psycopg.connect(DSN) as conn:
         require_comparable(conn, [weak_id, args.strong, *([args.cascade] if args.cascade else [])], allow_cross_suite=args.allow_cross_suite,
                            against_corpus=True)

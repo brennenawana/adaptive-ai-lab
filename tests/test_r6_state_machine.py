@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -41,6 +42,8 @@ from fis_platform.provenance import (
     DEV_QUALIFIED,
     DEV_REJECTED,
     REGISTERED,
+    SMOKE,
+    SMOKE_TOTAL_CASES,
     TERMINAL_STATES,
     TEST_EVALUATED,
     TEST_UNLOCKED,
@@ -107,9 +110,12 @@ def _runtime(tag: str = "c") -> RuntimeIdentity:
                            registered_at="2026-08-18T00:00:00+00:00")
 
 
-def _candidate(reg: R6Registry, tmp_path: Path, slug: str = "qwen35-9b-q4km", *,
-               family: str = "qwen35.9b", role: str = "modern_small",
-               runtime: RuntimeIdentity | None = None) -> str:
+def _register_only(reg: R6Registry, tmp_path: Path, slug: str = "qwen35-9b-q4km", *,
+                   family: str = "qwen35.9b", role: str = "modern_small",
+                   runtime: RuntimeIdentity | None = None) -> str:
+    """`register_candidate` and nothing else — the candidate is left at SMOKE, its
+    real initial state (playbook §3). Most tests want a candidate already promoted
+    to REGISTERED; use `_candidate` for that. SMOKE-specific tests use this."""
     artifact = _artifact(tmp_path, slug, family=family, role=role)
     runtime = runtime or _runtime()
     reg.put_artifact(artifact)
@@ -119,6 +125,125 @@ def _candidate(reg: R6Registry, tmp_path: Path, slug: str = "qwen35-9b-q4km", *,
 
 def _run_id(candidate_id: str, split: str) -> str:
     return f"R6-{candidate_id.split('@')[0]}-{split}"
+
+
+def _smoke_run_id(candidate_id: str) -> str:
+    return f"R6-{candidate_id.split('@')[0]}-train-smoke"
+
+
+def _pass_smoke(reg: R6Registry, cid: str, *, run_id: str | None = None,
+                violations: int = 0, **over: Any) -> dict[str, Any]:
+    """Run and pass the fixed 36-case SMOKE population, then transition SMOKE ->
+    REGISTERED. `violations` / `over` let a caller construct a FAILING attempt."""
+    run_id = run_id or _smoke_run_id(cid)
+    begin_run(reg, cid, "train", run_id, SMOKE_TOTAL_CASES, kind="smoke")
+    end_run(reg, cid, run_id, cases_done=SMOKE_TOTAL_CASES, wall_s=1.0)
+    payload = {"smoke_run_id": run_id, "smoke_cases": SMOKE_TOTAL_CASES,
+              "smoke_violations": violations, "smoke_case_digest": "d" * 64,
+              "ordering": "round_robin"}
+    payload.update(over)
+    return reg.transition(cid, REGISTERED, payload, require_clean_tree=False)
+
+
+def _candidate(reg: R6Registry, tmp_path: Path, slug: str = "qwen35-9b-q4km", *,
+               family: str = "qwen35.9b", role: str = "modern_small",
+               runtime: RuntimeIdentity | None = None) -> str:
+    """Registered AND promoted past a clean SMOKE pass to REGISTERED — the starting
+    point every test written before SMOKE existed assumes."""
+    cid = _register_only(reg, tmp_path, slug, family=family, role=role, runtime=runtime)
+    _pass_smoke(reg, cid)
+    return cid
+
+
+def _contract_spec_path_and_digest(reg: R6Registry, cid: str) -> tuple[str, str]:
+    """Write a minimal, valid INFERENTIAL `ContractSpec` (fis_platform.contract_spec)
+    naming `cid`, under the SAME tmp tree the registry lives in, and return a path
+    relative to `provenance._ROOT` (so it resolves without touching the real repo)
+    plus the spec's own digest. Item G's CONTRACT_FROZEN payload guard needs both.
+
+    INFERENTIAL, not SCREENING (Finding 3, playbook §7): the CONTRACT_FROZEN branch
+    requires the validated spec's `experiment_type` to be INFERENTIAL — the state
+    machine's CONTRACT_FROZEN -> DEV -> TEST path is the promotable inferential path,
+    and a SCREENING/DIAGNOSTIC/MEASUREMENT spec must never freeze onto it. So every
+    fixture that walks a candidate through CONTRACT_FROZEN (`_step`/`_walk`, and every
+    test file that imports them) needs the full INFERENTIAL field set, not just the
+    SCREENING minimum a pre-Finding-3 spec got away with.
+    """
+    from fis_platform.contract_spec import validate_contract_spec
+
+    identity = reg.read_identity(cid)
+    data: dict[str, Any] = {
+        "spec_version": 1,
+        "experiment_id": f"R6-{cid.split('@')[0]}",
+        "experiment_type": "INFERENTIAL",
+        "question": "does this candidate beat the incumbent on DEV/TEST",
+        "suite_version": "v3",
+        "corpus_digest": "c" * 64,
+        "split_permissions": ["dev", "test"],
+        "ordering_policy": "round_robin",
+        "authoritative_clocks": {"wall": "server"},
+        "state_machine": "R6",
+        "artifact_lineage": [{"artifact_id": identity["artifact_id"],
+                              "sha256": identity["artifact_sha256"]}],
+        "candidates": [cid],
+        "tolerances": [{"spec_id": "t1", "metric": "cap_hits", "description": "cap breach",
+                        "denominator_n": 36, "max_violations": 3, "consequence": "ABORT"}],
+        "execution_system_digests": {"local": "e" * 64},
+        "expected_discordance_range": [0.05, 0.2],
+        "clustering_unit": "scenario_class",
+        "effective_n": 22.0,
+        "mde_pp": 5.0,
+        "primary_statistic": "cluster_robust_paired_t",
+        "secondary_statistic": "mcnemar_exact",
+        "allowed_verdicts": ["CONFIRMED", "REFUTED", "INCONCLUSIVE"],
+        "prediction_ref": "R7-candidate-prediction",
+        "curtailment_policy": {"enabled": False,
+                               "disable_justification": "fixture — curtailment machinery not exercised here"},
+        "test_look": {"planned": False},
+    }
+    spec = validate_contract_spec(data)
+    abs_path = reg.root.parent / f"contract_spec_{cid.split('@')[0]}.json"
+    abs_path.write_text(json.dumps(data))
+    rel = os.path.relpath(abs_path, provenance._ROOT)
+    return rel, spec.contract_spec_digest
+
+
+def _contract_spec_path_and_digest_of_type(
+    reg: R6Registry, cid: str, experiment_type: str) -> tuple[str, str]:
+    """Like `_contract_spec_path_and_digest`, but for a non-INFERENTIAL
+    `experiment_type` — used only to prove the CONTRACT_FROZEN guard refuses
+    SCREENING/DIAGNOSTIC specs (Finding 3's negative tests). SCREENING and
+    DIAGNOSTIC each need a slightly different minimal field set (SCREENING ranks,
+    never infers — no `expected_discordance_range` etc.; DIAGNOSTIC needs almost
+    nothing beyond the common core), so this only supports the two the tests use."""
+    from fis_platform.contract_spec import validate_contract_spec
+
+    identity = reg.read_identity(cid)
+    data: dict[str, Any] = {
+        "spec_version": 1,
+        "experiment_id": f"R6-{cid.split('@')[0]}",
+        "experiment_type": experiment_type,
+        "question": "does this candidate rank favourably on TRAIN" if experiment_type == "SCREENING"
+                    else "is this candidate's execution system stable",
+        "suite_version": "v3",
+        "corpus_digest": "c" * 64,
+        "split_permissions": ["train"],
+        "ordering_policy": "round_robin",
+        "authoritative_clocks": {"wall": "server"},
+        "state_machine": "R6",
+        "artifact_lineage": [{"artifact_id": identity["artifact_id"],
+                              "sha256": identity["artifact_sha256"]}],
+    }
+    if experiment_type == "SCREENING":
+        data["candidates"] = [cid]
+        data["tolerances"] = [{"spec_id": "t1", "metric": "cap_hits", "description": "cap breach",
+                               "denominator_n": 36, "max_violations": 3, "consequence": "ABORT"}]
+        data["allowed_verdicts"] = ["RANKED"]
+    spec = validate_contract_spec(data)
+    abs_path = reg.root.parent / f"contract_spec_{cid.split('@')[0]}_{experiment_type.lower()}.json"
+    abs_path.write_text(json.dumps(data))
+    rel = os.path.relpath(abs_path, provenance._ROOT)
+    return rel, spec.contract_spec_digest
 
 
 def _execution_system(reg: R6Registry, candidate_id: str, ctx: int = 16384) -> ExecutionSystem:
@@ -140,9 +265,11 @@ def _payload(reg: R6Registry, cid: str, to: str) -> dict[str, Any]:
                 "train_run_ids": [_run_id(cid, "train")], "pilot_record_digest": "p" * 64,
                 "calibration": {"k": 3}}
     if to == CONTRACT_FROZEN:
+        spec_path, spec_digest = _contract_spec_path_and_digest(reg, cid)
         return {"contract_path": "docs/R6_EXPERIMENT_CONTRACT.md",
                 "contract_revision": CONTRACT_REV, "contract_commit": CONTRACT_COMMIT,
-                "gates_digest": GATES, "execution_system_digest": system.record_digest}
+                "gates_digest": GATES, "execution_system_digest": system.record_digest,
+                "contract_spec_path": spec_path, "contract_spec_digest": spec_digest}
     if to == DEV_EVALUATED:
         return {"dev_run_id": _run_id(cid, "dev"), "dev_result": DEV_RESULT,
                 "contract_revision": CONTRACT_REV,
@@ -158,7 +285,8 @@ def _payload(reg: R6Registry, cid: str, to: str) -> dict[str, Any]:
                 "artifact_sha256_now": reg.read_identity(cid)["artifact_sha256"]}
     if to == TEST_EVALUATED:
         return {"test_run_id": _run_id(cid, "test"), "test_result": TEST_RESULT}
-    return {"reason": "runtime-incompatible on TRAIN (loader refuses the quant)"}
+    return {"reason": "runtime-incompatible on TRAIN (loader refuses the quant)",
+            "reason_category": "runtime_incompatibility"}
 
 
 def _step(reg: R6Registry, cid: str, to: str, **over: Any) -> dict[str, Any]:
@@ -212,7 +340,7 @@ def test_the_happy_path_walks_registered_to_test_evaluated(reg, tmp_path):
 
     entries = reg.read_state(cid)
     states = [e["to"] for e in entries if e["kind"] == "transition"]
-    assert states == [REGISTERED, *ORDER]
+    assert states == [SMOKE, REGISTERED, *ORDER]
     assert [e["seq"] for e in entries] == list(range(1, len(entries) + 1))
     assert entries[0]["from"] is None and entries[0]["prev_entry_digest"] == ""
     assert [e["kind"] for e in entries].count("run") == 2
@@ -231,9 +359,36 @@ def test_the_happy_path_walks_registered_to_test_evaluated(reg, tmp_path):
 def test_the_transition_table_is_the_shape_the_contract_describes():
     assert set(TERMINAL_STATES) == {DEV_REJECTED, TEST_EVALUATED, WITHDRAWN}
     assert [s for s, nxt in TRANSITIONS.items() if WITHDRAWN in nxt] == \
-        [REGISTERED, TRAIN_COMPATIBLE]
+        [SMOKE, REGISTERED, TRAIN_COMPATIBLE]
+    assert TRANSITIONS[SMOKE] == (REGISTERED, WITHDRAWN)
     assert TRANSITIONS[DEV_QUALIFIED] == (TEST_UNLOCKED,)
     assert TRANSITIONS[TEST_UNLOCKED] == (TEST_EVALUATED,)
+    assert not any(SMOKE in nxt for s, nxt in TRANSITIONS.items() if s != SMOKE), \
+        "no edge exists INTO SMOKE — it is only an initial state"
+
+
+def test_a_historical_chain_that_begins_at_registered_still_reads_and_transitions(reg, tmp_path):
+    """SMOKE is new; candidates registered before it existed have chains that begin
+    directly at REGISTERED (no SMOKE entry at all). Chain checks are content-based
+    (seq/prev-digest/entry-digest, HEAD.json), and `TRANSITIONS[REGISTERED]` is
+    unchanged, so a synthetic old-style chain still `read_state()`s cleanly and can
+    still transition legally from its current state — how it got to REGISTERED never
+    matters to what it may do next."""
+    cid = _register_only(reg, tmp_path)      # identity/artifact/runtime files exist
+    entry = {"seq": 1, "kind": "transition", "prev_entry_digest": "", "from": None,
+             "to": REGISTERED, "at": "2026-01-01T00:00:00+00:00", "code_commit": "abc1234",
+             "tree_clean": True, "payload": {"note": "pre-SMOKE historical registration"}}
+    entry["entry_digest"] = digest(entry)
+    reg.state_file(cid).write_text(json.dumps(entry, sort_keys=True) + "\n")
+    reg.head_file.write_text(json.dumps({cid: {"seq": 1, "entry_digest": entry["entry_digest"]}}))
+
+    entries = reg.read_state(cid)
+    assert len(entries) == 1
+    assert entries[0]["to"] == REGISTERED and entries[0]["from"] is None
+    assert reg.current_state(cid) == REGISTERED
+
+    _step(reg, cid, TRAIN_COMPATIBLE)
+    assert reg.current_state(cid) == TRAIN_COMPATIBLE
 
 
 # ------------------------------------------------------------------ 2. illegal edges
@@ -339,6 +494,143 @@ def test_contract_freeze_insists_on_a_content_revision_not_a_commit(reg, tmp_pat
         _step(reg, cid, CONTRACT_FROZEN, contract_revision=CONTRACT_COMMIT)
 
 
+# ------------------------------------- 3b. the prospective contract-spec freeze hook
+
+def test_contract_freeze_requires_a_contract_spec(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    payload = _payload(reg, cid, CONTRACT_FROZEN)
+    del payload["contract_spec_path"]
+    del payload["contract_spec_digest"]
+    with pytest.raises(TransitionRefused, match="missing"):
+        reg.transition(cid, CONTRACT_FROZEN, payload, require_clean_tree=False)
+    assert reg.current_state(cid) == TRAIN_COMPATIBLE
+
+
+def test_contract_freeze_refuses_a_spec_path_that_does_not_exist(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    with pytest.raises(TransitionRefused, match="does not exist"):
+        _step(reg, cid, CONTRACT_FROZEN, contract_spec_path="no-such-spec.json")
+
+
+def test_contract_freeze_refuses_a_contract_spec_digest_mismatch(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    with pytest.raises(TransitionRefused, match="contract_spec_digest"):
+        _step(reg, cid, CONTRACT_FROZEN, contract_spec_digest="f" * 64)
+    assert reg.current_state(cid) == TRAIN_COMPATIBLE
+
+
+def test_contract_freeze_refuses_a_spec_that_does_not_validate(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    bad_path = reg.root.parent / f"bad_spec_{cid.split('@')[0]}.json"
+    bad_path.write_text(json.dumps({"spec_version": 1, "experiment_type": "SCREENING"}))
+    rel = os.path.relpath(bad_path, provenance._ROOT)
+    with pytest.raises(TransitionRefused, match="does not validate"):
+        _step(reg, cid, CONTRACT_FROZEN, contract_spec_path=rel,
+              contract_spec_digest="0" * 64)
+
+
+def test_contract_freeze_refuses_a_spec_that_does_not_name_this_candidate(reg, tmp_path):
+    from fis_platform.contract_spec import validate_contract_spec
+
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    identity = reg.read_identity(cid)
+    data = {
+        # INFERENTIAL (not SCREENING): the experiment_type guard (Finding 3) runs
+        # BEFORE the candidate-membership check below, so this spec has to clear
+        # experiment_type first in order to actually exercise "not listed".
+        "spec_version": 1, "experiment_id": "R6-someone-else", "experiment_type": "INFERENTIAL",
+        "question": "q", "suite_version": "v3", "corpus_digest": "c" * 64,
+        "split_permissions": ["dev", "test"], "ordering_policy": "round_robin",
+        "authoritative_clocks": {"wall": "server"}, "state_machine": "R6",
+        "artifact_lineage": [{"artifact_id": identity["artifact_id"],
+                              "sha256": identity["artifact_sha256"]}],
+        "candidates": ["someone-else@000000000000"],
+        "tolerances": [{"spec_id": "t1", "metric": "m", "description": "d",
+                        "denominator_n": 36, "max_violations": 3, "consequence": "ABORT"}],
+        "execution_system_digests": {"local": "e" * 64},
+        "expected_discordance_range": [0.05, 0.2],
+        "clustering_unit": "scenario_class",
+        "effective_n": 22.0,
+        "mde_pp": 5.0,
+        "primary_statistic": "cluster_robust_paired_t",
+        "secondary_statistic": "mcnemar_exact",
+        "allowed_verdicts": ["CONFIRMED", "REFUTED", "INCONCLUSIVE"],
+        "prediction_ref": "R7-someone-else-prediction",
+        "curtailment_policy": {"enabled": False,
+                               "disable_justification": "fixture — curtailment machinery not exercised here"},
+        "test_look": {"planned": False},
+    }
+    spec = validate_contract_spec(data)
+    abs_path = reg.root.parent / f"other_spec_{cid.split('@')[0]}.json"
+    abs_path.write_text(json.dumps(data))
+    rel = os.path.relpath(abs_path, provenance._ROOT)
+    with pytest.raises(TransitionRefused, match="not listed"):
+        _step(reg, cid, CONTRACT_FROZEN, contract_spec_path=rel,
+              contract_spec_digest=spec.contract_spec_digest)
+
+
+def test_contract_freeze_refuses_a_screening_spec(reg, tmp_path):
+    """Finding 3 (playbook §7): the CONTRACT_FROZEN branch requires the validated
+    spec's `experiment_type` to be INFERENTIAL. A SCREENING spec validates fine on
+    its own terms (it ranks candidates on TRAIN, never claims an MDE or effective N)
+    but must never freeze onto the promotable DEV -> TEST path — screening runs
+    under its own TRAIN-only protocol."""
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    spec_path, spec_digest = _contract_spec_path_and_digest_of_type(reg, cid, "SCREENING")
+    with pytest.raises(TransitionRefused, match="INFERENTIAL"):
+        _step(reg, cid, CONTRACT_FROZEN, contract_spec_path=spec_path,
+              contract_spec_digest=spec_digest)
+    assert reg.current_state(cid) == TRAIN_COMPATIBLE
+
+
+def test_contract_freeze_refuses_a_diagnostic_spec(reg, tmp_path):
+    """Same guard, DIAGNOSTIC: a stability-probe contract must never freeze onto the
+    promotable path either — diagnostic work runs under its own `diagnostic` run
+    kind and is explicitly forbidden from ever planning a TEST look."""
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    spec_path, spec_digest = _contract_spec_path_and_digest_of_type(reg, cid, "DIAGNOSTIC")
+    with pytest.raises(TransitionRefused, match="INFERENTIAL"):
+        _step(reg, cid, CONTRACT_FROZEN, contract_spec_path=spec_path,
+              contract_spec_digest=spec_digest)
+    assert reg.current_state(cid) == TRAIN_COMPATIBLE
+
+
+def test_a_historical_contract_frozen_entry_without_a_spec_still_reads_cleanly(reg, tmp_path):
+    """Write-time only (item G): the freeze-hook guard runs inside `_validate_payload`,
+    which `read_state()` never calls — a historical CONTRACT_FROZEN entry recorded
+    before this guard existed (no contract_spec_path/contract_spec_digest at all)
+    verifies exactly as cleanly as one recorded today."""
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    entries = reg.read_state(cid)
+    train_es_digest = entries[-1]["payload"]["execution_system_digest"]
+    old_payload = {"contract_path": "docs/R6_EXPERIMENT_CONTRACT.md",
+                   "contract_revision": CONTRACT_REV, "contract_commit": CONTRACT_COMMIT,
+                   "gates_digest": GATES, "execution_system_digest": train_es_digest}
+    entry = {"seq": len(entries) + 1, "kind": "transition",
+             "prev_entry_digest": entries[-1]["entry_digest"], "from": TRAIN_COMPATIBLE,
+             "to": CONTRACT_FROZEN, "at": "2026-01-01T00:00:00+00:00",
+             "code_commit": "abc1234", "tree_clean": True, "payload": old_payload}
+    entry["entry_digest"] = digest(entry)
+    with reg.state_file(cid).open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, sort_keys=True) + "\n")
+    head = json.loads(reg.head_file.read_text())
+    head[cid] = {"seq": entry["seq"], "entry_digest": entry["entry_digest"]}
+    reg.head_file.write_text(json.dumps(head))
+
+    read_entries = reg.read_state(cid)
+    assert read_entries[-1]["to"] == CONTRACT_FROZEN
+    assert "contract_spec_path" not in read_entries[-1]["payload"]
+    assert reg.current_state(cid) == CONTRACT_FROZEN
+
+
 def test_the_unlock_refuses_an_artifact_whose_bytes_moved(reg, tmp_path):
     cid = _candidate(reg, tmp_path)
     _walk(reg, cid, DEV_QUALIFIED)
@@ -374,6 +666,141 @@ def test_withdrawing_needs_a_reason(reg, tmp_path):
     with pytest.raises(TransitionRefused, match="needs a reason"):
         _step(reg, cid, WITHDRAWN, reason="  ")
     _step(reg, cid, WITHDRAWN)
+    assert reg.current_state(cid) == WITHDRAWN
+
+
+# ------------------------------------- 3c. the structured elimination-rule guard
+
+def test_withdrawing_requires_a_reason_category(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    payload = _payload(reg, cid, WITHDRAWN)
+    del payload["reason_category"]
+    with pytest.raises(TransitionRefused, match="missing"):
+        reg.transition(cid, WITHDRAWN, payload, require_clean_tree=False)
+
+
+def test_withdrawing_refuses_an_unknown_reason_category(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    with pytest.raises(TransitionRefused, match="reason_category"):
+        _step(reg, cid, WITHDRAWN, reason_category="vibes")
+
+
+@pytest.mark.parametrize("category", ["runtime_incompatibility", "infrastructure_failure"])
+def test_withdrawing_on_a_non_comparative_category_needs_only_reason_and_category(
+        reg, tmp_path, category):
+    """Unchanged by Finding 4: these two non-comparative categories need no
+    `authorized_by` — only `owner_decision` was strengthened (below)."""
+    cid = _candidate(reg, tmp_path)
+    _step(reg, cid, WITHDRAWN, reason=f"withdrawn for {category}", reason_category=category)
+    assert reg.current_state(cid) == WITHDRAWN
+
+
+def test_withdrawing_owner_decision_without_authorized_by_is_refused(reg, tmp_path):
+    """Finding 4: `owner_decision` is a legitimate non-comparative category, but a
+    bare reason string let a below-MDE selection loss hide under it uncontested.
+    Strengthening, not a doctrine change: an owner decision must name the owner."""
+    cid = _candidate(reg, tmp_path)
+    with pytest.raises(TransitionRefused, match="authorized_by"):
+        _step(reg, cid, WITHDRAWN, reason="withdrawn for owner_decision",
+              reason_category="owner_decision")
+    assert reg.current_state(cid) == REGISTERED
+
+
+def test_withdrawing_owner_decision_with_empty_authorized_by_is_refused(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    with pytest.raises(TransitionRefused, match="authorized_by"):
+        _step(reg, cid, WITHDRAWN, reason="withdrawn for owner_decision",
+              reason_category="owner_decision", authorized_by="   ")
+    assert reg.current_state(cid) == REGISTERED
+
+
+def test_withdrawing_owner_decision_with_authorized_by_is_accepted(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    _step(reg, cid, WITHDRAWN, reason="withdrawn for owner_decision",
+          reason_category="owner_decision", authorized_by="brennen")
+    assert reg.current_state(cid) == WITHDRAWN
+
+
+def test_pilot_selection_loss_requires_the_comparative_fields(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    with pytest.raises(TransitionRefused, match="missing"):
+        _step(reg, cid, WITHDRAWN, reason="lost the pilot",
+              reason_category="pilot_selection_loss")
+
+
+def test_pilot_selection_loss_below_the_pilots_own_mde_is_refused(reg, tmp_path):
+    """The corrected UD-Q3_K_XL precedent (playbook §4): withdrawn historically at a
+    margin below the pilot's own MDE. That is now structurally refused."""
+    cid = _candidate(reg, tmp_path)
+    with pytest.raises(TransitionRefused, match="below the pilot's own MDE"):
+        _step(reg, cid, WITHDRAWN, reason="lost the pilot",
+              reason_category="pilot_selection_loss", pilot_margin_cases=5, pilot_n=36,
+              pilot_mde_cases=9, evidence_run_ids=[_run_id(cid, "train")])
+    assert reg.current_state(cid) == REGISTERED
+
+
+def test_pilot_selection_loss_at_or_above_the_mde_is_allowed(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    _step(reg, cid, WITHDRAWN, reason="lost the pilot", reason_category="pilot_selection_loss",
+         pilot_margin_cases=9, pilot_n=36, pilot_mde_cases=9,
+         evidence_run_ids=[_run_id(cid, "train")])
+    assert reg.current_state(cid) == WITHDRAWN
+
+
+def test_pilot_selection_loss_evidence_citing_a_smoke_run_is_refused(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)          # its own SMOKE run is already ledgered
+    smoke_id = _smoke_run_id(cid)
+    with pytest.raises(TransitionRefused, match="SMOKE cannot justify elimination"):
+        _step(reg, cid, WITHDRAWN, reason="lost the pilot", reason_category="pilot_selection_loss",
+              pilot_margin_cases=20, pilot_n=36, pilot_mde_cases=9,
+              evidence_run_ids=[smoke_id])
+    assert reg.current_state(cid) == REGISTERED
+
+
+@pytest.mark.parametrize("field, value", [
+    ("pilot_margin_cases", -1), ("pilot_n", 0), ("pilot_mde_cases", 0),
+])
+def test_pilot_selection_loss_rejects_out_of_range_numbers(reg, tmp_path, field, value):
+    cid = _candidate(reg, tmp_path)
+    kwargs = {"pilot_margin_cases": 9, "pilot_n": 36, "pilot_mde_cases": 9,
+             "evidence_run_ids": [_run_id(cid, "train")]}
+    kwargs[field] = value
+    with pytest.raises(TransitionRefused):
+        _step(reg, cid, WITHDRAWN, reason="lost the pilot",
+              reason_category="pilot_selection_loss", **kwargs)
+
+
+def test_pilot_selection_loss_requires_non_empty_evidence_run_ids(reg, tmp_path):
+    cid = _candidate(reg, tmp_path)
+    with pytest.raises(TransitionRefused, match="evidence_run_ids"):
+        _step(reg, cid, WITHDRAWN, reason="lost the pilot",
+              reason_category="pilot_selection_loss", pilot_margin_cases=9, pilot_n=36,
+              pilot_mde_cases=9, evidence_run_ids=[])
+
+
+def test_a_historical_withdrawn_entry_with_reason_only_still_reads_cleanly(reg, tmp_path):
+    """Write-time only (item E): the historical UD withdrawal is untouched evidence — a
+    synthetic OLD-style WITHDRAWN entry (reason only, no reason_category) still
+    `read_state()`s cleanly, because payload SHAPE is a write-time guard, never a
+    read-time one."""
+    cid = _candidate(reg, tmp_path)
+    _walk(reg, cid, TRAIN_COMPATIBLE)
+    entries = reg.read_state(cid)
+    old_payload = {"reason": "runtime-incompatible on TRAIN (loader refuses the quant)"}
+    entry = {"seq": len(entries) + 1, "kind": "transition",
+             "prev_entry_digest": entries[-1]["entry_digest"], "from": TRAIN_COMPATIBLE,
+             "to": WITHDRAWN, "at": "2026-01-01T00:00:00+00:00", "code_commit": "abc1234",
+             "tree_clean": True, "payload": old_payload}
+    entry["entry_digest"] = digest(entry)
+    with reg.state_file(cid).open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, sort_keys=True) + "\n")
+    head = json.loads(reg.head_file.read_text())
+    head[cid] = {"seq": entry["seq"], "entry_digest": entry["entry_digest"]}
+    reg.head_file.write_text(json.dumps(head))
+
+    read_entries = reg.read_state(cid)
+    assert read_entries[-1]["to"] == WITHDRAWN
+    assert read_entries[-1]["payload"] == old_payload
     assert reg.current_state(cid) == WITHDRAWN
 
 
@@ -636,7 +1063,7 @@ def test_the_ledger_records_a_start_and_an_end_line_per_run(reg, tmp_path):
     started = begin_run(reg, cid, "dev", run_id, 48, {"port": 8090})
     assert started["payload"]["port"] == 8090       # `extra` lands on the chained entry
     end_run(reg, cid, run_id, 48, 1234.5, {"errors": 0})
-    lines = reg.read_ledger(cid)
+    lines = [ln for ln in reg.read_ledger(cid) if ln["run_id"] == run_id]
     assert [ln["event"] for ln in lines] == ["start", "end"]
     assert lines[0]["planned_cases"] == 48 and lines[0]["split"] == "dev"
     assert lines[1]["cases_done"] == 48 and lines[1]["wall_s"] == 1234.5

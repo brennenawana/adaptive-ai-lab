@@ -48,15 +48,20 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from fis_platform.ordering import class_of, round_robin
 from fis_platform.routing.learn import digest
 from fis_platform.suite import git_head
 
 __all__ = [
     "DIAGNOSTIC_STATES",
     "RUN_KINDS",
+    "SMOKE",
+    "SMOKE_CASES_PER_CLASS",
+    "SMOKE_TOTAL_CASES",
     "STATES",
     "TERMINAL_STATES",
     "TRANSITIONS",
+    "WITHDRAWAL_CATEGORIES",
     "ExecutionSystem",
     "GGUFFormatError",
     "GGUFHeader",
@@ -67,6 +72,7 @@ __all__ = [
     "RegistryIntegrityError",
     "RuntimeIdentity",
     "ServerArgs",
+    "TrainedArtifact",
     "TransitionRefused",
     "begin_run",
     "build_generation_config",
@@ -80,6 +86,7 @@ __all__ = [
     "read_gguf_header",
     "require_state",
     "sha256_file",
+    "smoke_case_selection",
 ]
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -575,6 +582,61 @@ class ModelArtifact(_Record):
             raise ValueError(f"artifact_id {self.artifact_id!r} does not match {expected!r}")
 
 
+class TrainedArtifact(_Record):
+    """One self-produced weights file — a LoRA adapter and/or a merged model —
+    pinned by bytes and by the exact recipe that produced it (master plan §9 field
+    list; M_STAT implementation map §10; FT-rig prerequisite for R8).
+
+    `dataset_provenance` must trace ONLY to FIS's own model trajectories, scored
+    against FIS's own ground truth (master plan's hard constraint, verified against
+    Anthropic's live terms): training data is own-trace only, and frontier (Claude)
+    outputs are never SFT targets without prior authorization. This field is not
+    machine-checked further than non-empty — it is the human-written trace a later
+    audit follows, the same role `license_source` plays on `ModelArtifact`.
+
+    `artifact_id` follows the `ModelArtifact` idiom (`<slug>@<result_sha256[:12]>`):
+    the record is content-addressed by the bytes it actually shipped
+    (`result_sha256`/`result_filename`), not by the adapter or the merge inputs,
+    because the *result* is the thing a later run loads and re-hashes.
+
+    At least one of `adapter_sha256` / `merged_sha256` is required — a trained
+    artifact that names neither has produced no bytes worth registering.
+    """
+
+    artifact_id: str = ""
+    slug: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]*$")
+    base_artifact_id: str = Field(min_length=1)
+    dataset_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    dataset_provenance: str = Field(min_length=1)
+    training_method: str = Field(min_length=1)
+    hyperparameters: dict[str, Any] = Field(default_factory=dict)
+    seeds: list[int] = Field(min_length=1)
+    adapter_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    merged_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    training_pipeline_digest: str = Field(min_length=1)
+    conversion_pipeline_digest: str | None = None
+    quantization: str | None = None
+    quantization_config: dict[str, Any] | None = None
+    result_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    result_filename: str = Field(min_length=1)
+    size_bytes: int = Field(gt=0)
+    compatible_runtime_ids: list[str] = Field(min_length=1)
+    registered_at: str = Field(default_factory=_now)
+    notes: str | None = None
+
+    def _derive(self) -> None:
+        if not self.adapter_sha256 and not self.merged_sha256:
+            raise ValueError(
+                "at least one of adapter_sha256 or merged_sha256 is required — a "
+                "TrainedArtifact must name some bytes it actually produced"
+            )
+        expected = f"{self.slug}@{self.result_sha256[:12]}"
+        if not self.artifact_id:
+            self.artifact_id = expected
+        elif self.artifact_id != expected:
+            raise ValueError(f"artifact_id {self.artifact_id!r} does not match {expected!r}")
+
+
 class RuntimeIdentity(_Record):
     """The engine that will execute the weights: binaries, CUDA libs, build flags, driver.
 
@@ -1011,6 +1073,16 @@ def bind_running_server(port: int, runtime: RuntimeIdentity, proc: Path | str = 
 
 # ------------------------------------------------------------------ state machine
 
+# SMOKE (owner decision 2026-08-21; playbook §3): a formal lifecycle state, not a run
+# kind, that precedes REGISTERED. It is reachable ONLY as a candidate's initial state
+# (register_candidate opens every new candidate at SMOKE, never at REGISTERED
+# directly) and promotes to REGISTERED only after a passing fixed 36-case TRAIN
+# population (§ `_validate_payload`'s SMOKE branch). Historical candidates whose
+# chains begin at REGISTERED (registered before this state existed) remain fully
+# readable and able to transition normally — chain checks are content-based, and
+# TRANSITIONS[REGISTERED] is unchanged, so "how a candidate arrived at REGISTERED"
+# never matters to what it may do next.
+SMOKE = "SMOKE"
 REGISTERED = "REGISTERED"
 TRAIN_COMPATIBLE = "TRAIN_COMPATIBLE"
 CONTRACT_FROZEN = "CONTRACT_FROZEN"
@@ -1021,10 +1093,14 @@ TEST_UNLOCKED = "TEST_UNLOCKED"
 TEST_EVALUATED = "TEST_EVALUATED"
 WITHDRAWN = "WITHDRAWN"
 
-# The ONLY legal edges. WITHDRAWN is reachable from REGISTERED / TRAIN_COMPATIBLE only —
-# a candidate that turns out to be runtime-incompatible on TRAIN can leave, but nothing
-# that has seen DEV or TEST may be quietly removed from the comparison afterwards.
+# The ONLY legal edges. WITHDRAWN is reachable from SMOKE / REGISTERED / TRAIN_COMPATIBLE
+# only — a candidate that turns out to be runtime-incompatible on TRAIN (or fails SMOKE)
+# can leave, but nothing that has seen DEV or TEST may be quietly removed from the
+# comparison afterwards. SMOKE has no edge INTO it (only register_candidate opens one
+# there) and no edge OUT of it beyond REGISTERED — it can never bypass the normal
+# lifecycle into anything promotable.
 TRANSITIONS: dict[str, tuple[str, ...]] = {
+    SMOKE: (REGISTERED, WITHDRAWN),
     REGISTERED: (TRAIN_COMPATIBLE, WITHDRAWN),
     TRAIN_COMPATIBLE: (CONTRACT_FROZEN, WITHDRAWN),
     CONTRACT_FROZEN: (DEV_EVALUATED,),
@@ -1043,6 +1119,13 @@ TERMINAL_STATES = tuple(s for s, nxt in TRANSITIONS.items() if not nxt)
 # question with a different die.
 DEV_OR_BEYOND = (DEV_EVALUATED, DEV_QUALIFIED, DEV_REJECTED, TEST_UNLOCKED, TEST_EVALUATED)
 TEST_STATES = (TEST_UNLOCKED, TEST_EVALUATED)
+
+# The elimination rule's only legal categories (playbook §4, contract §7). A pilot
+# comparison (`pilot_selection_loss`) carries extra evidentiary fields — see the
+# WITHDRAWN branch of `_validate_payload`; the other three are non-comparative and
+# need only `reason` + `reason_category`.
+WITHDRAWAL_CATEGORIES = ("pilot_selection_loss", "runtime_incompatibility",
+                         "infrastructure_failure", "owner_decision")
 
 
 class RegistryIntegrityError(SystemExit):
@@ -1237,6 +1320,8 @@ class R6Registry:
     @property
     def genconfigs_dir(self) -> Path: return self.root / "genconfigs"
     @property
+    def trained_dir(self) -> Path: return self.root / "trained"
+    @property
     def candidates_dir(self) -> Path: return self.root / "candidates"
     @property
     def head_file(self) -> Path: return self.root / "HEAD.json"
@@ -1308,6 +1393,37 @@ class R6Registry:
         if not path.exists():
             raise RegistryIntegrityError(f"no generation config record at {path}")
         return GenerationConfig(**json.loads(path.read_text())).verify()  # type: ignore[return-value]
+
+    def put_trained_artifact(self, rec: TrainedArtifact) -> Path:
+        """Record a self-produced (trained) weights file — FT-rig / R8, master plan §9.
+
+        Refuses (`TransitionRefused`) unless `base_artifact_id` names an already
+        REGISTERED `ModelArtifact` and every `compatible_runtime_ids` entry names an
+        already-registered `RuntimeIdentity` — a trained artifact's lineage and its
+        claimed compatibility must both resolve to real records, the same discipline
+        `register_candidate` applies to artifact/runtime before binding a candidate.
+        """
+        base_path = self.models_dir / f"{rec.base_artifact_id}.json"
+        if not base_path.exists():
+            raise TransitionRefused(
+                f"base_artifact_id {rec.base_artifact_id!r} does not name a registered "
+                f"artifact ({base_path} missing) — register the base artifact before the "
+                "trained result that derives from it")
+        missing_runtimes = [rid for rid in rec.compatible_runtime_ids
+                            if not (self.runtimes_dir / f"{rid}.json").exists()]
+        if missing_runtimes:
+            raise TransitionRefused(
+                f"compatible_runtime_ids names {missing_runtimes} with no runtime record "
+                f"under {self.runtimes_dir} — register the runtime before citing it as "
+                "compatible")
+        return self._put(self.trained_dir / f"{rec.artifact_id}.json", rec,
+                         "trained artifact", rec.artifact_id)
+
+    def get_trained_artifact(self, artifact_id: str) -> TrainedArtifact:
+        path = self.trained_dir / f"{artifact_id}.json"
+        if not path.exists():
+            raise RegistryIntegrityError(f"no trained artifact record at {path}")
+        return TrainedArtifact(**json.loads(path.read_text())).verify()  # type: ignore[return-value]
 
     # -------------------------------------------------------------- chain
     def _read_head(self) -> dict[str, Any]:
@@ -1424,7 +1540,9 @@ class R6Registry:
     def register_candidate(self, slug: str, artifact: ModelArtifact, runtime: RuntimeIdentity,
                            family: str | None = None, role: str | None = None, *,
                            verify_bytes: bool = True) -> str:
-        """Bind one artifact to one runtime and open its log at REGISTERED.
+        """Bind one artifact to one runtime and open its log at SMOKE (playbook §3):
+        every new candidate starts there and must pass the fixed 36-case SMOKE
+        population before REGISTERED work opens.
 
         `candidate_id` is derived from the two digests that decide what the numbers mean
         (artifact bytes, runtime), so the same pair cannot be registered twice under two
@@ -1496,7 +1614,7 @@ class R6Registry:
         identity["identity_digest"] = digest(identity)
         _dump(self.identity_file(candidate_id), identity)
         code_commit, tree_clean, _ = tree_state()
-        self._append(candidate_id, "transition", None, REGISTERED,
+        self._append(candidate_id, "transition", None, SMOKE,
                      {"identity_digest": identity["identity_digest"], "slug": slug,
                       "family": rec_family, "role": rec_role},
                      code_commit, tree_clean)
@@ -1566,7 +1684,55 @@ class R6Registry:
         train = _entry_to(entries, TRAIN_COMPATIBLE)
         contract = _entry_to(entries, CONTRACT_FROZEN)
 
-        if to == TRAIN_COMPATIBLE:
+        if to == REGISTERED:
+            # SMOKE -> REGISTERED (playbook §3, contract template §13): the fixed
+            # 36-case TRAIN population must have run clean — zero harness/schema/
+            # tool-contract violations — before any REGISTERED work opens.
+            _require(payload, ("smoke_run_id", "smoke_cases", "smoke_violations",
+                               "smoke_case_digest", "ordering"), to)
+            if payload["smoke_cases"] != SMOKE_TOTAL_CASES:
+                raise TransitionRefused(
+                    f"{cid}: smoke_cases must be {SMOKE_TOTAL_CASES} (12 classes x "
+                    f"{SMOKE_CASES_PER_CLASS}), got {payload['smoke_cases']!r}")
+            violations = payload["smoke_violations"]
+            if not isinstance(violations, int) or isinstance(violations, bool):
+                raise TransitionRefused(
+                    f"{cid}: smoke_violations must be an int, got {violations!r}")
+            if violations != 0:
+                raise TransitionRefused(
+                    f"{cid}: SMOKE recorded {violations} harness/schema/tool-contract "
+                    "violation(s) — a failing SMOKE cannot open REGISTERED work "
+                    "(contract template §13)")
+            if payload["ordering"] != "round_robin":
+                raise TransitionRefused(
+                    f"{cid}: ordering must be 'round_robin', got {payload['ordering']!r} "
+                    "— SMOKE runs in the canonical deterministic order (playbook §4)")
+            run_id = str(payload["smoke_run_id"])
+            lines = [ln for ln in self.read_ledger(cid) if ln.get("run_id") == run_id]
+            starts = [ln for ln in lines if ln.get("event") == "start"
+                     and ln.get("run_kind") == "smoke"]
+            ends = [ln for ln in lines if ln.get("event") == "end"
+                   and ln.get("run_kind") == "smoke"]
+            if not starts:
+                raise TransitionRefused(f"{cid}: no SMOKE ledger start line for {run_id!r}")
+            if not ends:
+                raise TransitionRefused(
+                    f"{cid}: SMOKE run {run_id!r} has no ledger end line — it did not finish")
+            planned = int(starts[0].get("planned_cases", 0))
+            done = sum(int(e.get("cases_done", 0)) for e in ends)
+            if planned != SMOKE_TOTAL_CASES or done != SMOKE_TOTAL_CASES:
+                raise TransitionRefused(
+                    f"{cid}: SMOKE run {run_id!r} planned {planned} and completed {done} "
+                    f"cases; a full SMOKE pass is {SMOKE_TOTAL_CASES} — partial runs do not "
+                    "open REGISTERED work")
+            logged_digest = starts[0].get("smoke_case_digest")
+            if logged_digest and logged_digest != payload["smoke_case_digest"]:
+                raise TransitionRefused(
+                    f"{cid}: the SMOKE start line recorded smoke_case_digest "
+                    f"{str(logged_digest)[:12]}… but this payload claims "
+                    f"{str(payload['smoke_case_digest'])[:12]}… — refusing")
+
+        elif to == TRAIN_COMPATIBLE:
             _require(payload, ("execution_system", "train_run_ids", "pilot_record_digest",
                                "calibration"), to)
             es = _as_execution_system(payload["execution_system"], to)
@@ -1586,6 +1752,18 @@ class R6Registry:
             if off:
                 raise TransitionRefused(
                     f"{cid}: {off} are not TRAIN run ids (a TRAIN run id must say 'train')")
+            ledger = self.read_ledger(cid)
+            non_promotable = {
+                r: sorted({ln.get("run_kind") for ln in ledger
+                          if ln.get("run_id") == r and ln.get("run_kind") in ("smoke", "diagnostic")})
+                for r in runs
+            }
+            non_promotable = {r: kinds for r, kinds in non_promotable.items() if kinds}
+            if non_promotable:
+                raise TransitionRefused(
+                    f"{cid}: train_run_ids cites {non_promotable} — SMOKE and diagnostic runs "
+                    "never justify adoption (playbook §3: SMOKE results never justify "
+                    "adoption or elimination decisions)")
             if not str(payload["pilot_record_digest"]):
                 raise TransitionRefused(f"{cid}: pilot_record_digest must be non-empty")
             if not isinstance(payload["calibration"], dict):
@@ -1599,7 +1777,8 @@ class R6Registry:
 
         elif to == CONTRACT_FROZEN:
             _require(payload, ("contract_path", "contract_revision", "contract_commit",
-                               "gates_digest", "execution_system_digest"), to)
+                               "gates_digest", "execution_system_digest",
+                               "contract_spec_path", "contract_spec_digest"), to)
             if not re.fullmatch(r"[0-9a-f]{40}", str(payload["contract_revision"])):
                 raise TransitionRefused(
                     f"{cid}: contract_revision must be the 40-hex git blob sha of the contract "
@@ -1623,6 +1802,54 @@ class R6Registry:
                     f"{cid}: contract_revision {str(payload['contract_revision'])[:12]}… is not the "
                     f"blob committed at HEAD for {payload['contract_path']} ({(blob or '?')[:12]}…) — "
                     "commit the contract, then freeze")
+            # Prospective contract-spec freeze hook (write-time only — a historical freeze
+            # entry recorded before this guard existed has no spec and is unaffected on
+            # read; `_validate_payload` is invoked only by `transition()`, never by
+            # `read_state()`).
+            spec_path = _ROOT / str(payload["contract_spec_path"])
+            if not spec_path.exists():
+                raise TransitionRefused(
+                    f"{cid}: contract_spec_path {payload['contract_spec_path']!r} does not "
+                    f"exist at {spec_path} — the freeze needs the machine-checkable spec, not "
+                    "just the prose")
+            try:
+                spec_data = json.loads(spec_path.read_text())
+            except json.JSONDecodeError as exc:
+                raise TransitionRefused(f"{cid}: {spec_path} is not valid JSON: {exc}") from exc
+            from fis_platform.contract_spec import (
+                ContractSpecError, ExperimentType, validate_contract_spec,
+            )
+            try:
+                spec = validate_contract_spec(spec_data)
+            except ContractSpecError as exc:
+                raise TransitionRefused(
+                    f"{cid}: contract spec at {spec_path} does not validate: {exc}") from exc
+            if spec.contract_spec_digest != payload["contract_spec_digest"]:
+                raise TransitionRefused(
+                    f"{cid}: contract_spec_digest "
+                    f"{str(payload['contract_spec_digest'])[:12]}… does not match the spec at "
+                    f"{spec_path} (digests to {spec.contract_spec_digest[:12]}…)")
+            # Finding 3: a validated spec is not, by itself, a spec that may freeze onto
+            # THIS path. The candidate state machine's CONTRACT_FROZEN -> DEV -> TEST path
+            # is the promotable inferential path (playbook §7); screening/diagnostic/
+            # measurement work runs under its own protocols (TRAIN screening, diagnostic
+            # run kind, pass^k measurement) and never freezes onto this path — without this
+            # check, a DIAGNOSTIC/MEASUREMENT/SCREENING spec could validate (its own fields
+            # are internally consistent) and still walk DEV -> TEST, dodging the inferential
+            # bar entirely.
+            if spec.experiment_type is not ExperimentType.INFERENTIAL:
+                raise TransitionRefused(
+                    f"{cid}: contract spec at {spec_path} has experiment_type "
+                    f"{spec.experiment_type.value!r}, not INFERENTIAL — the candidate state "
+                    "machine's CONTRACT_FROZEN -> DEV -> TEST path is the promotable "
+                    "inferential path (playbook §7); screening/diagnostic/measurement work "
+                    "runs under its own protocols (TRAIN screening, diagnostic run kind, "
+                    "pass^k measurement) and never freezes onto this path")
+            if not spec.candidates or cid not in spec.candidates:
+                raise TransitionRefused(
+                    f"{cid}: this candidate is not listed in {spec_path}'s candidates "
+                    f"{spec.candidates!r} — a candidate may not freeze a contract that does "
+                    "not name it")
 
         elif to == DEV_EVALUATED:
             _require(payload, ("dev_run_id", "dev_result", "contract_revision",
@@ -1738,11 +1965,70 @@ class R6Registry:
             side.append((path, result))
 
         elif to == WITHDRAWN:
-            _require(payload, ("reason",), to)
+            # Structured elimination-rule guard (playbook §4, contract §7). Every
+            # withdrawal names a reason AND a pre-registered category; a comparative
+            # loss ("pilot_selection_loss") additionally has to show its work — the
+            # margin, the pilot's own MDE, the sample size, and the evidence it rests
+            # on — because that is exactly the category the UD-Q3_K_XL precedent
+            # (withdrawn at McNemar p~0.22-0.48 on a cap-confounded metric, below the
+            # pilot's own MDE) got wrong.
+            _require(payload, ("reason", "reason_category"), to)
             if not str(payload["reason"]).strip():
                 raise TransitionRefused(
                     f"{cid}: withdrawing needs a reason — an unexplained disappearance from the "
                     "comparison is indistinguishable from a quietly dropped bad result")
+            category = payload["reason_category"]
+            if category not in WITHDRAWAL_CATEGORIES:
+                raise TransitionRefused(
+                    f"{cid}: reason_category {category!r} is not one of "
+                    f"{list(WITHDRAWAL_CATEGORIES)}")
+            if category == "owner_decision":
+                # Finding 4: "owner_decision" is a legitimate non-comparative category
+                # (playbook), but a bare reason string lets a below-MDE selection loss
+                # hide under it uncontested. Strengthening, not a doctrine change: an
+                # owner decision must name the owner — a non-empty authorized_by, the
+                # same field plan_look already requires for a TEST look (fis_platform.
+                # test_looks.plan_look).
+                if not str(payload.get("authorized_by") or "").strip():
+                    raise TransitionRefused(
+                        f"{cid}: reason_category 'owner_decision' requires a non-empty "
+                        "authorized_by — an owner decision must name the owner")
+            if category == "pilot_selection_loss":
+                _require(payload, ("pilot_margin_cases", "pilot_n", "pilot_mde_cases",
+                                   "evidence_run_ids"), to)
+                margin, n, mde = (payload["pilot_margin_cases"], payload["pilot_n"],
+                                 payload["pilot_mde_cases"])
+                evidence = payload["evidence_run_ids"]
+                if not isinstance(margin, int) or isinstance(margin, bool) or margin < 0:
+                    raise TransitionRefused(
+                        f"{cid}: pilot_margin_cases must be an int >= 0, got {margin!r}")
+                if not isinstance(n, int) or isinstance(n, bool) or n <= 0:
+                    raise TransitionRefused(f"{cid}: pilot_n must be an int > 0, got {n!r}")
+                if not isinstance(mde, int) or isinstance(mde, bool) or mde <= 0:
+                    raise TransitionRefused(
+                        f"{cid}: pilot_mde_cases must be an int > 0, got {mde!r}")
+                if not isinstance(evidence, list) or not evidence:
+                    raise TransitionRefused(f"{cid}: evidence_run_ids must be a non-empty list")
+                if margin < mde:
+                    raise TransitionRefused(
+                        f"{cid}: pilot margin {margin} case(s) is below the pilot's own MDE "
+                        f"{mde} case(s) — no candidate is withdrawn on a pilot margin below "
+                        "the pilot's own MDE (~9-11 of 36, playbook §4); below that, both "
+                        "candidates proceed under a pre-registered budget, the decision "
+                        "defers to DEV, or the selection metric changes to one the pilot can "
+                        "resolve")
+                ledger = self.read_ledger()
+                non_promotable = {
+                    r: sorted({ln.get("run_kind") for ln in ledger
+                              if ln.get("run_id") == r
+                              and ln.get("run_kind") in ("smoke", "diagnostic")})
+                    for r in evidence
+                }
+                non_promotable = {r: kinds for r, kinds in non_promotable.items() if kinds}
+                if non_promotable:
+                    raise TransitionRefused(
+                        f"{cid}: evidence_run_ids cites {non_promotable} — SMOKE cannot "
+                        "justify elimination (playbook §3)")
 
         return stored, side
 
@@ -1814,7 +2100,7 @@ def _as_execution_system(raw: Any, to: str) -> ExecutionSystem:
 # ------------------------------------------------------------------ runner interface
 
 _SPLITS = ("train", "dev", "test")
-RUN_KINDS = ("eval", "diagnostic")
+RUN_KINDS = ("eval", "diagnostic", "smoke")
 
 # The one M0-authorized extension (docs/current/NEXT_STEP_M0.md § 5): states a
 # `diagnostic` run may execute in. TRAIN's states, PLUS the terminal TEST_EVALUATED —
@@ -1823,6 +2109,39 @@ RUN_KINDS = ("eval", "diagnostic")
 # diagnostic at DEV_EVALUATED/TEST_UNLOCKED would be a side-channel look while a
 # split decision is still open, which is exactly what the machine forbids.
 DIAGNOSTIC_STATES = (REGISTERED, TRAIN_COMPATIBLE, CONTRACT_FROZEN, TEST_EVALUATED)
+
+# The fixed SMOKE population (playbook §3): 12 scenario classes x 3 cases = 36.
+SMOKE_CASES_PER_CLASS = 3
+SMOKE_TOTAL_CASES = SMOKE_CASES_PER_CLASS * 12
+
+
+def smoke_case_selection(train_ids: list[str]) -> list[str]:
+    """The fixed 36-case SMOKE population (playbook §3): the first
+    `SMOKE_CASES_PER_CLASS` TRAIN ids of every one of the 12 scenario classes, in
+    lexicographic (seed) order, then interleaved into the canonical round-robin order.
+
+    Deterministic and pure: the same `train_ids` set always yields the same 36 ids in
+    the same order — never sampled, never shuffled, so a SMOKE run is reproducible
+    from the TRAIN corpus alone. Refuses (fail closed, `TransitionRefused`) when
+    `train_ids` does not cover exactly 12 classes, or when any class has fewer than
+    `SMOKE_CASES_PER_CLASS` members — a partial population would be a different,
+    unrecorded test, not the pre-registered SMOKE tier.
+    """
+    groups: dict[str, list[str]] = {}
+    for scenario_id in train_ids:
+        groups.setdefault(class_of(scenario_id), []).append(scenario_id)
+    if len(groups) != 12:
+        raise TransitionRefused(
+            f"SMOKE needs exactly 12 scenario classes; train_ids covers {len(groups)}: "
+            f"{sorted(groups)} — refusing to select a partial population")
+    thin = {cls: len(ids) for cls, ids in groups.items() if len(ids) < SMOKE_CASES_PER_CLASS}
+    if thin:
+        raise TransitionRefused(
+            f"SMOKE needs {SMOKE_CASES_PER_CLASS} cases of every class; too few in {thin} "
+            "— refusing to select a partial population")
+    selected = [sid for cls in sorted(groups)
+               for sid in sorted(groups[cls])[:SMOKE_CASES_PER_CLASS]]
+    return round_robin(selected)
 
 
 def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: str,
@@ -1846,6 +2165,12 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
     additionally permitted at the terminal TEST_EVALUATED, mandatory non-empty
     `purpose`, run id must say "diag". Recorded through begin_run/end_run as ledger
     lines only — no state transition, no chain entry, no effect on promotability.
+
+    kind="smoke" (playbook §3): TRAIN-split-only, candidate must be at the SMOKE
+    state exactly (SMOKE is a one-shot precondition, not a repeatable probe like
+    diagnostic), run id must say "smoke". Recorded through begin_run/end_run as
+    ledger lines only, exactly like diagnostic — the SMOKE->REGISTERED chain entry
+    is a separate `transition()` call, not this function's concern.
     """
     if split not in _SPLITS:
         raise TransitionRefused(f"split must be one of {list(_SPLITS)}, got {split!r}")
@@ -1864,6 +2189,15 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
             raise TransitionRefused(
                 f"diagnostic run id {run_id!r} must say 'diag' — run ids are how the ledger "
                 "tells run kinds apart")
+    if kind == "smoke":
+        if split != "train":
+            raise TransitionRefused(
+                f"smoke runs are TRAIN-only (got split {split!r}) — SMOKE measures the fixed "
+                "36-case population before any REGISTERED work opens")
+        if "smoke" not in run_id.lower():
+            raise TransitionRefused(
+                f"smoke run id {run_id!r} must say 'smoke' — run ids are how the ledger tells "
+                "run kinds apart")
     entries = registry.read_state(candidate_id)
     identity = registry.read_identity(candidate_id)
     state = entries[-1]["to"]
@@ -1907,6 +2241,12 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
                     f"{candidate_id} is at {state}: diagnostic TRAIN inference is allowed "
                     f"only at {list(DIAGNOSTIC_STATES)} — no non-terminal DEV/TEST state "
                     "may be bypassed")
+        elif kind == "smoke":
+            if state != SMOKE:
+                raise TransitionRefused(
+                    f"{candidate_id} is at {state}: SMOKE inference is allowed only at "
+                    f"{SMOKE} — it is the one-shot population that decides whether "
+                    "REGISTERED work may open, not a repeatable probe")
         elif state not in (REGISTERED, TRAIN_COMPATIBLE, CONTRACT_FROZEN):
             raise TransitionRefused(
                 f"{candidate_id} is at {state}: TRAIN inference is allowed only at "
@@ -1982,6 +2322,11 @@ def begin_run(registry: R6Registry, candidate_id: str, split: str, run_id: str,
     state log and HEAD.json stay byte-identical — a diagnostic observes a frozen
     system, it is not an event in that system's history of decisions
     (docs/current/NEXT_STEP_M0.md § 5/§ 8: HEAD/state byte-identical across M0's runs).
+
+    kind="smoke" (playbook §3): ledger-line-ONLY, exactly like diagnostic — no chain
+    entry. `planned_cases` must be exactly `SMOKE_TOTAL_CASES` (36); SMOKE is a fixed
+    population, not a tunable sample size, so any other count is refused before it is
+    ever recorded.
     """
     if kind not in RUN_KINDS:
         raise TransitionRefused(f"run kind must be one of {list(RUN_KINDS)}, got {kind!r}")
@@ -1997,6 +2342,20 @@ def begin_run(registry: R6Registry, candidate_id: str, split: str, run_id: str,
                 "event": "start", "run_kind": "diagnostic", "purpose": purpose,
                 "planned_cases": planned_cases, "started_at": started_at,
                 "code_commit": code_commit, "state_at_run": state}
+        if extra and extra.get("local_server_session"):
+            line["local_server_session"] = str(extra["local_server_session"])
+        _append_line(registry.ledger_file, line)
+        return line
+    if kind == "smoke":
+        if planned_cases != SMOKE_TOTAL_CASES:
+            raise TransitionRefused(
+                f"SMOKE runs are fixed at {SMOKE_TOTAL_CASES} cases (12 classes x "
+                f"{SMOKE_CASES_PER_CLASS}), got planned_cases={planned_cases} — refusing")
+        line = {"candidate_id": candidate_id, "split": split, "run_id": run_id,
+                "event": "start", "run_kind": "smoke", "planned_cases": planned_cases,
+                "started_at": started_at, "code_commit": code_commit, "state_at_run": state}
+        if extra and extra.get("smoke_case_digest"):
+            line["smoke_case_digest"] = str(extra["smoke_case_digest"])
         if extra and extra.get("local_server_session"):
             line["local_server_session"] = str(extra["local_server_session"])
         _append_line(registry.ledger_file, line)

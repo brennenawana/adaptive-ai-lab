@@ -4,6 +4,11 @@ The R6 autopsy had only spot samples of VRAM and host RAM, so the 9h55m of cap-b
 could not be correlated with memory pressure after the fact. This thread samples
 every few seconds into JSONL; ~17k lines across a 24 h run, negligible overhead.
 
+Every sample also carries `clock_offset_s` (realtime minus monotonic, sampled at
+that instant): its DRIFT over a run IS the WSL2 realtime-clock skew the R6 autopsy
+§13 CLOCK row asked to make a first-class measurement instead of a forensic
+discovery (docs/R6_PERFORMANCE_AUTOPSY.md:249-250).
+
 Best-effort by design: a missing nvidia-smi is a missing field, never a dead run.
 """
 
@@ -12,6 +17,7 @@ from __future__ import annotations
 import json
 import subprocess
 import threading
+import time
 from pathlib import Path
 from typing import Any, Self
 
@@ -68,7 +74,14 @@ class ResourceSampler:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as fh:
             while not self._stop.is_set():
-                line = {**self.context, **dual_clock(), **_gpu_sample(), **_host_sample()}
+                # Sampled directly from time.time()/time.monotonic(), right next to the
+                # dual_clock() call, so the pairing is tight rather than reusing a stamp
+                # that was already rounded/formatted for a different purpose.
+                realtime_epoch_seconds = time.time()
+                monotonic_seconds = time.monotonic()
+                line = {**self.context, **dual_clock(),
+                        "clock_offset_s": round(realtime_epoch_seconds - monotonic_seconds, 3),
+                        **_gpu_sample(), **_host_sample()}
                 fh.write(json.dumps(line, sort_keys=True, default=str) + "\n")
                 fh.flush()
                 self.samples_written += 1

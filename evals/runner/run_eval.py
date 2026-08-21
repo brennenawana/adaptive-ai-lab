@@ -17,6 +17,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any, Callable
 
 import psycopg
 from psycopg.rows import dict_row
@@ -28,10 +29,16 @@ from dotenv import load_dotenv  # noqa: E402
 
 from evals.scorers.score import SCORER_VERSION, score_case  # noqa: E402
 from fis_platform.model_gateway import ModelGateway, default_registry  # noqa: E402
+from fis_platform.ordering import class_of, round_robin_rows  # noqa: E402
 from fis_platform.suite import (  # noqa: E402
     ONTOLOGY_VERSION, SUITE_VERSION, SuiteMismatch, corpus_suite, git_head, suite_of_run,
 )
 from fis_platform.telemetry import ResourceSampler, RunEventLog  # noqa: E402
+from fis_platform.test_looks import LookRefused, TestLookLedger, validate_mirror  # noqa: E402
+from fis_platform.tolerances import (  # noqa: E402
+    Consequence, CurtailmentPolicy, ToleranceSpec, ToleranceTracker,
+    append_curtailed_run, make_curtailment_report,
+)
 from fis_platform.tool_broker.broker import ToolBroker  # noqa: E402
 from fis_platform.verification.verifier import VERIFIER_VERSION  # noqa: E402
 from schemas.scenario import EvalRun, SeedSplit  # noqa: E402
@@ -229,12 +236,19 @@ def config_digest(*, model_ref: str, mode: str, prompt: str,
     return digest
 
 
-def load_manifests(conn, split: str, limit: int | None,
-                   scenario_ids: list[str] | None = None) -> list[dict]:
-    """The split's manifests in scenario-id order. `scenario_ids` (R6) restricts the
-    run to a pre-registered subset — still constrained to `split`, so a TRAIN pilot
-    list can never pull a DEV/TEST case in — and refuses ids the split does not hold
-    rather than silently running fewer cases than the pilot record says."""
+def load_manifests(conn, split: str, scenario_ids: list[str] | None = None) -> list[dict]:
+    """The split's manifests, in the DB's own scenario-id order (deterministic
+    retrieval only — NOT the run's execution order; see `apply_ordering`, called
+    right after this). `scenario_ids` (R6) restricts the run to a pre-registered
+    subset — still constrained to `split`, so a TRAIN pilot list can never pull a
+    DEV/TEST case in — and refuses ids the split does not hold rather than silently
+    running fewer cases than the pilot record says.
+
+    No `LIMIT` here (playbook §4, M-STAT map §4): a SQL-side prefix would take the
+    *first N by scenario_id* — i.e. by class, since ids sort class-major — which is
+    exactly the class-blocked prefix `apply_ordering` replaces. Truncation now
+    happens in Python, on the round-robin order, after this function returns.
+    """
     sql = """
         SELECT scenario_id, seed, split, category, root_cause, required_evidence,
                acceptable_next_actions, forbidden_claims, distractor_event_ids,
@@ -247,9 +261,6 @@ def load_manifests(conn, split: str, limit: int | None,
         sql += " AND scenario_id = ANY(%s)"
         params += (list(scenario_ids),)
     sql += " ORDER BY scenario_id"
-    if limit:
-        sql += " LIMIT %s"
-        params += (limit,)
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(sql, params)
         rows = [dict(r) for r in cur.fetchall()]
@@ -259,6 +270,32 @@ def load_manifests(conn, split: str, limit: int | None,
             raise SystemExit(f"{len(missing)} requested scenario id(s) are not in split "
                              f"{split!r}: {missing[:5]}{'…' if len(missing) > 5 else ''}")
     return rows
+
+
+def apply_ordering(manifests: list[dict], limit: int | None) -> list[dict]:
+    """The runner's ONLY execution-order + prefix-selection step (playbook §4,
+    M-STAT implementation map §4): canonical class-balanced round-robin order,
+    truncated to `limit` AFTER ordering, never before.
+
+    Consequence (deliberate): `--limit N` is now a class-balanced round-robin
+    prefix. The old class-blocked prefix (`ORDER BY scenario_id` truncated by a SQL
+    `LIMIT`, measured 5.4x worse as a prefix estimate) is not merely discouraged —
+    `load_manifests` no longer has a SQL `LIMIT` branch, so that code path does not
+    exist to be reached by any caller, correct or otherwise. This applies to every
+    split, not just TRAIN: DEV/TEST curtailment arithmetic (`fis_platform.
+    tolerances.CurtailmentPolicy`) also reads a prefix of `cases_done`, so an
+    unrepresentative prefix would bias curtailment decisions the same way it biases
+    a TRAIN screening pilot.
+
+    Comparability boundary (playbook §4; `fis_platform/ordering.py` module
+    docstring): changing execution order changes each case's prompt-cache
+    predecessor within a local llama.cpp server session — a documented source of
+    within-session nondeterminism. A round-robin run therefore does not share
+    predecessor structure, case for case, with a historical class-blocked run over
+    the same scenario ids; case-level comparisons between the two are descriptive
+    only, never a paired statistical claim.
+    """
+    return round_robin_rows(manifests)[:limit]
 
 
 def already_done(conn, run_id: str) -> set[str]:
@@ -292,11 +329,358 @@ def guard_suite(conn, run_id: str, split: str, resume: bool) -> None:
             f"run id {run_id!r} already has scores; pass --resume to continue it or choose a new id")
 
 
+def check_corpus_pinned(live_digest: str) -> None:
+    """Fail-closed corpus identity (M-STAT map §8): `live_digest` (the DB's own
+    `corpus_digest(conn)["digest"]`, already computed at run start) must match the
+    PINNED identity recorded at `scenarios/manifests/corpus_v{SUITE_VERSION}.json`
+    (written once, by `scripts/corpus_digest.py --write`, at suite release time).
+
+    Before this, the live digest was recorded on every trajectory's
+    `runtime_context` but never compared to anything — a corpus that drifted (a bad
+    migration, a partial regeneration, a manual row edit) would score silently
+    against the wrong worlds, discovered only by someone reading the recorded
+    digest later and noticing it looked wrong. Both a digest mismatch and a missing
+    pinned manifest are refused: a suite with no pinned identity to check against is
+    not verified, not merely unverified-but-fine.
+    """
+    manifest_path = ROOT / "scenarios" / "manifests" / f"corpus_v{SUITE_VERSION}.json"
+    if not manifest_path.exists():
+        raise SuiteMismatch(
+            f"no pinned corpus manifest at {manifest_path} for suite {SUITE_VERSION!r} — "
+            f"live corpus digest is {live_digest}, but there is nothing pinned to verify it "
+            "against (run `scripts/corpus_digest.py --write` at suite release time)")
+    pinned = json.loads(manifest_path.read_text(encoding="utf-8"))
+    pinned_digest = pinned.get("corpus_digest")
+    if pinned_digest != live_digest:
+        raise SuiteMismatch(
+            f"corpus digest mismatch: live digest {live_digest} != pinned digest "
+            f"{pinned_digest!r} ({manifest_path}) — the corpus in the database has drifted "
+            f"from the suite-{SUITE_VERSION} identity this code was pinned against")
+
+
+def test_look_gate(split: str, run_id: str, resume: bool, ledger_path: Path | None = None,
+                   mirror_path: Path | None = None) -> TestLookLedger | None:
+    """The machine TEST-look gate (playbook §1; M-STAT map §7) — consulted for
+    EVERY arm, local or frontier, before a single case executes. Closes the
+    frontier bypass: the pre-M-STAT gate (`r6_candidate_preflight`) only ever ran
+    for `--candidate` (local llama.cpp) arms, so a frontier-model TEST run was
+    ungated. This function takes no provider/candidate argument at all — it cannot
+    be, because nothing about "which model" is relevant to whether a TEST look was
+    planned.
+
+    Returns `None` immediately for TRAIN/DEV — a TEST-look ledger has nothing to
+    say about a split it does not gate. For TEST: constructs the ledger at
+    `ledger_path` (default the live `learning/registry/test_looks.jsonl`),
+    validates the human-readable mirror at `mirror_path` (default the live
+    `docs/current/TEST_LOOK_LEDGER.md`) against it — a diverged mirror refuses
+    before anything else, since a divergence means the record of record itself is
+    in a state nobody has reconciled yet — then requires a planned look for
+    `(SUITE_VERSION, run_id)` (`require_planned`, which itself re-checks the
+    look-#8 trigger-review requirement at consumption time, not just at plan time).
+    Any of these refusals is a `LookRefused`/`MirrorDivergence` `SystemExit`.
+
+    `resume` is accepted for interface symmetry with the runner's other TEST-path
+    guards (`r6_candidate_preflight` takes `args`, `resume` included) but is not
+    branched on here: `require_planned` must hold whether this is a fresh run or a
+    resume of one already spent — the ledger's own `record_spend` is what makes
+    resuming a spent run safe (idempotent per `run_id`), not this gate relaxing.
+    """
+    if split != "test":
+        return None
+    ledger = TestLookLedger(ledger_path or ROOT / "learning" / "registry" / "test_looks.jsonl")
+    validate_mirror(ledger.path, mirror_path or ROOT / "docs" / "current" / "TEST_LOOK_LEDGER.md")
+    ledger.require_planned(SUITE_VERSION, run_id)
+    return ledger
+
+
+# --------------------------------------------------------- consequence-bearing tolerances
+
+def _tolerance_cap_hit(ctx: dict[str, Any]) -> bool:
+    """Violation iff the case's FIRST model invocation stopped for hitting the
+    output-token cap (`stop_reason == "length"`). A case that raised before any
+    invocation completed is never a cap_hit — `ctx["stop_reason"]` is `None` there,
+    which compares unequal to `"length"`."""
+    return ctx.get("stop_reason") == "length"
+
+
+def _tolerance_case_fail(ctx: dict[str, Any]) -> bool:
+    """Violation iff the case did not score `all_pass` — INCLUDING a case that
+    raised an exception before it could be scored at all: a case that never scored
+    plainly did not pass either. Only the `"exception"` metric distinguishes the
+    two failure shapes from each other; `case_fail` counts both as one."""
+    return bool(ctx.get("exception")) or ctx.get("all_pass") is False
+
+
+def _tolerance_exception(ctx: dict[str, Any]) -> bool:
+    """Violation iff the case raised before it could be scored."""
+    return bool(ctx.get("exception"))
+
+
+TOLERANCE_METRICS: dict[str, Callable[[dict[str, Any]], bool]] = {
+    "cap_hit": _tolerance_cap_hit,
+    "case_fail": _tolerance_case_fail,
+    "exception": _tolerance_exception,
+}
+
+
+class UnknownToleranceMetric(SystemExit):
+    """A `--tolerance-spec` entry named a `metric` outside `TOLERANCE_METRICS`.
+    Refused at load time, before any case runs — a tolerance the runner cannot
+    evaluate is not a pre-registered tolerance, it is a promise with no mechanism,
+    which is the exact class of defect this module closes (module docstring)."""
+
+
+def load_tolerance_specs(path: Path) -> list[ToleranceSpec]:
+    """`--tolerance-spec`'s JSON list, parsed into `ToleranceSpec` objects.
+
+    Construction is fail-closed per `fis_platform.tolerances` itself (a spec naming
+    RECALIBRATE with no procedure, or PROCEED_WITH_DECLARED_CEILING with no priced
+    ceiling, refuses to construct at all — a `pydantic.ValidationError`). The one
+    check this function adds on top is metric support: a spec naming a `metric` not
+    in `TOLERANCE_METRICS` is refused here, by name, before any case runs — never
+    discovered case-by-case as a `KeyError` mid-run.
+    """
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise SystemExit(f"--tolerance-spec {path}: expected a JSON list of tolerance specs")
+    specs = [ToleranceSpec(**entry) for entry in raw]
+    unknown = [(s.spec_id, s.metric) for s in specs if s.metric not in TOLERANCE_METRICS]
+    if unknown:
+        raise UnknownToleranceMetric(
+            f"--tolerance-spec {path}: unsupported metric(s) {unknown} — supported metrics "
+            f"are {sorted(TOLERANCE_METRICS)}")
+    return specs
+
+
+def reconstruct_tolerance_trackers(conn, run_id: str,
+                                   specs: list[ToleranceSpec]) -> dict[str, ToleranceTracker]:
+    """`--resume`'s reconstruction of every tolerance tracker from already-persisted
+    rows for `run_id` (canonical storage — `learning.case_scores` joined to
+    `learning.trajectories` — is the authority here, not any in-memory state from
+    the crashed process).
+
+    Refuses FIRST, before any query, if any spec's metric is `"exception"`: an
+    excepted case is never persisted (there is no `case_scores`/`trajectories` row
+    for it — `persist()` is only ever called after a case scores), so the exception
+    count from before the resume boundary is not recoverable from canonical
+    storage. Resuming would silently under-count violations for that tolerance
+    rather than fail closed, so this refuses instead and says restart.
+
+    `case_fail`/`cap_hit` reconstruction has the same blind spot in one respect: an
+    excepted case also does not persisted-reconstruct as a `case_fail` violation
+    (live-loop `_tolerance_case_fail` counts an exception as a failure; a resumed
+    tracker, having no row for it, cannot). This is a known, narrower gap than the
+    `exception` metric's — it under-counts by excepted cases only, never fabricates
+    a pass — and is not fixed here; a contract relying on exact `case_fail`
+    reconstruction across a resume boundary with prior exceptions should know this.
+    """
+    exception_specs = [s.spec_id for s in specs if s.metric == "exception"]
+    if exception_specs:
+        raise SystemExit(
+            f"--resume refused: tolerance spec(s) {exception_specs} use metric='exception', "
+            "which cannot be reconstructed from canonical storage (an excepted case is never "
+            "persisted, so its violation is not recoverable) — restart the run instead of "
+            "resuming it")
+    trackers: dict[str, ToleranceTracker] = {}
+    if not specs:
+        return trackers
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """SELECT cs.id AS id, cs.all_pass AS all_pass,
+                      t.payload->'model_invocations'->0->>'stop_reason' AS stop_reason
+                 FROM learning.case_scores cs
+                 JOIN learning.trajectories t ON t.trace_id = cs.trace_id
+                WHERE cs.run_id = %s
+                ORDER BY cs.id""",
+            (run_id,))
+        rows = cur.fetchall()
+    for spec in specs:
+        extractor = TOLERANCE_METRICS[spec.metric]
+        violations = [extractor({"exception": False, "stop_reason": r["stop_reason"],
+                                 "all_pass": r["all_pass"]}) for r in rows]
+        trackers[spec.spec_id] = ToleranceTracker.from_persisted(spec, violations)
+    return trackers
+
+
+def apply_tolerance_consequence(
+    consequence: Consequence,
+    tracker: ToleranceTracker,
+    events: RunEventLog,
+    *,
+    candidate_end_run: Callable[[dict[str, Any]], None] | None = None,
+) -> None:
+    """Dispatch ONE crossing of a pre-registered tolerance (playbook §5). Callers
+    invoke this only when `tracker.observe(...)` just returned non-`None` — i.e.
+    exactly once per tolerance, on the (k+1)-th violation — so the
+    `tolerance_consequence` event this writes is written exactly once by
+    construction, never by caller discipline.
+
+    ABORT and RECALIBRATE halt the run in the same shape: the consequence event,
+    a `run_end` naming the halt status, the same payload folded into `end_run`
+    extra for a `--candidate` run (never "curtail now, finish later" — the
+    tolerance fired, the run is over), and a `SystemExit` naming the spec so the
+    exit message alone says which tolerance and which consequence fired.
+    RECALIBRATE additionally prints the pre-registered `recalibration_procedure` —
+    the runner never improvises one. PROCEED_WITH_DECLARED_CEILING records the
+    event (with its priced ceiling) and returns normally, so the loop continues:
+    the R6 defect this module exists to close was an UNPRICED silent default, not
+    the act of proceeding itself.
+    """
+    action = tracker.to_consequence_action()
+    events.event("tolerance_consequence", **action.model_dump(mode="json"))
+    if consequence is Consequence.PROCEED_WITH_DECLARED_CEILING:
+        print(f"    tolerance {action.spec_id!r}: PROCEED_WITH_DECLARED_CEILING — "
+             f"declared_ceiling={action.declared_ceiling!r} projected_cost={action.projected_cost!r}")
+        return
+    status = "aborted-tolerance" if consequence is Consequence.ABORT else "halted-recalibrate"
+    events.run_end(status=status, tolerance_spec_id=action.spec_id, at_violation=action.at_violation)
+    if candidate_end_run is not None:
+        candidate_end_run({"tolerance_consequence": action.model_dump(mode="json")})
+    if consequence is Consequence.RECALIBRATE:
+        print(f"    tolerance {action.spec_id!r}: RECALIBRATE — pre-registered procedure: "
+             f"{action.recalibration_procedure}")
+        raise SystemExit(
+            f"tolerance {action.spec_id!r} breached ({action.at_violation} violations of a "
+            f"<={tracker.spec.max_violations} bar) — RECALIBRATE: re-derive the calibrated "
+            "parameter per the pre-registered procedure above, then re-freeze before "
+            "continuing (the runner never improvises a recalibration)")
+    raise SystemExit(
+        f"tolerance {action.spec_id!r} breached ({action.at_violation} violations of a "
+        f"<={tracker.spec.max_violations} bar) — ABORT: the run halted, the experiment "
+        "returns to design (playbook §5)")
+
+
+def observe_tolerances(trackers: dict[str, ToleranceTracker], ctx: dict[str, Any], *,
+                       events: RunEventLog,
+                       candidate_end_run: Callable[[dict[str, Any]], None] | None = None) -> None:
+    """One case's outcome (`ctx` — the shape `TOLERANCE_METRICS` extractors read:
+    `exception`/`stop_reason`/`all_pass`), fed to every active tolerance tracker via
+    its own metric's extractor. `ToleranceTracker.observe` returns the consequence
+    exactly once, on the crossing call, so `apply_tolerance_consequence` (which can
+    raise `SystemExit`) is only ever invoked at that one call per tracker.
+    """
+    for tracker in trackers.values():
+        violation = TOLERANCE_METRICS[tracker.spec.metric](ctx)
+        consequence = tracker.observe(violation)
+        if consequence is not None:
+            apply_tolerance_consequence(consequence, tracker, events,
+                                        candidate_end_run=candidate_end_run)
+
+
+# ------------------------------------------------------------------- certainty curtailment
+
+def curtail_and_exit(
+    policy: CurtailmentPolicy, passes: int, cases_done: int, *, run_id: str, split: str, arm: str,
+    remaining_manifests: list[dict], events: RunEventLog, curtailed_runs_path: Path,
+    candidate_end_run: Callable[[dict[str, Any]], None] | None = None,
+) -> None:
+    """Certainty curtailment (playbook §6). Called once `policy.should_curtail(passes,
+    cases_done)` is true: even a clean sweep of every remaining case cannot reach
+    the pre-registered bar, so the arm is irreversibly rejected (guard 1 — spend
+    semantics: the split is already spent, there is no "curtail now, finish later").
+
+    Writes the INTERVAL-ONLY report (guard 2 — never a partial point estimate) via
+    `append_curtailed_run` to `curtailed_runs_path`, emits a `curtailed` event and a
+    `run_end(status="curtailed")`, folds the same interval + unrun classes into
+    `end_run` extra for a `--candidate` run, prints ONLY the certain interval
+    `[passes, passes+remaining]/n_total` and the unrun classes (never a rate), and
+    raises `SystemExit`. `remaining_manifests` are the NOT-YET-ATTEMPTED manifests —
+    their scenario classes are what `unrun_classes` reports (guard 3, the paired
+    firewall, is enforced by the tools that CONSULT `curtailed_runs_path`, not here
+    — see the `fis_platform.tolerances` module docstring).
+    """
+    unrun_classes = sorted({class_of(m["scenario_id"]) for m in remaining_manifests})
+    report = make_curtailment_report(run_id=run_id, split=split, arm=arm, passes=passes,
+                                     cases_done=cases_done, n_total=policy.n_total,
+                                     bar=policy.bar, unrun_classes=unrun_classes)
+    append_curtailed_run(curtailed_runs_path, report)
+    events.event("curtailed", **report)
+    events.run_end(status="curtailed", passes=passes, cases_done=cases_done)
+    if candidate_end_run is not None:
+        candidate_end_run({"curtailed": True, "certain_interval": report["interval"],
+                           "unrun_classes": unrun_classes})
+    lo, hi = report["interval"]
+    print(f"\nCURTAILED (bar={policy.bar}, n_total={policy.n_total}): "
+         f"certain interval [{lo}, {hi}]/{policy.n_total}; unrun classes: {unrun_classes}")
+    raise SystemExit(
+        f"run {run_id!r} curtailed at cases_done={cases_done} — arm {arm!r} cannot reach "
+        f"bar={policy.bar} even with a clean sweep of the remaining cases (guard 1: this arm "
+        "is irreversibly rejected, not paused)")
+
+
+# ---------------------------------------- Finding 2: the TEST-write choke point in persist()
+#
+# `test_look_gate` (above) fires only from `main()` — a future script that imports
+# `persist()` directly (as `scripts/m0_paired_probe.py` already does) could write a
+# TEST-split `case_scores` row completely unledgered. This is the second, independent
+# guard: it lives INSIDE `persist()`, the one function every write path shares, so it
+# cannot be bypassed by skipping `main()`.
+
+# scenarios/generator/run.py:55-58 SPLIT_RANGES — inlined here, not imported, so this
+# module never has to import the generator to derive a split. TEST is the disjoint
+# seed range 3_000_000..3_999_999.
+_TEST_SEED_LO, _TEST_SEED_HI = 3_000_000, 3_999_999
+
+# The default TEST-look ledger location — the same value `fis_platform.test_looks.
+# default_path()` returns, restated as a module-level constant here (the `tolerances.
+# CURTAILED_RUNS_PATH` pattern) so a test can monkeypatch it and have every call site
+# that omits an explicit path see the redirected ledger. Resolved fresh inside
+# `_require_test_look_planned_or_spent` on every call, never bound into a parameter
+# default.
+TEST_LOOK_LEDGER_PATH = ROOT / "learning" / "registry" / "test_looks.jsonl"
+
+# One ledger read per (base) run id, not one per case — a TEST run persists dozens to
+# hundreds of cases through the same run_id, and the ledger only needs to be asked once.
+_test_look_verdict_cache: dict[str, bool] = {}
+
+
+def _seed_from_scenario_id(scenario_id: str) -> int:
+    """The seed out of a `Sxx-NNNNNNN` scenario id — no DB, no
+    `scenarios.generator` import (see the comment above `_TEST_SEED_LO`)."""
+    return int(scenario_id.split("-")[1])
+
+
+def _require_test_look_planned_or_spent(run_id: str) -> None:
+    """Fail-closed: `run_id` (or, for a `.weak` id, its base id) must hold a
+    `planned` or `spent` entry in the TEST-look ledger, or this raises `LookRefused`.
+
+    A run id ending `.weak` is checked under its base id — the cascade's weak stage
+    is scored and persisted under `f"{run_id}.weak"`, but it is spent within the SAME
+    counted TEST look as the strong arm (`docs/current/TEST_LOOK_LEDGER.md`'s
+    counting convention), so it never plans (or spends) a look of its own.
+
+    `planned` is accepted, not just `spent`, because the runner's own `record_spend`
+    call (`main()`, at the first case) may not have landed yet the very first time
+    `persist()` runs for a fresh TEST run — a planned-but-not-yet-spent look is still
+    a real, pre-registered TEST look, just not yet exercised.
+    """
+    base_run_id = run_id[:-len(".weak")] if run_id.endswith(".weak") else run_id
+    if base_run_id in _test_look_verdict_cache:
+        ok = _test_look_verdict_cache[base_run_id]
+    else:
+        entries = TestLookLedger(TEST_LOOK_LEDGER_PATH).read()
+        ok = any(e.get("run_id") == base_run_id and e.get("kind") in ("planned", "spent")
+                for e in entries)
+        _test_look_verdict_cache[base_run_id] = ok
+    if not ok:
+        raise LookRefused(
+            f"persist() refused: run {base_run_id!r} has no planned or spent TEST look in "
+            f"{TEST_LOOK_LEDGER_PATH} — TEST-split case_scores may not be written off the "
+            "runner's own gate (fail closed: no plan, no TEST)")
+
+
 def persist(conn, run_id: str, score, trajectory, result=None) -> None:
     """`result` (the parsed InvestigationResult, or None) is stored in
     `learning.model_outputs` since R5: the answer body is what a learned router reads,
     and every run before R5 kept only its sha256. Best-effort and after the score row —
-    a persistence problem here must never lose a scored case."""
+    a persistence problem here must never lose a scored case.
+
+    Fail-closed FIRST, before `conn` is touched at all (Finding 2, above): if
+    `score.scenario_id`'s seed falls in the TEST range, `run_id` (or its `.weak` base)
+    must already hold a planned or spent TEST look, or this raises `LookRefused`."""
+    seed = _seed_from_scenario_id(score.scenario_id)
+    if _TEST_SEED_LO <= seed <= _TEST_SEED_HI:
+        _require_test_look_planned_or_spent(run_id)
     with conn.cursor() as cur:
         cur.execute(
             """INSERT INTO learning.trajectories
@@ -336,8 +720,14 @@ async def main() -> None:
     ap.add_argument("--model-ref", required=True)
     ap.add_argument("--mode", choices=[m.value for m in EvidenceMode],
                     default=EvidenceMode.FIXED_EVIDENCE.value)
-    ap.add_argument("--split", choices=[s.value for s in SeedSplit], default="test")
-    ap.add_argument("--limit", type=int)
+    ap.add_argument("--split", choices=[s.value for s in SeedSplit], required=True,
+                    help="TRAIN/DEV/TEST. Required — a bare invocation must never silently "
+                         "default to TEST (M-STAT map §7: the historical default made an "
+                         "unledgered TEST look one missing flag away).")
+    ap.add_argument("--limit", type=int,
+                    help="Prefix size, applied AFTER round-robin ordering (playbook §4) — a "
+                         "class-balanced prefix. The old class-blocked SQL-LIMIT prefix path "
+                         "no longer exists (see apply_ordering).")
     ap.add_argument("--scenario-ids-file", type=Path,
                     help="R6: run only these scenario ids (one per line; '#' comments), e.g. "
                          "the pre-registered TRAIN pilot from scripts/r6_pilot.py. Ids must "
@@ -368,11 +758,29 @@ async def main() -> None:
                     help=f"Generation budget for --model-ref (default {DEFAULT_MAX_TOKENS}, the "
                          "budget every recorded run was made with). Recorded on every "
                          "invocation and, when non-default, in the config digest.")
+    ap.add_argument("--tolerance-spec", type=Path, metavar="PATH.JSON",
+                    help="Playbook §5: JSON list of pre-registered ToleranceSpec dicts. "
+                         "In-run curtailed exact counting to violation k+1, per case; a "
+                         "breach dispatches its named consequence (ABORT / RECALIBRATE / "
+                         "PROCEED_WITH_DECLARED_CEILING) — never a silent default.")
+    ap.add_argument("--curtail-bar", type=float, metavar="0..1",
+                    help="Playbook §6: certainty curtailment. Abort this arm the instant its "
+                         "remaining cases cannot reach ceil(bar * n_total) passes; reports "
+                         "the certain interval only, never a point estimate.")
     args = ap.parse_args()
     if args.max_tokens < 256:
         raise SystemExit(f"--max-tokens {args.max_tokens} is below the manifest minimum (256)")
 
+    # Parsed and metric-checked before anything else runs (E): a spec this runner
+    # cannot evaluate is refused by name now, not discovered case-by-case mid-run.
+    tolerance_specs = load_tolerance_specs(args.tolerance_spec) if args.tolerance_spec else []
+
     run_id = args.run_id or f"{args.arm}-{args.model_ref}-{args.split}"
+
+    # The machine TEST-look gate (C): consulted for EVERY arm, before any model
+    # execution, regardless of provider or --candidate. Returns None on TRAIN/DEV.
+    test_look_ledger = test_look_gate(args.split, run_id, args.resume)
+
     gateway = ModelGateway(default_registry())
 
     manifest = gateway.registry.resolve(args.model_ref)
@@ -416,11 +824,21 @@ async def main() -> None:
     if args.candidate:
         r6_reg, r6_ident = r6_candidate_preflight(args, run_id, manifest, runtime_context)
 
+    # The suite a score is measured against is `fis_platform.suite.SUITE_VERSION`
+    # (v2: the event migration; v3: the four benchmark-defect fixes of
+    # SUITE_V3_RELEASE_CONTRACT.md). Numbers are never comparable across it.
+    # Computed here (G) — BEFORE the RunEventLog below — so the digest can be part
+    # of that log's context from its very first line, not reconstructed later.
+    digest = config_digest(model_ref=args.model_ref, mode=args.mode, prompt=args.prompt,
+                           escalate_to=args.escalate_to, escalation_policy=args.escalation_policy,
+                           strong_prompt=args.strong_prompt, max_tokens=args.max_tokens)
+
     import time as _time
     run_started = _time.monotonic()
     with psycopg.connect(OWNER_DSN) as owner:
         guard_suite(owner, run_id, args.split, args.resume)
         runtime_context["corpus_digest"] = corpus_digest(owner)["digest"]
+        check_corpus_pinned(runtime_context["corpus_digest"])   # D: fail-closed pinned identity
         scenario_ids = None
         if args.scenario_ids_file:
             scenario_ids = [ln.strip() for ln in args.scenario_ids_file.read_text().splitlines()
@@ -430,9 +848,31 @@ async def main() -> None:
             runtime_context["scenario_ids_file"] = str(args.scenario_ids_file)
             runtime_context["scenario_ids_digest"] = __import__("hashlib").sha256(
                 "\n".join(scenario_ids).encode()).hexdigest()
-        manifests = load_manifests(owner, args.split, args.limit, scenario_ids)
+        manifests = load_manifests(owner, args.split, scenario_ids)
+        # B: canonical class-balanced round-robin order + prefix, right after load —
+        # see apply_ordering's docstring for the consequence and the comparability
+        # boundary (playbook §4).
+        manifests = apply_ordering(manifests, args.limit)
+        runtime_context["ordering"] = "round_robin"
         done = already_done(owner, run_id) if args.resume else set()
         pending = [m for m in manifests if m["scenario_id"] not in done]
+
+        # E: reconstruct trackers from persisted rows on --resume; fresh otherwise.
+        tolerance_trackers = (reconstruct_tolerance_trackers(owner, run_id, tolerance_specs)
+                              if args.resume else
+                              {s.spec_id: ToleranceTracker(s) for s in tolerance_specs})
+
+        # F: certainty curtailment. passes/cases_done include resumed rows — counted
+        # from the DB, not from `done` (which is scenario ids, not a pass count).
+        curtailment_policy = None
+        passes = cases_done = 0
+        if args.curtail_bar is not None:
+            curtailment_policy = CurtailmentPolicy(bar=args.curtail_bar, n_total=len(manifests))
+            with owner.cursor() as cur:
+                cur.execute(
+                    "SELECT count(*) FILTER (WHERE all_pass), count(*) "
+                    "FROM learning.case_scores WHERE run_id = %s", (run_id,))
+                passes, cases_done = cur.fetchone()
 
         print(f"run_id={run_id}  arm={args.arm}  model={args.model_ref}  mode={args.mode}")
         print(f"{len(manifests)} scenarios in split, {len(done)} already scored, "
@@ -463,9 +903,14 @@ async def main() -> None:
         # M0 telemetry floor (autopsy §13): dual-clock lifecycle events with a
         # signal-safe run_end, plus a GPU/RAM sampler for local candidate runs.
         # evals/reports/ is gitignored operational telemetry, same as the run report.
+        # G: context enriched with config_digest/experiment_id/candidate_id/
+        # execution_system_digest/ordering — HARNESS events previously lacked all five.
         events = RunEventLog(ROOT / "evals" / "reports" / f"{run_id}.events.jsonl",
                              run_id=run_id, arm=args.arm, split=args.split,
-                             model_ref=args.model_ref)
+                             model_ref=args.model_ref, config_digest=digest,
+                             experiment_id=args.arm, candidate_id=args.candidate or "",
+                             execution_system_digest=runtime_context.get("execution_system_digest", ""),
+                             ordering="round_robin")
         events.run_start(planned_cases=len(manifests), pending=len(pending),
                          resume=bool(args.resume), max_tokens=args.max_tokens,
                          local_server_session=runtime_context.get("local_server_session", ""))
@@ -474,22 +919,33 @@ async def main() -> None:
             sampler = ResourceSampler(ROOT / "evals" / "reports" / f"{run_id}.samples.jsonl",
                                       interval_s=5.0, context={"run_id": run_id}).start()
 
-        # The suite a score is measured against is `fis_platform.suite.SUITE_VERSION`
-        # (v2: the event migration; v3: the four benchmark-defect fixes of
-        # SUITE_V3_RELEASE_CONTRACT.md). Numbers are never comparable across it.
-        digest = config_digest(model_ref=args.model_ref, mode=args.mode, prompt=args.prompt,
-                               escalate_to=args.escalate_to, escalation_policy=args.escalation_policy,
-                               strong_prompt=args.strong_prompt, max_tokens=args.max_tokens)
         run = EvalRun(run_id=run_id, suite="fis-eval", suite_version=SUITE_VERSION,
                       experiment_arm=args.arm, split=SeedSplit(args.split),
                       config_digest=digest)
         escalations = 0
 
+        # E/F: a --candidate run's premature halt (tolerance consequence or
+        # curtailment) still needs its own end_run ledger line — same shape as the
+        # normal completion at the bottom of main(), folding in whichever extra
+        # payload the halt reason carries.
+        candidate_end_run: Callable[[dict[str, Any]], None] | None = None
+        if r6_reg is not None:
+            def candidate_end_run(extra: dict[str, Any]) -> None:
+                from fis_platform.provenance import end_run as _end_run
+                _end_run(r6_reg, args.candidate, run_id, cases_done=len(run.scores),
+                         wall_s=round(_time.monotonic() - run_started, 1), extra=extra)
+
         for i, m in enumerate(pending, 1):
             events.event("case_start", scenario_id=m["scenario_id"], index=i)
+            if test_look_ledger is not None and i == 1:
+                # C: spend at the FIRST executed case (playbook §1), before the
+                # investigate call — idempotent per run_id on a resumed spent run.
+                test_look_ledger.record_spend(run_id, m["scenario_id"])
             if r6_reg is not None:
                 runtime_context["gpu_mem_used_mib_now"] = gpu_mem_used_mib()
-            with ToolBroker(TOOLS_DSN) as broker:
+            with ToolBroker(TOOLS_DSN,
+                            on_event=lambda name, _sid=m["scenario_id"], **f: events.event(
+                                name, scenario_id=_sid, **f)) as broker:
                 try:
                     if args.escalate_to:
                         out = await investigate_cascade(
@@ -516,6 +972,9 @@ async def main() -> None:
                     print(f"[{i}/{len(pending)}] {m['scenario_id']}  EXCEPTION {exc}")
                     events.event("case_end", scenario_id=m["scenario_id"], index=i,
                                  status="exception", error=str(exc)[:500])
+                    observe_tolerances(tolerance_trackers,
+                                       {"exception": True, "stop_reason": None, "all_pass": None},
+                                       events=events, candidate_end_run=candidate_end_run)
                     continue
 
             score = score_case(result=result, trajectory=traj, manifest=m, run_id=run_id)
@@ -553,6 +1012,23 @@ async def main() -> None:
                   f"act={'ok' if score.next_action_acceptable else 'X'} "
                   f"ver={'ok' if score.verifier_passed else 'X'} "
                   f"{score.wall_ms:>6}ms {gen}  ${score.reference_cost_usd:.4f}  {said}{route}")
+
+            observe_tolerances(tolerance_trackers,
+                               {"exception": False, "stop_reason": inv.stop_reason if inv else None,
+                                "all_pass": score.all_pass},
+                               events=events, candidate_end_run=candidate_end_run)
+
+            if curtailment_policy is not None:
+                cases_done += 1
+                if score.all_pass:
+                    passes += 1
+                if curtailment_policy.should_curtail(passes, cases_done):
+                    curtail_and_exit(curtailment_policy, passes, cases_done, run_id=run_id,
+                                     split=args.split, arm=args.arm,
+                                     remaining_manifests=pending[i:], events=events,
+                                     curtailed_runs_path=ROOT / "learning" / "registry"
+                                                         / "curtailed_runs.jsonl",
+                                     candidate_end_run=candidate_end_run)
 
     print("\n" + "=" * 78)
     print(f"strict all-pass    : {_pct(run.strict_all_pass_rate)}")

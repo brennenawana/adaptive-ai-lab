@@ -35,6 +35,7 @@ from psycopg.rows import dict_row
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fis_platform.suite import require_comparable  # noqa: E402
+from fis_platform.tolerances import refuse_curtailed  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 DSN = os.environ.get("FIS_PG_DSN", "postgresql://fis:fis_local_dev@127.0.0.1:5433/fis")
 
@@ -114,6 +115,11 @@ def main() -> None:
                     help="Proceed even if the runs (or the corpus) span suite versions; the "
                          "caveat is printed. Cross-suite numbers are structural, not causal.")
     args = ap.parse_args()
+
+    # Guard C (playbook §6 guard 3, paired firewall): a curtailed arm never enters a
+    # paired comparison. Checked before the run pair touches the DB at all — not just
+    # before the comparison is computed.
+    refuse_curtailed([args.a, args.b])
 
     with psycopg.connect(DSN) as conn:
         require_comparable(conn, [args.a, args.b], allow_cross_suite=args.allow_cross_suite,

@@ -102,3 +102,11 @@ class ToolCall(FrozenBase):
     # Set during scoring, not at call time: did this call contribute evidence that
     # the scenario manifest marks as required? Drives the tool-efficiency metric.
     was_useful: bool | None = None
+
+    # Start-of-call dual-clock stamps (M-STAT; NEXT_STEP_M0.md §6-D "TOOLS spans").
+    # Optional and additive on purpose: every trajectory persisted before this field
+    # existed must still validate, so both default to None ("not recorded") rather
+    # than being required. See fis_platform.telemetry.clocks.dual_clock — realtime
+    # names WHEN the call started, monotonic is immune to the WSL2 realtime skew.
+    ts_realtime: str | None = None
+    ts_monotonic: float | None = None

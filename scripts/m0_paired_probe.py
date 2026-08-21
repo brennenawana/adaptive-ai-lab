@@ -254,7 +254,7 @@ async def run_probe(args: argparse.Namespace) -> None:
             guard_suite(owner, rid, "train", resume=False)
         base_runtime_context["corpus_digest"] = corpus_digest(owner)["digest"]
         manifests = {m["scenario_id"]: m
-                     for m in load_manifests(owner, "train", None,
+                     for m in load_manifests(owner, "train",
                                              list(PRIMARY_CASES) + [PROBE_SCENARIO])}
         if set(manifests) != set(PRIMARY_CASES) | {PROBE_SCENARIO}:
             raise SystemExit("!! TRAIN manifests do not contain the pre-registered cases")
