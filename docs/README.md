@@ -1,6 +1,15 @@
 # FIS / AI Systems Lab — Documentation Index
 
-Last reorganized: 2026-08-20. If you read nothing else, read this page.
+Last reorganized: 2026-08-20 (playbook pointer added 2026-08-21). If you read nothing else, read this page.
+
+> **Reusable methodology lives in [`../playbook/`](../playbook/README.md)** — the
+> Adaptive AI Systems Playbook (v0.1.0): the generic, project-independent
+> methodology extracted from this lab. Division of authority: `playbook/` =
+> reusable methodology for any project; `docs/current/` = this project's specific
+> application of it (normative for FIS work); historical reports = empirical
+> evidence/provenance. Neither overrides the other in its own domain: FIS
+> experiments follow `docs/current/`; new/other projects start at
+> `playbook/QUICKSTART.md`.
 
 ## START HERE (strict reading order)
 
