@@ -23,20 +23,6 @@ venv/
 *.bin
 models/
 adapters/
-learning/training/runs/
-
-# ---- generated artefacts ----
-evals/reports/*.json
-evals/reports/*.html
-evals/reports/*.parquet
-!evals/reports/.gitkeep
-scenarios/manifests/*.json
-!scenarios/manifests/.gitkeep
-
-# ---- local infra state ----
-infra/pgdata/
-infra/natsdata/
-infra/miniodata/
 
 # ---- os / editor ----
 .DS_Store
@@ -44,7 +30,8 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
-.venv/
 
 # local model server logs
 *.log
+
+# FIS-project-specific generated/runtime paths live in projects/fis/.gitignore

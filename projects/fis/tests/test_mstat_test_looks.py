@@ -3,7 +3,7 @@
 Every test but one builds its own ledger under `tmp_path`; the one exception
 (`test_the_live_seeded_ledger_verifies_and_mirrors_the_real_markdown`) reads the real
 seeded `learning/registry/test_looks.jsonl` against the real
-`docs/current/TEST_LOOK_LEDGER.md` — read-only, nothing is written.
+`TEST_LOOK_LEDGER.md` (FIS root) — read-only, nothing is written.
 
 The invariants (M-STAT unit spec; playbook §1; owner decision 2026-08-21):
 
@@ -42,7 +42,7 @@ from fis_platform.test_looks import (
     validate_mirror,
 )
 
-REAL_REVIEW_REF = "docs/current/TEST_LOOK_LEDGER.md"   # a real, committed file — stands in
+REAL_REVIEW_REF = "TEST_LOOK_LEDGER.md"   # a real, committed file — stands in
                                                         # for the Suite-v4 trigger review doc
 
 
@@ -160,7 +160,7 @@ def test_look_8_plan_without_trigger_review_ref_is_refused(seeded):
 
 def test_look_8_plan_with_a_ref_naming_a_nonexistent_file_is_refused(seeded):
     with pytest.raises(LookRefused, match="does not name an existing file"):
-        _plan8(seeded, trigger_review_ref="docs/current/DOES_NOT_EXIST_REVIEW.md")
+        _plan8(seeded, trigger_review_ref="DOES_NOT_EXIST_REVIEW.md")
 
 
 def test_look_8_plan_succeeds_with_a_ref_naming_a_real_committed_file(seeded):

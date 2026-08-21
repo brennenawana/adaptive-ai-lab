@@ -1,0 +1,87 @@
+{
+  "suite_version": "3",
+  "corpus_digest": "1e7c5278ba1f4cc1cc96fa8a1f04946ab622270eaba4c5671274c21e9d39e528",
+  "splits": {
+    "train": {
+      "scenarios": 144,
+      "digest": "d9d1570e6b707b14212c817e915895352dc3c30667fb1c39adce03cd54ef1f2e"
+    },
+    "dev": {
+      "scenarios": 48,
+      "digest": "5d5c94b049a9ad6fd4abfa1f6d40084b12fd7d38abeddebdd591a5ce81c5ac34"
+    },
+    "test": {
+      "scenarios": 96,
+      "digest": "8deea4a26c4b52c557f22cfb93118da3516e87aadfb529ca9150a74127f4c8ac"
+    }
+  },
+  "rows": {
+    "train": {
+      "ground_truth.scenario_manifests": 144,
+      "customer.customers": 192,
+      "identity.verifications": 108,
+      "ledger.accounts": 144,
+      "ledger.entries": 336,
+      "processor.cards": 144,
+      "processor.authorizations": 348,
+      "processor.settlements": 324,
+      "risk.alerts": 65,
+      "webhook.deliveries": 456,
+      "integration.events": 348,
+      "integration.dedupe_ledger": 312,
+      "cases.cases": 144
+    },
+    "dev": {
+      "ground_truth.scenario_manifests": 48,
+      "customer.customers": 64,
+      "identity.verifications": 36,
+      "ledger.accounts": 48,
+      "ledger.entries": 112,
+      "processor.cards": 48,
+      "processor.authorizations": 116,
+      "processor.settlements": 108,
+      "risk.alerts": 20,
+      "webhook.deliveries": 152,
+      "integration.events": 116,
+      "integration.dedupe_ledger": 104,
+      "cases.cases": 48
+    },
+    "test": {
+      "ground_truth.scenario_manifests": 96,
+      "customer.customers": 128,
+      "identity.verifications": 72,
+      "ledger.accounts": 96,
+      "ledger.entries": 224,
+      "processor.cards": 96,
+      "processor.authorizations": 232,
+      "processor.settlements": 216,
+      "risk.alerts": 38,
+      "webhook.deliveries": 304,
+      "integration.events": 232,
+      "integration.dedupe_ledger": 208,
+      "cases.cases": 96
+    }
+  },
+  "generator": {
+    "per_class": {
+      "test": 8,
+      "dev": 4,
+      "train": 12
+    },
+    "seed_ranges": {
+      "train": [
+        1000000,
+        1999999
+      ],
+      "dev": [
+        2000000,
+        2999999
+      ],
+      "test": [
+        3000000,
+        3999999
+      ]
+    }
+  },
+  "git_head": "6a95d24-dirty"
+}

@@ -1,7 +1,7 @@
 [project]
 name = "fis"
 version = "0.1.0"
-description = "Fintech Integration Sandbox — a clean-room reference project for the Company Intelligence Platform"
+description = "Fintech Integration Sandbox (FIS) — the Adaptive AI Lab's first project implementation; clean-room reference project for the Company Intelligence Platform"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.9",
@@ -25,8 +25,11 @@ routing = ["nemo-switchyard[cli,server]==0.2.0", "pyyaml>=6.0"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# The import roots (packages import each other by these top-level names; scripts is
+# imported as a package by the test suite). "platform_" never existed — stale since
+# the pre-rename checkout; fixed during the 2026-08 restructuring.
 [tool.hatch.build.targets.wheel]
-packages = ["schemas", "platform_", "services", "scenarios", "evals"]
+packages = ["fis_platform", "schemas", "services", "scenarios", "evals", "scripts"]
 
 [tool.ruff]
 line-length = 100

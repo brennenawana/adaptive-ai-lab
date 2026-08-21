@@ -1230,11 +1230,20 @@ def test_capture_server_args_matches_exact_tokens_only(tmp_path):
 
 
 def test_untracked_files_outside_the_registry_count_as_dirty(monkeypatch):
+    # git porcelain paths are repo-root-relative; since the 2026-08 restructuring the
+    # FIS tree sits at projects/fis/, so the fake git emulates both the --show-prefix
+    # lookup and prefixed status output.
     monkeypatch.setattr(provenance, "git_head", lambda: "abc1234")
-    monkeypatch.setattr(provenance.subprocess, "run",
-                        lambda *a, **k: type("R", (), {"stdout": "?? evals/runner/dotenv.py\n M learning/registry/r6/ledger.jsonl\n"})())
+
+    def fake_run(cmd, **k):
+        out = ("projects/fis/\n" if "--show-prefix" in cmd else
+               "?? projects/fis/evals/runner/dotenv.py\n"
+               " M projects/fis/learning/registry/r6/ledger.jsonl\n")
+        return type("R", (), {"stdout": out})()
+
+    monkeypatch.setattr(provenance.subprocess, "run", fake_run)
     _commit, clean, dirty = provenance.tree_state()
-    assert clean is False and dirty == ["evals/runner/dotenv.py"]
+    assert clean is False and dirty == ["projects/fis/evals/runner/dotenv.py"]
 
 
 def test_a_resumed_full_run_counts_all_its_end_lines(reg, tmp_path):

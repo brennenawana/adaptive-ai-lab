@@ -1,0 +1,26 @@
+# FIS generated artefacts (paths relative to projects/fis/).
+# Run reports are local raw evidence; the numbers of record are copied into
+# experiment-log.md / routing-experiments.md and the primary data is Postgres
+# learning.* (see README.md § experiment archive).
+evals/reports/*.json
+evals/reports/*.html
+evals/reports/*.parquet
+!evals/reports/.gitkeep
+
+# Generated corpus manifests are ignored — EXCEPT the pinned Suite-v3 corpus
+# identity, tracked by owner decision D2 (2026-08-21): the frozen release contract
+# describes it as tracked, the runner fails closed without it, and any regeneration
+# drift must surface as a visible diff. Verify with --check; --write is an explicit
+# suite-identity operation.
+scenarios/manifests/*.json
+!scenarios/manifests/.gitkeep
+!scenarios/manifests/corpus_v3.json
+
+# training run outputs
+learning/training/runs/
+
+# local infra state (legacy bind-mount dirs; compose uses named volumes since —
+# kept so an old checkout's state is never accidentally committed)
+infra/pgdata/
+infra/natsdata/
+infra/miniodata/

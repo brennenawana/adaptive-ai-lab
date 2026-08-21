@@ -1158,6 +1158,20 @@ def default_root() -> Path:
 REGISTRY_REL = Path("learning") / "registry" / "r6"
 
 
+def _git_prefix() -> str:
+    """This package's location inside the git repository (`git rev-parse --show-prefix`
+    under `_ROOT`; "" when the FIS tree IS the repo root, "projects/fis/" since the
+    2026-08 restructuring). git porcelain output and `HEAD:<path>` rev syntax are
+    repo-root-relative regardless of cwd, while `_ROOT`-relative constants like
+    `REGISTRY_REL` are package-relative — this is the one sanctioned bridge between
+    the two path spaces. Derived, not configurable: it reflects where the tree
+    actually sits, so it is not a relocation vector. Git failures propagate to the
+    callers' fail-closed handling."""
+    return subprocess.run(["git", "rev-parse", "--show-prefix"], cwd=_ROOT,
+                          capture_output=True, text=True, timeout=10,
+                          check=True).stdout.strip()
+
+
 def dirty_paths_outside_registry() -> list[str]:
     """Tracked files modified since HEAD that are NOT the R6 registry's own bookkeeping.
 
@@ -1168,6 +1182,7 @@ def dirty_paths_outside_registry() -> list[str]:
     (contract § 14 amendment 1). Returns the offending paths, empty if the code tree is clean.
     """
     try:
+        registry_git_rel = _git_prefix() + str(REGISTRY_REL) + "/"
         out = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"],
                              cwd=_ROOT, capture_output=True, text=True, timeout=10,
                              check=True).stdout
@@ -1178,7 +1193,7 @@ def dirty_paths_outside_registry() -> list[str]:
         path = line[3:].strip()
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
-        if not path.startswith(str(REGISTRY_REL) + "/"):
+        if not path.startswith(registry_git_rel):
             bad.append(path)      # modified OR untracked (gitignored files never appear)
     return bad
 
@@ -1208,7 +1223,13 @@ def registry_ahead_of_git_only_by_appends() -> list[str]:
     `git stash` that silently dropped uncommitted run lines."""
     problems: list[str] = []
     try:
-        tracked = subprocess.run(["git", "ls-files", "--", str(REGISTRY_REL)], cwd=_ROOT,
+        prefix = _git_prefix()
+        # --full-name: repo-root-relative output, matching the `HEAD:<path>` rev syntax
+        # below (which is root-relative regardless of cwd). Without it, ls-files output
+        # is cwd-relative and the `git show` lookups silently miss once the FIS tree
+        # lives below the repo root — disabling this guard while appearing to pass.
+        tracked = subprocess.run(["git", "ls-files", "--full-name", "--", str(REGISTRY_REL)],
+                                 cwd=_ROOT,
                                  capture_output=True, text=True, timeout=10, check=True).stdout.split()
     except Exception:  # noqa: BLE001
         return ["(git unavailable)"]
@@ -1220,11 +1241,11 @@ def registry_ahead_of_git_only_by_appends() -> list[str]:
                                        capture_output=True, timeout=10, check=True).stdout
         except Exception:  # noqa: BLE001 — new file (not yet in HEAD): nothing to compare
             continue
-        working_path = _ROOT / rel
+        working_path = _ROOT / rel.removeprefix(prefix)
         working = working_path.read_bytes() if working_path.exists() else b""
         if not working.startswith(committed):
             problems.append(f"{rel}: committed content is not a prefix of the working file")
-    head_rel = str(REGISTRY_REL / "HEAD.json")
+    head_rel = prefix + str(REGISTRY_REL / "HEAD.json")
     if head_rel in tracked:
         try:
             committed_head = json.loads(subprocess.run(["git", "show", f"HEAD:{head_rel}"], cwd=_ROOT,
@@ -1232,7 +1253,7 @@ def registry_ahead_of_git_only_by_appends() -> list[str]:
                                                        check=True).stdout or "{}")
         except Exception:  # noqa: BLE001
             committed_head = {}
-        working_path = _ROOT / head_rel
+        working_path = _ROOT / head_rel.removeprefix(prefix)
         working_head = json.loads(working_path.read_text() or "{}") if working_path.exists() else {}
         for cid, ref in committed_head.items():
             cur = working_head.get(cid)

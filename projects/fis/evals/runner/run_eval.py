@@ -457,7 +457,7 @@ def test_look_gate(split: str, run_id: str, resume: bool, ledger_path: Path | No
     say about a split it does not gate. For TEST: constructs the ledger at
     `ledger_path` (default the live `learning/registry/test_looks.jsonl`),
     validates the human-readable mirror at `mirror_path` (default the live
-    `docs/current/TEST_LOOK_LEDGER.md`) against it — a diverged mirror refuses
+    `TEST_LOOK_LEDGER.md` at the FIS root) against it — a diverged mirror refuses
     before anything else, since a divergence means the record of record itself is
     in a state nobody has reconciled yet — then requires a planned look for
     `(SUITE_VERSION, run_id)` (`require_planned`, which itself re-checks the
@@ -473,7 +473,7 @@ def test_look_gate(split: str, run_id: str, resume: bool, ledger_path: Path | No
     if split != "test":
         return None
     ledger = TestLookLedger(ledger_path or ROOT / "learning" / "registry" / "test_looks.jsonl")
-    validate_mirror(ledger.path, mirror_path or ROOT / "docs" / "current" / "TEST_LOOK_LEDGER.md")
+    validate_mirror(ledger.path, mirror_path or ROOT / "TEST_LOOK_LEDGER.md")
     ledger.require_planned(SUITE_VERSION, run_id)
     return ledger
 
@@ -731,7 +731,7 @@ def _require_test_look_planned_or_spent(run_id: str) -> None:
 
     A run id ending `.weak` is checked under its base id — the cascade's weak stage
     is scored and persisted under `f"{run_id}.weak"`, but it is spent within the SAME
-    counted TEST look as the strong arm (`docs/current/TEST_LOOK_LEDGER.md`'s
+    counted TEST look as the strong arm (`TEST_LOOK_LEDGER.md`'s
     counting convention), so it never plans (or spends) a look of its own.
 
     `planned` is accepted, not just `spent`, because the runner's own `record_spend`

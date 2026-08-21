@@ -1,4 +1,5 @@
-# New here? docs/README.md is the documentation index (current vs historical vs superseded).
+# New here? README.md (this directory) is the FIS project index — authority chain,
+# reading order, and the path map for pre-restructuring citations. Run from projects/fis/.
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 PY := .venv/bin/python

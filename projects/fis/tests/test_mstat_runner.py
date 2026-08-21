@@ -45,7 +45,7 @@ from fis_platform.tolerances import (  # noqa: E402
     Consequence, CurtailmentPolicy, ToleranceSpec, ToleranceTracker,
 )
 
-REAL_REVIEW_REF = "docs/current/TEST_LOOK_LEDGER.md"   # a real, committed file — stands in
+REAL_REVIEW_REF = "TEST_LOOK_LEDGER.md"   # a real, committed file — stands in
                                                         # for the Suite-v4 trigger review doc
 
 

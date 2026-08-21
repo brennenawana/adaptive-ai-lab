@@ -114,7 +114,7 @@ class LedgerIntegrityError(SystemExit):
 
 
 class MirrorDivergence(SystemExit):
-    """`docs/current/TEST_LOOK_LEDGER.md` disagrees with the machine ledger, or is
+    """`TEST_LOOK_LEDGER.md` disagrees with the machine ledger, or is
     missing a row the machine ledger already has. The machine ledger is authoritative
     (owner decision 2026-08-21; playbook §1) — this exists so that disagreement is a
     refusal, not a fact two files quietly hold differently forever."""
@@ -412,6 +412,8 @@ def default_path() -> Path:
 
 
 def default_markdown_path() -> Path:
-    """`<repo>/docs/current/TEST_LOOK_LEDGER.md` — the human-readable mirror `verify`
-    checks the ledger against."""
-    return _ROOT / "docs" / "current" / "TEST_LOOK_LEDGER.md"
+    """`<fis root>/TEST_LOOK_LEDGER.md` — the human-readable mirror `verify` checks
+    the ledger against. (At `docs/current/TEST_LOOK_LEDGER.md` until the 2026-08
+    repository restructuring; the sealed entries' `source` field keeps citing the
+    historical path, which is correct — it is what was true at seed time.)"""
+    return _ROOT / "TEST_LOOK_LEDGER.md"
