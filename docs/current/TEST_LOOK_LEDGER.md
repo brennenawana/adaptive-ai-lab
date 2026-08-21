@@ -1,9 +1,18 @@
 # TEST-Look Ledger — Suite v3
 
-> STATUS: CURRENT / NORMATIVE (append-only)
+> STATUS: CURRENT / NORMATIVE (append-only) — human-readable ledger; see the
+> authority model below.
 > Created 2026-08-20 with the seven historical looks backfilled from
 > `../experiment-log.md` / `../routing-experiments.md`. Every future TEST evaluation
 > appends a row **at contract-freeze time** (planned) and updates it at execution.
+> **Authority model (owner decision 2026-08-21; playbook §1):** the record of record
+> is the machine append-only ledger `learning/registry/test_looks.jsonl`, which
+> M-STAT lands seeded faithfully from the seven rows below (no reinterpretation of
+> historical decisions). From that point this file is the generated / mechanically
+> validated **mirror**: any divergence between mirror and machine ledger fails
+> validation; every TEST execution path (local or frontier) must consult the machine
+> ledger fail-closed; a look is spent at the first executed case. Until the machine
+> ledger lands, this file remains the interim count of record.
 > Rule (playbook §1): **look #8 requires the Suite-v4 refresh-trigger review first.**
 
 **Counting convention:** a look = one arm's outcomes on TEST being read for a decision

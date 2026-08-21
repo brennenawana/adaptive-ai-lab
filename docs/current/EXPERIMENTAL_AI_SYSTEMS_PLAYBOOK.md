@@ -1,7 +1,7 @@
 # FIS Experimental AI Systems Playbook — v1.0
 
 > STATUS: CURRENT / NORMATIVE
-> Current as of: 2026-08-20
+> Current as of: 2026-08-21
 > Supersedes: nothing by that name — no playbook file existed before this one. The
 > de-facto methodology lived in `../HANDOFF.md` ("rules that carry"), the R5/R6
 > experiment contracts, and `../routing-experiments.md`'s standing rules. §10 records
@@ -25,10 +25,18 @@ It encodes the corrections adopted after the 2026-08 external research
 
 - **A split is spent at the first executed case**, not the last. Partial runs reveal
   the sufficient statistic; there is no "peek and re-run".
-- **TEST-look ledger**: every TEST evaluation (any arm, any experiment, including
-  offline replays) appends a row to `TEST_LOOK_LEDGER.md` — the authoritative count.
-  Seven historical looks are backfilled there (V3 baselines ×3 with R4 replays counted
-  within, R5 replays ×2, R6 ×2). **Look #8 requires the Suite-v4 trigger review first.**
+- **TEST-look ledger**: every TEST evaluation (any arm, local or frontier, any
+  experiment, including offline replays) is a ledgered look, spent at the first
+  executed case. **Authority model (owner decision 2026-08-21):** the record of
+  record is the machine append-only ledger `learning/registry/test_looks.jsonl`
+  (landed by M-STAT, seeded faithfully from the seven historical looks — no
+  reinterpretation of historical decisions; every TEST execution path must consult
+  it fail-closed). `TEST_LOOK_LEDGER.md` is the human-readable mirror — generated
+  from, or mechanically validated against, the machine ledger; any divergence
+  between mirror and machine record fails validation. Until M-STAT lands the
+  machine ledger, the Markdown file is the interim count of record. Seven
+  historical looks are backfilled (V3 baselines ×3 with R4 replays counted within,
+  R5 replays ×2, R6 ×2). **Look #8 requires the Suite-v4 trigger review first.**
 - **Suite refresh trigger**: when the ledger review concludes accumulated TEST exposure
   threatens validity, Suite v4 is released as a versioned suite (cross-suite comparison
   refused by tooling, as v2→v3). **v4 design rule: add scenario classes before adding
@@ -45,13 +53,22 @@ defects. A class scoring near zero is a ceiling problem until proven otherwise
 
 ## 3. SMOKE (the cheap tier, fail-closed)
 
-A **SMOKE registry state** precedes REGISTERED→…: fixed 36 stratified cases (12 classes
-× 3, round-robin order), single arm, results written to the same append-only ledger,
-**cryptographically marked non-promotable**. Purpose: minutes-scale detection of
-schema/tool-contract/runner breakage with no hole in the fail-closed machinery.
+A **SMOKE registry state** — a formal lifecycle state, not a run kind (owner decision
+2026-08-21: a dedicated `smoke` run kind may exist *in addition* where useful, but it
+cannot replace the state) — precedes REGISTERED→…: fixed 36 stratified **TRAIN** cases
+(12 classes × 3, deterministic round-robin order), single arm, results written to the
+same append-only ledger, **cryptographically marked non-promotable** (non-promotable
+by construction). Purpose: minutes-scale detection of schema/tool-contract/runner
+breakage with no hole in the fail-closed machinery.
 
 - SMOKE results never justify adoption **or elimination** decisions (its MDE is
   ~25–31pp).
+- SMOKE cannot transition directly into a promotable later state: the normal
+  lifecycle (REGISTERED → … → DEV → TEST) is never bypassed.
+- If implementing the SMOKE state exposes a genuine historical-provenance
+  contradiction (e.g. existing hash-chained state logs that a naive state-machine
+  extension would invalidate), M-STAT **stops and returns the conflict** to the
+  owner rather than silently changing the methodology.
 - There is no "relaxed lane": an execution path that skips the registry is the exact
   defect class the R6 guards were built to forbid.
 
@@ -166,7 +183,9 @@ Every pre-registered tolerance **names its breach consequence** in the contract:
   git blob SHA where the state machine enforces it. The registry is the record of
   record; dashboards (MLflow/W&B) may mirror it, never replace it.
 - **Leakage**: disjoint seed ranges per split; corpus stays private; **canary GUIDs**
-  go into TEST scenario files and any published excerpts (M-STAT adds them).
+  go into TEST scenario content and any published excerpts (M-STAT lands the
+  mechanism, inactive for frozen Suite v3 — activating a canary changes the corpus
+  digest, so activation happens only at the next versioned suite release).
 - **Cross-node arms are licensed** when pre-registered: session-scoped reproducibility
   means a rented Secure instance holding one session per arm satisfies the same-session
   rule exactly as well as an owned card. Quantize for the deployment target, not the

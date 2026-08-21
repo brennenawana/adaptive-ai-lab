@@ -1,7 +1,7 @@
 # AI Systems Lab — Master Plan
 
 > STATUS: CURRENT / NORMATIVE
-> Current as of: 2026-08-20
+> Current as of: 2026-08-21
 > Supersedes: all prior program sequencing (the R6 report §11 "R7 next" recommendation is
 > re-scoped by §3 below; the E0–E8 matrix, the FIS_MSI Pivot Guide sequence, and all
 > pre-2026-08-20 next-step statements are historical).
@@ -230,7 +230,10 @@ reference designs, not commitments.
 ## 7. Statistical / experimental policy (summary — playbook is normative)
 
 - **Splits**: TRAIN (iterate freely) / DEV (one look) / TEST (one look, ledgered).
-  TEST looks are counted in `TEST_LOOK_LEDGER.md` (7 historical looks backfilled);
+  TEST looks are counted in the machine TEST-look ledger
+  (`learning/registry/test_looks.jsonl`, landed by M-STAT; until then
+  `TEST_LOOK_LEDGER.md` is the interim count of record, and thereafter its
+  mechanically validated human-readable mirror — 7 historical looks backfilled);
   look #8 on Suite v3 requires the v4 trigger review.
 - **pass^k on TEST** spends **one ledgered look** comprising k samples per case on a
   declared frozen subset; no selection decision may key off it (measurement only).
@@ -253,7 +256,9 @@ reference designs, not commitments.
   refusal; full-corpus static gates never subset.
 - **Prediction ledger**: each contract records a pre-run effect estimate + interval;
   predicted-vs-actual is scored on completion.
-- **Leakage**: disjoint seeds, private corpus, canary GUIDs in TEST files (M-STAT).
+- **Leakage**: disjoint seeds, private corpus, canary GUIDs in TEST content
+  (mechanism: M-STAT; activation: next versioned suite release — never a mutation
+  of a frozen suite).
 
 ## 8. Hardware / compute policy
 
