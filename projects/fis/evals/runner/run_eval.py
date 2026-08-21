@@ -121,7 +121,7 @@ def gpu_mem_used_mib() -> str:
 
 def r6_candidate_preflight(args, run_id: str, manifest, runtime_context: dict[str, str],
                            kind: str = "eval"):
-    """R6 fail-closed provenance gate (docs/R6_EXPERIMENT_CONTRACT.md § 13–14).
+    """R6 fail-closed provenance gate (projects/fis/R6_EXPERIMENT_CONTRACT.md § 13–14).
 
     Before a single model call: the candidate's registry state must allow this split and
     run id; DEV/TEST need a clean tree; the SERVED system must be the registered one —

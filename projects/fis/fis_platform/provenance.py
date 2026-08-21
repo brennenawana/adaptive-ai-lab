@@ -1262,23 +1262,67 @@ def registry_ahead_of_git_only_by_appends() -> list[str]:
     return problems
 
 
-def contract_blob_sha(path: str = "docs/R6_EXPERIMENT_CONTRACT.md") -> str | None:
-    """git blob sha of the CONTRACT as committed at HEAD (None if git/file unavailable)."""
+#: The R6 contract's current canonical repo-root-relative path. New contract freezes
+#: record their own actual canonical paths in their payloads; this constant is only
+#: the default for R6-shaped CLI/legacy calls.
+R6_CONTRACT_PATH = "projects/fis/R6_EXPERIMENT_CONTRACT.md"
+
+#: Provenance relocation record: historical recorded contract locator -> current
+#: canonical repo-root-relative path.
+#:
+#: The R6 CONTRACT_FROZEN payloads seal contract_path="docs/R6_EXPERIMENT_CONTRACT.md"
+#: inside the hash-chained candidate state logs — truthful at freeze time (2026-08-19)
+#: and unamendable by design. The 2026-08-21 repository restructuring moved those
+#: identical bytes (pure `git mv`; the frozen blob and every chained digest are
+#: untouched) into the FIS project boundary. This table lets the verifier resolve the
+#: sealed historical locator to where the same bytes live NOW, without rewriting any
+#: record. The scientific identity is NOT carried by this table: it is carried by the
+#: frozen blob sha + the byte-prefix-extension rule, which is checked against the
+#: RESOLVED path's committed content — re-pointing an entry here at different bytes
+#: still fails verification.
+#:
+#: Rules (repository/provenance migration infrastructure — see
+#: docs/history/2026-08-21-restructuring/ and tests/test_contract_relocation.py):
+#:   * Entries are added ONLY by an audited repository migration, recorded in the
+#:     lab decision log — never to make a failing lookup pass.
+#:   * Exact-string, one-hop mapping. No search fallback of any kind: an unknown
+#:     locator passes through unchanged and fails closed downstream when it does not
+#:     exist at HEAD.
+#:   * New freezes record their actual canonical paths and must never rely on this
+#:     table.
+CONTRACT_PATH_RELOCATIONS: dict[str, str] = {
+    "docs/R6_EXPERIMENT_CONTRACT.md": R6_CONTRACT_PATH,
+}
+
+
+def resolve_contract_path(recorded: str) -> str:
+    """Current canonical repo-root-relative path for a recorded contract locator.
+    Identity for anything not explicitly relocated (fail-closed downstream)."""
+    return CONTRACT_PATH_RELOCATIONS.get(recorded, recorded)
+
+
+def contract_blob_sha(path: str = R6_CONTRACT_PATH) -> str | None:
+    """git blob sha of the CONTRACT as committed at HEAD (None if git/file unavailable).
+    `path` is a recorded locator; historical locators are resolved via
+    `resolve_contract_path` before the lookup."""
     try:
-        return subprocess.run(["git", "rev-parse", f"HEAD:{path}"], cwd=_ROOT, capture_output=True,
+        return subprocess.run(["git", "rev-parse", f"HEAD:{resolve_contract_path(path)}"],
+                              cwd=_ROOT, capture_output=True,
                               text=True, timeout=10, check=True).stdout.strip() or None
     except Exception:  # noqa: BLE001
         return None
 
 
-def committed_contract_extends(frozen_blob: str, path: str = "docs/R6_EXPERIMENT_CONTRACT.md") -> bool:
+def committed_contract_extends(frozen_blob: str, path: str = R6_CONTRACT_PATH) -> bool:
     """True iff the contract committed at HEAD is byte-identical to the frozen blob or is
     the frozen blob plus appended text (the § 17 amendment log grows; nothing above it may
-    change after the freeze)."""
+    change after the freeze). `path` is a recorded locator; historical locators are
+    resolved via `resolve_contract_path` before the lookup."""
     try:
         frozen = subprocess.run(["git", "cat-file", "-p", frozen_blob], cwd=_ROOT, capture_output=True,
                                 timeout=10, check=True).stdout
-        current = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=_ROOT, capture_output=True,
+        current = subprocess.run(["git", "show", f"HEAD:{resolve_contract_path(path)}"],
+                                 cwd=_ROOT, capture_output=True,
                                  timeout=10, check=True).stdout
     except Exception:  # noqa: BLE001
         return False
@@ -2496,7 +2540,7 @@ def require_state(registry: R6Registry, candidate_id: str, split: str, run_id: s
         "execution_system")
     contract = (_entry_to(entries, CONTRACT_FROZEN) or {}).get("payload", {})
     if split in ("dev", "test") and contract.get("contract_revision") and registry.git_checks:
-        if not committed_contract_extends(contract["contract_revision"], contract.get("contract_path", "docs/R6_EXPERIMENT_CONTRACT.md")):
+        if not committed_contract_extends(contract["contract_revision"], contract.get("contract_path", R6_CONTRACT_PATH)):
             raise TransitionRefused(
                 f"{candidate_id}: the contract committed at HEAD is not the frozen revision "
                 f"{contract['contract_revision'][:12]}… (or that revision plus appended § 17 "

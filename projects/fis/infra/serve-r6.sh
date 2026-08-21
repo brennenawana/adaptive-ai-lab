@@ -14,7 +14,7 @@
 #   prism     $FIS_PRISM_LLAMA_DIR/build-cuda/bin/llama-server  (PrismML fork,
 #             prism-b9596-9fcaed7; the ONLY runtime that reads Ternary Bonsai's
 #             Q2_0 blocks — upstream defines the same type id with a different block
-#             geometry, see docs/R6_EXPERIMENT_CONTRACT.md § runtime)
+#             geometry, see projects/fis/R6_EXPERIMENT_CONTRACT.md § runtime)
 #
 # Flags shared with the historical arms on purpose (execution-system identity should
 # differ only in the intended dimensions): --flash-attn on, q8_0 KV, --jinja,

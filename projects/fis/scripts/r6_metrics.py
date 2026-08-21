@@ -227,7 +227,7 @@ def cap_calibration(rows: dict[str, dict], tolerance: int = 3) -> dict:
                   or int((_inv(rows[s]).get("usage") or {}).get("output_tokens") or 0) >= c]
         per_cap[c] = {"capped": len(capped), "ids": capped, "ok": len(capped) <= tolerance}
     chosen = next((c for c in CAP_SET if per_cap[c]["ok"]), CAP_SET[-1])
-    return {"rule": "docs/R6_EXPERIMENT_CONTRACT.md § 6", "tolerance": tolerance, "n": len(rows),
+    return {"rule": "projects/fis/R6_EXPERIMENT_CONTRACT.md § 6", "tolerance": tolerance, "n": len(rows),
             "per_cap": per_cap, "chosen_cap": chosen,
             "none_met_tolerance": not any(v["ok"] for v in per_cap.values())}
 
