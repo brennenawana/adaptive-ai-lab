@@ -1,5 +1,5 @@
 """Machine-checkable experiment-contract representation
-(`docs/current/EXPERIMENT_CONTRACT_TEMPLATE.md` v2; M-STAT implementation map,
+(`projects/fis/EXPERIMENT_CONTRACT_TEMPLATE.md` v2; M-STAT implementation map,
 Prediction/statistics items). A contract is not "reviewed and trusted" any more
 than a model artifact is trusted by its filename — R6's own escape hatch read as a
 sentence a human agreed to and never enforced. `ContractSpec` is the field-level

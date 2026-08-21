@@ -81,7 +81,7 @@ def main() -> None:
     args = ap.parse_args()
     out_path = Path(args.out)
     out = json.loads(out_path.read_text()) if out_path.exists() else {"per_model": {}}
-    out.update({"contract": "docs/R5_EXPERIMENT_CONTRACT.md § 12 + § 12a",
+    out.update({"contract": "projects/fis/R5_EXPERIMENT_CONTRACT.md § 12 + § 12a",
                 "K_formula": "max(3, ceil(0.25 * routing_FN(R4 on the split)))",
                 "utilization_cap": 0.50, "code_commit": git_head()})
     for m, base in (("qwen", args.qwen), ("nemotron", args.nemotron)):

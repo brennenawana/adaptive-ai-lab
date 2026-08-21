@@ -27,7 +27,7 @@ from __future__ import annotations
 
 # Root cause -> sanctioned operational responses.
 #
-# Mirrors `docs/task-ontology.md` §3, which is normative.
+# Mirrors `projects/fis/task-ontology.md` §3, which is normative.
 # `test_prompt_table_matches_the_rubric` fails if the two drift apart — a prompt
 # that teaches a policy the scorer does not use would make E6 unreadable.
 CAUSE_TO_ACTION: dict[str, list[str]] = {

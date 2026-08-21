@@ -3,7 +3,7 @@
     "Prediction ledger: each contract records a pre-run effect-size point estimate +
     interval; predicted-vs-actual is scored in the report. A handful of entries (~5)
     make the 'is this experiment worth DEV?' gate empirical."
-    (docs/current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md § 7)
+    (projects/fis/PLAYBOOK_ADAPTATION.md § 7)
 
 The rule this module enforces is narrower than "record a number": a prediction that can
 be edited after the actual is known is not evidence of anything, so once a prediction

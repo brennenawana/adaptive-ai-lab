@@ -1,5 +1,5 @@
 """Prediction ledger — playbook § 7's empirical gate
-(docs/current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md § 7; M_STAT_IMPLEMENTATION_MAP.md
+(projects/fis/PLAYBOOK_ADAPTATION.md § 7; M_STAT_IMPLEMENTATION_MAP.md
 item 6), against a TEMPORARY ledger file under `tmp_path`.
 
 Nothing here touches `learning/registry/predictions.jsonl` — the live location is never

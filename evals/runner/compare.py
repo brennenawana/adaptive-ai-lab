@@ -103,7 +103,7 @@ def main() -> None:
         print("Rows from different suites were measured on different corpora and rules and")
         print("answer different questions — do not subtract them. v1: pre-migration corpus")
         print("(five classes with unreachable evidence); v2: event-sourced corpus; v3: after")
-        print("the four benchmark-defect fixes (docs/SUITE_V3_RELEASE_CONTRACT.md).")
+        print("the four benchmark-defect fixes (projects/fis/SUITE_V3_RELEASE_CONTRACT.md).")
 
 
 if __name__ == "__main__":

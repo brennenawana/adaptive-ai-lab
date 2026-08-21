@@ -1,6 +1,6 @@
 """R5 leak guards — the learned router may be *scored* by gold, never *fed* it.
 
-`docs/R5_EXPERIMENT_CONTRACT.md` § 6 pre-registers nine guards on the feature boundary.
+`projects/fis/R5_EXPERIMENT_CONTRACT.md` § 6 pre-registers nine guards on the feature boundary.
 They are here, one test function each (guard 9 is the import ban, which lives in
 `test_routing_no_gold_leak.py` and is only pinned from here), plus one extra test that
 ties the snapshot to the incumbent R4 gate: if the features could not reproduce

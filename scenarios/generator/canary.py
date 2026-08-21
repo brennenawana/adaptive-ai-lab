@@ -1,6 +1,6 @@
 """Leakage-canary mechanism — the BIG-bench canary-string model, for FUTURE suites only.
 
-`EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md` §8: "canary GUIDs go into TEST scenario content
+`PLAYBOOK_ADAPTATION.md` §8: "canary GUIDs go into TEST scenario content
 and any published excerpts (M-STAT lands the mechanism, inactive for frozen Suite v3 —
 activating a canary changes the corpus digest, so activation happens only at the next
 versioned suite release)." `M_STAT_IMPLEMENTATION_MAP.md` §9 states the constraint this

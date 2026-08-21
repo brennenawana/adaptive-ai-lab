@@ -238,7 +238,7 @@ r3b-compare: ## R3b — Qwen A vs B (drift), 8192 vs 4096 per model, migration m
 	$(PY) scripts/token_budget_delta.py --model nemotron --before R3-nemotron-dev --after R3b-nemotron-dev
 
 # ---------------------------------------------------------------- Suite v3 baselines
-# docs/SUITE_V3_RELEASE_CONTRACT.md § 6, pre-registered. Design A as R3/R3b: one
+# projects/fis/SUITE_V3_RELEASE_CONTRACT.md § 6, pre-registered. Design A as R3/R3b: one
 # server session per model, same order, each endpoint primed, Nemotron restarted with
 # its unchanged flags and probed with a TRAIN case right before its arm (an idle
 # --no-mmap process degrades to ~50 tok/s), nothing else on 8082/8083, FIS_LIVE_TESTS

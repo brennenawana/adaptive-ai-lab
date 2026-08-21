@@ -7,7 +7,7 @@ every few seconds into JSONL; ~17k lines across a 24 h run, negligible overhead.
 Every sample also carries `clock_offset_s` (realtime minus monotonic, sampled at
 that instant): its DRIFT over a run IS the WSL2 realtime-clock skew the R6 autopsy
 §13 CLOCK row asked to make a first-class measurement instead of a forensic
-discovery (docs/R6_PERFORMANCE_AUTOPSY.md:249-250).
+discovery (projects/fis/R6_PERFORMANCE_AUTOPSY.md:249-250).
 
 Best-effort by design: a missing nvidia-smi is a missing field, never a dead run.
 """

@@ -1,6 +1,6 @@
 """R5 — the production-observable feature boundary for learned silent-failure routing.
 
-`docs/R5_EXPERIMENT_CONTRACT.md` § 5–6 is the governing document. This module is the
+`projects/fis/R5_EXPERIMENT_CONTRACT.md` § 5–6 is the governing document. This module is the
 *only* place where a routing feature vector may be produced, and it exists so that the
 boundary between "what a production deployment can see at the decision point" and "what
 the eval harness knows afterwards" is a piece of code with tests rather than a habit.
