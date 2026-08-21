@@ -162,7 +162,7 @@ revised, or rejected **on the evidence cited in those reports**, not on recency.
 ## 4. The lab operating model (lifecycle)
 
 Every substantive experiment moves through this lifecycle. Details and enforcement
-live in `EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md`; contracts instantiate it via
+live in `PLAYBOOK_ADAPTATION.md`; contracts instantiate it via
 `EXPERIMENT_CONTRACT_TEMPLATE.md`.
 
 ```
