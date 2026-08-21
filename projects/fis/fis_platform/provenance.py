@@ -1173,17 +1173,27 @@ def _git_prefix() -> str:
 
 
 def dirty_paths_outside_registry() -> list[str]:
-    """Tracked files modified since HEAD that are NOT the R6 registry's own bookkeeping.
+    """Modified/untracked files inside the FIS provenance scope that are NOT the R6
+    registry's own bookkeeping.
 
     The registry's append-only files (ledger, phases, state logs, result files) are
     git-tracked and are written by the very runs and transitions being guarded, so
     "git status is empty" can never hold at the moment a run starts. The requirement that
     matters is that the CODE tree is exactly a commit; the registry may be ahead of it
     (contract § 14 amendment 1). Returns the offending paths, empty if the code tree is clean.
+
+    Scope (owner decision D3, 2026-08-21): the FIS provenance dependency closure is this
+    project tree (`-- .` under `_ROOT`) — since the 2026-08 restructuring it holds every
+    load-bearing FIS artifact (code, registries, tracked evidence, infra, project docs,
+    the relocated R6 contract, the TEST-look mirror). Uncommitted edits elsewhere in the
+    lab repository (playbook/, research/, lab governance) do not alter the FIS execution
+    system and are not counted. `suite.git_head()` applies the identical pathspec, so
+    the `-dirty` commit identity and this guard cannot disagree. Fail-closed is
+    unchanged: any git failure reports dirty.
     """
     try:
         registry_git_rel = _git_prefix() + str(REGISTRY_REL) + "/"
-        out = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"],
+        out = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--", "."],
                              cwd=_ROOT, capture_output=True, text=True, timeout=10,
                              check=True).stdout
     except Exception:  # noqa: BLE001 — treated as dirty by the caller
@@ -1201,8 +1211,9 @@ def dirty_paths_outside_registry() -> list[str]:
 def tree_state() -> tuple[str, bool, list[str]]:
     """(code_commit, code_tree_clean, dirty_paths). `code_commit` is `git_head()`
     (`<sha>` or `<sha>-dirty`); `code_tree_clean` is True iff there is a commit and every
-    modified tracked path lies inside the R6 registry. A `-dirty` head with no listable
-    dirty paths is treated as dirty (fail closed)."""
+    modified tracked path inside the FIS provenance scope lies inside the R6 registry
+    (both sides use the same `-- .` pathspec under `_ROOT` — owner decision D3). A
+    `-dirty` head with no listable dirty paths is treated as dirty (fail closed)."""
     code_commit = git_head()
     if not code_commit:
         return code_commit, False, ["(git unavailable)"]

@@ -37,11 +37,20 @@ _ROOT = Path(__file__).resolve().parents[1]
 def git_head() -> str:
     """`<short sha>` or `<short sha>-dirty`; empty string if git is unavailable.
     Telemetry only — recorded on every trajectory's runtime_context so a run can be
-    tied to the code that produced it without reading prose."""
+    tied to the code that produced it without reading prose.
+
+    `-dirty` is scoped to the FIS provenance dependency closure — this project tree
+    (`-- .` under `_ROOT`), which since the 2026-08 restructuring holds every
+    load-bearing FIS artifact: code, registries, evidence, infra, project docs, and
+    the relocated R6 contract (owner decision D3, 2026-08-21). Edits elsewhere in
+    the lab repository (playbook/, research/, lab governance) do not change the FIS
+    execution system and no longer stamp its runs dirty. The same pathspec scope is
+    used by `provenance.dirty_paths_outside_registry`, so the recorded commit
+    identity and the dirty-path guard cannot disagree about what counts."""
     try:
         sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=_ROOT,
                              capture_output=True, text=True, timeout=5, check=True).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
+        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no", "--", "."],
                                cwd=_ROOT, capture_output=True, text=True, timeout=5,
                                check=True).stdout.strip()
         return f"{sha}-dirty" if dirty else sha
