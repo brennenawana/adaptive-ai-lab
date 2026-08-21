@@ -27,7 +27,8 @@ findings. Each was independently re-verified against the repository, re-derived
 mathematically where applicable, and checked against the live source ledger before
 any edit; the audit's having raised an issue was never treated as evidence.
 Verdicts: 3 CONFIRMED, 4 PARTIALLY CONFIRMED, 0 rejected outright. Full
-dispositions: `docs/research/PLAYBOOK_INTERNAL_EVIDENCE_MAP.md` §4.
+dispositions: `docs/playbook-development/EVIDENCE_MAP.md` §4 (cited pre-restructuring
+as `docs/research/PLAYBOOK_INTERNAL_EVIDENCE_MAP.md`).
 
 | What | Why | Evidence |
 |---|---|---|

@@ -18,7 +18,7 @@ Last reorganized: 2026-08-20 (playbook pointer added 2026-08-21). If you read no
 3. **[current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md](current/EXPERIMENTAL_AI_SYSTEMS_PLAYBOOK.md)** — the experimental methodology every experiment follows.
 4. **[current/EXPERIMENT_CONTRACT_TEMPLATE.md](current/EXPERIMENT_CONTRACT_TEMPLATE.md)** — how to write the next contract (v2).
 5. **[HANDOFF.md](HANDOFF.md)** — operational state: what runs where, gotchas, verification commands.
-6. **[research/](research/)** — the two 2026-08 deep-research reports (the evidence base for the current plan). *Caveat:* the 08-20 report's §2.3 gap-matrix retains two stale pre-correction rows suggesting SPRT-style rules; its own §2.2/Appendix C corrections (and the playbook) govern — SPRT was rejected.
+6. **[../research/](../research/)** — the two 2026-08 deep-research reports, now at repo root (the evidence base for the current plan). *Caveat:* the 08-20 report's §2.3 gap-matrix retains two stale pre-correction rows suggesting SPRT-style rules; its own §2.2/Appendix C corrections (and the playbook) govern — SPRT was rejected.
 
 **When documents conflict:** master plan → next-step plan → playbook/contract-template →
 HANDOFF → everything else. Historical **final reports** stay authoritative for the

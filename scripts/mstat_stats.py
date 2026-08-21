@@ -1,5 +1,5 @@
 """M-STAT standing-facts regeneration — makes the playbook's quoted cluster-robust
-numbers (`docs/research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md`
+numbers (`research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md`
 Finding 5) mechanically re-derivable from the committed R6 TEST data instead of
 living only as prose.
 
@@ -53,7 +53,7 @@ RUN_B = "R6-bonsai-test"        # Bonsai — arm B
 CURTAILED_DROP_CLASSES = ("S11", "S12")   # last 16 cases in class-blocked ORDER BY scenario_id
 
 # The doc-quoted targets this artifact reproduces
-# (docs/research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md Finding 5, line 94).
+# (research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md Finding 5, line 94).
 EXPECTED = {
     "icc": 0.475, "deff": 4.33, "n_eff": 22, "t": 0.98, "headline_pp": 13.5,
     "pd": 0.427, "mcnemar_full": 0.0596, "mcnemar_curtailed": 0.0139,
@@ -80,7 +80,7 @@ _KNOWN_ANSWERS = {
 PRECISION_NOTE = (
     "The doc-quoted MDE figures (TEST 10.9-15.5pp, DEV 21.6pp at pd=.30, ~37pp "
     "cluster-corrected at the realized pd=0.427 — "
-    "docs/research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md lines 66/84/94) were "
+    "research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md lines 66/84/94) were "
     "derived by 20-100k-replicate Monte Carlo simulation of the exact (McNemar) test. "
     "fis_platform.stats.mde_pp's closed-form normal approximation reproduces them within "
     "~1-2pp (TEST pd=.30: 15.7 vs 15.5; DEV pd=.30: 22.1 vs 21.6; cluster-corrected at "

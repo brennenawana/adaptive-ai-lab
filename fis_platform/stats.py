@@ -2,7 +2,7 @@
 
 R6 shipped a headline (+13.5pp, Qwen3.8 vs Bonsai) read as a difference without ever
 checking whether the 12 scenario classes it was measured over are independent. They
-are not: the adversarial statistical review (`docs/research/2026-08-20_AI_Lab_
+are not: the adversarial statistical review (`research/2026-08-20_AI_Lab_
 Methodology_Hardware_Strategy.md` Finding 5) measured ICC(1)=0.475 on the real
 per-class paired differences, which inflates the naive standard error 2.08x and
 collapses the suite's 96 paired cases to an effective N of about 22. Under that
@@ -300,7 +300,7 @@ def mde_pp(pd: float, n: float, alpha: float = 0.05, power: float = 0.80) -> flo
     **Precision boundary, stated once here.** The normative docs' quoted MDE
     figures — TEST(96) 10.9-15.5pp and DEV(48) 21.6pp at pd=.30, and ~37pp
     cluster-corrected at the realized pd=0.427
-    (`docs/research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md` lines
+    (`research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md` lines
     66, 84, 94) — were derived by 20-100k-replicate Monte Carlo simulation of the
     *exact* (McNemar) test, not this closed form. This closed form reproduces
     them within ~1-2pp (TEST pd=.30: 15.7 vs 15.5; DEV pd=.30: 22.1 vs 21.6;

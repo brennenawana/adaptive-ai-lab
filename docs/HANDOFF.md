@@ -1,7 +1,7 @@
 # Handoff — 2026-08-20 (R6 done; research synthesis done; next: M0 — see docs/current/NEXT_STEP_M0.md)
 
 > **2026-08-20 update.** The documentation tree was reorganized and the program
-> re-planned after two deep-research reports (`docs/research/`). Start at
+> re-planned after two deep-research reports (`research/`, at repo root). Start at
 > **`docs/README.md`**; sequencing authority is
 > **`docs/current/AI_SYSTEMS_LAB_MASTER_PLAN.md`**; the next task is
 > **`docs/current/NEXT_STEP_M0.md`** (truncation diagnostic + telemetry floor + $4

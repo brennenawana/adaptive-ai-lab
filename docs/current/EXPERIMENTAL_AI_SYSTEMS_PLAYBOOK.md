@@ -11,7 +11,7 @@
 
 This document is the operating methodology: the rules every FIS experiment follows.
 It encodes the corrections adopted after the 2026-08 external research
-(`../research/`), each verified or re-derived against FIS's own data.
+(`../../research/`, at repo root), each verified or re-derived against FIS's own data.
 
 ---
 

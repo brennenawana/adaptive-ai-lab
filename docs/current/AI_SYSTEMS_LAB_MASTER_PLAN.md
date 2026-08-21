@@ -10,8 +10,8 @@
 > Historical **final reports** remain authoritative for the facts of their own
 > experiments; they never override this plan's sequencing.
 
-Evidence basis: `../research/2026-08-19_NVIDIA_AI_Lab_Playbook_Research.md` and
-`../research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md` (both adversarially
+Evidence basis: `../../research/2026-08-19_NVIDIA_AI_Lab_Playbook_Research.md` and
+`../../research/2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md` (both adversarially
 verified, the second re-derived against FIS's own trajectory store), reconciled against
 the primary FIS record (HANDOFF, experiment-log, R5/R6/Suite-v3 reports and contracts,
 R6 performance autopsy, provenance registry).
