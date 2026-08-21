@@ -1,6 +1,6 @@
 # 04. Experiment Design and Statistics
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](03_EVALUATION_FOUNDATION.md) · [Index](README.md) · [Next →](05_MODEL_RUNTIME_AND_HARNESS_SELECTION.md)
 > **Reading time:** ~30 min. **Prerequisites:** [00](00_PRINCIPLES_AND_SCOPE.md),
 > [02](02_EXECUTION_SYSTEM_MODEL.md), [03](03_EVALUATION_FOUNDATION.md).
@@ -431,7 +431,12 @@ grouped into 20 task categories, 10 items each (m=10). A pilot measures ICC = 0.
 outcomes, which is a different number and the wrong input for a paired analysis
 (see [references/STATISTICS_FORMULAS.md §2](references/STATISTICS_FORMULAS.md#icc)).
 `DEFF = 1 + (10−1)×0.30 = 3.70`. `N_eff = 200 / 3.70 ≈ 54` — the suite carries the
-statistical weight of about 54 independent pairs, not 200. Full derivation:
+statistical weight of about 54 independent pairs, not 200. **To grow N_eff:** the
+cluster count `k` enters linearly and without bound; items-per-cluster `m` enters
+with diminishing returns and saturates at `k/ICC` (here 20/0.30 ≈ 67, however many
+items the 20 categories hold — while 50 *new* categories of 10 would carry
+N_eff ≈ 500/3.70 ≈ 135 more on their own). Compute both options before buying
+items. Full derivation:
 [references/STATISTICS_FORMULAS.md#design-effect](references/STATISTICS_FORMULAS.md#design-effect).
 
 ### Minimum detectable effect (MDE)
@@ -461,8 +466,11 @@ evidence about the world.
 `MDE ≈ (1.96+0.84) × √(0.20/54) ≈ 0.17` — this design resolves a ~17-point paired
 difference and no smaller one. Since 0.17 ≤ 0.20 the design is just barely coherent
 at this discordance rate (equivalently, N_eff ≈ 54 clears the 7.84/0.20 ≈ 39
-threshold); a design on the wrong side of it needs more N_eff (more clusters, not
-more items per cluster) or a relaxed power target before it is worth running.
+threshold); a design on the wrong side of it needs more N_eff — prefer adding
+independent clusters, which grow N_eff without bound; adding items inside existing
+clusters still helps while ICC < 1, with returns that flatten once m approaches
+1/ICC and a ceiling at N_eff = k/ICC however many items each cluster holds
+— or a relaxed power target before it is worth running.
 
 **Assumption — the per-item outcome is observed without error.** Every MDE and
 power form here, and in the formulary's §1–§5, treats the recorded score as the
@@ -679,8 +687,9 @@ configuration changes.
   decoration.
 - [CASE-002](examples/CASE-002_clustered-eval-effective-n.md) — clustered outcomes
   silently collapsed a suite's effective N; a headline comparison that looked
-  significant was not, once computed cluster-robustly. Lesson: power grows with
-  the number of clusters, not replications within them.
+  significant was not, once computed cluster-robustly. Lesson: under material
+  clustering, adding independent clusters buys power without bound, while
+  replications inside existing clusters saturate at N_eff = k/ICC.
 - [CASE-010](examples/CASE-010_pilot-optimism-collapse.md) — a small pilot's
   headline result ran optimistic and collapsed at confirmation scale; a
   pre-registered adoption rule with fluke guards caught it. Lesson: small-n pilots

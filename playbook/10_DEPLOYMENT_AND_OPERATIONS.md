@@ -1,6 +1,6 @@
 # 10. Deployment and Operations
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](09_TRAINING_AND_DATA.md) · [Index](README.md) · [Next →](11_ECONOMICS_HARDWARE_AND_CLOUD.md)
 > **Reading time:** ~14 min. **Prerequisites:** 02, 03, 04, 06; 09 if the candidate
 > being promoted came off the training rung.
@@ -105,11 +105,25 @@ rehearsal behind them — precisely the gap this principle exists to close (G10)
 State ownership, mechanics, and a rehearsal cadence *before* the first real
 promotion, not after the first incident.
 
-**[PRINCIPLE] One change crosses a promotion stage at a time.** (consensus, corollary
-of P5/02)
-Promoting a model change and an infrastructure change in the same canary destroys
-the causal attributability the restraint doctrine requires — a regression cannot be
-assigned to either change alone. Sequence them.
+**[PRINCIPLE] One declared treatment crosses a promotion stage at a time.**
+(consensus, corollary of P5/02)
+The unit that promotes is a **declared treatment** — usually a complete frozen
+candidate [execution system](GLOSSARY.md#execution-system) (chapter 02), which MAY
+differ from the incumbent in several components at once (new model + new runtime +
+new quantization is one legitimate treatment, "candidate system B vs. incumbent
+system A"). What the restraint doctrine forbids is *undeclared concurrency*: a
+second change — related or not — riding through the same canary alongside the
+declared treatment destroys causal attributability, because a regression cannot be
+assigned to either. Two distinctions follow:
+- A **system-level comparison** ("B is safer/better/cheaper than A") is licensed by
+  promoting B as one declared bundle; it supports no claim about which component of
+  B caused the difference.
+- A **component-attribution claim** ("the model change caused the improvement")
+  additionally requires isolating that component — chapter 02 §4's rule that a
+  comparison speaks to one factor only when the experiment explicitly isolates it,
+  run under chapter 04's statistical plan — before or after promotion, never
+  inferred from the bundle's result.
+Sequence *treatments*; bundle *components* only inside a declared, frozen treatment.
 
 **[PRINCIPLE] Human approval gates scale with stakes tier.** (inference, from the
 [rigor dial](GLOSSARY.md#rigor-dial), 00 §6)
@@ -126,7 +140,7 @@ at every stage advance from shadow onward, plus the security/threat-model review
 |---|---|---|---|---|
 | Offline confirm | Frozen contract passed its confirm-split verdict (04); static integrity gates green (03) | Nothing new — this stage *is* the evidence chapters 03–04 already produced | CONFIRMED verdict recorded; execution-system identity hashed and pinned (02) | No |
 | Shadow | Offline confirm passed; execution system pinned; [telemetry floor](GLOSSARY.md#telemetry-floor) live (12) | Real production requests are mirrored to the candidate; only the incumbent's response reaches the user | Outcome-distribution comparison (paired where items repeat) shows no regression beyond the pre-registered tolerance | No — mirrored only |
-| Shadow — human-baseline variant (no automated incumbent) | Offline confirm passed; execution system pinned; telemetry floor live (12); the human process's own outcomes captured as the comparator | Candidate runs alongside the current human process; candidate output logged, never acted on; the human process continues unchanged | Measured shadow **agreement rate** at or above a pre-registered floor **and regret rate** at or below a pre-registered ceiling (defined below), both read through §8's clustered/paired machinery, with every disagreement case resolved by a pre-registered adjudication procedure | No — logged only |
+| Shadow — human-baseline variant (no automated incumbent) | Offline confirm passed; execution system pinned; telemetry floor live (12); the human process's own outcomes captured as the comparator | Candidate runs alongside the current human process; candidate output logged, never acted on; the human process continues unchanged | Adjudicated **regret rate** at or below its pre-registered ceiling (the gate — defined below), read through §8's clustered/paired machinery, with every disagreement resolved by a pre-registered adjudication procedure; **agreement rate** reported as a compatibility diagnostic (it gates only when the profile declares interchangeability a requirement — see below) | No — logged only |
 | Canary | Shadow exit gate passed; rollback rehearsed (§5 below) | A small, pre-declared real-traffic fraction is served by the candidate | The causal metric set stays within its [consequence-bearing tolerance](GLOSSARY.md#consequence-bearing-tolerance) for the full aggregation window; no unresolved rollback trigger fired | Yes — small fraction |
 | Progressive rollout | Canary exit gate passed; approver sign-off per §4/§6 | Traffic fraction increases in pre-declared steps, one step at a time | Each step's tolerance holds before the next step starts | Yes — increasing fraction |
 | Steady state | Full rollout complete | Normal production observability (12) | N/A — this is the resting state until the next promotion | Yes — full |
@@ -167,10 +181,23 @@ its own metric pair rather than the incumbent row's outcome-distribution compari
   run measured mostly against one unusually strict or lenient rater is not evidence
   about "the human process" in general; the effective N and MDE must account for it.
 
-Exit gate for this variant: agreement rate resolves above its pre-registered floor
-**and** regret rate resolves below its pre-registered ceiling, both at or beyond the
-design's own MDE — an underpowered shadow period holds and extends rather than
-advancing on a favorable but INCONCLUSIVE read.
+Exit gate for this variant — **veto authority sits with adjudicated outcomes, not
+imitation of the incumbent**: the gate is the adjudicated **regret rate** resolving
+below its pre-registered ceiling, at or beyond the design's own MDE — an
+underpowered shadow period holds and extends rather than advancing on a favorable
+but INCONCLUSIVE read. The **agreement rate is a compatibility diagnostic by
+default, not a gate**: a candidate that frequently disagrees with the human process
+while adjudication shows those disagreements resolve in the candidate's favor is
+evidence of a *better* system, and an agreement floor would block exactly that
+system for imitating the incumbent insufficiently. Report agreement (clustered, with
+its MDE) and pre-register a review trigger on low agreement — a burst of
+disagreement is always worth reading — but it vetoes promotion only when the
+[project profile](GLOSSARY.md#project-profile) explicitly declares human-process
+interchangeability or behavioral compatibility a requirement — the field-4
+sub-prompt in [templates/PROJECT_PROFILE.md](templates/PROJECT_PROFILE.md) is
+where that declaration lives (some projects do declare it: deviations themselves
+can carry operational or safety cost), in which case the pre-registered agreement
+floor is a gate and says so in the contract (§6's parameter table).
 
 *status: doctrine — not yet exercised* — the shadow→canary sequence above composes
 individually-consensus mechanics (SageMaker/Azure-style mirroring, SRE-style
@@ -229,6 +256,7 @@ promotions are still advancing compounds the incident instead of containing it.
 | Causal metric set | What the canary is judged on | Small, named, each metric argued causally attributable to the change (not to unrelated system load). Add a metric only with an argument for its attributability. |
 | Rollback owner | Who decides and executes | Named role, not "whoever is online" — distinct from the promotion's author at Tier 2+ (separation of duties mirrors 04's scientific-owner/executor split). |
 | Approval-gate composition | Who signs off at each stage advance | Tier 1: single owner. Tier 2: named approver role distinct from the runner. Tier 3: human approval at every advance from shadow onward, plus 13's security review before canary. |
+| Agreement-floor applicability (human-baseline shadow) | Whether the shadow agreement rate is a promotion gate or a diagnostic | Read from the project profile's field-4 behavioral-compatibility declaration (templates/PROJECT_PROFILE.md): declared required → pre-register the floor and its consequence in the contract as a gate; not declared → agreement is a diagnostic with a pre-registered review trigger, and the adjudicated regret ceiling alone carries veto authority (§5). |
 | State-compatibility scope | What the rollback rehearsal must check | Enumerate per §5 step 1 for your own architecture — in-flight requests, session/KV state, adapter version pins, cached tool results, and side effects already committed to any external system of record. |
 | Shadow comparison sample | How much mirrored traffic before a shadow verdict | Sized against the same-item [paired design](GLOSSARY.md#paired-design)'s MDE (04) if items repeat across arms; otherwise against the clustered/unpaired design the outcome distribution requires. |
 
@@ -393,8 +421,9 @@ it into a contract or a runbook [NV-DGXCLOUD-DEP-001].
   entry/exit results) into
   [templates/OPERATIONAL_HANDOFF.md](templates/OPERATIONAL_HANDOFF.md), covering
   at minimum: pinned execution-system identity; the causal metric set and its
-  tolerances (or, for a no-incumbent promotion, the agreement/regret thresholds and
-  the disagreement-adjudication procedure, §5); the rollback owner, mechanics,
+  tolerances (or, for a no-incumbent promotion, the regret ceiling that gates, the
+  agreement diagnostic and any profile-declared compatibility floor, and the
+  disagreement-adjudication procedure, §5); the rollback owner, mechanics,
   external-system-of-record retraction/amendment path, and rehearsal log; on-call
   contact; known limitations; the security/privacy gate result at this stakes tier
   (13).

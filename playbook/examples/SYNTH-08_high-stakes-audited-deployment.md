@@ -19,7 +19,7 @@ reviewer decides. Nothing it produces is ever submitted anywhere on its own.
 | Business outcome | Cut time-to-flag on narratives that may need expedited regulatory reporting |
 | Task population & volume | ~600 intake narratives/month across three product lines |
 | Criticality / failure cost | Missed expedited-reportable case → regulatory-deadline and safety exposure; false positive → reviewer time only (asymmetric cost) |
-| Quality / reliability target | Near-ceiling recall on the expedited-reportable class; decision-support only, never the final decision |
+| Quality / reliability target | Near-ceiling recall on the expedited-reportable class; decision-support only, never the final decision. **Behavioral compatibility declared a requirement** (PROJECT_PROFILE field-4 sub-prompt): recommendations feed the analysts' sign-off workflow, and reviewers must be able to recognize the reasoning — deviation from the incumbent process carries its own operational cost even when adjudicated-correct |
 | Latency / SLA | Same-business-day triage |
 | Privacy / security / residency | Narratives carry protected personal health information; processing confined to an approved boundary; no such data in any vendor training path |
 | Tool / action permissions | Read-only lookup against the product-label database and prior-case history; no write actions; no auto-submission to any regulator |
@@ -72,11 +72,17 @@ approval, a rehearsed rollback path, and a periodic methodology audit.
    check on a held-out subset, not just pass@1, was run before any
    reliability claim was made [EXT-AGENT-001] — see Outcome for what it
    found and how the design responded (chapter 04).
-5. **[DECISION GATE] Shadow-to-canary promotion.** Entry to canary required
-   all of: measured shadow agreement above a pre-registered floor, regret
-   rate below a pre-registered ceiling, and a passed rollback rehearsal —
-   following the restraint doctrine of running the simplest model that meets
-   the objective, one change at a time [EXT-OPS-001C] (chapter 10).
+5. **[DECISION GATE] Shadow-to-canary promotion.** Entry to canary required:
+   adjudicated regret rate below its pre-registered ceiling (the gate with veto
+   authority — chapter 10's human-baseline rule) and a passed rollback
+   rehearsal. Shadow agreement with the analysts was tracked as a
+   compatibility diagnostic with a pre-registered review trigger — and here
+   the profile *did* declare behavioral compatibility a requirement (the
+   recommendations feed a sign-off workflow whose reviewers must recognize
+   the reasoning), so its floor was also written into the contract as a gate,
+   explicitly, rather than assumed. All under the restraint doctrine: the
+   simplest model that meets the objective, one declared treatment at a time
+   [EXT-OPS-001C] (chapter 10).
    [Observe-only graduation](../GLOSSARY.md#observe-only-graduation) to an
    *automated* flagging action was explicitly not pursued for this
    consequence class — a permanent design choice, not a "not yet."

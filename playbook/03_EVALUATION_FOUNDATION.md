@@ -1,6 +1,6 @@
 # 03. Evaluation Foundation
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](02_EXECUTION_SYSTEM_MODEL.md) · [Index](README.md) · [Next →](04_EXPERIMENT_DESIGN_AND_STATISTICS.md)
 > **Reading time:** ~32 min. **Prerequisites:** [00](00_PRINCIPLES_AND_SCOPE.md),
 > [01](01_PROJECT_INTAKE_AND_DECISION_CONTEXT.md), [02](02_EXECUTION_SYSTEM_MODEL.md).

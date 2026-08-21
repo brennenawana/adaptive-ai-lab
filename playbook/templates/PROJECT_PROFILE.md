@@ -99,9 +99,18 @@ actionable" carry different costs even inside one system.*
 
 *Asks:* What is the quality bar, and does reliability *under repetition* matter
 (a single good answer vs. the same answer holding up across retries)?
+**Sub-prompt — behavioral compatibility:** if the system replaces or sits inside
+an existing human process, state explicitly whether *behavioral compatibility /
+human-process interchangeability is itself a requirement* (required / not
+required, and why). Deviations that are adjudicated-correct but operationally or
+safety-costly — reviewers must recognize the reasoning, downstream steps assume
+the incumbent's shape — make it required. This declaration is what decides
+whether a human-agreement floor is a promotion **gate** or only a diagnostic
+(chapter 10 §5).
 *Why it matters:* Sets qualification-gate thresholds and whether
 [pass^k](../GLOSSARY.md#pass-at-k-vs-pass-to-the-k) reliability claims apply, as
-opposed to single-shot pass rate.
+opposed to single-shot pass rate; the compatibility declaration routes the
+human-baseline shadow gate (10 §5–§6).
 *Consumes in:* 03, 04.
 
 **Value:** `[...]`

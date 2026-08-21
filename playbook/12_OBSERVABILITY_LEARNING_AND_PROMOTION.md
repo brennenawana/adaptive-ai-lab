@@ -1,6 +1,6 @@
 # 12. Observability, Learning, and Promotion
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](11_ECONOMICS_HARDWARE_AND_CLOUD.md) · [Index](README.md) · [Next →](13_GOVERNANCE_PROVENANCE_AND_SECURITY.md)
 > **Reading time:** ~20 min. **Prerequisites:** [02](02_EXECUTION_SYSTEM_MODEL.md), [03](03_EVALUATION_FOUNDATION.md), [04](04_EXPERIMENT_DESIGN_AND_STATISTICS.md), [06](06_INFERENCE_PERFORMANCE_AND_CAPACITY.md), [08](08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md).
 
@@ -92,6 +92,7 @@ Every task execution MUST produce a record carrying at least these fields. This 
 | Tool calls and results | Every call, its arguments, and its result (or failure) | 08 [tool contract](GLOSSARY.md#tool-contract) |
 | Permissions in force | The permission/role set active at call time | 13 least-privilege |
 | Output | The raw model/system output, before any downstream parsing | — |
+| Component provenance | For each model-generated component in the record — each tier's attempt, the escalation tier's response, any judge verdict, any synthetic label — the generating model/provider identity and the terms class in force; MUST at Tier 2+ for any cascade or judge-mediated path, because training admissibility is decided per component (09 §5) and this field is what makes that decision executable | 09 §4–§5, 13 provenance |
 | Verification outcome | The deterministic check or judge verdict applied to the output | 03, 04 |
 | Final outcome | The task-level result after any cascade/escalation (08) resolved | 08 [rescue](GLOSSARY.md#rescue) |
 | Latency | Per-phase and end-to-end, tagged to the authoritative clock declared for that metric | 06 |
@@ -143,7 +144,7 @@ Who audits the instruments' instruments:
 1. Hold out a stream of annotated production examples specifically for regression testing — a named, mature pattern [EXT-OPS-002] — kept separate from the suites used for capability claims ([regression suite vs. capability suite](GLOSSARY.md#regression-suite-vs-capability-suite), 03).
 2. Apply the project's privacy filter (13) before anything from production crosses into the lab's stores. **MUST** happen before harvesting, not as a later cleanup pass (13).
 3. Triage every harvested failure against the [canonical failure taxonomy](GLOSSARY.md#canonical-failure-taxonomy) (03): is it already representable in the current suite (an eval gap, RC-1), a retrieval/context gap (RC-3), or a candidate for training data (RC-10) only after the ladder's cheaper rungs are evidenced exhausted (07, 09)?
-4. Route in ladder order (the Principle above): eval-suite candidate first, then retrieval/context fix, only then training-data candidate.
+4. Route in ladder order (the Principle above): eval-suite candidate first, then retrieval/context fix, only then training-data candidate — and a harvested record becomes a training-data candidate only after component-level provenance qualification (09 §5): a trajectory that embeds a managed-provider output (an escalation tier's response, a provider-generated label) is not training-admissible by ownership alone.
 5. Feed routed items into the relevant chapter's intake (03 for suite refresh, 09 for training data) with the trajectory record (§5.2) attached as provenance.
 
 ### 5.7 Drift and monitoring of automated/learned components

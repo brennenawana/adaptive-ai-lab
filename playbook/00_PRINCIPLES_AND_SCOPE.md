@@ -1,6 +1,6 @@
 # 00. Principles and Scope
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [Index](README.md) · [Next →](01_PROJECT_INTAKE_AND_DECISION_CONTEXT.md)
 > **Reading time:** ~15 min. **Prerequisites:** none. Read once; it binds everything.
 

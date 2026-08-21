@@ -1,6 +1,6 @@
 # 07. Optimization and the Intervention Ladder
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](06_INFERENCE_PERFORMANCE_AND_CAPACITY.md) · [Index](README.md) ·
 > [Next →](08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md)
 > **Reading time:** ~35 min. **Prerequisites:** 00 (principles — the ladder in short

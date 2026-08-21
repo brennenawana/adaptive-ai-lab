@@ -1,6 +1,6 @@
 # 02. Execution System Model
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](01_PROJECT_INTAKE_AND_DECISION_CONTEXT.md) · [Index](README.md) · [Next →](03_EVALUATION_FOUNDATION.md)
 > **Reading time:** ~15 min. **Prerequisites:** 00, 01.
 
@@ -83,8 +83,9 @@ sampling: floating-point reduction order in batched kernels varies with concurre
 GPU state, and this variance requires no concurrency to observe — a single session
 restarted can reorder reductions differently the second time. KV-cache placement is
 a secondary contributor. Batch-invariant execution modes exist to remove the
-dominant source, and as of this playbook's verification date they ship **opt-in**
-in major open serving engines, at a material throughput cost (§10) — the default
+dominant source; where the engines named in this playbook's source ledger support
+them (verified per engine, with dates, in [references/SOURCES.md](references/SOURCES.md)),
+they ship **opt-in** at a material throughput cost (§10) — the default
 configuration of a serving stack is not deterministic [EXT-DETERM-001]. Treat every
 "the numbers should match" assumption as a hypothesis to probe (§5), not a starting
 belief.
@@ -152,7 +153,11 @@ comparison, **provided**: (a) placement is pre-registered in the contract before
 any case runs, not chosen opportunistically per arm; (b) the artifact digest is
 independently verified on the remote host before the arm starts, not assumed from
 the launch script; (c) the remote host's declared identity (driver/runtime versions,
-hardware) is recorded exactly as it would be for an owned host.
+hardware) is recorded exactly as it would be for an owned host; (d) the remote
+surface is itself admissible under the project's written privacy/residency
+requirement (11 Q0a/Q0b; 05 §5.2) — comparability licenses the *placement*, it
+does not license the *surface*, and a held-out or regulated corpus lands only on
+tiers the stakes-tier cloud policy (11 §8) admits.
 
 **Step 5 — Quantize for the deployment target, not the development box.** Decide
 where the frozen artifact will actually serve *before* investing in a quantization
@@ -250,10 +255,13 @@ treat it as an integrity defect, not data.
   is the anti-pattern P5 exists to forbid — the sentence names one component and
   silently changed several [CASE: CASE-006], [CASE: CASE-008].
 - **Assuming determinism because a runtime supports a deterministic mode.**
-  Batch-invariant/deterministic execution modes are opt-in in every major open
-  serving engine as of this playbook's verification date; a stack running its
-  default configuration is not deterministic regardless of what the engine is
-  capable of when the flag is set [EXT-DETERM-001].
+  The two engines the source ledger verifies for this (see the EXT-VLLM-001 and
+  EXT-SGLANG-001 rows) expose opt-in deterministic/batch-invariant modes at a
+  throughput cost, and neither ships that mode as its default; support, defaults,
+  and guarantees vary by engine and version, and other engines were not verified
+  for such modes at all. Probe the actual frozen runtime (§5); never infer
+  determinism from feature availability, and never assume a mode exists in an
+  engine the ledger has not verified it for [EXT-DETERM-001].
 - **Format-locked-to-hardware surprise.** Choosing or accepting a quantization
   format because it is convenient on the development machine, discovering only at
   deployment time that the target hardware does not support it or takes a silent

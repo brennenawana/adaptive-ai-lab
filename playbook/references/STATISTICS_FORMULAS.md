@@ -1,6 +1,6 @@
 # Statistics Formulary
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 · [Index](../README.md) ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 · [Index](../README.md) ·
 > Governing chapter: [04. Experiment Design and Statistics](../04_EXPERIMENT_DESIGN_AND_STATISTICS.md)
 
 Reference file, not a chapter — no independent authority. Chapter 04 states
@@ -116,8 +116,9 @@ unit; do not borrow a marginal-arm ICC for a paired analysis.
 
 **When this breaks:** unbalanced clusters — use Fleiss's
 `m₀=(N−Σm_j²/N)/(k−1)` in place of `m`; small `k` (as above) gives a
-high-variance ICC estimate — more clusters beats more items per cluster
-(§3b explains why); multiple simultaneous clustering dimensions — identify
+high-variance ICC estimate — for estimating ICC itself, more clusters beats more
+items per cluster (§3b has the power analog and its saturation limit); multiple
+simultaneous clustering dimensions — identify
 the coarsest binding unit or move to a mixed-effects model; negative ICC
 estimates from small `k` — cap at 0 and investigate.
 
@@ -198,16 +199,24 @@ difference `d̄_j`.
 ```
 MDE ≈ (t_α/2,df + t_β,df) · SD(d̄_j) / √k        df = k − 1
 ```
-`k`=clusters; `SD(d̄_j)`=SD of the `k` cluster means. Power is governed by
-**cluster count, not replications within a cluster** — `k` alone sits in the
-denominator.
+`k`=clusters; `SD(d̄_j)`=SD of the `k` cluster means. `Var(d̄_j) = σ_b² + σ_w²/m`
+(between-cluster variance plus the within-cluster contribution): adding items
+inside a cluster (`m↑`) shrinks the second term toward zero, so replication does
+buy power — but only down to the between-cluster floor `σ_b`, at which point
+**only cluster count `k` reduces the MDE further** (`√k` alone sits in the
+denominator once the floor binds). Equivalently, `N_eff = km/(1+(m−1)·ICC)` is
+increasing in `m` for ICC < 1 with diminishing returns, saturating at `k/ICC` as
+`m → ∞` (and equal to exactly `k` when ICC = 1); it is linear and unbounded in
+`k`. Under material clustering, prefer independent clusters; replications help
+until they don't.
 
 **Worked example (illustrative).** `k=10`, `SD(d̄_j)=0.12`, α=.05 two-sided
 (`t_.025,9=2.262`), 80% power (`t_.20,9≈0.883`):
 ```
 MDE ≈ (2.262+0.883)×0.12/√10 = 3.145×0.12/3.162 ≈ 0.119 → ~12 points
 ```
-With 10 clusters the MDE is large regardless of items per cluster.
+With 10 clusters the MDE stays large however many items each cluster holds, once
+within-cluster noise is averaged down to the between-cluster floor.
 
 ### 3c. MDE ≤ discordance, restated
 
@@ -847,9 +856,9 @@ shifts, second-order for `λ` near 1).
 
 **Worked example (illustrative).** `Se = 0.95`, `Sp = 0.90` → `λ = 0.85`. A
 true 10-point gap presents as 8.5 points; a design sized for 10 points under a
-perfect grader needs `1/0.85² ≈ 1.38×` the `N_eff` — ~38% more clusters (§3b:
-clusters, not items per cluster) — to hold the same power. At `λ = 0.60` the
-multiplier is `1/0.36 ≈ 2.8×`.
+perfect grader needs `1/0.85² ≈ 1.38×` the `N_eff` — most efficiently bought as
+~38% more independent clusters (§3b: replications saturate at `k/ICC`) — to hold
+the same power. At `λ = 0.60` the multiplier is `1/0.36 ≈ 2.8×`.
 
 **κ is not λ.** A κ figure alone does not determine the attenuation factor:
 κ summarizes agreement, `λ` is a function of the two error *directions*, and

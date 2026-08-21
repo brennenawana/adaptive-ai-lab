@@ -1,6 +1,6 @@
 # 11. Economics, Hardware, and Cloud
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](10_DEPLOYMENT_AND_OPERATIONS.md) · [Index](README.md) · [Next →](12_OBSERVABILITY_LEARNING_AND_PROMOTION.md)
 > **Reading time:** ~18 min. **Prerequisites:** 01 (project profile budget/privacy
 > fields), 06 (performance characterization — operating point, effective bandwidth).
@@ -143,10 +143,24 @@ not by whichever tier is cheapest this week (table, §8).
 **Decision tree** (keyed on project-profile facts):
 
 ```
-Q0  Hard privacy/residency constraint (contractual/regulatory) on this workload?
-     YES → owned or secure/dedicated-tier rented hardware only; managed/frontier
-           APIs and community/preemptible tiers are OUT.  → go to Q2.
-     NO  → continue.
+Q0a Is there NO managed execution surface — including in-tenant/VPC-scoped,
+     no-retention, region-bound configurations — that satisfies the WRITTEN
+     privacy/residency/security requirement (contract, law, policy)?
+     (Same admissibility test as QUICKSTART step 3 node 5 and 05 §5.2 —
+     one rule, not a separate economic interpretation of privacy.)
+     NO (a compliant managed configuration exists) → managed surfaces stay
+           candidates, judged on quality, performance, economics, and operations
+           — a constraint a compliant configuration satisfies filters WHICH
+           surfaces qualify (05), it does not mandate self-hosting. Continue to Q1.
+     YES → managed/frontier APIs and community/preemptible tiers are OUT → Q0b.
+
+Q0b Does the same written requirement also bar processing on third-party-owned
+     hardware or non-owned tenancy (a full-custody mandate — e.g. air-gap,
+     no-third-party-processing clauses)?
+     NO  → owned or secure/dedicated-tier RENTED capacity are both candidates;
+           the rent-vs-buy break-even (Q3, H*) and purchase trigger still decide
+           between them.  → go to Q2.
+     YES → owned capacity only.  → go to Q2.
 
 Q1  Does a quality- and cost-adequate managed API / hosted-inference offering
      already exist for the task, per a trusted evaluation (chapter 03)?
@@ -234,9 +248,10 @@ comparing candidates.
 
 | Tier | Description | Admissible for |
 |---|---|---|
+| Managed / hosted (provider-operated) | Provider infrastructure; tenancy, retention, and region per configuration | Admissible at any stakes tier when a configuration's verified, written terms (e.g. no-retention, region-binding, in-tenant/VPC scoping, a signed data-handling agreement) satisfy the project's written requirement — the Q0a test (§5); a configuration without such terms is shared-tenancy for this table's purposes |
 | Community / preemptible | Shared tenancy, interruptible, cheapest | Tier 1 exploratory iteration on non-sensitive or synthetic data; screening runs that tolerate a restart |
 | Secure / dedicated | Non-preemptible, isolated tenancy | Tier 2+ default; anything touching a private corpus, held-out evaluation data, or customer content |
-| Owned (on-prem) | Full custody | Tier 3 default whenever residency is a hard constraint (Q0, §5), or sustained demand exceeds H\* |
+| Owned (on-prem) | Full custody | Mandatory only when Q0b answers YES (a full-custody mandate: the written requirement bars managed AND third-party-rented processing — §5); otherwise a candidate like any other, favored when sustained demand exceeds H\* |
 
 **Rent-vs-buy [break-even](GLOSSARY.md#break-even) (H\*).**
 

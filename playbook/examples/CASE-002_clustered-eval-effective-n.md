@@ -112,9 +112,11 @@ within existing classes — that is where the power actually comes from at this 
    pairs is a legitimate secondary statistic but is anti-conservative under
    clustering — it can read as decisive exactly where a cluster-robust test does
    not.
-4. In a clustered design, statistical power grows with the **number of clusters**,
-   not with replications inside existing clusters. A suite refresh under high ICC
-   should add classes/strata before it adds cases per class.
+4. In a clustered design, adding independent clusters grows effective N without
+   bound, while replications inside existing clusters saturate — N_eff =
+   km/(1+(m−1)·ICC) caps at k/ICC however many cases each cluster holds (at the
+   measured ICC here, roughly 2× the class count). A suite refresh under high ICC
+   should therefore add classes/strata before it adds cases per class.
 5. Every experiment contract states its cluster-corrected MDE and effective N
    **before** data, and reports [INCONCLUSIVE](../GLOSSARY.md#inconclusive) rather
    than a false read when the observed margin is smaller than the design can

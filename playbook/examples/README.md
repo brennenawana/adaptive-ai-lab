@@ -1,6 +1,6 @@
 # Examples — Case-Study Library and Synthetic Worked Examples
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 · [Index](../README.md) ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 · [Index](../README.md) ·
 > [Quickstart](../QUICKSTART.md)
 
 Two kinds of material live here, with different evidence status — read the label.

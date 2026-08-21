@@ -1,6 +1,6 @@
 # 14. Decision Trees and Checklists
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](13_GOVERNANCE_PROVENANCE_AND_SECURITY.md) · [Index](README.md)
 > **Reading time:** reference — printed-page usable during execution.
 
@@ -102,7 +102,11 @@ Task-level verifier exists? ──yes──► deterministic gate is the DEFAULT
 ### 3.4 Compute supply (11 §5)
 
 ```
-Privacy/residency forbids external processing? ──yes──► owned/private capacity path
+Written privacy/residency requirement that NO compliant managed
+surface satisfies (11 Q0a = QUICKSTART node 5)? ──yes──► private capacity
+        │                                               (owned-only iff the
+        │                                               requirement also bars
+        │                                               rented tenancy — 11 Q0b)
         │ no
         ▼
 Demand ledger shows sustained hours ≥ H* (rent-vs-buy break-even)?
@@ -127,7 +131,9 @@ Rungs 0–6 exhausted or inapplicable, with evidence? ──no──► cheaper 
         │ yes
         ▼
 Training data demonstrably contains the skill, legally usable
-(provider ToS + base-model license checked AT TRAINING TIME)? ──no──► stop
+(provider ToS + base-model license checked AT TRAINING TIME; every
+model-generated component provenance-qualified — record ownership
+is not admissibility, 09 §5)? ──no──► stop
         │ yes
         ▼
 Economics close (11: cost per successful task vs. alternatives)? ──no──► stop
@@ -195,8 +201,10 @@ any real training run · Legal/license clearance — current provider terms +
 base-model license reviewed and recorded at training time · Post-tune promotion
 — forgetting gate passed + paired comparison vs. base + deployment gate.
 
-**Deployment (10 §7):** Stage advance — current stage's exit gates met, one
-change at a time, human approval per stakes tier.
+**Deployment (10 §4, §7):** Stage advance — current stage's exit gates met, ONE
+declared treatment per stage (a frozen candidate system may differ in several
+components; no undeclared second change rides along — 10 §4), human approval per
+stakes tier.
 
 **Economics (11 §7):** Purchase trigger — pre-committed condition fired, fed by
 the demand ledger · Rent-vs-buy break-even — H* computed with measured inputs,
@@ -315,7 +323,7 @@ Checklist.)
 
 - [ ] RC-10 diagnosis with ladder-exhaustion evidence (07)
 - [ ] Data legality: provider ToS + base-model license checked at training time, recorded
-- [ ] Own-trace/authorized data only; no held-out contamination (canaries verified)
+- [ ] Training data component-provenance-qualified (09 §5): every model-generated component's terms permit training use — record ownership alone is not admissibility; no unauthorized managed-provider outputs embedded; no held-out contamination (canaries verified)
 - [ ] Rig graduated: full pipeline + provenance record end-to-end
 - [ ] Sample-size ablation planned; full-suite forgetting gate pre-registered
 

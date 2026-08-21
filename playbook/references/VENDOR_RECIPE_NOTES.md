@@ -1,6 +1,6 @@
 # Vendor Recipe Notes
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > Index: [../README.md](../README.md) · Record of record: [sources.yaml](sources.yaml)
 
 Per-recipe adaptation notes for every source classified `FOLLOW` or `ADAPT` in [sources.yaml](sources.yaml). Read this file whenever a chapter cites a `[FOLLOW: SRC-ID]` or `[ADAPT: SRC-ID]` callout and you need to know exactly what the vendor gives you, what it does not, and what to check before you rely on it.

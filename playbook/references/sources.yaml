@@ -1397,7 +1397,7 @@ sources:
     maturity: "mature"
     classification: "CASE"
     evidence_strength: "case-study"
-    claims: "Stratum-clustered outcomes silently collapsed a held-out suite to a small fraction of its nominal item count; the headline model comparison was not significant cluster-robustly; power grows with the number of strata, not replications"
+    claims: "Stratum-clustered outcomes silently collapsed a held-out suite to a small fraction of its nominal item count; the headline model comparison was not significant cluster-robustly; independent strata grow effective N without bound while within-stratum replications saturate at k/ICC"
     chapters: ['00', '03', '04']
     freshness: "stable"
     superseded_by: null

@@ -84,10 +84,14 @@ for Tier 3.
 6. **Terms-of-service check, recorded rather than assumed.** Before
    finalizing, training-data provenance is checked: the corpus is entirely
    internal plant records plus the open-weights model's own outputs used for
-   augmentation — no managed-API model's outputs are used as training
-   targets, which would otherwise trigger a training-restriction review
-   under that provider's terms [EXT-LEGAL-001]. The check is written down as
-   a pass, not left implicit.
+   augmentation — no managed-API model's outputs are embedded anywhere in the
+   records as training targets (checked per component, not assumed from
+   record ownership — chapter 09 §5), which would otherwise trigger a
+   training-restriction review under that provider's terms [EXT-LEGAL-001];
+   and the open-weights model's own license is checked for a derived-output
+   clause permitting its generations as training targets (chapter 13's
+   permitted-use review), recorded alongside the ToS check. The check is
+   written down as a pass, not left implicit.
 
 ## What was skipped and why
 

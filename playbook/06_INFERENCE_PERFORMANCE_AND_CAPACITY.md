@@ -1,6 +1,6 @@
 # 06. Inference Performance and Capacity
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](05_MODEL_RUNTIME_AND_HARNESS_SELECTION.md) · [Index](README.md) · [Next →](07_OPTIMIZATION_AND_INTERVENTION_LADDER.md)
 > **Reading time:** ~20 min. **Prerequisites:** 02 (execution system), 05 (runtime/harness selection).
 

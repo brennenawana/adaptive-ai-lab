@@ -1,6 +1,6 @@
 # Adaptive AI Systems Playbook
 
-**Version 0.1.0** · [Changelog](CHANGELOG.md) · [Glossary](GLOSSARY.md) ·
+**Version 0.1.1** · [Changelog](CHANGELOG.md) · [Glossary](GLOSSARY.md) ·
 [Quickstart](QUICKSTART.md)
 
 An evidence-driven, project-independent engineering playbook for building AI
@@ -143,6 +143,6 @@ to cases and remain readable without them.
 
 ## Version
 
-`VERSION` = 0.1.0. Semver interpretation and the 1.0 gate (two materially
+`VERSION` = 0.1.1. Semver interpretation and the 1.0 gate (two materially
 different project instantiations through frozen executed contracts) are defined in
 the [CHANGELOG](CHANGELOG.md) header.

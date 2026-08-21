@@ -1,6 +1,6 @@
 # 13. Governance, Provenance, and Security
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](12_OBSERVABILITY_LEARNING_AND_PROMOTION.md) · [Index](README.md) · [Next →](14_DECISION_TREES_AND_CHECKLISTS.md)
 > **Reading time:** ~20 min. **Prerequisites:** 00, 01, 02, 04, 12.
 

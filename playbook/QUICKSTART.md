@@ -1,6 +1,6 @@
 # Quickstart — The Project Navigator
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [Index](README.md) · [Glossary](GLOSSARY.md) · [Principles](00_PRINCIPLES_AND_SCOPE.md)
 > **Time:** ~15 minutes to a routed plan and your first three actions.
 

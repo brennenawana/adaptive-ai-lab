@@ -1,6 +1,6 @@
 # 01. Project Intake and Decision Context
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](00_PRINCIPLES_AND_SCOPE.md) · [Index](README.md) · [Next →](02_EXECUTION_SYSTEM_MODEL.md)
 > **Reading time:** ~15 min. **Prerequisites:** [00](00_PRINCIPLES_AND_SCOPE.md).
 

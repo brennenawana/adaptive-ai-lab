@@ -1,6 +1,6 @@
 # 05. Model, Runtime, and Harness Selection
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [← Previous](04_EXPERIMENT_DESIGN_AND_STATISTICS.md) · [Index](README.md) · [Next →](06_INFERENCE_PERFORMANCE_AND_CAPACITY.md)
 > **Reading time:** ~18 min. **Prerequisites:** 00, 02, 03, 04.
 
@@ -181,9 +181,14 @@ Decision procedure:
 
 1. From the project profile, answer: does any planned comparison require
    session-scoped, near-bit-identical reproducibility? Does the deployment need
-   production-scale concurrency/throughput? Does privacy/residency forbid managed
-   infrastructure for some or all traffic? Is there a committed enterprise support
-   requirement?
+   production-scale concurrency/throughput? Does a **written**
+   privacy/residency/security requirement prohibit every managed configuration
+   that satisfies the project's retention, residency, tenancy, and data-handling
+   requirements — including in-tenant/VPC-scoped, no-retention, region-bound
+   ones — for some or all traffic? (If a compliant managed configuration exists,
+   the constraint narrows *which* surfaces are admissible; it does not mandate
+   self-hosting — the same test as QUICKSTART step 3 node 5 and 11 Q0a.) Is
+   there a committed enterprise support requirement?
 2. Map the answers to a primary regime (or a hybrid split across tiers of a
    [cascade](GLOSSARY.md#cascade), 08).
 3. Within the chosen regime, evaluate specific engines with chapter 06's

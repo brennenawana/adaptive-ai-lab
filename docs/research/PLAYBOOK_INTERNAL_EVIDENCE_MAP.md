@@ -107,3 +107,35 @@ The load-bearing extractions (chapter § references are to the shipped playbook)
   taught as a playbook DEFAULT backed by nondeterminism literature.
 - FIS numerics ship ONLY inside `playbook/examples/CASE-*.md`; this map is the only
   other place they appear, and it is not part of the shipped playbook.
+
+## 4. Independent-audit dispositions (v0.1.1, 2026-08-21)
+
+An external independent audit (run on another model against committed v0.1.0,
+`3565e6b`) raised seven candidate findings. Each was independently re-verified —
+repository text read directly, mathematics re-derived, volatile external claims
+checked against the 2026-08-21 source-ledger verifications — before any edit. The
+audit's having raised an issue was never used as evidence.
+
+| # | Finding | Verdict | Severity after review | Action |
+|---|---|---|---|---|
+| 1 | "Own trajectory" treated as presumptively training-safe; 09 §5 claimed harvesting own traces "sidesteps the provider-output restriction entirely" | CONFIRMED — a cascade trajectory (the playbook's own default architecture, ch. 08) embeds the escalation tier's managed-provider outputs; ownership of the record ≠ training rights to its components | MAJOR | Component-level provenance qualification written into 09 §5 step 4 and §9; swept to 12 (harvesting), 14 (train-or-not tree + training-entry checklist), GLOSSARY (failure harvesting) |
+| 2 | Ch. 11 Q0 hard-ruled managed APIs OUT on any hard privacy constraint, vs the navigator's "no compliant managed surface satisfies it" test | CONFIRMED — a literal contradiction with QUICKSTART node 5 / 05 §5.2; converts an admissibility filter into a self-hosting mandate | MAJOR | 11 Q0 rewritten to the shared admissible-surface test; 11 §8 owned-tier row and 14 §3.4 aligned |
+| 3 | "More clusters, not more items per cluster" too absolute | PARTIALLY CONFIRMED — derivation: N_eff = km/(1+(m−1)ICC) is strictly increasing in m for ICC<1 (∂N_eff/∂m = k(1−ICC)/(1+(m−1)ICC)² > 0), saturating at k/ICC; linear and unbounded in k; equal to k at ICC=1. The absolute phrasing was wrong; the practical preference for clusters is right | MINOR (wording, but in normative statistics text) | Saturation-accurate wording in 04 §8 (two spots), formulary §2/§3b/§14, CASE-002 generic lesson, source-ledger claim row |
+| 4 | "One change crosses a promotion stage at a time" forbids legitimate whole-system A/B promotion | PARTIALLY CONFIRMED — ch. 02 already frames comparisons at the execution-system level; 10's wording over-restricted. Invariant restated as one **declared treatment** at a time; component-attribution claims still require ch. 04 isolation | MAJOR (wording) | 10 §4 principle rewritten; SYNTH-08 phrasing aligned |
+| 5 | Human-agreement floor as an unconditional promotion gate rewards imitation of the incumbent over adjudicated correctness | PARTIALLY CONFIRMED — the variant's own adjudication asymmetry already implied it; the AND-gate contradicted it | MAJOR | 10 §5: veto authority = adjudicated regret ceiling; agreement = compatibility diagnostic with a pre-registered review trigger, gating only when the profile declares interchangeability a requirement; Table 10.1 row, §12 outputs, SYNTH-08 aligned |
+| 6 | "Opt-in in every major open serving engine" over-broad | PARTIALLY CONFIRMED — the ledger verified deterministic/batch-invariant modes for two engines (2026-08-21); others were not verified for such modes; "every" outran the evidence | MINOR | 02 §5 and §9 narrowed to ledger-verified engines + probe-don't-infer; other mentions were already hedged |
+| 7 | v0.1.0 release summary said 16/3/1 G-dispositions; authoritative is 15/4/1 | CONFIRMED (bookkeeping) — mechanical enumeration: 15 COVERED; 4 DOCTRINE (G3, G5, G8, G10); 1 OUT-OF-SCOPE (G9). No shipped file carried the wrong count (commit-message/report erratum only); no gap reclassified | MINOR | Erratum recorded in CHANGELOG 0.1.1; this table is the standing correction |
+
+No finding was rejected outright; none required reversing a v0.1.0 decision — all
+seven sharpened rules in their originally intended direction.
+
+After the seven corrections were applied, two bounded post-edit adversarial reviews
+(scientific consistency; practitioner portability across seven routing profiles) ran
+against the touched material. They confirmed the corrections' substance (all math
+re-derived independently, including CASE-002's k/ICC = 25.3 ≈ 2.1× class count at
+the measured ICC) and caught sweep gaps — a stale chapter-14 deployment line, the
+05 §5.2 / 02 §5 Step 4 passages cited as co-authorities but not yet carrying the
+admissibility test, an 11 Q0-vs-§8 internal contradiction (resolved by splitting
+Q0 into Q0a managed-admissibility / Q0b full-custody), a missing component-provenance
+field in 12 §5.2's trajectory record, and a missing profile carrier for the
+behavioral-compatibility declaration — all fixed before tagging v0.1.1.

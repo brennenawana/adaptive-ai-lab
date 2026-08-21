@@ -1,6 +1,6 @@
 # Glossary
 
-> Part of the **Adaptive AI Systems Playbook** v0.1.0 ·
+> Part of the **Adaptive AI Systems Playbook** v0.1.1 ·
 > [Index](README.md) · [Quickstart](QUICKSTART.md)
 
 The canonical vocabulary of this playbook. Terms are defined **once, here**; chapters
@@ -313,7 +313,11 @@ consequence that was supposed to bind. Chapter 08.
 ### failure harvesting
 Feeding observed production failures back into the lab in ladder order: first as
 evaluation candidates, then as retrieval/context fixes, and only later as training
-data. Chapter 12.
+data — where admissibility is component-level: owning a
+[trajectory record](#trajectory-record) does not confer training rights to every
+output embedded in it (a managed provider's escalation responses, provider-generated
+labels); every model-generated component's provenance and terms are checked before
+the record enters a training set (chapter 09 §5). Chapter 12.
 
 ### finding vs waste
 The decision test for a dominant cost bucket in a measured run: it is a **finding**
