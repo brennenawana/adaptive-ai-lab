@@ -135,3 +135,76 @@ escalated via ch. 02/08. This gap is also candidate feedback INTO the playbook
 (the lab loop's whole point).
 
 Opus inventory delegation still in flight.
+
+## 2026-08-22 — Opus inventory: primary measurement report received
+
+The Opus delegation sent its primary measurement/eval report ahead of its full
+per-surface deliverable. Headline facts (code-cited by the agent; to be folded
+into `AI_SYSTEM_INVENTORY.md`):
+
+- **0 of 110 AI-touching test files contain an eval** — all 47 read in depth
+  are plumbing (routing, fallbacks, kill switches, prompt substrings, canned
+  outputs). Real golden-corpus discipline exists only for deterministic math
+  (pricing 330 / valuation 139 cases, weekly-gated) — not AI.
+- **One real scored harness exists**: `app/vision/bench/` (exact-tier +
+  within-1 accuracy + repair MAPE). Run twice (n=3, then n=49 prod props at
+  ~55% exact / ~88% within-1, one-directional optimism bias 0/49-read-worse);
+  **neither result committed as data**, labels live only in a DB table, no
+  prompt version anywhere, and commit d96a822e changed the default config AND
+  rewrote the rubric in the same commit — pre/post verdicts indistinguishable
+  in the DB. Docs stale vs shipped default.
+- **Telemetry**: the unified `app.ai.router.complete` chokepoint persists
+  nothing; usage discarded by all callers except vision. Retroactive
+  measurement possible for vision (fully), CIS interpret (approve/edit/reject
+  labels accumulating — best instrumented), dives (raw dossiers + operator
+  review status); **impossible for outreach email — cannot even tell which
+  sent emails were LLM-written** (model stamped then discarded, silent
+  template fallback). Agent's suggested single fix: an `ai_call` table written
+  inside `router.complete`.
+- **Human gates substituting for eval**: reply-draft approval queue, CIS
+  triage (approve/edit/reject with edited_params = richest ground truth),
+  voice hard interlock (no new live call while one is unreviewed), dossier
+  lint (4 mechanical rules from 3 operator-caught hallucinations), compliance
+  scrubber (46 patterns), review judge + operator calibration (architecturally
+  right, flag OFF → no rows).
+- **The exposed surface**: condition-analysis writes tier/confidence/repair
+  band straight onto properties to clear the guardrail condition-HOLD
+  **without manual review** — the only AI surface with no human gate, and its
+  supporting eval is the uncommitted, version-ambiguous 49-property bench.
+- Committed scored-output artifacts are narrative one-shots: FL sample run
+  n=6 (underwriting materially wrong on all six) and a blind test n=1 whose
+  answer key is not in the repo.
+
+Awaiting the delegation's full per-surface inventory before writing
+`AI_SYSTEM_INVENTORY.md`.
+
+## 2026-08-22 — Opus inventory complete; AI_SYSTEM_INVENTORY.md written
+
+The Opus delegation delivered its consolidated per-surface roster + system
+spine + observed-failure facts (2 messages, ~205k subagent tokens, 121 tool
+uses each pass). `AI_SYSTEM_INVENTORY.md` is now complete: 19 AI surfaces
+rostered (7 LIVE in prod, incl. two with NO human gate — the xAI vision lane
+auto-armed by the nightly, and the Crexi income extraction with no flag, no
+budget, no kill switch), 13 candidate surfaces verified DETERMINISTIC and
+excluded, measurement audit (0 evals in 110 AI-touching test files; one
+partial harness with instrument defects), telemetry map, human-gate map, and
+a six-item observed-failure corpus.
+
+**Operationally urgent findings surfaced by the survey (for the operator,
+outside this workstream's scope to fix):** (1) voice compliance override
+ACTIVE in prod — recording-consent notice bypassed in an all-party-consent
+state on the most recent live call, and the opt-out/callback lines are never
+actually spoken in conversational mode (gate validates `rendered_text`, Bland
+receives `conversational_task`); (2) 3 CIS voice intakes failing silently for
+days on a genserver 401 (metered head unconfigured); (3) dive approvals had
+silently stopped writing assessments (33 approved vs 15 written).
+
+**Operator hypothesis received mid-session** (verbatim intent): tasks/jobs may
+be too coarse — "doing too many things at once" — so there is no insight into
+smaller individual tasks; operator explicitly asked for validation or
+pushback, not adoption. Disposition: recorded as a pre-registered hypothesis
+to TEST, not ground truth (playbook P7/P12 discipline; a hypothesis adopted
+without measurement is exactly the placeholder-to-policy drift ch. 01 §9
+rejects). Orchestrator's assessment against the inventory evidence is being
+delivered to the operator and folded into PLAYBOOK_PATH.md as prediction
+H-OP-1.
