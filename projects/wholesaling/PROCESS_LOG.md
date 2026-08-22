@@ -75,3 +75,63 @@ overrides the standing always-Opus memory rule for this task):
   flags, env keys, and model IDs across the wholesaling backend.
 
 Next entries will record delegation outcomes and the goal-session establishment.
+
+## 2026-08-22 — Goal session established (first invocation of /goal)
+
+`/goal` was created this session (`.claude/commands/goal.md`, also installed to
+`~/.claude/commands/`) and invoked by the orchestrator executing its steps
+directly (the harness's skill registry does not pick up commands created
+mid-session; future sessions can type `/goal`).
+
+- **Goal (one sentence):** bring every wholesaling AI surface that a business
+  decision rides on under the playbook's discipline — named decision, trusted
+  eval, pre-declared consequences, auditable evidence.
+- **Success criteria status:** (1) intake — IN PROGRESS this session; (2) frozen
+  first experiment contract — NOT STARTED; (3) trusted eval for one production
+  surface — NOT STARTED; (4) one full demonstrated loop — NOT STARTED; (5)
+  owner-accepted gates — standing rule, applies from criterion 2 onward.
+- **Next gated action:** complete intake (tasks 1–3: inventory → profile/routing
+  → path doc), governed by playbook ch. 01 + QUICKSTART. Three subagents are in
+  flight (Opus: code-verified AI-surface inventory; Sonnet: ch. 03/07
+  archetype-C operative brief; Haiku: mechanical provider/flag sweep).
+- **Out of scope this session:** anything past the intake endpoint — no eval
+  construction, no experiment contract freeze, no change to the wholesaling
+  repo, nothing armed.
+- **Frame verified:** branch `project/wholesaling-intake` (pushed, checkpoint 1
+  = commit 71db0e3); wholesaling repo read-only; hard constraints in GOAL.md
+  uncontradicted.
+
+## 2026-08-22 — Delegations returned: Haiku sweep + Sonnet brief
+
+**Haiku (mechanical AI sweep of wholesaling backend) — complete.** Key facts for
+the inventory: a unified `app/ai` router with 5 provider transports (metered
+Anthropic API, local Claude Agent SDK, Codex CLI, genserver HTTP hop,
+OpenAI-compatible covering xAI/Grok + OpenRouter); AI lanes far beyond the
+priors — LLM email generation, voice (Bland) **plus a voice auto-improve
+call-grading judge**, vision condition (xAI/Grok) **and** a separate
+OpenRouter condition-analysis queue, LLM reply triage, inbound relevance,
+deal digest, **Layer-2 deep-dive runner** (Agent SDK sessions with skeptic +
+evidence-audit passes and tool budgets), CIS interpret, **a cross-channel
+review judge with calibration/dual-grade settings** (`REVIEW_DUAL_GRADE_RATE`,
+`test_review_calibration.py`), sales-engine cadence, SF candidate detector.
+392 test files; eval-adjacent assets to weigh: `Docs/deal-evaluation/
+VALIDATION_BLIND_TEST.md`, `sf_eval_rubric.yaml`, vision `test_bench_runner.py`
+/`test_bench_pricing.py`. Full flag/kill-switch surface captured (KILL_SWITCH
+default-on, FORCE_DRY_RUN_SENDS, per-channel arming switches, budget caps).
+
+**Sonnet (archetype-C operative brief from ch. 03/07/14 + templates) —
+complete; persisted as `ARCHETYPE_C_BRIEF.md`.** Spine: eval-first from
+harvested real failures (never an imagined taxonomy); 12-class canonical
+failure taxonomy with RC-1 (instrument defect) always first; 8 integrity gates
+before any score is trusted; deterministic grading wherever checkable, judges
+only behind the 8-step calibration protocol (`doctrine — not yet exercised`);
+intervention ladder with entry-vs-exit evidence bars and cheap pre-registered
+diagnostic gates; 18-section experiment contract with consequence-bearing
+tolerances and MDE/INCONCLUSIVE discipline. **Notable finding: the playbook
+has no doctrine for multi-surface systems** (per-surface vs system-level
+evals) — ch. 03/07/14 are silent; scoping must be decided explicitly at intake
+(likely per-surface by task shape) and recorded as a method decision, or
+escalated via ch. 02/08. This gap is also candidate feedback INTO the playbook
+(the lab loop's whole point).
+
+Opus inventory delegation still in flight.
