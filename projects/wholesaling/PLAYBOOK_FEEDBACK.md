@@ -1,0 +1,18 @@
+# Playbook Feedback Ledger — Wholesaling Instantiation
+
+> APPEND-ONLY. Candidate learnings for the playbook, captured as observed,
+> promoted only at milestone gates per
+> [`INTEGRATION_AND_FEEDBACK.md`](INTEGRATION_AND_FEEDBACK.md) §Direction 2.
+> Tags: GAP (doctrine missing) · CASE (case-study candidate) · CORRECTION
+> (evidence against existing text) · CONFIRMATION (doctrine exercised and
+> held). Status: CAPTURED → PROMOTED (with the playbook PR) or RETIRED (with
+> reason).
+
+| ID | Date | Tag | Finding | Evidence | Status |
+|---|---|---|---|---|---|
+| F-1 | 2026-08-22 | GAP | Multi-surface systems: ch. 03/07/14 have no doctrine for per-surface vs system-level eval scoping; this project had to make a method decision (per-surface by task shape) with no chapter to cite | ARCHETYPE_C_BRIEF §8 (targeted search, no hits); PLAYBOOK_PATH §7 | CAPTURED — promote at M5 with two surface evals as evidence |
+| F-2 | 2026-08-22 | CASE | Benchmark-adopted-in-its-own-invalidating-commit: a bench result (n=49, ~55%/88%) was used to set a prod default in the same commit that rewrote the rubric it was measured on, with no version field to distinguish pre/post verdicts afterward — a clean RC-1 specimen in the wild | AI_SYSTEM_INVENTORY §2 (commit d96a822e trail) | CAPTURED — promote at M2 once the rung-0 re-run quantifies the effect |
+| F-3 | 2026-08-22 | CASE | Fail-open verification: a compliance posture check read three keys an endpoint never exposed; `None` falsy → printed SAFE one line above the API's own override warning; real 04:19 call resulted. Textbook RC-7 with an incident record and an 18-second interlock save | AI_SYSTEM_INVENTORY §6 (2026-08-12 incident doc) | CAPTURED — incident record is already complete; promote at M2/M3 harvest |
+| F-4 | 2026-08-22 | GAP | Archetype C on a system the lab cannot modify: the playbook assumes the team fixing the incumbent owns it; a read-only workstream needs the intervention-package export pattern (license/spec/measurement/authorization) that this project had to invent | INTEGRATION_AND_FEEDBACK §Direction 1 | CAPTURED — promote when ≥1 package has round-tripped (M4) |
+| F-5 | 2026-08-22 | GAP/CASE | Human dispositions as accumulating ground truth: approve/edit/reject queues (CIS `edited_params`, dive `review_status`) are a free, real-population label stream ch. 03's ground-truth-source list (generator / human-annotated / judge) doesn't name as a class; they need their own integrity treatment (selection effects: only-proposed items get labels) | AI_SYSTEM_INVENTORY §3/§4 | CAPTURED — promote at M3 when the CIS/dive eval exercises it |
+| F-6 | 2026-08-22 | CONFIRMATION (pending) | Deterministic-corpus discipline transfers: the repo already runs committed, seeded, versioned golden corpora with a weekly gate for its non-AI math — evidence that the eval-first machinery is executable by a tiny team when the grading is deterministic; the AI surfaces got none of it, consistent with the playbook's claim that judge-shaped/open-ended surfaces are where discipline silently drops | AI_SYSTEM_INVENTORY §2 | CAPTURED — becomes CONFIRMATION when the first AI corpus lands via the same pattern |

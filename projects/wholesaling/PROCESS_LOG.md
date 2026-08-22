@@ -238,3 +238,26 @@ granularity hypothesis — registered to TEST), H-1, H-2; milestones M1
   workstream.
 - Intake endpoint honored: this session STOPS at intake; the frozen
   EXPERIMENT_CONTRACT is M1's deliverable, next session, per the /goal frame.
+
+## 2026-08-22 — Integration & feedback bridges defined (operator request)
+
+Operator asked (a) how lab output gets applied INTO the wholesaling repo and
+(b) how findings get back INTO the playbook. Wrote
+`INTEGRATION_AND_FEEDBACK.md` (the two bridges) and seeded
+`PLAYBOOK_FEEDBACK.md` (append-only ledger, 6 initial entries F-1..F-6).
+
+Direction 1 decisions: lab decides what/why, wholesaling receives scoped
+**intervention packages** (license = RC class/rung, spec, measurement,
+authorization line) implemented via wholesaling's own feature→dev PR flow;
+boundary rule — instruments/corpora/CI gates live in wholesaling (like the
+existing pricing/valuation corpora), contracts/verdicts/ledgers live in the
+lab, cross-cited by SHA. Package queue seeded: P1 condition-instrument
+prerequisites, P2 ai_call telemetry floor, P3 dive output-contract (post-
+diagnosis only). All operator-gated; none started.
+
+Direction 2 decisions: capture continuously in the ledger, promote only at
+milestone gates (M2/M3/M5) with the playbook's own evidence bar (frozen
+executed contract, validated instrument pass, or documented incident);
+promotions are owner-reviewed lab-repo PRs touching playbook/ + CHANGELOG.
+Noted: executing M1/M2 contracts here directly advances the playbook's 1.0
+gate (second materially-different instantiation through executed contracts).
