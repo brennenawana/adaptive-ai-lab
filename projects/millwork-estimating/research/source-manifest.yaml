@@ -1,0 +1,102 @@
+snapshot_date: 2026-08-22
+project: millwork-estimating
+purpose: public surrogate corpus for document/workflow inference
+policy:
+  prospect_primary_source: ../source/client/Estimating Process.txt
+  public_sources_are_ground_truth_for_prospect: false
+  raw_third_party_binaries_committed: false
+  note: >-
+    Public accessibility is not treated as redistribution permission. Preserve URLs,
+    provenance, and derived notes; fetch external documents for private research under
+    their applicable terms when needed.
+
+sources:
+  - id: S01
+    title: Chatham Center for Active Living - Bidding Plans
+    artifact_class: architectural_drawings
+    format: pdf
+    year: 2026
+    url: https://www.chatham-ma.gov/DocumentCenter/View/9876/CFAL-Bidding-Plans-February-2026-PDF
+    suggested_filename: chatham_cfal_bidding_plans_2026.pdf
+    verified: 2026-08-22
+
+  - id: S02
+    title: Northbrook Public Library - Construction Manual
+    artifact_class: bid_package
+    format: pdf
+    year: 2020
+    url: https://www.northbrook.info/sites/default/files/bids/01%20NPL%20Construction%20Manual%2009.18.2020%20FINAL.pdf
+    suggested_filename: northbrook_bid_manual_2020.pdf
+    verified: 2026-08-22
+
+  - id: S03
+    title: Bloomfield Libraries - Design Development Estimate
+    artifact_class: estimate
+    format: pdf
+    year: 2022
+    url: https://bloomfieldct.gov/DocumentCenter/View/995/Design-Development-Phase-Estimate-PDF
+    suggested_filename: bloomfield_dd_estimate_2022.pdf
+    verified: 2026-08-22
+
+  - id: S04
+    title: Masterpiece Commercial Millwork - Sommet Blanc Budget Proposal
+    artifact_class: proposal
+    format: pdf
+    year: 2023
+    url: https://aspengroup.online/public/companyData/8/projects/1/images/1SkUb2W811tmEWK36uUCkPtBqjPXQKs5Q.pdf
+    suggested_filename: masterpiece_sommet_blanc_budget_proposal_2023.pdf
+    verified: 2026-08-22
+
+  - id: S05
+    title: FOUNDATION - Sample Job Costing Report Book
+    artifact_class: job_cost
+    format: pdf
+    year: 2024
+    url: https://www.foundationsoft.com/wp-content/uploads/2024/04/2024-04_FOUNDATION-SampleJobCostingReportBook_.pdf
+    suggested_filename: foundation_sample_job_costing_2024.pdf
+    verified: 2026-08-22
+
+  - id: S06A
+    title: Bluebeam - Construction Takeoffs Guide
+    artifact_class: takeoff_guidance
+    format: web
+    url: https://www.bluebeam.com/resources/construction-takeoffs-guide-2026/
+    verified: 2026-08-22
+
+  - id: S06B
+    title: Bluebeam - Takeoffs and Estimation Course Curriculum
+    artifact_class: takeoff_guidance
+    format: pdf
+    url: https://downloads.bluebeam.com/pdfs/TakeoffsandEstimation-CourseCurriculum-mech.pdf
+    suggested_filename: bluebeam_takeoffs_estimation_course.pdf
+    verified: 2026-08-22
+
+  - id: S07A
+    title: AWI QCP - Practical Guide to the Architectural Woodwork Standards
+    artifact_class: standard_guidance
+    format: pdf
+    url: https://awiqcp.org/wp-content/uploads/2020/06/a-practical-guide-to-the-architectural-woodwork-standards.pdf
+    suggested_filename: awi_practical_guide.pdf
+    verified: 2026-08-22
+
+  - id: S07B
+    title: AWI QCP - Resources / Standards
+    artifact_class: standard_guidance
+    format: web
+    url: https://awiqcp.org/resources/
+    verified: 2026-08-22
+
+  - id: S08
+    title: Taylor Made Custom Cabinetry - Commercial Bid Portal
+    artifact_class: bid_intake
+    format: web
+    url: https://tmcc-inc.com/commercial
+    verified: 2026-08-22
+
+  - id: S09
+    title: Pio Custom Cabinetry - What to Include in a Millwork Bid Package
+    artifact_class: bid_intake_guidance
+    format: web
+    year: 2026
+    url: https://pioww.com/blog/millwork-bid-package-checklist.html
+    verified: 2026-08-22

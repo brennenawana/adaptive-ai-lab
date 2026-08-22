@@ -1,0 +1,111 @@
+
+Bid Invite Received - Task > Identify Go/No Go 
+Invite comes via email to management and uploads to Monday's Board 
+Bid documents are open and reviewed, determining a list of Go/No Go's
+Things to consider in evaluating invites
+Size and Nature of Scope (INFO FROM DRAWINGS)
+Timing of project (Project narrative or RFI to GC) 
+Who's funding the project? (Gov funded vs private funding) 
+Location
+Competition
+Spec Book DQs
+Davis Bacon Wages (UNION)
+AWI QCP CERTIFICATION
+Pre-approved vendors
+Lab Manufactured Casework
+
+Project Set- Up
+Create Estimate Folder on Server, organized by Job Name 
+Copy the contents of "Template" Folder into new Job Folder
+Download files from email invite and save an appropriate folder
+Drawings
+Spec Book
+Project Schedule
+RFIs
+Addendums
+Update Monday's Board with what bids are currently in progress
+
+Drawing Set Up (BLUEBEAM)
+Page turn through drawings to get a big picture understanding of the entire project. if a project schedule isn't provided, understanding the whole project will help make an educated assumption on when they might need our product.
+Create Page Labels
+Top Right - Thumbnails Tab (4 small square symbol)
+Click "U" shape with yellow star under
+Select "Page Region"
+Click and Hold, drawing a rectangle over the Page Number (A110) 
+Click "OK" twice
+Set Scale on appropriate drawings 
+Top Left Tool Bar - (Small ruler symbol) .i Click "Preset" Dot and open the drop-down menu
+Find the correct scale by looking at the scale determined by the architect - usually on bottom left or right of drawing
+
+Complete Takeoff (BlueBeam) 
+Using the floor plans, elevations, and section details, compile a takeoff using the following quantities (Small Tool Chest Symbol on Right Tool Bar)
+Base Cab Linear Feet
+Wall Cab Linear Feet
+Counter Square Feet (ADD 20% Waste MIN) 
+Wall/Ceiling Paneling Square Feet
+Die Wall Linear Feet
+Upholstery Square Yards (Square Feet / 9)
+Base Molding, Door Casing, Crown Molding Linear Feet 
+Common practice has you starting at the entry door and working your way through the building, room by room, ensuring you will put your eyes on every wall/detail available on the drawings. Highlight or cross off rooms as you complete the takeoff.
+Locate the "FINISH SCHEDULE" to determine what materials are being spec'd on this project. (PLAM, Solid Surface, Quartz, Wood Paneling, etc)
+While working through the drawings, make note of any exclusions, questions, or concerns you see while completing the takeoff.
+Any materials not clearly labeled
+Any materials on a casework item that Sudberry does not perform (Wall Covering, Acoustical Paneling, etc)
+Any details that will need to be reworked
+Any trouble items that will need in-depth detail before construction starts
+
+Transfer Takeoff from Bluebeam to Bid Recap (BLUEBEAM >EXCEL) 
+Organize by room name/number
+Enter takeoffs, per room, into the corresponding line item on EXCEL
+Die Wall Framing Base Cab
+Wall Cab
+Paneling
+Counters
+Trim
+Best practice is to list material selections into each line item
+For example, Line Item "Base Cab" should be changed to PLAM-1 Base Cab, if material is selected and labeled.
+Doing this will eliminate a step in the handoff meeting when determining a sheet good count.
+
+Final Touches on Bid Recap (EXCEL)
+Double check, - TRIPLE CHECK - all quantities, elevations, floor plans, RCP, sections.
+Adjust shop labor as necessary. Bid Recap template is set for the following standard calculations for labor:
+Die Wall Fabrication Time - 40 Hours per wall
+Casework - 2.25 hours per Linear Foot
+Paneling - FS Count / 32 *8 (Total square foot divided by 32 sf 1( PANEL) multiplied by 8 hours (8 hours per panel)
+Counters - SF Count / 30 * 16 (Total square foot divided by 30 1(solid surface sheet) multiplied by 16 hours (2 days per sheet)
+Consider duration and equipment needed for installation. There are a couple routes you can go here:
+Price by the hour and crew size (TYP. 2 man crew size at $90/HR)
+Price by LNF ($50/LNF)
+Linear Foot Price for Trim Install ($3-$9/LNF)
+Mixture of all
+Pricing by the hour and crew size is beneficial for die walls, counter installations, paneling installation.
+Box count is beneficial for all casework
+Install sub-contractors will price trim install by the linear foot ranging from $3-$9 depending on the complexity of the profile and piece count.
+After your initial pass of install costs, determine a duration of install by dividing the total dollar amount by 90 ($133,300 / $90/hr = 1,481 hours)
+Divide your answer by your crew size to determine total
+Divide your total hours by 40 to determine total weeks (740 Hours /40 hours in 1week = 18.5 weeks)
+Now that you have a total week count, take another look at the whole job, and use common sense/teamwork to decide if this is adequate for the job. Adjust as needed.
+Consider location if mileage needs to be priced, rental cars, hotel stays, etc
+Consider/Communicate with drafting and CNC programming team to determine time needed to complete job
+Typical Metrics to double check your overall number:
+General Conditions - 2-8% of total value
+Material - 25-40% of total value
+Shop Labor - 12% of total value
+Installation - 8-10% of total value
+When looking at Material vs Shop Labor, ratio tends to float around the 60/40, material to labor (i.e. If Material Costs are $100,000, labor is typically in the $40,000-$60,000 mark.
+Historical data tells us competitors will range from $250- $600/LNF on cabinets. This metric does not include install. Use this as backup for your number. On jobs that we want to get more aggressive, shoot for the $300/LNF mark. This isn't always 100% accurate, but it's close enough to be a benchmark for review.
+
+7. Draft Proposal - (MicrosoftWord)
+In the "Bid Proposal" Folder, rename the file 'Job Name - Sudberry Millwork - Proposal_Template' to correct nomenclature.
+i.e. (Marriot Hotel - Sudberry Millwork - Proposal) 
+Open file, starting at the top
+Change the "Proposal Submitted To:" to the person receiving your proposal
+Under the name of the person, enter ni the company name, address, phone number and email
+Change the "Job Name:" text to the correct job name along with the project address.
+In the body of the text, change the highlighted dollar value to the correct dollar from your bid recap.
+Change the '‹General Contractor> in the body of the text to the correct GC receiving the bid. (Sudberry Millwork proposes to complete the scope of work... for <General Contractor>...)
+Clean up the excel sheet hiding any unused lines and copy the proposal.
+Adjust the exclusions as necessary, including anything out of the ordinary you spotted while making the bid.
+Adjust the submission date and 'Good till Date, on the bottom
+PDF proposal and save in server under 'Submitted Docs'
+Draft an email to GC(s) and insert your PDF attachment. Use the body of the email to reiterate any exclusions, lead times, or potential gaps your competitors might have.
