@@ -261,3 +261,31 @@ executed contract, validated instrument pass, or documented incident);
 promotions are owner-reviewed lab-repo PRs touching playbook/ + CHANGELOG.
 Noted: executing M1/M2 contracts here directly advances the playbook's 1.0
 gate (second materially-different instantiation through executed contracts).
+
+## 2026-08-22 — Handoff protocol for wholesaling-agent sessions (operator request)
+
+Operator asked for a clean way to feed prompts/plans/context to separate
+wholesaling-repo sessions, with explicit procedure (when to start sessions,
+which models) and strict context engineering (no read-this-then-six-more
+link chains). Delivered:
+
+- `HANDOFF_PROTOCOL.md` — the one rule: the wholesaling agent reads exactly
+  ONE self-contained brief per session; the lab COMPILES context in, links
+  out are a brief defect (firewall exception: the wholesaling codebase
+  itself). Session lifecycle (one-line launch prompt, mandatory echo check,
+  declared stop point, fixed RESULT format); new-session triggers (new
+  package / brief amendment / context degradation / scope discovery — agent
+  never improvises spec changes); model table (Opus default, Sonnet for
+  tightly-specced mechanical work, never Haiku driving the prod repo);
+  brief-authoring rules (≤250 lines, inlined excerpts, provenance footer
+  marked do-not-read, freeze discipline DRAFT→AUTHORIZED vN).
+- `packages/TEMPLATE_BRIEF.md` — the authoring template with standing rules
+  inlined so the agent still reads one file.
+- `packages/P1/BRIEF.md` — P1 drafted as the worked example (condition
+  instrument prerequisites: prompt-version constants + persisted
+  prompt_version column + deterministic label exporter + bounded doc fix).
+  Status DRAFT — explicitly not authorized; awaiting operator review.
+
+Decision recorded: briefs are frozen at authorization; post-authorization
+edits bump the version and force a fresh session — a lightweight mirror of
+the playbook's contract-freeze discipline applied to handoffs.

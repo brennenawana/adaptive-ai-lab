@@ -30,7 +30,10 @@ product change. One package = one scoped change, carrying:
 Execution: operator authorizes → a wholesaling feature branch implements the
 spec → PR to `dev` cites the package ID → after merge, the lab records the
 wholesaling PR number + merge SHA against the package. Provenance links run
-both ways.
+both ways. The session mechanics — single self-contained briefs, the context
+firewall, session-freshness rules, model selection — are defined in
+[`HANDOFF_PROTOCOL.md`](HANDOFF_PROTOCOL.md); briefs live in
+[`packages/`](packages/).
 
 **Where artifacts physically live (boundary rule):**
 
