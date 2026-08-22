@@ -208,3 +208,33 @@ without measurement is exactly the placeholder-to-policy drift ch. 01 §9
 rejects). Orchestrator's assessment against the inventory evidence is being
 delivered to the operator and folded into PLAYBOOK_PATH.md as prediction
 H-OP-1.
+
+## 2026-08-22 — Intake complete: profile, routing, path (tasks 2 and 3)
+
+`PROJECT_PROFILE.md` written (all 21 fields; approximations flagged for
+re-verification before contract freeze). **Routing outcome: archetype C
+(fix-what-exists), stakes Tier 2, with named Tier-3 decision carve-outs** for
+anything changing live outreach/voice behavior or compliance posture (fields
+3/19). Node-1 pre-check fires: no trusted eval → eval first. Modifiers:
+judge-graded split + ch. 02 pulled forward for cross-lane comparisons.
+
+`PLAYBOOK_PATH.md` written: decision statement + per-surface evaluation-claim
+skeleton; surface priority (condition → dives → CIS → outreach → voice);
+hard/soft constraints with the intake kill-criteria check PASSED (dated);
+3 pre-registered project kill criteria; the archetype-C first three actions
+(condition-surface eval rung-0 first, taxonomy classification, diagnostic
+gate + first contract freeze); prediction-ledger seeds H-OP-1 (operator's
+granularity hypothesis — registered to TEST), H-1, H-2; milestones M1
+(committed) through M5 (gated, owner-accepted).
+
+**Key decisions this entry records:**
+- First eval target = the condition surface (no human gate, feeds pricing,
+  existing harness + labels, fully retro-measurable; its instrument defects
+  are a textbook rung-0 target).
+- Multi-surface scoping = per-surface by task shape (method decision; the
+  playbook is silent — gap to feed back at M5).
+- Product-repo changes (label commit path, prompt versioning, ai_call table)
+  are flagged as operator-gated wholesaling tasks, not performed by this
+  workstream.
+- Intake endpoint honored: this session STOPS at intake; the frozen
+  EXPERIMENT_CONTRACT is M1's deliverable, next session, per the /goal frame.
