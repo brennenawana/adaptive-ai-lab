@@ -56,6 +56,30 @@ firewall, session-freshness rules, model selection — are defined in
   version, tokens, cost, latency, error, caller ref); stamp
   `MessageGenerated.model` through to the sent Email; stop dropping dive
   cost/duration/stop_reason. License: telemetry floor (ch. 12; inventory §3).
+  **Local-subscription lanes are first-class in this package** (they are
+  today's worst-instrumented paths and carry much of the volume):
+  - Fix the flat-rate providers to surface real usage instead of the
+    unconditional `usage={}` (`providers/codex_cli.py:215`,
+    `providers/claude_sdk.py:168`) — record whatever the Agent SDK / CLI
+    actually reports; where a number is genuinely unavailable, NULL plus
+    wall-time plus a quota-event flag (usage-limit hit, semaphore wait), never
+    a silent empty dict.
+  - **Correlation across the genserver hop**: the serverless caller generates
+    a call id, sends it on the wire (`app/ai/wire.py` contract), and the
+    genserver writes its own server-side record (resolved model, SDK version,
+    retries, usage) keyed to the same id — so the mac-mini's view and the
+    serverless view join instead of the HTTP hop being a visibility wall.
+  - **Router-bypass coverage**: the dive runner (raw Agent SDK subprocess) and
+    any other bypass lane write `ai_call` rows directly from the runner —
+    chokepoint logging alone never sees them.
+  - **Cost semantics per supply class**: metered lanes record USD; flat-rate
+    subscription lanes record tokens + wall-time + quota events (their real
+    scarce resource is capacity, not dollars).
+  - **Execution-identity fields** (ch. 02 prerequisite): per call, record the
+    resolved model id (not just the requested one), transport (metered API /
+    SDK / CLI / genserver), host, and CLI/SDK version where obtainable —
+    ambient-login lanes re-resolve these per day and per machine, and no
+    cross-run comparison is licensed without them.
 - **P3 — Dive output-contract enforcement**: schema-enforced assessment
   emission (rung 3 / RC-5 candidate) — **only after** the dive diagnosis is
   done under a contract; listed to show sequencing, not to pre-commit.

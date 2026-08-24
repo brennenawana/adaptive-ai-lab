@@ -119,6 +119,13 @@ procurement constraints identified.
 Contracted/active: Anthropic (metered + Claude Max), OpenAI/ChatGPT plan
 (Codex), xAI, OpenRouter, Bland.ai, Crexi (data). Known constraint: several
 runners lack the metered-head secrets their routes assume (live CIS 401).
+**Amendment 2026-08-24:** the flat-rate subscription lanes (Claude Max via
+Agent SDK on the operator's machines; ChatGPT-plan CLI on `cron-mini`) are a
+distinct supply class, not ordinary managed APIs — machine-bound ambient
+logins, quota/capacity limits instead of marginal USD, self-updating CLI/SDK
+versions, and (today) zero usage reporting. They carry much of the AI volume
+(all dives, genserver generation, Crexi extraction), so telemetry (P2) and
+ch.-02 identity pinning must treat them first-class. Ledgered as F-7.
 
 ## 13. Capex budget
 

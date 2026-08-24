@@ -289,3 +289,31 @@ link chains). Delivered:
 Decision recorded: briefs are frozen at authorization; post-authorization
 edits bump the version and force a fresh session — a lightweight mirror of
 the playbook's contract-freeze discipline applied to handoffs.
+
+## 2026-08-24 — Subscription-lane telemetry gap made first-class (operator question)
+
+Operator asked whether the plan accounts for AI jobs running through the local
+Claude Code/Claude Max subscription (mac mini genserver, dive runners) and
+CLI-subscription providers (Codex/opencode-style) — flagged as important for
+insight and telemetry. Assessment: the inventory documented these lanes
+precisely (usage={} unconditional in both flat-rate providers; dive runner
+bypasses the router; genserver hop is a visibility wall), but the plan
+under-weighted them. Changes:
+
+- **P2 expanded** (INTEGRATION_AND_FEEDBACK): flat-rate providers must
+  surface real SDK/CLI usage (NULL + wall-time + quota-event flag when truly
+  unavailable, never silent {}); wire-level correlation id across the
+  genserver hop so mini-side and serverless-side records join; router-bypass
+  lanes (dive runner) write ai_call rows directly; cost semantics split by
+  supply class (USD for metered, tokens+wall-time+quota events for
+  flat-rate); per-call execution-identity fields (resolved model, transport,
+  host, CLI/SDK version) as the ch.-02 prerequisite.
+- **PROJECT_PROFILE field 12 amended** (dated): subscription lanes named as a
+  distinct supply class carrying much of the AI volume.
+- **F-7 appended** to the feedback ledger: subscription-backed local
+  inference as a fourth supply class the playbook's ch. 02/11 don't treat
+  (neither owned compute nor managed API); promote at M2/M4 with real
+  cross-lane data.
+
+P1 unaffected (touches prompts/labels, not providers). P2 remains
+operator-gated and unstarted.
