@@ -353,3 +353,104 @@ had real defects, exactly the kind the protocol exists to catch:
 P1 remains **DRAFT** — authorization is the operator's act (flip the status
 line), per the freeze discipline. Nothing has been executed in the wholesaling
 repo; it remains untouched.
+
+## 2026-08-25 — SCOPE PIVOT: go-to-market by selling leads; scope narrowed to ingestion + underwriting
+
+**Operator directive.** Go to market by **selling high-quality leads** rather
+than pursuing deals ourselves. Immediate need: full insight into the
+ingestion and underwriting workflows (and the AI calls inside them). Explicitly
+a speed-run — jumping into one slice, in the playbook's spirit.
+
+**Why this is a profile amendment, not just a task** (ch. 01 §5.2, and the
+template's own rule that a profile is revised when outcome/stakes change
+materially): field 1 (business outcome) changes, and with it what "quality"
+means. Previously the AI surfaces were *internal inputs* to our own pursuit
+decisions, with operator judgment as the last line of defense. **Selling the
+output makes underwriting numbers the product itself** — a third party pays
+for them and acts on them, with no operator in their loop.
+
+Consequences of the pivot, recorded:
+
+1. **The FL n=6 finding is promoted from "pipeline defect" to "product
+   defect."** Underwriting was materially wrong on 6/6 (4 false-positive
+   deals on mirage inputs, 2 false UNPRICEABLE holds). Selling that output
+   to a paying buyer converts an internal miss into a delivered
+   misrepresentation. This is now the single most consequential open item.
+2. **Surface priority re-ordered for this workstream.** Was: condition →
+   dives → CIS → outreach → voice. Now: **ingestion (coverage/freshness/
+   identity) and underwriting (ARV, rehab, pricing) first**; the condition
+   surface stays high because it feeds rehab→price, but it is now scoped as
+   *an input to the product* rather than as an isolated first eval. Outreach
+   and voice drop in priority — we are not the ones contacting sellers in the
+   lead-sale model (revisit if that changes).
+3. **Stakes reading.** Still Tier 2 for the evaluation work, but the Tier-3
+   carve-out list gains a new member: **publishing/selling a lead whose
+   numbers came from an unmeasured AI surface** is money-movement-adjacent and
+   reputational, and needs its own gate before first sale.
+4. **New evaluation claim shape** (ch. 01 §5.2), replacing the internal one:
+   *"A lead we sell states ARV, rehab, and price within stated tolerance of
+   ground truth, or declares its own uncertainty — verified by eval E on a
+   representative sample of the book we would actually sell."* Note the
+   second clause: for a saleable product, a declared UNKNOWN is a legitimate,
+   non-defective output; a confident wrong number is the expensive failure
+   (P11 silent-failure).
+
+**Research dispatched (3 parallel delegations):** Opus × ingestion pipeline
+(sources, schedules, identity/dedup, enrichment, AI calls, freshness,
+data-quality controls, known failures, coverage instrumentation); Opus ×
+underwriting (ARV/comps + accuracy gate, condition→rehab mapping, per-strategy
+solvers and constants, strategy routing, the versioning manifest/freeze_status,
+gates/holds, AI inputs that can overwrite deterministic values, the golden
+corpora, buyer-visible output fields, known defects); Sonnet × live prod data
+profile via read-only SQL (book size, freshness distribution, underwriting
+completeness funnel, condition coverage, contact linkage, and a
+"complete sellable lead" funnel with per-filter loss). The prod delegation was
+given explicit read-only + no-PII constraints.
+
+## 2026-08-25 — Leads-GTM research complete (3 surveys, ~820k subagent tokens)
+
+Wrote `leads-gtm/` — README (synthesis), INGESTION_STATE, UNDERWRITING_TRUST,
+UNDERWRITING_MECHANICS, PROD_DATA_PROFILE. Three delegations: Opus × ingestion
+(214 tool uses), Opus × underwriting (105 + 105 on a follow-up for the main
+body), Sonnet × read-only prod SQL profile.
+
+**Three findings that decide the GTM:**
+
+1. **Supply is silently dead in 6/8 markets** — 0 listings across 82 runs
+   each over 3 days, every run `succeeded`. Three compounding causes make
+   alerting structurally impossible: no `source_health` rows written for those
+   markets, `is_volume_anomaly` returns False below baseline 20 (a market
+   pinned at 0 never flags), `coverage_ratio` NULL everywhere (WAF-403 on the
+   denominator). `data-discovery`: 0 successes in 1000 runs. Issue #1463 open
+   since 2026-07-18 suppresses new alerts.
+2. **The proven half is not the product half.** The solver suite is excellent
+   (26+11+3 invariants, closed-form differential oracle sharing no code with
+   prod, 9 seeds, CI structurally unable to skip) but proves obedience *given
+   inputs*; the harness hands carrying costs from a hard-coded table, so
+   `area_costs.py` and `HOLD_AREA_COSTS_MISSING` are never exercised and the
+   FL 5×–6.7× T+I error is invisible to all 330 cases. `BACKTESTED == 0`; the
+   weekly accuracy gate has no committed measurement.
+3. **~100/22,026 (0.45%) complete sellable leads**, and the dominant funnel
+   loss is our own buy box (`pass` 11,782 / `park` 2,959 / `conditional_pursue`
+   1,420 — pricing populates only for the last). Condition completeness is
+   nominal: 66% carry a tier, **1.8%** from image analysis.
+
+**Two artifacts that shortcut eval design:**
+- `services/handoff_approval.py:38-65` already defines the buyer-decision
+  field set (`offer_price, assignment_fee, expected_fee, math_version, arv,
+  arv_confidence, arv_source, condition_confidence`) — adopt as eval scope
+  rather than inventing one.
+- `services/deal_review.py:103-151` trust labels: `_REAL_COMP_PROVIDERS =
+  {"rentcast"}` only, `_RECORDED_MORTGAGE_SOURCES` empty → on the free path
+  **every ARV/rent already labels ESTIMATED and every mortgage figure
+  is_estimate=True**. The system already knows it is estimating nearly
+  everything; the product question is whether a buyer is told.
+
+**Notable risk found in the display layer:** dive-authored `target_price`
+overwrites the deterministic `router_baseline` (~16,032/16,108 deals carry
+it), is validated **type-only with no cross-check against the router's solve**,
+and `DealPanel.tsx:775` shows it *instead of* `offer_price` — the LLM number
+is what a human (or buyer) sees, with the proven solve demoted to Diagnostics.
+
+**Operator-relevant, outside lab scope:** the ingestion outage is a live prod
+incident and belongs to normal product work, not a lab package.
