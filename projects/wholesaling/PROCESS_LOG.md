@@ -317,3 +317,39 @@ under-weighted them. Changes:
 
 P1 unaffected (touches prompts/labels, not providers). P2 remains
 operator-gated and unstarted.
+
+## 2026-08-25 — Session prompts staged; P1 brief verified against code
+
+Operator asked to stage the next step, push, and get launch prompts for both
+repos. Delivered `SESSION_PROMPTS.md` (per-repo launch prompts, session
+routing table, order of operations), a `packages/P1/RESULT.md` scaffold, and
+README start-here entry points.
+
+**Wholesaling repo needs no changes to "know how to operate"** — by design it
+runs on its own CLAUDE.md plus one self-contained brief; that is the context
+firewall, and it also honors this workstream's read-only constraint. The lab
+repo orients via `/goal wholesaling`.
+
+**P1 brief verified (Sonnet delegation, read-only) and corrected** — the draft
+had real defects, exactly the kind the protocol exists to catch:
+- ORM class is `ConditionAnalysisRequestORM` at `db/models.py:1181-1279`
+  (draft said lines 1219-1249, unnamed).
+- **One** write site, `services/condition_analysis.py:271` — the draft assumed
+  additional bench-side write sites that do not exist.
+- **Three** prompt families, not two: `vision/prompt.py` (single-pass screen),
+  `vision/bench/extended.py:201` (per-batch map), `vision/bench/reduce.py:50`
+  (reduce/merge); `services/condition_analysis.py` defines no prompt text, so
+  the draft's instruction to check there was wrong.
+- Golden-label ORM is `VisionGoldenLabelORM` (`db/models.py:2608-2627`) with
+  8 columns; no export path exists anywhere (confirmed). Export spec tightened
+  to exclude timestamps/`labeled_by` for determinism.
+- Next migration is `0108` (head `0107_comm_fact_homes`); exact test invocation
+  is `python -m ruff check .` + `python -m pytest -q -n auto` from `backend/`.
+- Doc discrepancy confirmed: `Docs/IMAGE_ANALYSIS.md:220-222` says
+  `singles_768`, shipped default is `grid_512_3x3` (`settings.py:1732-1733`).
+- Also confirmed the F-7 evidence first-hand: `codex_cli.py:215` and
+  `claude_sdk.py:168` both return `usage={}` unconditionally.
+
+P1 remains **DRAFT** — authorization is the operator's act (flip the status
+line), per the freeze discipline. Nothing has been executed in the wholesaling
+repo; it remains untouched.
