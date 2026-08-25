@@ -454,3 +454,51 @@ is what a human (or buyer) sees, with the proven solve demoted to Diagnostics.
 
 **Operator-relevant, outside lab scope:** the ingestion outage is a live prod
 incident and belongs to normal product work, not a lab package.
+
+## 2026-08-25 — Method decision: eval corpus = pinned fresh pull, not the existing book
+
+**Operator hypothesis:** evaluate from fresh data pulls; the DB is in disarray
+because properties were processed under many different code versions.
+
+**Confirmed by the codebase's own measurement** — `underwriting_version.py`'s
+docstring records the 2026-08-04 prod finding: **8 coexisting underwriting
+versions, 8.7% of the book at head**. The stored book is not one instrument
+but a mixture of unknown instruments; scoring it would cross an unmeasured
+reproducibility boundary (P5 / ch. 02 / global tripwire 3). Supporting: two
+versioning schemes stamping concurrently, `rehab_as_of` frozen at 2025-01-01,
+and the material fixes (T+I defaults removed, AFR floor, 5-tier income ladder,
+credibility floors, freshness fix) all shipped after most rows were written.
+
+**Decision recorded** (`leads-gtm/EVAL_CORPUS_DESIGN.md`), amending
+PLAYBOOK_PATH §4 action 1: the first eval's corpus is a **pinned fresh pull
+over a stratified sample from currently-live lanes**, not a query over the
+existing book.
+
+**Qualification the orchestrator added (pushback):** a fresh pull yields a
+valid *instrument*, not *ground truth*. Re-running current code tells you what
+the system outputs under a known identity; it cannot say whether the output is
+right — that is precisely how the existing goldens ended up pinning drift
+rather than correctness (self-derived by construction). Every sold number needs
+an **independent reference** gathered outside the pipeline; the FL n=6 method
+(independent desk research vs pipeline output) is the template to scale.
+
+**The old book is retained for two valid uses**: error-analysis/failure
+harvesting (ch. 03 §5.1 requires real observed failures) and
+coverage/completeness facts. Rule: the old book says what goes wrong; the fresh
+pull says how often, under a known instrument.
+
+**Design constraints recorded**: pin the execution system (commit SHA, 4-layer
+version vector, both AI model ids, REFDATA digests) before pulling; **isolate
+from the crons** — 4 concurrent property writers (`cloud-nightly` */5 despite
+its "disabled" header, discovery */15, enrich 5,20,35,50, crexi 6h) will mutate
+a corpus mid-measurement, with INC-001 lock contention still open on the ingest
+side; use the reunderwrite freeze path (captures/restores status +
+lifecycle_stage, so nothing reaches a send queue); **supply constrains scope** —
+only Detroit, Grand Rapids, and the Crexi MF lane can currently produce fresh
+rows; stratify by market/type/condition-source/ARV-source (the FL JV lane
+yields a visible ARV at confidence 0.036 that can never price); size for a
+stated MDE; ledger the look.
+
+**Ordering consequence:** first *AI* target stays condition; first *product*
+target is **carrying costs (T+I)** — the one measured error, and the one the
+entire 330-case suite is structurally blind to.
