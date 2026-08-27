@@ -16,10 +16,24 @@ PHASE 3  iterate: change ONE thing, re-run, measure       <- the payoff
 Phase 3 is the point. Phases 1–2 exist only to make Phase 3's numbers mean
 something.
 
+## SCOPE CORRECTION 2026-08-27
+
+The instrumentation built so far covers the **value-route / analysis** lane only
+(24 seams: income, ARV, linkage, routing, gate). The **ingest** lane — sweep,
+filter, normalize, identity, upsert — has **zero** coverage, and that is the half
+this project is about. Operator redirected scope back to ingest.
+
+**Active goal file: `GOAL_INGEST.md`.** `GOAL_BASELINE.md` (value-route) is
+paused, not cancelled — the F-B4 experiment stays queued behind the ingest
+baseline.
+
 ## THE NEXT ACTION (one thing)
 
-**Run the full instrumented pass over all 100 local listings, both arms, offline,
-and produce the baseline table.**
+**Build the ingest baseline** — see `GOAL_INGEST.md`. Record one ingest pass
+into the cassette, replay it offline, then attribute every swept asset to its
+terminal outcome and drop reason.
+
+*(Superseded: the value-route baseline run below is paused behind this.)*
 
 ```bash
 cd ~/code/adaptive-ai-lab/projects/wholesaling/crexi-baseline
