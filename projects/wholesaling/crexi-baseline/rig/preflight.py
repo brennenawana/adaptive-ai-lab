@@ -113,6 +113,30 @@ def main() -> int:
     else:
         check("CREXI_BASELINE_ARM declared (A|B)", False, f"got {arm!r}")
 
+    # --- 5b. Crexi token: report validity, NEVER the value --------------------
+    tok = os.environ.get("CREXI_TOKEN", "")
+    src = os.environ.get("CREXI_TOKEN_SOURCE", "?")
+    if tok and tok != "rig-replay-no-token":
+        import base64
+        import datetime
+        import json as _json
+
+        try:
+            body = tok.split(".")[1]
+            body += "=" * (-len(body) % 4)
+            claims = _json.loads(base64.urlsafe_b64decode(body))
+            exp = datetime.datetime.fromtimestamp(claims["exp"], datetime.UTC)
+            days = (exp - datetime.datetime.now(datetime.UTC)).days
+            check("crexi token unexpired", days > 0, f"expires {exp:%Y-%m-%d} ({days}d), src={src}")
+            check("crexi token has Comps capability",
+                  "Comps" in claims.get("capabilities", []),
+                  "required by the value-route comp fetch")
+        except Exception as exc:  # noqa: BLE001
+            check("crexi token parses", False, type(exc).__name__)
+    else:
+        print(f"  \033[33mNOTE\033[0m  crexi token is the replay dummy (src={src}) "
+              "-- live passes will fail; replay arms are fine")
+
     # --- 6. Send paths inert ---------------------------------------------------
     check("kill switch on", settings.kill_switch is True)
     check("force dry-run sends", getattr(settings, "force_dry_run_sends", False) is True)

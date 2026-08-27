@@ -52,7 +52,18 @@ export INTEGRATION_SECRET_KEY="rig-not-a-key"
 export GH_DISPATCH_TOKEN="rig-disabled"
 export OPENROUTER_API_KEY="rig-disabled"
 export VERCEL_TOKEN="rig-disabled"
-: "${CREXI_TOKEN:=rig-replay-no-token}" ; export CREXI_TOKEN
+# CREXI_TOKEN is read from a file OUTSIDE both repos (mode 0600) so the secret
+# never lands in a tracked file. Falls back to a non-empty dummy for replay arms
+# (non-empty matters: _env_value() treats a falsy value as absent and falls
+# through to backend/.env.local).
+_tokfile="${CREXI_TOKEN_FILE:-$HOME/.config/crexi/token}"
+if [[ -r "$_tokfile" ]]; then
+  CREXI_TOKEN="$(tr -d '[:space:]' < "$_tokfile")"
+  export CREXI_TOKEN CREXI_TOKEN_SOURCE="file:$_tokfile"
+else
+  export CREXI_TOKEN="rig-replay-no-token" CREXI_TOKEN_SOURCE="dummy"
+fi
+unset _tokfile
 
 # --- send paths inert --------------------------------------------------------
 export KILL_SWITCH=true
