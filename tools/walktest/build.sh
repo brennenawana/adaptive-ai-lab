@@ -11,9 +11,17 @@
 #              MANIFEST.txt what was copied, what was stripped, isolation proof
 set -euo pipefail
 
-SRC="${1:?usage: build.sh <source-dir> [--keep-git]}"
-KEEP_GIT="${2:-}"
+SRC="${1:?usage: build.sh <source-dir> [--keep-git] [--keep-claude-md]}"
+shift
 SRC="$(cd "$SRC" && pwd)"
+KEEP_GIT=0; KEEP_CLAUDE_MD=0
+for a in "$@"; do
+  case "$a" in
+    --keep-git)       KEEP_GIT=1 ;;
+    --keep-claude-md) KEEP_CLAUDE_MD=1 ;;
+    *) echo "unknown flag: $a"; exit 2 ;;
+  esac
+done
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
 ROOT="/private/tmp/walktest/${STAMP}"
@@ -25,13 +33,19 @@ mkdir -p "$WS" "$LOGS" "$ROOT/.claude"
 
 # ---- copy, stripping every known auto-load / context-injection surface ----
 EXCLUDES=(
-  --exclude 'CLAUDE.md' --exclude 'CLAUDE.local.md'
   --exclude '.claude/'  --exclude '.cursorrules' --exclude '.cursor/'
-  --exclude 'AGENTS.md' --exclude '.github/copilot-instructions.md'
   --exclude '.aider*'   --exclude '.windsurfrules'
   --exclude '.DS_Store'
+  # build/dependency noise — not context, just weight
+  --exclude 'node_modules/' --exclude '.venv/' --exclude '.venvs/'
+  --exclude '__pycache__/'  --exclude 'dist/' --exclude '.pytest_cache/'
+  --exclude '*.pyc'
 )
-[[ "$KEEP_GIT" == "--keep-git" ]] || EXCLUDES+=( --exclude '.git/' --exclude '.gitignore' )
+if [[ $KEEP_CLAUDE_MD -eq 0 ]]; then
+  EXCLUDES+=( --exclude 'CLAUDE.md' --exclude 'CLAUDE.local.md'
+              --exclude 'AGENTS.md' --exclude '.github/copilot-instructions.md' )
+fi
+[[ $KEEP_GIT -eq 1 ]] || EXCLUDES+=( --exclude '.git/' --exclude '.gitignore' )
 
 rsync -a "${EXCLUDES[@]}" "$SRC"/ "$WS"/
 
@@ -55,7 +69,8 @@ JSON
   echo "built:  $(date -Iseconds)"
   echo "source: $SRC"
   echo "root:   $ROOT"
-  echo "git:    $([[ "$KEEP_GIT" == "--keep-git" ]] && echo kept || echo stripped)"
+  echo "git:       $([[ $KEEP_GIT -eq 1 ]] && echo kept || echo stripped)"
+  echo "CLAUDE.md: $([[ $KEEP_CLAUDE_MD -eq 1 ]] && echo "KEPT (testing whether it suffices)" || echo stripped)"
   echo
   echo "--- files copied ($(find "$WS" -type f | wc -l | tr -d ' ')) ---"
   (cd "$WS" && find . -type f | sort)
@@ -69,9 +84,13 @@ check () { # label, condition-result
   else echo "  FAIL  $1" >> "$ROOT/MANIFEST.txt"; fail=1; fi
 }
 
-# no CLAUDE.md inside the workspace
+# CLAUDE.md inside the workspace: absent, or deliberately kept as the artifact under test
 found=$(find "$WS" -name 'CLAUDE*.md' | wc -l | tr -d ' ')
-check "no CLAUDE.md in workspace (found $found)" "$([[ $found -eq 0 ]] && echo 0 || echo 1)"
+if [[ $KEEP_CLAUDE_MD -eq 1 ]]; then
+  check "CLAUDE.md kept deliberately as the orientation artifact under test (found $found)" 0
+else
+  check "no CLAUDE.md in workspace (found $found)" "$([[ $found -eq 0 ]] && echo 0 || echo 1)"
+fi
 
 # no CLAUDE.md in any ancestor of the sandbox
 anc=0; d="$ROOT"

@@ -13,13 +13,19 @@ set -euo pipefail
 
 ROOT="${1:?usage: run.sh <sandbox-root> [--model <name>]}"
 shift || true
-MODEL="sonnet"
-[[ "${1:-}" == "--model" ]] && MODEL="${2:?}"
+MODEL="sonnet"; PROMPT_NAME="PROMPT.md"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --model)  MODEL="${2:?}"; shift 2 ;;
+    --prompt) PROMPT_NAME="${2:?}"; shift 2 ;;
+    *) echo "unknown flag: $1"; exit 2 ;;
+  esac
+done
 
 [[ -d "$ROOT/workspace" ]] || { echo "no workspace/ in $ROOT"; exit 1; }
 grep -q "RESULT: ISOLATED" "$ROOT/MANIFEST.txt" || { echo "sandbox not isolated; rebuild"; exit 1; }
 
-PROMPT_FILE="$(cd "$(dirname "$0")" && pwd)/PROMPT.md"
+PROMPT_FILE="$(cd "$(dirname "$0")" && pwd)/$PROMPT_NAME"
 OUT="$ROOT/logs/report.md"
 
 echo "running walk test in $ROOT (model: $MODEL)"

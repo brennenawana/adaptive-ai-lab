@@ -25,12 +25,37 @@ structurally.
 Everything above is asserted at build time; the build **fails closed** rather
 than producing a quietly contaminated sandbox.
 
+## Two test shapes — strip rules differ, deliberately
+
+| Target | `CLAUDE.md` | Question being asked |
+|---|---|---|
+| **Lab workspace** (`projects/<name>/`) | **stripped** | Is the workspace self-sufficient? It is supposed to carry its own orientation. |
+| **Product repo** (`~/code/wholesaling`) | **KEPT** (`--keep-claude-md`) | Does the *committed* orientation surface actually suffice? `CLAUDE.md` is the intended artifact — stripping it would test the wrong thing. |
+
+In both cases **memory is stripped**, because memory is accumulated
+cross-session history that a new session, a new teammate, or a **different
+harness** would not have. That last case is live: a move to another harness
+loses Claude Code's memory entirely, so "can this repo be operated from
+committed files alone" stops being hypothetical.
+
 ## Usage
 
 ```bash
-./build.sh <source-dir> [--keep-git]     # → /private/tmp/walktest/<stamp>/
-./run.sh   /private/tmp/walktest/<stamp> [--model sonnet]
+# workspace resumability (strip everything)
+./build.sh <source-dir>
+./run.sh   /private/tmp/walktest/<stamp> --model sonnet
+
+# product-repo orientation (keep CLAUDE.md, audit it against the code)
+./build.sh ~/code/wholesaling --keep-claude-md
+./run.sh   /private/tmp/walktest/<stamp> --model sonnet --prompt PROMPT_REPO.md
 ```
+
+`PROMPT.md` asks the workspace-resumability questions; `PROMPT_REPO.md` asks the
+repo-orientation questions and includes a **doc-vs-code audit** — verify the
+orientation doc's concrete claims (tooling, migration head, paths, commands)
+against the actual tree and report everything stale, wrong, or unverifiable.
+Build/dependency noise (`node_modules`, `.venv`, `__pycache__`, `dist`) is
+excluded as weight, not context.
 
 `build.sh` prints the isolation report and ends with `RESULT: ISOLATED` or
 fails. `run.sh` refuses to run against a sandbox that is not isolated.
