@@ -1,7 +1,7 @@
 # NEXT — the single source of truth for "what do I do now"
 
 > If you read one file, read this one. Updated at every checkpoint.
-> Last updated: 2026-08-27 (after F-B9).
+> Last updated: 2026-08-27 (ingest baseline, phases 1-2 landed).
 
 ## The arc (your mental model is correct)
 
@@ -29,28 +29,27 @@ baseline.
 
 ## THE NEXT ACTION (one thing)
 
-**Build the ingest baseline** — see `GOAL_INGEST.md`. Record one ingest pass
-into the cassette, replay it offline, then attribute every swept asset to its
-terminal outcome and drop reason.
+**Ingest baseline — `GOAL_INGEST.md` phases 1 and 2 are DONE.** Phase 3 (the
+drop-attributed funnel table) is the remaining step. See STATE.md
+"Ingest baseline" for what landed.
 
-*(Superseded: the value-route baseline run below is paused behind this.)*
+Reproducing the frozen pass (fully offline, ~0s):
 
 ```bash
 cd ~/code/adaptive-ai-lab/projects/wholesaling/crexi-baseline
 ./rig/db.sh up
-
-# Arm A (deterministic) -- record first (new listings need cassette entries), then replay
 source rig/env.sh A
-CREXI_CASSETTE=$CREXI_BASELINE_ROOT/runs/cassettes/fl.jsonl CREXI_CASSETTE_MODE=record \
-  ./rig/run.sh $CREXI_BASELINE_ROOT/rig/trace.py --limit 100 --out runs/baseline_armA.jsonl
 
-# Arm B (AI on) -- needs the AI cassette too
-source rig/env.sh B
-CREXI_CASSETTE=... CREXI_AI_CASSETTE=... CREXI_CASSETTE_MODE=record \
-  ./rig/run.sh $CREXI_BASELINE_ROOT/rig/trace.py --limit 100 --out runs/baseline_armB.jsonl
+# The DB is an INPUT to the request shape (the cursor decides full vs incremental),
+# so the cassette alone does NOT make the pass reproducible. Restore first, always.
+./rig/db.sh restore pre_ingest_baseline
 
-# the deliverable
-./rig/run.sh $CREXI_BASELINE_ROOT/rig/provenance.py runs/baseline_armA.jsonl runs/baseline_armB.jsonl
+CREXI_CASSETTE=$CREXI_BASELINE_ROOT/runs/cassettes/ingest_fl.jsonl \
+CREXI_CASSETTE_MODE=replay CREXI_PINNED_NOW=2026-08-27T23:00:00+00:00 \
+CREXI_BASE_URL=http://127.0.0.1:1 \
+  ./rig/run.sh $CREXI_BASELINE_ROOT/rig/ingest_trace.py --states FL --apply --max-fetch 150 \
+    --out runs/ingest_trace_FL_replay2.jsonl
+# expect: hits=586 misses=0, wall=0s, funnel fingerprint 3c15972614b09973
 ```
 
 **Why this and not something else:** we have 9 defect classes but no *rates* over
