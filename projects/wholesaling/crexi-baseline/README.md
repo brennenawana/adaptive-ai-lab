@@ -13,6 +13,31 @@ source rig/env.sh A      # A = deterministic (AI extract off) | B = AI-on
 ./rig/preflight.sh       # MUST pass before any run
 ```
 
+## The guard rule: assert the OUTCOME, never the inputs
+
+The first version of this preflight **passed while the hazard was live**. It
+checked that every `R2_*` was "exported empty" and printed
+`PASS  photo mirror inert`. Measured reality:
+
+| CWD | `R2_BUCKET` env | `settings.r2_bucket` | mirror enabled |
+|---|---|---|---|
+| `backend/` | `""` (exported empty) | `'media'` | **True** |
+| `backend/` | unset | `'media'` | **True** |
+| elsewhere (no `.env`) | unset | `None` | **False** |
+
+`Settings` sets `env_ignore_empty=True` (`settings.py:124`), so an empty env var
+reads as *unset* and `backend/.env` supplies the production bucket anyway. The
+only thing that neutralizes the mirror is **a CWD with no `.env` adjacent**.
+
+That is the same fail-open shape as the 2026-08-12 voice incident — a check
+printing SAFE one line above a live override. So every check in `preflight.py`
+now resolves the **real object the product code will use**
+(`build_crexi_mirror(settings).enabled`, `providers_for(AiTask(kind=extract))`,
+`scripts.crexi_ingest._db_url`) rather than inspecting the environment that is
+supposed to produce it.
+
+`preflight.sh.RETIRED` is kept as the specimen.
+
 ## Why the preflight exists
 
 The wholesaling Crexi scripts resolve their own database URL: `--db prod` →
@@ -23,10 +48,22 @@ production". Separately `backend/.env` carries `R2_*`, and pydantic-settings
 loads `.env` relative to CWD, so an `--apply` ingest would upload photos to the
 **production R2 bucket**.
 
-`rig/env.sh` exports both URL vars at localhost and every `R2_*` as empty (not
-unset). `rig/preflight.sh` fails closed on either hazard, on an undeclared AI
-arm, and on `ANTHROPIC_BASE_URL` leaking the experiment lane's z.ai routing into
-the product's own AI calls. Both hazards were adversarially tested.
+`rig/env.sh` points **both** URL vars at the rig (so `--db prod` and `--db dev`
+are equally harmless — the flag becomes semantically inert) and runs everything
+from `runs/work`, a directory with no `.env`.
+
+**Host is not proof of locality on this machine.** An ssh tunnel listens on
+`127.0.0.1:25432` and forwards to a remote Postgres, so the gate requires
+host **+ port + database + an in-DB `rig_marker` sentinel** that prod and dev do
+not have.
+
+### Adversarial verification (all three previously slipped through)
+
+| Test | Result |
+|---|---|
+| Arm B declared | discriminates — `providers_for(extract)=['claude_sdk']` |
+| `DATABASE_URL` → the ssh tunnel `127.0.0.1:25432` | **FAIL** on port; the connection reached a *real remote Postgres* that rejected our password |
+| Run from `backend/` (where `.env` lives) | **FAIL** — `r2_bucket='media'`, mirror would have been live |
 
 ## Files
 
