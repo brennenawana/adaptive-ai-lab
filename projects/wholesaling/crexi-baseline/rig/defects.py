@@ -41,6 +41,11 @@ DEFECTS: dict[str, dict] = {
         title="priced off tier-4 market median (no listing-specific income signal)",
         detect="income method == 'market_median'",
     ),
+    "F-B8": dict(
+        stage="arv", severity="high",
+        title="sale_event_name never reaches Comp.exclusion_reason -> universal 0.55 haircut",
+        detect="arv_source contains ';no_flip_package_signal'",
+    ),
     "F-B7": dict(
         stage="income", severity="low",
         title="no income signal at all",

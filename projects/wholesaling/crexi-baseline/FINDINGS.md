@@ -224,3 +224,72 @@ Four listings took ~7 minutes of wall clock, dominated by comp fetching at
 `crexi_requests_per_second = 2.0` (110, 87, and 206 cumulative new comps). At
 that rate a full pass over FL's 1,511 type-matched listings is on the order of
 **12–40 hours**. Relevant to any plan that treats a full re-pass as routine.
+
+
+---
+
+## F-B8 · One unmapped field suppresses every Crexi ARV below its own usability floor
+
+**Severity: highest of the session. 100% of Crexi ARVs affected; moves 58% of the
+book from usable to unusable, and separately disables a comp-exclusion rule.**
+
+### The chain
+
+1. Crexi normalization populates `sale_event_name` from the payload's `eventName`
+   (`providers/crexi/normalize.py:105`). It is present on **846/846** comps:
+   `Sold` (828) and **`Sold: Multi APN Sale` (18)** — the latter is precisely a
+   multi-parcel *package* sale.
+2. The engine's provenance check reads a **different field**:
+   `_comp_set_has_sale_type_provenance` (`valuation/engine.py:331-339`) tests
+   `comp.exclusion_reason`, which the Crexi path never sets.
+3. It therefore returns False on every Crexi comp set, and
+   `engine.py:170-172` applies `confidence x 0.55` plus the
+   `;no_flip_package_signal` note.
+
+**Measured on the 25-listing walk: 24/24 ARVs (100%) carry the haircut.**
+
+### Effect 1 — ARV confidence is suppressed below the floor it is judged against
+
+| | below the 0.35 credibility floor | confidence range |
+|---|---|---|
+| observed (post-haircut) | **18/24 (75%)** | 0.167 – 0.391 |
+| implied (pre-haircut) | 4/24 (17%) | 0.304 – 0.711 |
+
+The haircut alone moves **14 of 24 valuations (58%)** from usable to unusable.
+Note the observed maximum, **0.391**: nothing in the sample clears the floor by
+any margin, because the ceiling itself has been multiplied down.
+
+This is why F-B3 looked like a distribution problem. It is not — it is one
+constant.
+
+### Effect 2 — the package-deal exclusion cannot fire at all
+
+The same unmapped field means the engine's step-6 exclusion for package sales
+never sees Crexi's `Sold: Multi APN Sale` comps. Per the engine's own comment,
+that means "a market-priced retail flip would be admitted, inflating ARV."
+**18 of 846 comps (2%)** are labelled package sales in the source data and are
+currently admitted as ordinary comparables.
+
+So the two effects push in opposite directions: confidence is suppressed while
+the value itself may be inflated.
+
+### Why this is a mapping gap, not a bug in the haircut
+
+The haircut is **correct behavior given a False answer** — without sale-type
+provenance you genuinely cannot exclude retail flips or package deals, and less
+confidence is the right response. The comment at `engine.py:160-168` says it was
+written for "RentCast, West-MI county" payloads that carry no such field.
+
+The defect is that for the Crexi lane the signal **does exist** and is simply not
+mapped onto the field the engine reads — so a value designed to *vary* has become
+a *constant*, and the 0.35 floor was never re-derived for a lane where the
+penalty always fires.
+
+### What this does NOT license
+
+Mapping `sale_event_name` → the provenance field would raise ARV confidence
+across the entire book and change which deals can price. That is an underwriting
+change, not a bug fix, and it needs the operator's judgment plus a
+before/after measurement — not a quiet patch. The honest statement is: **the
+current ARV confidence for Crexi is not measuring comp quality, it is mostly
+measuring one missing mapping.**
