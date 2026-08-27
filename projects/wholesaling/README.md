@@ -22,6 +22,7 @@ for each repo and what each session kind is allowed to do.
 | [INTEGRATION_AND_FEEDBACK.md](INTEGRATION_AND_FEEDBACK.md) | Lab→product intervention packages; product→playbook promotion loop |
 | [PLAYBOOK_FEEDBACK.md](PLAYBOOK_FEEDBACK.md) | Append-only ledger of candidate playbook learnings (F-1…) |
 | [packages/](packages/) | Work orders: `TEMPLATE_BRIEF.md`, `P1/BRIEF.md` + `RESULT.md` |
+| [ICM_ASSESSMENT.md](ICM_ASSESSMENT.md) | Assessment of ICM-Architect for this workspace; the walk test |
 | [GOAL.md](GOAL.md) | Durable goal prompt; loaded by the `/goal` command |
 | [PROCESS_LOG.md](PROCESS_LOG.md) | Append-only session/decision/delegation log |
 | [AI_SYSTEM_INVENTORY.md](AI_SYSTEM_INVENTORY.md) | Code-verified survey of every AI surface (profile field 20 evidence) |
