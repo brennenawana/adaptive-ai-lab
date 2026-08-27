@@ -31,6 +31,7 @@ import time
 sys.path.insert(0, os.path.join(os.environ["WHOLESALING_REPO"], "backend"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from cassette import ai_from_env as ai_cassette_from_env  # noqa: E402
 from cassette import from_env as cassette_from_env  # noqa: E402
 from defects import DEFECTS, summarize  # noqa: E402
 from provenance import build_ledger  # noqa: E402
@@ -571,10 +572,16 @@ def main() -> int:
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
+    # Both cassettes install BEFORE the trace, so the trace observes what they
+    # served -- which is what "post-cassette" means in the summaries below.
     cas = cassette_from_env()
     if cas is not None:
         cas.install()
         print(f"cassette: mode={cas.mode} entries={len(cas.entries)} path={cas.path}")
+    aicas = ai_cassette_from_env()
+    if aicas is not None:
+        aicas.install()
+        print(f"ai-cassette: mode={aicas.mode} entries={len(aicas.entries)} path={aicas.path}")
     install()
     CONSTS = runtime_consts()
 
@@ -621,6 +628,8 @@ def main() -> int:
         fh.write(json.dumps({"_manifest": {
             "arm": arm, "wholesaling_git": git, "n_requested": args.limit,
             "pinned_now": pinned_now.isoformat(),
+            "crexi_cassette": (cas.mode if cas else None),
+            "ai_cassette": (aicas.mode if aicas else None),
             "seams": PATCHES, "defect_classes": sorted(DEFECTS),
             "consts": CONSTS}}, default=str) + "\n")
         with _Session(eng) as sess:
@@ -703,6 +712,10 @@ def main() -> int:
             af.write(json.dumps(e) + "\n")
     served = _c.Counter(f"{e['label']}:{e['provider']}/{e['model']}" for e in AI if not e["error"])
     failed = _c.Counter(f"{e['label']}:{(e['error'] or '').split(':')[0]}" for e in AI if e["error"])
+    if aicas is not None:
+        sm = aicas.summary()
+        print(f"\nai-cassette: hits={sm['hits']} misses={sm['misses']} "
+              f"recorded={sm['recorded']} entries={sm['entries']}")
     print(f"\nLLM COMPLETIONS: {len(AI)}  -> {ai_path}")
     for k, v in served.most_common():
         print(f"   {v:4d}  served   {k}")
