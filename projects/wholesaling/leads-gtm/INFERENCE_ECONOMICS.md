@@ -233,6 +233,85 @@ MAPE) against the incumbent flash-lite model, **after** P1 fixes that harness's
 own instrument defects. A cheaper vision model that shifts the tier
 distribution changes `estimate_rehab`, which changes offers.
 
+## 5c. Addendum 2026-08-27 - z.ai coding plan vs pay-go API
+
+Source: z.ai devpack docs. **Credit formula:**
+`credits = (input x in_mult + cached_input x cache_mult + output x out_mult) / 10,000`
+
+| Model | Input | Cached input | Output |
+|---|---|---|---|
+| GLM-5.3 | 6.9 | 1.7 | 24 |
+| GLM-5.3-Flash | 2.3 | 0.56 | 8 |
+
+**Quotas (two ceilings apply simultaneously):**
+
+| Tier | 5-hour credits | Weekly credits | Price |
+|---|---|---|---|
+| Lite | 2,000 | 10,000 | from $18/mo |
+| Pro | 12,000 | 60,000 | ~$72/mo (not in docs) |
+| Max | 28,000 | 140,000 | ~$160/mo (not in docs) |
+
+5-hour credits refresh 5h after consumption (a rolling burst bucket); weekly
+credits reset every 7 days from activation. **Unused capacity does not roll
+over.** Supported tools include Claude Code, Cline, **OpenCode**.
+
+### Converted to the same loop model (100k in / 90% cached / 2k out)
+
+**8.94 credits/turn on Flash · 27.0 credits/turn on GLM-5.3 full.**
+
+| Tier | turns/5h | turns/week | turns/mo | equivalent API @promo | @list | verdict at list price |
+|---|---|---|---|---|---|---|
+| Lite $18 | 224 | 1,119 | ~4,840 | $12.59 | $25.19 | plan wins (1.4x) |
+| Pro ~$72 | 1,342 | 6,711 | ~29,060 | $75.56 | $151.11 | plan wins (2.1x) |
+| Max ~$160 | 3,132 | 15,660 | ~67,810 | $176.30 | $352.60 | plan wins (2.2x) |
+
+On **GLM-5.3 full** the same tiers yield only 1,604 / 9,622 / 22,452 turns/mo -
+the full model burns 3x the credits of Flash.
+
+### The three findings
+
+1. **During the promo, pay-go API is cheaper than or equal to a plan.** Lite's
+   whole monthly quota costs $12.59 at promo API rates - less than the $18
+   subscription. Pro is a wash ($75.56 vs ~$72). **After 2026-09-09 the plans
+   win by roughly 2x** at every tier, *if the quota is saturated*.
+2. **The binding constraint may be the 5-hour bucket, not the weekly one.**
+   Lite allows only **224 Flash turns per rolling 5h window**. A burst-shaped
+   experiment loop (run a batch, analyze, re-run) can hit that wall while
+   weekly credits sit unspent. Pay-go has no burst ceiling. Check the loop's
+   shape before buying a tier on weekly math alone.
+3. **A plan buys one vendor.** No cross-model bake-off, no fallback if GLM
+   degrades, and the selection experiments this project needs (ch. 05 bounded
+   candidate sets) require model diversity a single-vendor plan cannot serve.
+
+### Unresolved - verify before committing
+
+- **Pro/Max prices are not in the docs** (~$72/~$160 from third-party
+  reporting). Confirm on the billing page.
+- **Does the plan endpoint return real token usage?** This is the F-7 question
+  again: subscription lanes in this system already return `usage={}`
+  unconditionally. The credit formula is token-derived, so the numbers exist
+  vendor-side - but if the API response omits them, the lab loses per-call
+  accounting exactly where P2 needs it. **Test one call and inspect the
+  response before subscribing.**
+- MCP credit rule ("calls x output multiplier") is documented for z.ai's own
+  MCP servers (Web Search / Web Reader / Zread, 1.2x each). Local file/bash
+  tools in Claude Code or opencode should not bill as MCP calls - confirm, as
+  this loop is tool-heavy.
+
+### Decision rule (ch. 11 demand-ledger pattern)
+
+Do not buy a tier on an estimated turn count. **Run pay-go through the promo
+window** (it is the cheapest option anyway until 2026-09-09), log actual turns,
+tokens, cache-hit rate, and burst shape, then apply a **pre-committed
+trigger**:
+
+> If sustained usage exceeds ~4,800 Flash-equivalent turns/month AND the peak
+> 5-hour burst stays under the tier's bucket, buy that tier at the next renewal.
+> Otherwise stay on pay-go.
+
+This is the purchase-trigger discipline chapter 11 requires for hardware,
+applied to a subscription: the ledger decides, not the anticipation.
+
 ## 6. Recommendation
 
 **Two lanes, both off the Anthropic subscription.**
