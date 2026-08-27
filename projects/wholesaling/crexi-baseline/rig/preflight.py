@@ -36,8 +36,13 @@ def main() -> int:
 
     # --- 1. CWD must have no .env, or Settings inherits backend/.env ------------
     # pydantic-settings resolves env_file=".env" against the PROCESS CWD.
+    # This check is only meaningful because run.sh executes the preflight from the
+    # SAME cwd as the command. Running the gate in one directory and the job in
+    # another is how "photo mirror: ON (R2)" slipped past a green preflight once.
     cwd_env = os.path.join(os.getcwd(), ".env")
     check("cwd has no .env adjacent", not os.path.exists(cwd_env), os.getcwd())
+    check("cwd is the rig work dir", os.getcwd() == os.environ.get("CREXI_RIG_WORK"),
+          f"expected {os.environ.get('CREXI_RIG_WORK')}")
 
     from app.config.settings import Settings
     from app.services.crexi_image_client import build_crexi_mirror

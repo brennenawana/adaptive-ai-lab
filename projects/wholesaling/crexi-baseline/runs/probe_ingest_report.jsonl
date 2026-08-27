@@ -1,0 +1,1 @@
+{"state":"FL","pages":68,"stubs_seen":2087,"detail_fetched":25,"stored":0,"strict_2_4":2,"unpriced_excluded":0,"elapsed_s":106.518,"requests_est":143,"truncated":true,"warnings":["detail fetches capped at 25 of 1511 (--max-fetch): the skipped tail stays stale until a backfill"]}
