@@ -108,6 +108,13 @@ are real and the values are not anchored to the ask. The defect is provenance,
 not fabrication. But "which comps?" is the first question a lead buyer asks, and
 today the answer is not stored.
 
+**Sharpened by the trace harness (2026-08-27):** the in-memory `Valuation`
+object *does* carry the comp set — 61 comps for asset 2659977, 41 for 2659939 —
+while the corresponding `valuation.comp_set` rows are NULL. So the evidence is
+computed and then **dropped at persist time**. This is a write-path defect, not a
+missing computation, which makes it a cheap fix: persist what the object already
+holds.
+
 ---
 
 ## F-B3 · ARV confidence clusters at or below its own credibility floor
