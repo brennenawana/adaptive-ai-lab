@@ -72,6 +72,11 @@ not have.
 | `rig/env.sh` | hermetic environment; **source**, never execute |
 | `rig/preflight.sh` | fail-closed safety gate |
 | `rig/db.sh` | postgres lifecycle: `up/schema/down/nuke/snapshot/restore/psql` |
+| `rig/run.sh` | **the only sanctioned way to invoke anything** (preflight + exec, one CWD) |
+| `rig/trace.py` | per-listing seam capture -> one JSONL record + its provenance ledger |
+| `rig/provenance.py` | the ledger model, its derivation, and the producer-mix aggregate |
+| `rig/defects.py` | stable defect-class registry (F-B1…F-B8) |
+| `rig/cassette.py` | transport record/replay so a pass runs offline + deterministic |
 | `runs/` | run artifacts (per-listing JSONL + manifests) |
 | `runs/snapshots/` | frozen DB dumps — the corpus of record |
 

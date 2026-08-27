@@ -15,9 +15,9 @@ ingest→analysis lane, then optimize. Plan approved; Phases 0–1 complete, Pha
 correct: the playbook's ch. 03 §5.1 requires harvesting real failures before
 deriving any ontology.
 
-**Next task (operator-directed, not yet started):** full auditability of
-*what produced each value* — deterministic script vs LLM vs external API — at
-every step, before walking more listings.
+**Next task (operator-directed):** full auditability of *what produced each value*
+— deterministic script vs LLM vs external API — at every step, before walking more
+listings. **DONE 2026-08-27** — see "Provenance ledger" at the end of this file.
 
 ## The rig
 
@@ -32,8 +32,10 @@ All rig files under `projects/wholesaling/crexi-baseline/`.
 | `rig/run.sh` | **The only sanctioned way to invoke anything.** cds to the work dir, runs preflight *there*, then execs |
 | `rig/db.sh` | `up / schema / down / nuke / snapshot / restore / psql` |
 | `rig/defects.py` | Stable defect-class registry (F-B1…F-B8), keyed to stages |
-| `rig/trace.py` | Per-listing pipeline trace via runtime seam-wrapping (no product edits) |
-| `runs/*.jsonl` | Trace + sweep outputs |
+| `rig/trace.py` | Per-listing seam CAPTURE via runtime wrapping (no product edits) |
+| `rig/provenance.py` | Per-value provenance ledger: model, derivation, producer-mix aggregate |
+| `rig/cassette.py` | Crexi transport record/replay — offline, deterministic re-runs |
+| `runs/*.jsonl` | Trace + sweep outputs (`trace_arm*`, `http_arm*`, `ai_arm*`) |
 | `FINDINGS.md` | The defect write-ups with evidence chains |
 
 Arms: **A** = deterministic (`AI_LOCAL_TRANSPORTS_DISABLED=true`, LLM income
@@ -54,7 +56,7 @@ extraction structurally off). **B** = AI-on (claude_sdk serves).
 | crexi_listings | 100 |
 | crexi_comps | 846 |
 | property / valuation / deal / listing | 25 each |
-| audit_log | 62 |
+| audit_log | 102 (62 at first count; the provenance passes appended `crexi_link` rows) |
 
 Data provenance: a live FL ingest (`--states FL --db prod --apply --max-fetch 500`)
 stopped early at 100 listings; comps accumulated from value-route passes.
@@ -173,3 +175,161 @@ rather than Crexi's churn.
   `MF_REVIEW_HOLD_REASON`, so the gate has never done real work in a trace.
 - The `F-B5` no-ARV case is undiagnosed.
 - Ingest-stage defects (only the value-route half is instrumented).
+
+---
+
+## 2026-08-27 — Provenance ledger (ingest→value-route)
+
+**Task:** `briefs/PROVENANCE_LEDGER.md`. Built entirely by runtime seam-wrapping in
+this repo; `git -C ~/code/wholesaling status` clean (0 changed files).
+
+### What was built
+
+`rig/provenance.py` (new) — the ledger. Three parts:
+
+1. **`PValue`** — one record per value that would appear on a sellable lead:
+   `field · value · producer · producer_detail · inputs · validated_by ·
+   fallback_from · confidence · is_fallback · notes`. `producer` is a fixed
+   vocabulary (`deterministic · llm · external_api · default_constant ·
+   human_attested · absent`); an unknown one raises, and a record flagged
+   `is_fallback` with no `fallback_from` raises — a fallback with no record of
+   what it fell back *from* is the un-auditable state the ledger exists to remove.
+2. **`build_ledger(rec, consts)`** — derives those records from one captured trace
+   record. Derivation is deliberately NOT inside the seams: a fallback is only
+   knowable once you know which tier won, and keeping it here means a taxonomy fix
+   re-derives from a frozen trace instead of forcing a re-run.
+3. **`aggregate` / `render` + CLI** — the producer-mix table, one per arm.
+   `./rig/run.sh $CREXI_BASELINE_ROOT/rig/provenance.py runs/trace_armA.jsonl runs/trace_armB.jsonl [--fallbacks] [--json]`
+
+`rig/trace.py` — stays a pure CAPTURE layer, extended from 6 seams to 22. New:
+the whole income ladder tier by tier (`request_listing_extract`, `_from_regex`,
+`_parse_unit_mix`, `_from_unit_mix_fmr`, `_from_market`), the LLM transport
+chokepoint (`message_generator.ai_complete` → served provider/model + prompt
+digest), `crexi_linkage.link_listing`, `workers.routing.route`,
+`valuation.engine.estimate_rehab` (both bindings), `workers.guardrail.apply_gate`,
+`repositories.append_audit_log` (filtered to `event_type=guardrail`), and
+`crexi_value_route._hold_for_mf_review`. `install()` still asserts every target
+exists and records its source digest.
+
+**Seam ordering.** `_boundary()` is now documented as callable only by the three
+OPENING seams — `resolve_income`, `compute_mf_arv`, `link_listing` — the ones that
+receive the listing itself and can be the first event for a new asset. Every other
+seam is strictly nested inside one of those and calls the new `_inner()`, which
+never flushes and instead records a `seam_id_mismatch`. Flushing from a nested
+seam would have re-introduced the exact misattribution `_boundary()` exists to
+prevent (a deduped property carries a canonical id that is not this listing's
+asset id). Both arms ran with **0 `seam_id_mismatch` records**.
+
+Also: `classify()` now emits **F-B8**, which the registry documented but the
+classifier never implemented; and the HTTP path roll-up's `len(seg) > 12` test was
+eating real segments (`/<id>/v2/search` for `/universal-search/v2/search`).
+
+### Producer mix — n=5 listings, both arms, cassette replay, `CREXI_PINNED_NOW=2026-08-27T20:00:00Z`
+
+```
+                    ARM A (LLM off)                         ARM B (LLM on)
+field            vals determ  llm  const absent fb ext  | determ  llm  const absent fb ext
+rent_estimate       5  5 100%    .     .     .   5   4  |  4 80%  1 20%    .     .   4   3
+arv                 5   4 80%    .     .  1 20%  0   0  |  4 80%     .     .  1 20%  0   0
+arv_confidence      5   4 80%    .     .  1 20%  4   0  |  4 80%     .     .  1 20%  4   0
+rehab_estimate      5      .     .     .  5 100% 0   0  |     .      .     .  5 100% 0   0
+condition_tier      5      .     .  5 100%   .   0   0  |     .      .  5 100%   .   0   0
+offer_price         5      .     .     .  5 100% 0   0  |     .      .     .  5 100% 0   0
+gate_decision       5      .     .     .  5 100% 0   0  |     .      .     .  5 100% 0   0
+lifecycle_stage     5  5 100%    .     .     .   0   0  |  5 100%    .     .     .   0   0
+```
+`fb` = fallbacks from a rejected higher-tier producer. `ext` = values whose
+dominant input came from an external API.
+
+Cassette: arm A `hits=9 misses=0`, arm B `hits=8 misses=0` (arm B skips one
+market-stats call because the LLM served that listing). Arm A: 5/5 LLM
+completions `FAILED AiUnavailableError`. Arm B: 5/5 `served claude_sdk/claude-opus-4-8`.
+
+### What the ledger revealed that the value-only trace had hidden
+
+1. **A quarter of the sellable fields have no producer at all.** `rehab_estimate`,
+   `offer_price` and `gate_decision` are `absent` on 10/10 listing-arms. Not
+   "low confidence" — structurally never computed:
+   - `crexi_linkage.link_listing` seeds a valuation with `arv` + `rent` only, and
+     `recompute.route_new_property` (unlike `recompute_property`) never calls
+     `_refresh_rehab`. So `router.route` sees `estimated_rehab=None`, which by
+     §1.5 step 8 makes the cash terms UNPRICEABLE → `deal_type=none` → no offer.
+   - Because the deal is `none`, `routing_result.produced_ids` is empty, nothing is
+     threaded into `deal_ids`, and **`guardrails.gate.evaluate` never runs**.
+     Corroborated in the DB: all 25 `event_type=guardrail` audit rows were written
+     by `crexi_value_route` (the MF-review hold), zero by the guardrail worker.
+   The value-only trace showed this as three blank columns, indistinguishable from
+   "not instrumented yet".
+
+2. **`condition_tier` is a hardcoded constant on 100% of listings.** Every listing
+   routes on `ConditionSignal(tier=UNKNOWN, confidence=0.2)` minted inline in
+   `RoutingWorker._route` because `property.condition_signal` is None. That
+   constant is the multiplicand the rehab model would use — so the one input the
+   rehab estimate is most sensitive to is not a measurement at all. New
+   `default_constant` finding; not previously recorded.
+
+3. **In arm A, every rent is a fallback.** `fb=5/5`. The ladder shows tier 1
+   `attempted=true, served=false,
+   transport_unavailable(MessageGeneratorError: no provider is configured to serve
+   task kind 'extract')`. The value-only trace showed `llm_gross: null` — identical
+   to "the LLM ran and found nothing", which is a completely different fact. This
+   is the arm-A/arm-B discriminator the brief asked for.
+
+4. **Arm B is not reproducible.** Two identical cassette replays of the same 5
+   listings produced different rent producers: `2659977` was `llm_extract` on the
+   first run and `regex_extract` on the second (LLM returned 3300.0, rejected
+   `not_in_source`), and `2660435`'s self-reported confidence moved 0.9 → 0.6.
+   The cassette froze Crexi; the LLM tier is the remaining source of variance, and
+   the ledger is what makes it visible. **An arm-B LLM cassette is the next
+   prerequisite for treating arm B as a measurable arm.**
+
+5. **The `×0.55` haircut has a named counterfactual now.** Every ARV-bearing
+   listing carries `arv_confidence.fallback_from = {producer: deterministic, value:
+   <pre-haircut>, rejected_by: no comp carries a sale-type/owner-occupant signal
+   (F-B8)}`. Concretely: 0.553→0.304, 0.658→0.362, 0.551→0.303, 0.551→0.303. Three
+   of four sit above the 0.35 credibility floor before the haircut and below it
+   after — F-B8 alone is what puts them under the floor. The factor is read from
+   `type1.no_provenance_confidence_discount` at run time, never hardcoded.
+
+6. **The tier-4 rent's real input is an external endpoint.** `ext=4/5` (arm A).
+   Each market-median rent carries
+   `inputs.market_median = {producer: external_api, endpoint: GET
+   /universal-search/rental-markets/stats, market_name: "Fort Lauderdale, FL",
+   rent_median: 1794.0}`. A buyer relying on "rent $5,382/mo" is relying on a
+   metro-wide median × unit count, not on anything about the subject.
+
+**Acceptance criterion 2 verified** — `asset_id=2660435`, arm B:
+`rent_estimate = 5382.0, producer=deterministic,
+producer_detail="listing_income._from_market (market median x units, FMR-clamped)",
+fallback_from={producer: llm, tier: 1, value: 46000.0,
+rejected_by: "_validate_facts/band",
+detail: "gross 46000.0 outside [200.0, units(3) x _MAX_UNIT_RENT(15000.0) = 45000.0]"}`.
+
+### Taxonomy call worth knowing about
+
+`producer` names the code that COMPUTED AND EMITTED the value that reached the DB,
+not the ultimate origin of every number feeding it. So a tier-4 rent is
+`deterministic` (`_from_market` multiplied a median by the unit count and clamped
+it to the FMR ceiling), matching the brief's acceptance criterion 2 — the external
+dependency is not lost, it is recorded in `inputs` with its own `producer` and
+endpoint, and the aggregate's `ext-in` column counts it. `producer=external_api`
+is reserved for a value that reaches the lead essentially unmodified from an
+endpoint. Likewise `arv_confidence` stays `deterministic` even when the ×0.55
+haircut fires: the number still varies with comp count/spread/recency, so calling
+it a constant would misstate the mix — the constant's effect is carried by
+`producer_detail` + `fallback_from` + the `fallback` column.
+
+### Not done / known gaps
+
+- **`gate_hold` records have never been emitted by a real pass**, because the gate
+  never runs for these listings (finding 1) and `_hold_for_mf_review` no-ops on a
+  re-pass (it only fires on a deal still `status=new, deal_type=none`, and all 25
+  are already `held`). The derivation branch was exercised directly against a
+  record shaped like a first pass, using the guardrail audit detail read verbatim
+  from the local DB — it attributes correctly to
+  `crexi_value_route.MF_REVIEW_HOLD_REASON` / `guardrails.apply.NO_CONTACT_HOLD_REASON`
+  / `guardrails.gate.evaluate`. That is a derivation check, not lane evidence.
+  Reaching a never-linked listing needs `--limit ~26+` (qualified #26–35 are the
+  first unlinked ones) with a live record pass — deferred as out of scope here.
+- The cassette now holds 9 entries covering 5 listings (was 5 entries / 3 listings).
+- Arm B needs an LLM cassette before it is reproducible (finding 4).

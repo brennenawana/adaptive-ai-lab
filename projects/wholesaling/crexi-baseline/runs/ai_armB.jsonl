@@ -1,0 +1,5 @@
+{"kind": "extract", "label": "extract", "prompt_sha12": "8681b38aaa89", "provider": "claude_sdk", "model": "claude-opus-4-8", "error": null, "ms": 7709, "asset_id": "2660435"}
+{"kind": "extract", "label": "extract", "prompt_sha12": "8681b38aaa89", "provider": "claude_sdk", "model": "claude-opus-4-8", "error": null, "ms": 19952, "asset_id": "2659977"}
+{"kind": "extract", "label": "extract", "prompt_sha12": "8681b38aaa89", "provider": "claude_sdk", "model": "claude-opus-4-8", "error": null, "ms": 12978, "asset_id": "2659939"}
+{"kind": "extract", "label": "extract", "prompt_sha12": "8681b38aaa89", "provider": "claude_sdk", "model": "claude-opus-4-8", "error": null, "ms": 6362, "asset_id": "2658597"}
+{"kind": "extract", "label": "extract", "prompt_sha12": "8681b38aaa89", "provider": "claude_sdk", "model": "claude-opus-4-8", "error": null, "ms": 8142, "asset_id": "2658464"}
