@@ -504,9 +504,19 @@ def install() -> None:
     # are recoverable only from the guardrail audit row it writes. Filtered to
     # event_type=guardrail so this stays a gate seam, not a global audit tap.
     _ag = WG.apply_gate
+    # Attribution by CALL SCOPE, not by matching the audit row's actor/text. The lane
+    # writes its OWN event_type=guardrail row from _hold_for_mf_review, and letting
+    # that populate gate_apply made the ledger report `gate_decision = hold, produced
+    # by guardrails.gate.evaluate` on a listing where evaluate returned nothing --
+    # a confidently wrong record. Only rows written INSIDE apply_gate are apply_gate's.
+    in_apply_gate = [0]
 
     def t_apply(*a, **k):
-        st = _ag(*a, **k)
+        in_apply_gate[0] += 1
+        try:
+            st = _ag(*a, **k)
+        finally:
+            in_apply_gate[0] -= 1
         CUR.setdefault("gate_apply", {})["status"] = getattr(st, "value", str(st))
         return st
 
@@ -518,11 +528,17 @@ def install() -> None:
         if (values or {}).get("event_type") == "guardrail":
             d = (values or {}).get("detail") or {}
             entry = {"actor": values.get("actor"), "decision": d.get("decision"),
-                     "status": d.get("status"), "reasons": list(d.get("reasons") or [])}
+                     "status": d.get("status"), "reasons": list(d.get("reasons") or []),
+                     "from_apply_gate": bool(in_apply_gate[0])}
+            # Every guardrail row is kept as evidence, whoever wrote it...
             CUR.setdefault("guardrail_audit", []).append(entry)
-            ga = CUR.setdefault("gate_apply", {})
-            ga.setdefault("decision", entry["decision"])
-            ga.setdefault("reasons", entry["reasons"])
+            # ...but only apply_gate's own row supplies the holds it added after
+            # evaluate returned (they are recoverable nowhere else -- apply_gate
+            # returns a bare DealStatus).
+            if entry["from_apply_gate"]:
+                ga = CUR.setdefault("gate_apply", {})
+                ga.setdefault("decision", entry["decision"])
+                ga.setdefault("reasons", entry["reasons"])
         return _aal(session, audit_id=audit_id, values=values, **k)
 
     REPO.append_audit_log = t_aal
@@ -570,6 +586,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=10)
     ap.add_argument("--out", default=None)
+    # Walk PAST listings a previous pass already handled. skip_asset_ids is the wrong
+    # lever for this: a poison-skip still increments stats.processed, which is what
+    # max_deals budgets, so a skip list just burns the budget. The keyset cursor is
+    # the right one -- it filters in SQL, before any per-listing work.
+    ap.add_argument("--after-key", default=None, metavar="ISO_TS,ASSET_ID",
+                    help="resume the DESC keyset walk strictly after this boundary")
+    ap.add_argument("--after-last-linked", action="store_true",
+                    help="compute --after-key as the OLDEST already-linked listing, i.e. "
+                         "start at the first listing this lane has never routed")
     args = ap.parse_args()
 
     # Both cassettes install BEFORE the trace, so the trace observes what they
@@ -579,6 +604,16 @@ def main() -> int:
         cas.install()
         print(f"cassette: mode={cas.mode} entries={len(cas.entries)} path={cas.path}")
     aicas = ai_cassette_from_env()
+    if aicas is not None and os.environ.get("CREXI_BASELINE_ARM") == "A":
+        # Arm A is DEFINED as "no transport can serve the extract". A cassette hit
+        # would fabricate a completion that arm A can never produce, silently turning
+        # it into arm B and voiding the whole A/B comparison -- and the prompts are
+        # identical across arms, so it WOULD hit. Refuse rather than measure a lie.
+        raise SystemExit(
+            "trace: CREXI_AI_CASSETTE is set but the arm is A. Arm A must have no LLM "
+            "transport at all; serving one from a cassette makes it arm B. Unset "
+            "CREXI_AI_CASSETTE for arm A."
+        )
     if aicas is not None:
         aicas.install()
         print(f"ai-cassette: mode={aicas.mode} entries={len(aicas.entries)} path={aicas.path}")
@@ -599,6 +634,24 @@ def main() -> int:
         rows = sess.execute(select(CrexiListingORM).order_by(CrexiListingORM.asset_id)
                             .limit(args.limit)).scalars().all()
         available = len(rows)
+
+    after_key = None
+    if args.after_last_linked:
+        from sqlalchemy import text as _text
+        with Session(eng) as sess:
+            row = sess.execute(_text(
+                "select l.harvested_at, l.asset_id from crexi_listings l "
+                "where exists (select 1 from property p where p.id = 'crexi:' || l.asset_id) "
+                "order by l.harvested_at asc, l.asset_id asc limit 1")).first()
+        if row is None:
+            raise SystemExit("trace: --after-last-linked but no listing is linked yet")
+        after_key = (row[0], row[1])
+    elif args.after_key:
+        from datetime import datetime as _dt
+        ts, aid = args.after_key.split(",", 1)
+        after_key = (_dt.fromisoformat(ts.strip()), aid.strip())
+    if after_key is not None:
+        print(f"after_key: resuming strictly after {after_key[0].isoformat()},{after_key[1]}")
 
     _ = available  # candidate pool size; value_route_pass selects its own slice
     client = CrexiClient(token=s.crexi_token, base_url=s.crexi_base_url,
@@ -628,6 +681,7 @@ def main() -> int:
         fh.write(json.dumps({"_manifest": {
             "arm": arm, "wholesaling_git": git, "n_requested": args.limit,
             "pinned_now": pinned_now.isoformat(),
+            "after_key": (list(after_key) if after_key else None),
             "crexi_cassette": (cas.mode if cas else None),
             "ai_cassette": (aicas.mode if aicas else None),
             "seams": PATCHES, "defect_classes": sorted(DEFECTS),
@@ -661,7 +715,7 @@ def main() -> int:
                 sess, client, cfg, DEFAULT_PARAMETERS, s,
                 apply=True, all_rows=True, overlap_minutes=120,
                 max_deals=args.limit, states=("FL",), keep_raw=True, now=pinned_now,
-                chunk_limit=None, after_key=None, stamp_cursor=False,
+                chunk_limit=None, after_key=after_key, stamp_cursor=False,
                 listing_timeout_s=None, skip_asset_ids=frozenset(),
                 parcel_registry=None, reverse_geocoder=None,
                 log=lines.append,

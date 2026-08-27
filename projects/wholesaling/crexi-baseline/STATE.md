@@ -34,7 +34,7 @@ All rig files under `projects/wholesaling/crexi-baseline/`.
 | `rig/defects.py` | Stable defect-class registry (F-B1…F-B8), keyed to stages |
 | `rig/trace.py` | Per-listing seam CAPTURE via runtime wrapping (no product edits) |
 | `rig/provenance.py` | Per-value provenance ledger: model, derivation, producer-mix aggregate |
-| `rig/cassette.py` | Crexi transport record/replay — offline, deterministic re-runs |
+| `rig/cassette.py` | Record/replay for BOTH non-deterministic boundaries: Crexi HTTP + the LLM |
 | `runs/*.jsonl` | Trace + sweep outputs (`trace_arm*`, `http_arm*`, `ai_arm*`) |
 | `FINDINGS.md` | The defect write-ups with evidence chains |
 
@@ -55,8 +55,9 @@ extraction structurally off). **B** = AI-on (claude_sdk serves).
 |---|---|
 | crexi_listings | 100 |
 | crexi_comps | 846 |
-| property / valuation / deal / listing | 25 each |
-| audit_log | 102 (62 at first count; the provenance passes appended `crexi_link` rows) |
+| property / valuation / deal / listing | 27 each (25 + the 2 fresh listings walked 2026-08-27) |
+| crexi_comps | 847 |
+| audit_log | 102+ (62 at first count; the provenance passes appended `crexi_link` rows) |
 
 Data provenance: a live FL ingest (`--states FL --db prod --apply --max-fetch 500`)
 stopped early at 100 listings; comps accumulated from value-route passes.
@@ -321,15 +322,104 @@ it a constant would misstate the mix — the constant's effect is carried by
 
 ### Not done / known gaps
 
-- **`gate_hold` records have never been emitted by a real pass**, because the gate
-  never runs for these listings (finding 1) and `_hold_for_mf_review` no-ops on a
-  re-pass (it only fires on a deal still `status=new, deal_type=none`, and all 25
-  are already `held`). The derivation branch was exercised directly against a
-  record shaped like a first pass, using the guardrail audit detail read verbatim
-  from the local DB — it attributes correctly to
-  `crexi_value_route.MF_REVIEW_HOLD_REASON` / `guardrails.apply.NO_CONTACT_HOLD_REASON`
-  / `guardrails.gate.evaluate`. That is a derivation check, not lane evidence.
-  Reaching a never-linked listing needs `--limit ~26+` (qualified #26–35 are the
-  first unlinked ones) with a live record pass — deferred as out of scope here.
-- The cassette now holds 9 entries covering 5 listings (was 5 entries / 3 listings).
+- **`gate_hold` had never been emitted by a real pass** at the time of writing.
+  **Closed the same day — see the follow-on section below.**
+- The Crexi cassette now holds 9 entries covering 5 listings (was 5 / 3).
 - Arm B needs an LLM cassette before it is reproducible (finding 4).
+  **Closed — see below.**
+
+## 2026-08-27 (follow-on) — closing the two gaps the ledger left open
+
+### 1. Arm B is now a reproducible arm (`rig/cassette.py`)
+
+The Crexi cassette froze the HTTP boundary; the model was the whole remaining
+variance. `cassette.py` now holds a shared `_Store` with two installers:
+`Cassette` (Crexi HTTP, unchanged API) and **`AiCassette`**, which
+records/replays at `message_generator.ai_complete`.
+
+Keyed by what the model was **asked** — `kind|label|system|user|schema|max_tokens`
+— not by listing id. Two listings with an identical description are genuinely the
+same question, and a prompt-template edit correctly invalidates every entry
+instead of serving a stale hit. **Successes only**: reconstructing a provider
+exception would be guessing, and an unrecorded failure correctly misses later.
+
+The fail-loud raise matters more here than for HTTP: `_try_llm_extract` swallows
+`MessageGeneratorError` and drops to tier 2, so a miss surfacing as an `AiError`
+would be **invisible — indistinguishable from arm A**. `CassetteMiss` is a plain
+`RuntimeError` for exactly that reason (`_dispatch` catches only `AiError`;
+`value_route_pass` catches only `ListingTimeoutError` / connection errors).
+**Verified, not assumed:** a replay against a missing cassette aborts with `exit=1`.
+
+```
+record : ai-cassette hits=0 misses=0 recorded=5
+replay : ai-cassette hits=5 misses=0   ledger fingerprint 7b443e91b33df21c
+replay : ai-cassette hits=5 misses=0   ledger fingerprint 7b443e91b33df21c   <- identical
+```
+
+**Arm A must never use it.** The prompts are identical across arms, so a cassette
+set in arm A *would* hit — fabricating a completion arm A can never produce and
+silently turning it into arm B. `trace.py` now refuses to start in that
+configuration rather than measure a lie.
+
+```bash
+# arm A: no AI cassette, ever
+CREXI_CASSETTE=$CREXI_BASELINE_ROOT/runs/cassettes/fl.jsonl CREXI_CASSETTE_MODE=replay \
+  ./rig/run.sh $CREXI_BASELINE_ROOT/rig/trace.py --limit 5
+# arm B: both
+CREXI_CASSETTE=$CREXI_BASELINE_ROOT/runs/cassettes/fl.jsonl CREXI_CASSETTE_MODE=replay \
+CREXI_AI_CASSETTE=$CREXI_BASELINE_ROOT/runs/cassettes/ai_fl.jsonl CREXI_AI_CASSETTE_MODE=replay \
+  ./rig/run.sh $CREXI_BASELINE_ROOT/rig/trace.py --limit 5
+```
+
+### 2. Real `gate_hold` records — and a confidently wrong one caught
+
+**Reaching a fresh listing.** `skip_asset_ids` is the wrong lever: a poison-skip
+still increments `stats.processed`, which is what `max_deals` budgets, so a skip
+list just burns the budget. The **keyset cursor** is the right one — it filters in
+SQL, before any per-listing work. `trace.py` gained `--after-key ISO_TS,ASSET_ID`
+and `--after-last-linked` (computes the boundary as the oldest already-linked
+listing, i.e. start at the first listing this lane has never routed). This is also
+the "walk the next unseen listing" primitive the error-analysis loop wants.
+
+Two never-linked listings were walked (`2518410`, `2514650`), record mode on both
+cassettes. Corpus grew 25 → 27 properties/deals/valuations.
+
+**The bug it caught.** The first fresh run reported
+`gate_decision = hold, produced by guardrails.gate.evaluate -> apply_gate` — on a
+listing where `evaluate` had returned **nothing**. Cause: `_hold_for_mf_review`
+writes its *own* `event_type=guardrail` audit row, and the audit tap was letting
+it populate `gate_apply`. It also duplicated the hold reason. Fixed by attributing
+audit rows by **call scope** (a depth counter set inside the `apply_gate` wrapper)
+rather than by matching the row's actor or text — attribution by string match is
+what produced the wrong record in the first place. Every guardrail row is still
+kept as evidence, now tagged `from_apply_gate`.
+
+Corrected output for `2514650` (first pass, arm B):
+
+```
+gate_decision    absent         None
+                 guardrails.gate.evaluate never ran (no deal reached the guardrail worker)
+gate_hold        deterministic  "multi-family underwriting pending — held for manual review…"
+                 crexi_value_route.MF_REVIEW_HOLD_REASON
+lifecycle_stage  deterministic  "guardrail (held: MF review)"
+                 crexi_value_route._hold_for_mf_review -> repositories.update_deal_status
+                 fallback_from: {producer: deterministic, value: "route",
+                                 rejected_by: "router minted deal_type=none -> parked as an MF review card"}
+```
+
+**This strengthens finding 1 rather than overturning it.** On a listing's very
+first pass — deal freshly minted, nothing idempotent about it — the lane *still*
+never reaches `guardrails.gate.evaluate`. The captured `guardrail_audit` now
+carries that as in-trace evidence (the only guardrail row is written by
+`crexi_value_route`, `from_apply_gate: false`), where before it was a DB query run
+by hand. And the ledger now shows what the router had actually reached — stage
+`route` — before the lane overrode it to a review card.
+
+### Still open
+
+- The gate has now been proven unreachable on both a re-pass *and* a first pass,
+  so `guardrails.gate.evaluate` is untested by this corpus by construction, not by
+  sampling. Anything that would change that has to start with seeding a rehab
+  estimate so `route` can price a deal.
+- `human_attested` and `external_api` remain unobserved producers across every run
+  so far — no value in this lane is either.

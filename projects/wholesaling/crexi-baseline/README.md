@@ -76,7 +76,7 @@ not have.
 | `rig/trace.py` | per-listing seam capture -> one JSONL record + its provenance ledger |
 | `rig/provenance.py` | the ledger model, its derivation, and the producer-mix aggregate |
 | `rig/defects.py` | stable defect-class registry (F-B1…F-B8) |
-| `rig/cassette.py` | transport record/replay so a pass runs offline + deterministic |
+| `rig/cassette.py` | record/replay for both non-deterministic boundaries: Crexi HTTP + the LLM |
 | `runs/` | run artifacts (per-listing JSONL + manifests) |
 | `runs/snapshots/` | frozen DB dumps — the corpus of record |
 
