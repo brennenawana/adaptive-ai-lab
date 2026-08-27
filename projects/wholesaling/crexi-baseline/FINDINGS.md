@@ -164,6 +164,42 @@ The `gross * 12` fallback (`:186-187`) exists precisely for annual figures and
 would have accepted both — it fails only because the *text* side of the
 comparison never parsed the abbreviation.
 
+### Measured on n=40 (sweep complete)
+
+| | count | of what |
+|---|---|---|
+| listings swept (Arm B, all with descriptions) | 40 | |
+| LLM extracted an actual number | **8** | 20% of listings |
+| → validator **accepted** | 6 | 75% of extractions |
+| → validator **rejected** | **2** | **25% of extractions** |
+| correctly rejected (`gross=None`, no income stated) | 32 | working as designed |
+| rejections caused by the band (F-B1) | **0** | F-B1 did not recur in 40 |
+
+**Both wrongful kills in the sample are F-B4 (K/M notation)** — assets 1775854
+and 1817625. So the honest materiality statement is: **F-B4 discards roughly a
+quarter of every income figure the LLM successfully finds**, and it is the
+dominant validator defect. F-B1 is real but rarer — it did not appear once in 40.
+
+(Both wrongful-kill assets have `units=None`, so their band ceiling was
+`4 × 15,000 = 60,000` and neither gross came near it — independently confirming
+the K/M parse, not the band, is the cause.)
+
+**Tier distribution (the telemetry that does not exist in prod):**
+
+| tier | n | share |
+|---|---|---|
+| `market_median` (tier 4 fallback) | 21 | **52%** |
+| `none` (no signal at all) | 13 | 32% |
+| `llm_extract` (tier 1) | 6 | 15% |
+
+Over half the book is priced off a coarse market median — the exact pattern the
+MF income-ladder work was built to eliminate. Fixing F-B4 moves cases from the
+52% bucket into tier 1.
+
+**Latency:** median **7.6s** per listing for income resolution alone (max 14.8s),
+all of it the LLM call. Over FL's 1,511 type-matched listings that is ~3.2 hours
+of income extraction on top of comp fetching.
+
 ### Correction to an earlier overstatement
 
 I first reported "the validator rejected 11 of 15 (73%)" as alarming. That was
