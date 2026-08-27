@@ -588,3 +588,35 @@ is not writing) — flagged for the operator.
 
 **Verdict: the walk test paid for itself on its first run**, even contaminated.
 ICM's contribution to this project is now evidenced, not assumed.
+
+## 2026-08-27 — Walk-test rig built; both tests run clean; product-repo docs are stale
+
+Built `tools/walktest/` (isolated sandbox + full tool-call telemetry) after the
+operator identified that a subagent cannot be memoryless. Key mechanism: memory
+is keyed by **exact cwd path slug**, so a sandbox at a new `/private/tmp` path
+gets none. `build.sh` fails closed on six isolation assertions; `run.sh`
+executes the test as a genuinely fresh headless session.
+
+**Operator correction (accepted):** the more consequential target is the
+**product repo**, not the lab workspace. Strip rules invert — a workspace must
+be self-sufficient so `CLAUDE.md` is stripped; a product repo's `CLAUDE.md`
+*is* the orientation artifact, so it is kept and audited against the code.
+Memory is stripped in both, which makes this directly load-bearing for the
+harness question (a different harness has no memory at all).
+
+Results in `WALKTEST_FINDINGS.md`. Test A (lab workspace, post-fix): 3/5 —
+oriented via the intended chain, wants a running current-state summary at the
+head of PROCESS_LOG and supersession banners that replace rather than flag.
+Test B (product repo): **four real doc-vs-code defects**, the worst being
+`underwriting/engine.py`'s own module docstring still declaring itself "TYPED
+STUBS" atop 814 lines of implemented pricing math; plus the Alembic head
+documented as 0054 in three files when the true head is 0107 (53 migrations),
+five core engines marked "Stub" in ARCHITECTURE.md while fully implemented, and
+a CLAUDE.md written entirely for Windows on a macOS machine.
+
+**Why prior surveys missed all of it:** they all had memory. Agents already
+knew the true head and that the engines were implemented, so they never read
+the docs as a newcomer would. This is the rig's first evidence of value.
+
+P4 recommended (doc correction + a CI drift-guard on the documented Alembic
+head) — not authored as a brief yet, not authorized.
