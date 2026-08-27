@@ -70,12 +70,25 @@ pick up the next package.
 
 ## Order of operations for the current step
 
-1. **Operator authorizes P1** — edit `packages/P1/BRIEF.md`: change
-   `Status: DRAFT (not yet authorized — do not execute)` to
-   `Status: AUTHORIZED v1 (<date>)`. Nothing else changes.
-2. **Wholesaling session** runs P1 with the Repo-B prompt above → PR opened
-   against `dev`, `RESULT.md` written, session ends.
-3. **Lab session** verifies P1's acceptance, records the PR/SHA, and proceeds
-   to M1 action 2 (classify the observed-failure corpus into the taxonomy) —
-   which does not depend on P1 and can run in parallel if you prefer.
-4. Merge of the P1 PR is yours, after the lab's verification.
+> **Updated 2026-08-27** after the 2026-08-25 lead-sale pivot. The previous
+> version said "authorize P1 first"; that is no longer the next action.
+
+**P1 (condition-instrument prereqs) is QUEUED BUT NOT NEXT.** It remains a
+valid, verified brief, and the condition surface still feeds rehab→price — but
+the pivot reprioritized **ingestion supply** and **underwriting inputs
+(carrying costs)** ahead of it. Authorizing P1 today would send a session at a
+deprioritized surface.
+
+**Current sequence:**
+
+1. **Operator decision required — not a lab action.** Restore ingestion supply
+   (6/8 markets silently producing zero) and decide what a sold lead must
+   state. Both are operator/product work; see `leads-gtm/README.md`.
+2. **No brief exists yet for the pivot's first target.** The next lab action is
+   to author a work order for ingestion instrumentation (the zero-volume
+   alerting gap) and/or the carrying-cost input eval. Until that brief exists
+   and is authorized, no wholesaling session should be launched.
+3. **P1 stays available** for whenever the condition surface returns to the top
+   of the queue; re-verify its citations before authorizing, since the repo
+   moves.
+

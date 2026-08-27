@@ -16,6 +16,16 @@ attention. Stated as the decision this instantiation drives: **which of the
 system's AI surfaces may be trusted to act (or keep acting) autonomously, at
 what measured quality bar, and which must be repaired, gated, or turned off.**
 
+**Amendment 2026-08-25 (lead-sale pivot).** The business outcome changes from
+*closing deals we source* to **selling qualified leads to third-party buyers**.
+Consequence: the underwriting output stops being an internal input and becomes
+**the product itself** — a buyer acts on it with no operator in their loop.
+The decision this instantiation drives is restated accordingly: *which
+AI-touched numbers may be sold, at what stated tolerance, and which must
+declare uncertainty instead.* The FL n=6 finding (underwriting materially wrong
+6/6) is promoted from pipeline defect to **product defect**. See
+[`leads-gtm/README.md`](leads-gtm/README.md).
+
 ## 2. Task population & volume
 
 Property book *(approx.)*: ~14.4k MI + ~1.2k FL single-family, plus

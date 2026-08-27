@@ -85,3 +85,31 @@ value is not the framework; it is the parts we have not got.
 4. **Ledger the outcome either way.** If the walk test finds real defects, ICM's
    contribution to this project is already proven and worth crediting; if it
    passes, that is evidence our independently-derived structure was sound.
+
+## Walk test — executed 2026-08-27
+
+**Result: PASSED as a defect-finder, FAILED as a clean instrument.**
+
+Rated 3/5 by the agent. It oriented in under ten files via the intended chain
+(README → SESSION_PROMPTS → GOAL → PROCESS_LOG tail), and found four real
+defects — a stale append-only log, an unmarked superseded priority list, an
+un-landed profile amendment, and a queued work order pointing at a
+deprioritized surface. All four were fixed the same session.
+
+### Method limitation discovered (feed back to ICM)
+
+**"An agent with no memory" is not achievable by prompt instruction in a modern
+harness.** The test agent was injected — before reading any file — with the
+product repo's `CLAUDE.md`, a ~50-entry cross-session memory index containing
+specific claims about the AI surfaces under evaluation, and an environment
+block naming the repo's branch and recent commits. Telling it "you have no
+prior context" did not remove any of that.
+
+A valid walk test therefore requires **harness-level isolation**, not prompt
+discipline: a session launched from a neutral working directory with no
+project `CLAUDE.md` and no memory injection, reading a copy of the workspace.
+Anything less measures *"an agent that already knows the product reads the lab
+docs"* — a strictly easier task than the one the test claims to measure.
+
+This is a genuine gap in the method as published, and the most useful thing
+this project can contribute back to it.

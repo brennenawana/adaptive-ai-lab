@@ -502,3 +502,89 @@ stated MDE; ledger the look.
 **Ordering consequence:** first *AI* target stays condition; first *product*
 target is **carrying costs (T+I)** — the one measured error, and the one the
 entire 330-case suite is structurally blind to.
+
+## 2026-08-27 — BACKFILL: checkpoints 12–19 (logged late; see walk-test finding)
+
+Append-only discipline failed between 2026-08-25 and 2026-08-27: eight
+checkpoints were committed without process-log entries. This entry backfills
+them as a single retrospective record (it is appended, not back-dated; the gap
+itself is the finding).
+
+- **12** `INFERENCE_ECONOMICS.md` — ch.11 note on open-weight models. Initial
+  framing argued inference cost is not the binding constraint (the dominant
+  T+I error is deterministic).
+- **13** **Operator correction**: the expensive workload is the *experiment/
+  analysis agent*, not the pipeline's internal AI calls, and it competes with
+  the operator's Claude Code weekly limit — which their daily work depends on.
+  Framing corrected; researched Aug-2026 pricing added (DeepSeek V4, Qwen3.x,
+  GLM-5.2, coding plans, Alibaba free quota). Recorded the largest cost lever:
+  script the harness; don't spend an agent turn per iteration step.
+- **14** Flash-tier update: GLM-5.3-Flash promo verified ($0.075/$0.015/$0.25,
+  ends 2026-09-09; list $0.15/$0.03/$0.50), multimodal, 1M ctx, **weights not
+  yet published so not open-weight today**. Per-turn cost model + promo-cliff
+  warning + cheap-vs-strong routing caution.
+- **15** z.ai coding-plan vs pay-go comparison (credit formula, 5h/weekly
+  buckets).
+- **16** **Correction to 15**: priced at standard credit rates and monthly
+  billing, which was wrong. Two distinct discounts exist (Flash API promo vs a
+  50% *off-peak credit* discount that applies to plan usage); peak is only
+  Mon–Fri 06:00–10:00 UTC, so the US workday is half-credit. With yearly
+  billing plans beat pay-go 2–3x during the promo, 4–6x after. **Operator
+  purchased the z.ai plan.**
+- **17** Qwen Coding Plan evaluated (~$10 Lite / ~$50 Pro, 90k requests/mo,
+  request-based rather than credit-based billing — structurally favorable to a
+  token-heavy loop). Recommendation: not yet; free 1M-per-model Alibaba quota
+  funds the bake-off; two-week trigger prefers *adding* Qwen over upgrading GLM
+  at equal price.
+- **18** `HARNESS_SELECTION.md` — the harness effect (same model, 16–36 point
+  swings by scaffold; DeepCode 0.85 vs Claude Code 0.59 on the same base
+  model). Consequences: harness is part of the frozen execution identity, so
+  swapping breaks comparability; "GLM in DeepSeek Harness" is a two-factor
+  change needing a 3-arm design; the same lesson applies to the product's own
+  prompt scaffolds. Logged F-8.
+- **19** `ICM_ASSESSMENT.md` — ICM-Architect (arXiv:2603.16021, citation
+  verified) is convergent with this workspace; adopt the **walk test**, decline
+  the in-place restructure (it would silently break provenance citations),
+  and note ICM does **not** apply to wholesaling's ETL orchestration. Logged
+  F-9.
+
+## 2026-08-27 — Walk test executed; instrument was contaminated; four defects fixed
+
+Ran ICM's walk test against `projects/wholesaling/` with a Sonnet subagent.
+
+**Operator caught an instrument defect before the result was believed** (P2 in
+action): a subagent spawned from a session whose cwd is `~/code/wholesaling`
+is **not** memoryless. Disclosure confirmed it received, before opening any
+file: the product repo's `CLAUDE.md` (branch-flow rules, environments, Alembic
+heads, gotchas), the ~50-entry `MEMORY.md` index (including specific prior
+claims about the very AI surfaces this workstream evaluates — "AI Router Module
+SHIPPED", "Underwriting Versioning RELEASED TO PROD"), and an `<env>` block
+with the product repo's branch and recent commits.
+
+**Validity ruling:** answers to *"what is the project"*, *"current state"*, and
+*"could you execute"* are **contaminated — directional only**. The agent noted
+it could not certify that prior memory claims didn't shape which findings felt
+"already known." The **friction log stands**, because its findings are
+*relational* claims about contradictions *between files inside the workspace* —
+nothing ambient could supply those.
+
+**Four real defects found and fixed this session:**
+1. `PROCESS_LOG.md` stale by two days while `GOAL.md` instructs sessions to
+   "read the tail first" → backfilled (entry above).
+2. `PLAYBOOK_PATH.md` still ranked the condition surface first post-pivot with
+   nothing marking it superseded → supersession banner added.
+3. `PROJECT_PROFILE.md` field 1 never amended although the pivot entry said
+   explicitly that it changes → amendment added.
+4. `SESSION_PROMPTS.md` "order of operations" still said *authorize P1 first*,
+   which post-pivot points a session at a deprioritized surface → rewritten;
+   P1 marked QUEUED BUT NOT NEXT, and the real gap named (no brief exists yet
+   for ingestion instrumentation / carrying-cost eval).
+
+**Design tension surfaced (unresolved):** a lab session is forbidden to read
+the product repo, yet a work-order brief must inline that repo's rules for the
+executing session. The walk-test agent only had those rules *ambiently*. Authoring
+briefs may require a scoped, explicit exception to the read-only rule (reading
+is not writing) — flagged for the operator.
+
+**Verdict: the walk test paid for itself on its first run**, even contaminated.
+ICM's contribution to this project is now evidenced, not assumed.

@@ -6,6 +6,15 @@
 > [`ARCHETYPE_C_BRIEF.md`](ARCHETYPE_C_BRIEF.md) (operative digest of ch.
 > 03/07). Written 2026-08-22.
 
+> ⚠ **PARTIALLY SUPERSEDED 2026-08-25 by the lead-sale pivot.** §1's surface
+> priority (condition → dives → CIS → outreach → voice) reflects the
+> pursue-deals-ourselves model. Under the lead-sale model the order is
+> **ingestion (supply) → underwriting inputs (carrying costs first) →
+> condition** ; outreach/voice are deprioritized. See
+> [`leads-gtm/README.md`](leads-gtm/README.md) for the current sequencing and
+> [`PROCESS_LOG.md`](PROCESS_LOG.md) (2026-08-25 pivot entry). §2–§7
+> (constraints, kill criteria, method notes) remain current.
+
 ## 1. The decision and its evaluation claims (01 §5.2)
 
 **Decision:** for each AI surface in the wholesaling system, should it (a)
