@@ -373,6 +373,81 @@ only when the logged demand ledger shows sustained usage above ~9,700
 Flash-turns/month - the trigger discipline still applies, it just starts from a
 cheaper floor.
 
+## 5e. 2026-08-27 - GLM plan purchased; should a Qwen plan be added?
+
+**Qwen Coding Plan** (Alibaba Cloud Model Studio / QwenCloud) exists: **~$10/mo
+Lite, ~$50/mo Pro**, Pro carrying **90,000 requests/month**; works with Claude
+Code, Cursor, Cline, Codex, Qwen Code; **both OpenAI- and Anthropic-compatible
+endpoints**. (The qwencloud pricing table renders client-side and could not be
+fetched directly; tier figures are from vendor announcement and secondary
+reporting - confirm at checkout.)
+
+### The two plans bill on different axes - that is the whole analysis
+
+| | z.ai GLM plan | Qwen Coding Plan |
+|---|---|---|
+| Unit | **credits** (token-derived: input/cached/output multipliers) | **requests** (token-blind) |
+| Consequence | a token-heavy turn costs more | a token-heavy request costs **the same as a tiny one** |
+| Caching | materially cheaper (0.56 vs 2.3 multiplier) | irrelevant to billing |
+| Burst limit | 5-hour rolling bucket | per-month request pool (verify burst rules) |
+
+**This matters specifically for this workload.** The experiment loop re-reads a
+large, mostly-static codebase on every turn - very high tokens-per-request.
+**Request-based billing is structurally favorable to that shape**, because the
+biggest cost driver under z.ai's credit model (input volume) is free under
+Qwen's. That is a real argument for the Qwen plan, independent of model quality.
+
+But the units do not convert without measurement: vendor guidance says a
+coding *task* consumes ~5-10 requests (simple) to 30+ (complex), so 90k
+requests is roughly 3k-18k tasks/month depending on shape. **Which plan is
+cheaper for this loop is an empirical question about its tokens-per-request and
+requests-per-iteration ratios - both currently unmeasured.**
+
+### Recommendation: not yet, and for a dated reason
+
+1. **Zero usage data exists.** The GLM plan was purchased today. Buying a
+   second before knowing whether the first saturates is anticipation over
+   ledger - the exact pattern SS5c/SS5d already set a trigger against.
+2. **The evaluation use case is already free.** Alibaba gives new accounts
+   **1M tokens per eligible model** for 90 days (per-model, not shared). That
+   funds the cross-model bake-off - "is Qwen better than GLM for my task" - at
+   **$0**, and answers it empirically rather than by subscription.
+3. **The redundancy argument is real but premature.** A second vendor protects
+   against a quota wall or degradation mid-experiment, and the Kimi
+   capacity-pause precedent shows this is not hypothetical. At $10/mo it is
+   also nearly free. **Judgment call, stated openly:** the disciplined answer is
+   measure-first; a defensible exception is that $10 sits below the threshold
+   where a demand ledger meaningfully binds, and mid-experiment blockage has
+   asymmetric cost. If the loop is about to run hard for two weeks straight,
+   buying Qwen Lite as a fallback is reasonable - just record it as a
+   redundancy purchase, not a capacity one, so it is not mistaken for measured
+   demand later.
+
+### The trigger to revisit (two weeks from 2026-08-27)
+
+Log from the GLM plan: weekly credits consumed, peak 5-hour usage, tokens per
+request, requests per experiment iteration. Then:
+
+- **GLM Lite never saturates** -> buy nothing. Keep a small pay-go balance.
+- **Weekly credits exhausted, bursts fine** -> the choice is GLM Pro ($50.40)
+  vs Qwen Pro ($50). At equal price, **prefer adding Qwen** - same spend buys
+  capacity *plus* vendor redundancy *plus* the second arm ch. 05 selection
+  wants, instead of more of one vendor.
+- **5-hour bucket is the wall, weekly credits unspent** -> a second plan fixes
+  this better than an upgrade, because it adds a parallel bucket. Qwen's
+  request pool (verify its burst rules) may have no equivalent 5h ceiling.
+- **Tokens-per-request measured very high** -> Qwen's token-blind billing wins
+  on structure; weight the choice toward Qwen regardless of tier math.
+
+### Verify at purchase (either vendor)
+
+- Whether the plan endpoint **returns real token usage** in responses - still
+  the open F-7 question, and it gates P2's per-call accounting on both lanes.
+- Any **per-request context/token ceiling** on Qwen's plan; token-blind billing
+  usually comes with a cap somewhere.
+- Whether z.ai's **off-peak 50% applies to GLM-5.3/5.3-Flash** (SS5d open item)
+  - it materially changes the GLM side of every comparison above.
+
 ## 6. Recommendation
 
 **Two lanes, both off the Anthropic subscription.**
