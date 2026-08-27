@@ -159,6 +159,80 @@ one model name. That price spread is itself evidence that the served artifact
 differs (quantization, config, context handling). Pin the backend, or the arm's
 identity is not frozen.
 
+## 5b. Addendum 2026-08-25b - flash-tier update (operator-supplied leads, verified)
+
+**GLM-5.3-Flash** (z.ai), verified: promo **$0.075 in / $0.015 cached in /
+$0.25 out**, promo ends **24:00 2026-09-09 UTC+8**; list reverts to
+**$0.15 / $0.03 / $0.50**. Natively multimodal, **1M context**, 131,072 max
+completion tokens, 320B params / 18B active on the GLM-5.2 743B MoE base.
+Vendor reports approaching Claude Opus 4.8 on coding/agentic benchmarks and an
+output-efficiency edge (31.4% at ~50k output tokens/task vs 29.5% at 120k).
+Treat vendor benchmark claims as screening signal only.
+
+**IMPORTANT for the operator's stated goal:** *GLM-5.3 weights are not
+published yet.* GLM-5.3-Flash is therefore **not currently an open-weight
+model** - it is a cheap hosted endpoint. GLM-5.2 (753B MoE) **is** MIT
+open-weight. If the motive is purely cost, this does not matter; if the motive
+includes self-hosting escape or a version that cannot be withdrawn or silently
+updated, 5.3-Flash does not provide it and 5.2 does.
+
+**qwen3.8 tier** (operator-supplied from qwencloud.com/pricing/api; the page
+renders its table client-side so it could not be independently fetched -
+treat as operator-read, verify at order time): qwen3.8-flash
+**$0.16 / $0.47**, implicit cache **$0.016**; qwen3.8-max and
+qwen3.8-2.4t-a95b both **$2.00 / $6.00**, implicit cache **$0.25**.
+"Implicit" caching is an operational plus: no `cache_control` plumbing to
+maintain, same as DeepSeek's automatic cache.
+
+### Modeled cost for the experiment loop
+
+Assumption: 100k input/turn, 90% cache-hit after warm-up, 2k output/turn -
+the shape of an agent re-reading a large static codebase each turn.
+
+| Candidate | $/turn | $/1k turns | Breakeven vs an $18/mo flat plan |
+|---|---|---|---|
+| **GLM-5.3-Flash (promo, to Sep 9)** | $0.0026 | **$2.60** | ~6,900 turns/mo |
+| qwen3.8-flash | $0.0040 | $3.98 | ~4,500 turns/mo |
+| DeepSeek V4-Flash (off-peak) | $0.0042 | $4.15 | ~4,340 turns/mo |
+| GLM-5.3-Flash (list, after Sep 9) | $0.0052 | $5.20 | ~3,460 turns/mo |
+| DeepSeek V4-Flash (peak) | $0.0083 | $8.30 | - |
+| Qwen3 Coder Next | $0.0136 | $13.60 | - |
+| GLM-5.3 full | $0.0462 | $46.20 | - |
+| qwen3.8-max | $0.0545 | $54.50 | - |
+
+Two readings that matter:
+1. **The promo is the whole story, and it expires in ~2 weeks.** At list price
+   GLM-5.3-Flash becomes the *most* expensive of the three flash options.
+   Re-run this table on 2026-09-09.
+2. **qwen3.8-max is ~21x the flash tier** for the same loop. Reserve max-tier
+   models for judgment steps, never for bulk iteration.
+
+### Routing caution - do not let the cheapest model author the evidence
+
+This project's product *is* trustworthy evidence. A weak model that produces
+plausible-but-wrong analysis of a pipeline run does not just waste a turn - it
+writes a false finding into the lab record, which is the silent-failure class
+(P11) the whole instantiation exists to eliminate. Split the lane:
+
+| Work | Model tier |
+|---|---|
+| Running the harness, diffing outputs, mechanical summarization | flash tier (cheapest that passes) |
+| Diagnosis, taxonomy classification, verdicts, anything entering a contract or ledger | strong tier (frontier or max-tier open weight) |
+
+That split is ch. 08's cascade pattern applied to the lab's own workflow, and
+it needs the same deterministic gate discipline: a cheap-tier output that will
+inform a decision gets escalated, not trusted.
+
+### Vision reuse (Budget B)
+
+GLM-5.3-Flash being natively multimodal at $0.075/M input makes it a live
+candidate for the **condition-vision** surface as well - potentially one
+provider for both budgets. Do not adopt on price: bench it on the existing
+harness (`app/vision/bench/`, exact-tier + within-one-tier accuracy + repair
+MAPE) against the incumbent flash-lite model, **after** P1 fixes that harness's
+own instrument defects. A cheaper vision model that shifts the tier
+distribution changes `estimate_rehab`, which changes offers.
+
 ## 6. Recommendation
 
 **Two lanes, both off the Anthropic subscription.**
