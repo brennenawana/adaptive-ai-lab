@@ -13,6 +13,7 @@ prod-probed.
 | [PROD_DATA_PROFILE.md](PROD_DATA_PROFILE.md) | How many sellable leads exist today and where the funnel loses them |
 | [EVAL_CORPUS_DESIGN.md](EVAL_CORPUS_DESIGN.md) | Why the eval corpus must be a pinned fresh pull, and what that can/cannot prove |
 | [INFERENCE_ECONOMICS.md](INFERENCE_ECONOMICS.md) | Open-weight models, platform choice, and whether visibility suffices for the playbook |
+| [HARNESS_SELECTION.md](HARNESS_SELECTION.md) | The harness effect (16-36pt swings), and how to test an alternative harness without invalidating everything |
 
 ## The three findings that decide the go-to-market
 
