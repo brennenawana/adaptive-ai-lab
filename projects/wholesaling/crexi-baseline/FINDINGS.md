@@ -86,3 +86,98 @@ wraps `_try_llm_extract` / `_validate_facts` without touching product code.
   band was built to stop. The anti-hallucination digit check (`:180-188`) already
   provides independent protection, so the band may be over-determined — but that
   is a hypothesis to test, not a fix to ship.
+
+---
+
+## F-B2 · `comp_set` is NULL on every valuation — the ARV is unauditable
+
+**Severity: high for a lead product.** `arv_source` advertises the comp count
+(`comps:crexi:n=114`, `n=50`, `n=29`) while `valuation.comp_set` is **NULL on
+all four valuations produced**. The number a buyer would pay for cannot be
+traced to the comparables that produced it.
+
+```
+ address                     | arv        | arv_source                    | comp_set
+ 1352 Holly Heights Dr       | 1176343.4  | comps:crexi:n=114;...         | NULL
+ 305 SE 12th Ave             | 1090369.56 | comps:crexi:n=29;...          | NULL
+ 1602 S 17th Avenue # 3 #1-3 | 821790.14  | comps:crexi:n=50;...          | NULL
+```
+
+Correcting my own first read: the ARV **is** genuinely comp-derived — the counts
+are real and the values are not anchored to the ask. The defect is provenance,
+not fabrication. But "which comps?" is the first question a lead buyer asks, and
+today the answer is not stored.
+
+---
+
+## F-B3 · ARV confidence clusters at or below its own credibility floor
+
+Of the three valuations that produced an ARV:
+
+| property | arv_confidence | vs the 0.35 floor |
+|---|---|---|
+| 1352 Holly Heights Dr | 0.303 | **below** → `hold:arv_low_confidence` |
+| 1602 S 17th Avenue | 0.331 | **below** → `hold:arv_low_confidence` |
+| 305 SE 12th Ave | 0.362 | barely above |
+
+Two of three ARVs are **structurally unable to price a cash deal** — they are
+computed, stored, and displayed, but sit under the threshold the router requires
+to trust them. The fourth property produced no ARV at all despite 110 comps
+fetched (cause not yet diagnosed).
+
+n=3. This corroborates the mechanics survey's note that FL cash structures rest
+on ARVs below the floor; it does not yet establish a rate.
+
+---
+
+## F-B4 · The anti-hallucination check cannot read `$400k` notation
+
+**Severity: high — silently discards correct extractions. Measured at 6% of
+descriptions, all of them income-bearing.**
+
+`_numbers_in` (`listing_income.py:752-760`) collects integers with
+`\$?\s?([0-9][0-9,]{2,})(?:\.[0-9]{2})?` — **no handling for a K/M suffix**. So
+`"$400k"` yields `400`, never `400000`; `_appears(400000, …)` is False, and the
+extraction is rejected as a possible hallucination.
+
+Two confirmed cases, both correct extractions destroyed:
+
+| asset | description says | LLM extracted | why rejected |
+|---|---|---|---|
+| 1775854 | *"produced over **$400k** in rentals a year"* | $33,333.33/mo (= 400,000 ÷ 12) ✅ | `400000` not in `_numbers_in` |
+| 1817625 | *"ANNUAL NET GROSS INCOME **$103K**"* | $8,583.33/mo (= 103,000 ÷ 12) ✅ | `103000` not in `_numbers_in` |
+
+Measured over the 97 stored descriptions: **6 (6%) use `$NNNk`/`$NNNM` money
+notation, and all 6 also mention income/rent.** In every one, the full value
+fails to reach `_numbers_in()`:
+
+```
+asset 2583640  $4.57M -> 4,570,000   in _numbers_in? False
+asset 1775854  $400k  ->   400,000   in _numbers_in? False
+asset 1883740  $80K   ->    80,000   in _numbers_in? False
+asset 1928826  $15K   ->    15,000   in _numbers_in? False
+asset 2655164  $130K  ->   130,000   in _numbers_in? False
+asset 1817625  $103K  ->   103,000   in _numbers_in? False
+```
+
+The `gross * 12` fallback (`:186-187`) exists precisely for annual figures and
+would have accepted both — it fails only because the *text* side of the
+comparison never parsed the abbreviation.
+
+### Correction to an earlier overstatement
+
+I first reported "the validator rejected 11 of 15 (73%)" as alarming. That was
+wrong: **11 of those 13 rejections had `gross=None, conf=0.0`** — the LLM
+correctly reporting that the description states no income, which the validator
+is right to reject. The honest figure is that of the extractions carrying an
+actual number, a small minority are wrongly killed — by F-B4 (6% of
+descriptions) and F-B1 (rarer). The validator is mostly working.
+
+---
+
+## Cross-cutting observation: throughput
+
+Four listings took ~7 minutes of wall clock, dominated by comp fetching at
+`crexi_requests_per_second = 2.0` (110, 87, and 206 cumulative new comps). At
+that rate a full pass over FL's 1,511 type-matched listings is on the order of
+**12–40 hours**. Relevant to any plan that treats a full re-pass as routine.
