@@ -293,3 +293,98 @@ change, not a bug fix, and it needs the operator's judgment plus a
 before/after measurement — not a quiet patch. The honest statement is: **the
 current ARV confidence for Crexi is not measuring comp quality, it is mostly
 measuring one missing mapping.**
+
+---
+
+## F-B9 · The blocker is RENT CONFIDENCE, not rehab — and the raw material is already ingested
+
+Adversarial verification (3 independent lenses, all code+prod grounded) of the
+proposal *"seed a rehab estimate so routing can price a deal and the gate becomes
+reachable."*
+
+### Verdict: don't seed rehab — but not for the reason I first gave
+
+**Seeding rehab is INERT, not merely unwise.** `estimated_rehab` is read at
+exactly one general site, `router.py:428`, nested under the DISTRESSED guard at
+`router.py:422`. Turnkey terms never carry it (`_build_type1_turnkey_terms`,
+`router.py:260-298`) and `type1_turnkey_offer` takes **no rehab parameter at
+all** (`underwriting/engine.py:283-292`). Crexi properties have NULL
+`condition_tier`, so routing synthesizes UNKNOWN (`workers/routing.py:275-281`),
+UNKNOWN is not DISTRESSED, and `router.py:1389/1395` sends every one down the
+turnkey **rent/CoC** path.
+
+Prod: **4,116 of 4,193** Crexi properties have `condition_tier` NULL; only **5**
+are distressed and **2** of those MF-held. A rehab seed is load-bearing for
+**0.05%** of the book and cannot change `deal_type` on a single held card.
+
+### I was wrong: the gate is NOT unreachable by design
+
+I hypothesized `MF_REVIEW_HOLD` was terminal by design. **Refuted on three
+independent lines:**
+
+1. `guardrails/gate.py` contains no `property_type` / `MULTIFAMILY` check;
+   `guardrail.py:56-57` filters on `deal_type is NONE`, not property type;
+   `underwriting/engine.py:321-328` says `is_single_family` "no longer selects a
+   price ceiling (§5.13)" — small MF and SFH share one solver.
+2. **Prod: 123 Crexi deals are at `deal_type='cash'`** (122 held at the gate, 1
+   called), with ordinary gate verdicts — "Kill switch engaged" (72), "no
+   validated listing-agent email" (47). The gate demonstrably runs on this book.
+3. The "MF underwriting is a parked operator decision" comment
+   (`crexi_value_route.py:102-111`) was **retracted by the repo one day later**
+   in commit `ddd9794d`: *"The ~850 held MF cards exist because rent never
+   reaches the router"* — and `listing_income.py` was built to fix precisely
+   that. Only the stale `Docs/PAID_API_DECISIONS.md:427-431` still says "parked."
+
+**I reasoned from a stale comment the codebase had already superseded.** This is
+the exact failure mode this project catalogues (`feedback-code-is-authority`):
+docs lag reality; verify against code.
+
+### "The gate never runs" is a tautology, not a finding
+
+Given `guardrail.py:56-57`, "the gate never runs" ≡ "`deal_type is NONE`" ≡ "the
+router could not price it." It carries no information beyond the input failure,
+and it misdirects attention at the guardrail subsystem, which is behaving as
+designed. Note the ordering: `_hold_for_mf_review` is called in the **elif** of
+`if res.qualified` (`crexi_value_route.py:542-547`) — the MF hold is the residual
+branch for a deal the router already declined to price, **not** something applied
+instead of the gate.
+
+### The correct finding
+
+| rent_source | n | avg conf | outcome |
+|---|---|---|---|
+| `crexi:rental_market` (tier 4) | 3,350 | **0.30** | **0 clear the floor** |
+| `crexi:marketing_desc:regex` (tier 2) | 617 | 0.59 | 125 reached CASH |
+| `crexi:marketing_desc:llm` (tier 1) | **0** | — | **never produced a row in prod** |
+
+`type1.min_rent_confidence` = **0.35** (`parameters.py:799-812`). So **3,286
+cards die at `router.py:512-519`** with `non_offerable:basis_unverified` because
+0.30 < 0.35.
+
+**Of those 3,286: 3,045 (93%) already carry a marketing_description ≥200 chars,
+2,746 (84%) already carry ≥3 photos, 3,227 (98%) have NULL condition.** The raw
+material to lift rent above the floor is **already in the database and has never
+been read.**
+
+### Why this is squarely an ingestion-quality question
+
+Tier 1 has produced **zero rows in production**. The defects already found in
+this workstream — **F-B4** (`_numbers_in` cannot parse `$400k`, discarding ~25%
+of successful extractions) and **F-B1** (the per-unit band) — are defects in the
+exact tier that would rescue those 3,286 cards. Fixing extraction accuracy is
+the lever; seeding rehab is not.
+
+Secondary: 122 of the 123 cards that *do* price are held on `condition_tier IS
+NULL` (`guardrails/apply.py:195-201`). Condition is the second gate — also an
+unread-input problem (98% of the dead cards have photos), not a rehab problem.
+
+### Correction to my own prong (b)
+
+I said seeding rehab "fabricates an unmeasured input," full stop. **Overstated.**
+The repo ships a *sanctioned* rehab model (`valuation/engine.py:748-775`) with
+provenance, confidence capped to the condition signal, and a named hold — and
+runs it on the non-Crexi lane via `_refresh_rehab` (`recompute.py:167-174`). A
+*derived, labeled, low-confidence* rehab is doctrinally permissible; a hand-typed
+unblocking number is not (`property_edit.py:138-141` rejects those outright).
+The estimator simply has nothing to run on here: it returns early when
+`condition_signal is None` (`recompute.py:161-166`), which is 4,116/4,193 rows.
