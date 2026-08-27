@@ -121,6 +121,52 @@ Recorded because they matter for trusting the rest:
   `total_count=3,480`.
 - Prod cron fires 01:41/07:41/13:41/19:41 UTC — stay clear during record passes.
 
+## Offline replay — the corpus is self-contained
+
+**Question:** can we re-run against local data without re-scraping?
+**Answer: yes, fully — verified by cutting the network.**
+
+What is stored locally: **100/100** listings with `raw_listing`, `raw_brokers`,
+`summary_details`, `photo_urls`; **846/846** comps with `raw_payload`.
+(`transaction_history` / `property_record_id` exist on the 24 listings that have
+been through value-route — subject-record enrichment only runs there.)
+
+Stored data alone was NOT enough. Measured on a re-run, two calls per listing
+still fired:
+
+| call | purpose | when |
+|---|---|---|
+| `POST /universal-search/v2/search` | comp bbox search | **unconditionally, every listing** |
+| `GET /universal-search/rental-markets/stats?lat=&lon=` | tier-4 market-median rent | when income falls to tier 4 |
+
+Detail fetches were already avoided by the freshness gate (`comps_new=0`,
+40s → 4s). Both survivors take deterministic inputs, so `rig/cassette.py` caches
+them at the transport layer.
+
+```
+record  : 5 recorded, wall 3s
+replay  : 5 hits / 0 misses, wall 0s
+replay with CREXI_BASE_URL=http://127.0.0.1:1 (unreachable)
+        : 5 hits / 0 misses, wall 0s   <- proof, not inference
+```
+
+Defect output identical across all three. **A replay miss RAISES** rather than
+falling through to the network, so "it stayed offline" is proven each run rather
+than assumed.
+
+Usage:
+```bash
+CREXI_CASSETTE=$CREXI_BASELINE_ROOT/runs/cassettes/fl.jsonl CREXI_CASSETTE_MODE=replay ./rig/run.sh $CREXI_BASELINE_ROOT/rig/trace.py --limit N
+```
+
+**Caveat:** the cassette covers only what the listings exercised so far. Walking
+new listings requires a `record` pass first — and a miss failing loudly is the
+correct behavior, not a bug.
+
+**Why this matters:** the iteration loop drops from ~40s to ~0s per pass and
+becomes deterministic, so "change the code, re-run, diff" measures the change
+rather than Crexi's churn.
+
 ## Not yet examined
 
 - **Routing and gate stages.** Every listing so far terminates at

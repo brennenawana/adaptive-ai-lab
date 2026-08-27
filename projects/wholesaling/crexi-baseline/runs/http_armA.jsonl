@@ -1,0 +1,5 @@
+{"method": "POST", "path": "/universal-search/v2/search", "ms": 0, "error": null, "asset_id": null}
+{"method": "GET", "path": "/universal-search/rental-markets/stats?lat=26.1505733&lon=-80.1126589", "ms": 0, "error": null, "asset_id": "2660435"}
+{"method": "POST", "path": "/universal-search/v2/search", "ms": 0, "error": null, "asset_id": "2660435"}
+{"method": "POST", "path": "/universal-search/v2/search", "ms": 0, "error": null, "asset_id": "2659977"}
+{"method": "GET", "path": "/universal-search/rental-markets/stats?lat=26.2289071&lon=-80.1117848", "ms": 0, "error": null, "asset_id": "2659939"}

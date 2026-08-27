@@ -24,10 +24,12 @@ import time
 sys.path.insert(0, os.path.join(os.environ["WHOLESALING_REPO"], "backend"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from cassette import from_env as cassette_from_env  # noqa: E402
 from defects import DEFECTS, summarize  # noqa: E402
 
 CUR: dict = {}          # accumulates the record for the listing in flight
 PATCHES: list[dict] = []
+HTTP: list[dict] = []   # every outbound Crexi call, in order (external-api provenance)
 
 
 def _asset_of(obj) -> str | None:
@@ -77,6 +79,32 @@ def install() -> None:
         if obj is None:
             raise SystemExit(f"trace: seam {mod.__name__}.{name} does not exist -- product code moved")
         PATCHES.append({"target": f"{mod.__name__}.{name}", "source_sha12": _digest(obj)})
+
+    # ---- external API: every outbound Crexi request ------------------------
+    # Answers "does a re-run actually stay offline?" and supplies the
+    # external-api half of the provenance ledger. _request is the single
+    # chokepoint for search/detail/brokers/gallery/market-stats.
+    from app.providers.crexi.client import CrexiClient
+
+    _req = CrexiClient._request
+
+    def t_req(self, method, path, *a, **k):
+        t0 = time.time()
+        err = None
+        try:
+            return _req(self, method, path, *a, **k)
+        except Exception as exc:
+            err = type(exc).__name__
+            raise
+        finally:
+            ev = {"method": method, "path": path,
+                  "ms": round((time.time() - t0) * 1000), "error": err,
+                  "asset_id": CUR.get("asset_id")}
+            HTTP.append(ev)
+            CUR["http_calls"] = CUR.get("http_calls", 0) + 1
+
+    CrexiClient._request = t_req
+    PATCHES.append({"target": "CrexiClient._request", "source_sha12": _digest(_req)})
 
     # ---- income -----------------------------------------------------------
     _llm, _val = LI._try_llm_extract, LI._validate_facts
@@ -199,6 +227,10 @@ def main() -> int:
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
+    cas = cassette_from_env()
+    if cas is not None:
+        cas.install()
+        print(f"cassette: mode={cas.mode} entries={len(cas.entries)} path={cas.path}")
     install()
 
     from sqlalchemy import create_engine, select
@@ -288,6 +320,27 @@ def main() -> int:
                     if r.get("summary_line") is None and addr and addr in ln:
                         r["summary_line"] = ln.strip()
                         break
+
+    # --- external-api summary: the replayability answer ---------------------
+    import collections as _c
+    by_path = _c.Counter()
+    for e in HTTP:
+        p = e["path"]
+        # collapse ids so /properties/<hash> groups together
+        parts = [seg if not (len(seg) > 12 or seg.isdigit()) else "<id>" for seg in p.split("/")]
+        by_path["/".join(parts)] += 1
+    http_path = os.path.join(os.environ["CREXI_BASELINE_ROOT"], "runs",
+                             f"http_arm{arm}.jsonl")
+    with open(http_path, "w") as hf:
+        for e in HTTP:
+            hf.write(json.dumps(e) + "\n")
+    if cas is not None:
+        sm = cas.summary()
+        print(f"\ncassette: hits={sm['hits']} misses={sm['misses']} recorded={sm['recorded']} "
+              f"entries={sm['entries']}")
+    print(f"\nOUTBOUND CREXI CALLS (post-cassette): {len(HTTP)}  -> {http_path}")
+    for k, v in by_path.most_common():
+        print(f"   {v:4d}  {k}")
 
     summ = summarize(records)
     print(f"\n=== trace arm={arm}  n={summ['n']}  -> {out} ===")
