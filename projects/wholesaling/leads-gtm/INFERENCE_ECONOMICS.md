@@ -312,6 +312,67 @@ trigger**:
 This is the purchase-trigger discipline chapter 11 requires for hardware,
 applied to a subscription: the ledger decides, not the anticipation.
 
+## 5d. CORRECTION 2026-08-27 - the plan comparison in SS5c was wrong
+
+SS5c priced plans at **standard credit rates and monthly billing** and concluded
+pay-go beats them during the API promo. Both inputs were wrong, and the
+conclusion inverts.
+
+**Two distinct discounts exist; do not conflate them:**
+
+1. **The GLM-5.3-Flash 50% API promo** (to 2026-09-09) - halves *pay-as-you-go
+   list prices*. Does **not** discount the subscription fee.
+2. **The off-peak 50% credit discount** - *"During off-peak hours, model usage
+   is charged at 50% of the standard credit rate,"* and z.ai's docs state this
+   **applies to plan credit usage**, not only to pay-go. This effectively
+   **doubles a plan's capacity**.
+
+**There is no percentage discount on the plan's sticker price** - but billing
+cadence discounts apply: ~10% monthly, 20% quarterly, **30% yearly**, giving
+effective monthly rates of **Lite $12.60 · Pro $50.40 · Max $112.00**.
+
+**Off-peak window: peak is Mon-Fri 14:00-18:00 UTC+8 = 06:00-10:00 UTC only.**
+Everything else - including all weekend - is off-peak. That is 02:00-06:00 US
+Eastern; **effectively the entire US working day bills at half credits.**
+
+### Corrected table (Flash, off-peak = 4.47 credits/turn, yearly billing)
+
+| Tier | $/mo (yearly) | turns/5h | turns/week | turns/mo | API @promo | @list | Plan advantage |
+|---|---|---|---|---|---|---|---|
+| Lite | $12.60 | 447 | 2,237 | ~9,690 | $25.19 | $50.37 | **2.0x promo · 4.0x list** |
+| Pro | $50.40 | 2,685 | 13,423 | ~58,120 | $151.11 | $302.23 | **3.0x · 6.0x** |
+| Max | $112.00 | 6,264 | 31,320 | ~135,615 | $352.60 | $705.20 | **3.1x · 6.3x** |
+
+**The plan wins decisively, even during the API promo** - 2x at Lite, 3x at
+Pro/Max, doubling again once the API promo lapses. SS5c's "run pay-go through
+the promo" recommendation is withdrawn.
+
+The 5-hour burst concern also softens: off-peak Lite allows **447 Flash
+turns per 5h window** (not 224), and Pro allows 2,685.
+
+### Still verify before buying
+
+- **Does the off-peak 50% apply to GLM-5.3/5.3-Flash, or only to GLM-5.2 and
+  GLM-5-Turbo?** The general statement reads model-agnostic, but one secondary
+  source describes it in terms of 5.2/Turbo, and a separate September promo
+  (5.2 and 5-Turbo consuming 1x quota off-peak) is definitely model-specific.
+  If 5.3-Flash is excluded, the multipliers double and Lite's advantage at
+  promo API rates disappears.
+- **Off-peak promotion itself expires September 2026** - re-price then.
+- Whether the plan endpoint returns real token usage (the F-7 question from
+  SS5c) is unchanged and still gates P2's accounting.
+- Single-vendor lock-in (SS5c finding 3) is unchanged: a plan cannot serve the
+  cross-model selection experiments ch. 05 requires.
+
+### Revised decision
+
+**Buy Lite yearly ($12.60/mo) now**, schedule heavy batches outside 06:00-10:00
+UTC, and keep a small pay-go balance for (a) the cross-model bake-off a plan
+cannot serve and (b) burst overflow past the 5-hour bucket. Escalate to Pro
+only when the logged demand ledger shows sustained usage above ~9,700
+Flash-turns/month - the trigger discipline still applies, it just starts from a
+cheaper floor.
+
 ## 6. Recommendation
 
 **Two lanes, both off the Anthropic subscription.**
