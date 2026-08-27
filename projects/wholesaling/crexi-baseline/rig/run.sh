@@ -18,10 +18,14 @@ PY="$WHOLESALING_REPO/backend/.venv/bin/python"
 
 cd "$CREXI_RIG_WORK"          # <-- the guarded CWD; everything below inherits it
 
-echo "--- preflight (same cwd as the run) ---"
-"$PY" "$CREXI_BASELINE_ROOT/rig/preflight.py" || {
+# The banner + gate go to STDERR: they are operator context, not the run's output,
+# and on stdout they corrupt any script whose output is meant to be piped (the
+# provenance aggregate's --json). The gate's EXIT CODE is unchanged, so this
+# weakens nothing -- a terminal still shows every line.
+echo "--- preflight (same cwd as the run) ---" >&2
+"$PY" "$CREXI_BASELINE_ROOT/rig/preflight.py" >&2 || {
   echo "run.sh: preflight failed -- refusing to execute" >&2; exit 1; }
 
-echo "--- exec: python $* ---"
-echo "    cwd=$(pwd)  arm=${CREXI_BASELINE_ARM}  $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+echo "--- exec: python $* ---" >&2
+echo "    cwd=$(pwd)  arm=${CREXI_BASELINE_ARM}  $(date -u '+%Y-%m-%dT%H:%M:%SZ')" >&2
 exec "$PY" "$@"
