@@ -1,0 +1,345 @@
+==============================================================================
+F-B14 VERDICT -- is the whole-state total_count a real denominator?
+==============================================================================
+
+  whole-state enumeration (price-partitioned)     3496
+  whole-state total_count reported by Crexi       3496   MATCH
+  county-partition union (frozen baseline)        1962
+  sum of the 67 per-county total_counts           1965
+
+  intersection                                    1962
+  whole-state ONLY (never seen by any county)     1534   43.9% of scope
+  county-union ONLY                                  0   <- the county union is a strict SUBSET
+
+  Independent check that does not trust total_count at all:
+    newest-1499 window   1499    oldest-1499 window   1499
+    overlap     0   union  2998   -> DISJOINT windows -- the two 1,499-id ends of the feed share ...
+
+  Pagination ceiling (the alternative explanation, ruled out):
+    offset=1498  count=1  -> OK   id=2648385
+    offset=1499  count=1  -> OK   id=2648384
+    offset=1500  count=1  -> 400  Offset + Count must be less than 1500
+    offset=1600  count=1  -> 400  Offset + Count must be less than 1500
+    offset=1900  count=1  -> 400  Offset + Count must be less than 1500
+    offset=1960  count=1  -> 400  Offset + Count must be less than 1500
+    offset=1964  count=1  -> 400  Offset + Count must be less than 1500
+    offset=1965  count=1  -> 400  Offset + Count must be less than 1500
+    offset=1966  count=1  -> 400  Offset + Count must be less than 1500
+    offset=2000  count=1  -> 400  Offset + Count must be less than 1500
+    offset=2500  count=1  -> 400  Offset + Count must be less than 1500
+    offset=3000  count=1  -> 400  Offset + Count must be less than 1500
+    offset=3400  count=1  -> 400  Offset + Count must be less than 1500
+    offset=3494  count=1  -> 400  Offset + Count must be less than 1500
+    offset=3495  count=1  -> 400  Offset + Count must be less than 1500
+    offset=3496  count=1  -> 400  Offset + Count must be less than 1500
+    offset=3600  count=1  -> 400  Offset + Count must be less than 1500
+    offset=5000  count=1  -> 400  Offset + Count must be less than 1500
+
+  Where the 1,534 missing assets went:
+    whole_state_only                                       1534
+    payload_carries_no_county                               939
+    payload_names_a_county_that_WAS_swept                   526
+    payload_names_a_county_NOT_swept                         69
+    activated_after_the_frozen_run (new stock, not a miss)      0
+
+  County filter is a CASE-INSENSITIVE but otherwise LITERAL string match:
+    counties='Duval County'             -> total_count=25
+    counties='Duval'                    -> total_count=107
+    counties='DUVAL'                    -> total_count=107
+    counties='duval'                    -> total_count=107
+    counties='Volusia County'           -> total_count=51
+    counties='Volusia'                  -> total_count=98
+    counties='Manatee County'           -> total_count=22
+    counties='MANATEE'                  -> total_count=27
+    counties='Manatee'                  -> total_count=27
+    counties='St. Lucie County'         -> total_count=10
+    counties='St Lucie County'          -> total_count=25
+    counties='St Lucie'                 -> total_count=0
+    counties='Putnam County'            -> total_count=2
+    counties='Putnam'                   -> total_count=13
+    counties='Other Florida County'     -> total_count=6
+    counties='Belize'                   -> total_count=4
+
+==============================================================================
+TARGETING DECISION PACKET  (evidence for an operator call -- not a decision)
+==============================================================================
+
+1. COMPOUND-TYPE CENSUS over the true in-scope population (3496)
+
+   exact 'Multifamily'                  2410   68.9%   ADMITTED today
+   compound containing Multifamily      1086   31.1%   DROPPED today
+   carrying no Multifamily at all          0         (the ANY-match filter is honest)
+
+   distinct joined type strings          197
+   distinct type SETS                    111
+   strings that are a re-ORDERING         86   <- the gate compares a joined string,
+                                                 so order alone forks the key
+
+   top combinations:
+      2410  Multifamily
+       248  Multifamily, Land
+       203  Land, Multifamily
+        34  Office, Multifamily
+        32  Multifamily, Hospitality
+        32  Multifamily, Mixed Use, Land
+        21  Hospitality, Multifamily
+        19  Retail, Multifamily
+        17  Land, Mixed Use, Multifamily
+        15  Multifamily, Mixed Use
+        14  Retail, Multifamily, Mixed Use
+        13  Mixed Use, Multifamily, Retail
+        13  Mixed Use, Multifamily
+        13  Multifamily, Office
+        12  Land, Multifamily, Retail
+        11  Mixed Use, Multifamily, Office
+        11  Land, Mixed Use, Multifamily, Retail
+        10  Mixed Use, Multifamily, Office, Retail
+
+   the same data as ORDER-NORMALIZED type sets:
+      2410  {Multifamily}
+       451  {Land, Multifamily}
+        58  {Land, Mixed Use, Multifamily}
+        53  {Hospitality, Multifamily}
+        47  {Multifamily, Office}
+        34  {Mixed Use, Multifamily, Retail}
+        28  {Mixed Use, Multifamily}
+        26  {Land, Multifamily, Retail}
+        26  {Multifamily, Office, Retail}
+        25  {Multifamily, Retail}
+        23  {Mixed Use, Multifamily, Office}
+        16  {Mobile Home Park, Multifamily}
+
+2. SUB-TYPE CENSUS -- two populations, reported apart
+   property_sub_type lives in the DETAIL document (summaryDetails -> SubType); the /assets/search feed does not carry it, so neither census below can be projected onto the 3,496.
+   They are also two DIFFERENT populations and are reported apart on purpose.
+
+   [admitted_today]  n=250
+   assets that PASSED the exact-match type gate and were detail-fetched (ingest cassette + stored crexi_listings rows).
+   Answers: what are we storing today?
+       128  Apartment Building, Duplex/Triplex/Quadruplex
+        40  Apartment Building, Duplex/Triplex/Quadruplex, Fourplex
+        34  Apartment Building
+         9  (empty)  <-- OUT OF SCOPE for a 2-4u buy-box
+         9  Single Family Rental Portfolio  <-- OUT OF SCOPE for a 2-4u buy-box
+         7  Apartment Building, Apartment/Condo  <-- OUT OF SCOPE for a 2-4u buy-box
+         6  Apartment Building, Duplex/Triplex/Quadruplex, Apartment/Condo  <-- OUT OF SCOPE for a 2-4u buy-box
+         4  Apartment Building, Duplex/Triplex/Quadruplex, Other
+         3  Apartment Building, Single Family Rental Portfolio  <-- OUT OF SCOPE for a 2-4u buy-box
+         3  Apartment Building, Duplex/Triplex/Quadruplex, Apartment/Condo, Fourplex  <-- OUT OF SCOPE for a 2-4u buy-box
+         2  Single Family Rental Portfolio, Apartment Building  <-- OUT OF SCOPE for a 2-4u buy-box
+         2  Single Family Rental Portfolio, RV Park, Apartment Building  <-- OUT OF SCOPE for a 2-4u buy-box
+         1  Student Housing, Apartment Building  <-- OUT OF SCOPE for a 2-4u buy-box
+         1  vacation rental  <-- OUT OF SCOPE for a 2-4u buy-box
+         1  Apartment Building, Duplex/triplex/quadruplex, Townhome
+     flagged out of scope: 43 of 250 (17.2%)
+
+   [compound_sample]  n=42
+   the bounded example fetch of COMPOUND-type listings -- the only sub-type data that has ever existed for them, since the gate drops them before any fetch.
+   Tiny and not random (3 per type set): read as anecdote.
+   Answers: what would admitting compounds bring in?
+         3  Apartment Building, Hotel
+         2  (empty)  <-- OUT OF SCOPE for a 2-4u buy-box
+         1  Residential, Single Family Development Opportunity
+         1  Apartment Building
+         1  Apartment Building, Residential, Duplex/Triplex/Quadruplex, Residential
+         1  Farm, Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranc  <-- OUT OF SCOPE for a 2-4u buy-box
+         1  Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranch/Agri  <-- OUT OF SCOPE for a 2-4u buy-box
+         1  Residential, Single Family Rental Portfolio, Mixed Use, Residential  <-- OUT OF SCOPE for a 2-4u buy-box
+         1  Hotel, Low-Rise/Garden
+         1  Apartment Building, Traditional Office, Apartment/Condo, Commercial Office  <-- OUT OF SCOPE for a 2-4u buy-box
+         1  Apartment Building, Medical Office, Traditional Office
+         1  Executive Office, Traditional Office
+         1  Shopping Center
+         1  Apartment Building, B-2 zoning, Development
+         1  Apartment Building, Storefront
+         1  RV Park, Mixed Use  <-- OUT OF SCOPE for a 2-4u buy-box
+     ...   23 more distinct values
+     flagged out of scope: 14 of 42 (33.3%)
+
+   units across those 45 example fetches:
+        20  units NULL
+        17  5+ units
+         5  2-4 units
+         3  1 unit
+   3 examples per type set, not a random sample -- read as anecdote, not as a rate. 'units NULL' here is the same defect as F-B10.
+
+3. THE COST OF EACH POLICY
+
+   policy                           admitted excluded  fetches    delta
+   P0 today (exact match)               2410     1086     7230       +0
+   P1 substring (the comps rule)        3496        0    10488    +3258
+   P2 substring minus Land/MHP          2801      695     8403    +1173
+   P3 P2 + at most one co-type          2595      901     7785     +555
+   P4 exact + building-only co-types     2604      892     7812     +582
+
+     P0 today (exact match): joined type string == "Multifamily" (listing_filters.py:106-108)
+     P1 substring (the comps rule): type string CONTAINS "multifamily" (harvester.py:141-149)
+     P2 substring minus Land/MHP: contains Multifamily AND contains neither "Land" nor "Mobile Home Park"
+     P3 P2 + at most one co-type: as P2, and the listing carries at most 2 types total
+     P4 exact + building-only co-types: exact Multifamily, OR every co-type is one of Office / Retail / Mixed Use (i.e. there IS a building)
+
+   3 requests per admitted listing (get_property_asset + get_asset_brokers + get_asset_gallery, listing_harvester.py:124-129)
+   NO sub-type policy can appear in this table.
+   property_sub_type is only known AFTER the 3-request detail fetch, so a sub-type filter saves ZERO requests -- it can only prevent storage and downstream value-route work.
+   Type policy is the only lever that moves the fetch bill.
+
+   EXAMPLES the operator can judge (3 per type set; units + sub_type came from
+   the bounded example detail-fetch -- no compound listing had ever been fetched):
+
+   {Multifamily}   n=2410
+     1006628         unpriced  units=10    101 11th Street Ocean, Marathon, Monroe County, FL 3
+               sub_type: Single Family Rental Portfolio
+               "Trophy Income-Producing Rentals | Multiple Units | $485,000 - 629,000/unit"
+     1018859       $2,650,000  units=8     1910 and 1920 Biarritz Dr, Miami Beach, Miami-Dade C
+               sub_type: Apartment Building, Duplex/Triplex/Quadruplex, Fourplex
+               "Multifamily | 8 Units"
+     1038943       $4,375,000  units=35    1503 9th St N, St. Petersburg, Pinellas County, FL 3
+               sub_type: Apartment Building
+               "Multifamily | 35 Units | $125,000/unit"
+
+   {Land, Multifamily}   n=451
+     1010080       $1,200,000  units=2     81 NW 41st St, Miami, Miami-Dade County, FL 33127
+               sub_type: Residential, Single Family Development Opportunity
+               "81 NW 41 St Buena Vista Opportunity"
+     1331026         $799,000  units=18    Dean Dairy Rd, Zephyrhills, Pasco County, FL 33541
+               sub_type: Apartment Building
+               "2 Acres In Opportunity Zone For 18 Unit Mf Res Dev't (Res-9) Available For Sale"
+     1397726       $1,400,000  units=12    6511 SAN JUAN Avenue, Jacksonville, Duval, FL 32210
+               sub_type: Apartment Building, Residential, Duplex/Triplex/Quadruplex, Residential
+               "Multifamily | 12 Units"
+
+   {Land, Mixed Use, Multifamily}   n=58
+     1169063       $2,600,000  units=-     3915 COUNTY ROAD 210, St. Augustine, St. Johns, FL 3
+               sub_type: Farm, Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranch/Agricultural, Residential
+               "Mixed Use | 4,989 SqFt"
+     2033680         $249,900  units=2     241 S Franklin Street, Daytona Beach, Volusia, FL 32
+               sub_type: Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranch/Agricultural, Residential
+               "Mixed Use | 1,310 SqFt"
+     2324766         $519,900  units=1     2101 Vernon Place, Melbourne, Brevard, FL 32901
+               sub_type: Residential, Single Family Rental Portfolio, Mixed Use, Residential
+               "Mixed Use | 1,423 SqFt"
+
+   {Hospitality, Multifamily}   n=53
+     1695827       $2,500,000  units=25    5245 W Irlo Bronson Memorial Hwy, Kissimmee, Osceola
+               sub_type: Apartment Building, Hotel
+               "Up to 25 units in Legacy Grand Condo Hotel, prime location, Kissimmee, FL. High Occupanc"
+     1766685         unpriced  units=67    3025 Indian Creek Dr, Miami Beach, Miami-Dade County
+               sub_type: Apartment Building, Hotel
+               "Hospitality"
+     1810357       $4,300,000  units=6     37 Hendricks Isle, Fort Lauderdale, Broward County, 
+               sub_type: Hotel, Low-Rise/Garden
+               "Las Olas Waterfront Short Term Rental Property with 5 Houseboat Deep Water Dock Slips"
+
+   {Multifamily, Office}   n=47
+     1503577         $230,000  units=-     1720 Harrison St, Hollywood, Broward County, FL 3302
+               sub_type: Apartment Building, Traditional Office, Apartment/Condo, Commercial Office
+               "Multifamily"
+     1920176       $1,200,000  units=1     1437 SW 1th Street, Miami, FL 33135
+               sub_type: Apartment Building, Medical Office, Traditional Office
+               "Little Havana Turn-Key Professional Office"
+     2252504       $3,300,000  units=1     644 Cesery Blvd, Jacksonville, Duval County, FL 3221
+               sub_type: Executive Office, Traditional Office
+               "Most Desireable Office Building in Jacksonville For Sale!"
+
+   {Mixed Use, Multifamily, Retail}   n=34
+     1202827       $4,500,000  units=10    220 Harbor Blvd, Destin, Okaloosa County, FL 32541
+               sub_type: Shopping Center
+               "Mixed Use | 21,120 SqFt"
+     1421835       $1,500,000  units=2     472 Causeway N, New Smyrna Beach, Volusia County, FL
+               sub_type: Apartment Building, B-2 zoning, Development
+               "Unique North Causeway STR value add property"
+     1460923       $4,850,000  units=24    2741 & 2747 First St, Fort Myers, Lee County, FL 339
+               sub_type: Apartment Building, Storefront
+               "Mixed Use | 24 Units | $202,083/unit"
+
+   {Mixed Use, Multifamily}   n=28
+     1396093       $1,500,000  units=-     1211 CYPRESS Road, St. Augustine, FL 32086
+               sub_type: RV Park, Mixed Use
+               "Mixed Use"
+     1793621       $3,600,000  units=-     13657 Front Beach Rd, Panama City Beach, Bay County,
+               sub_type: Single Family Rental Portfolio
+               "Mixed Use | 10.81% CAP | 3,990 SqFt"
+     2012946       $1,355,100  units=-     8700 N Sherman Cir # 108, Miramar, Broward County, F
+               sub_type: Apartment Building, Mixed Use, Apartment/Condo
+               "Mixed Use | 0 SqFt"
+
+   {Land, Multifamily, Retail}   n=26
+     1738101         $579,500  units=-     1304 US-90, DeFuniak Springs, Walton County, FL 3243
+               sub_type: Commercial, Shopping Center, Storefront
+               "Land | 1.184 acres. Duniak Spring Property with High Visibility and Development Potentia"
+     1744526         $775,000  units=-     241 Martin Luther King Boulevard S, Daytona Beach, V
+               sub_type: Commercial, Apartment Building, Residential, Storefront, Duplex/Triplex/Quadruplex, Residential
+               "Land | 1.89 acres"
+     1824351         $299,000  units=-     Collins road & ortega, Jacksonville, 30.201467, -81.
+               sub_type: Apartment Building, Residential, Commercial
+               "Corner Development Site | Utilities Nearby | 1.97± Acres"
+
+   {Multifamily, Office, Retail}   n=26
+     1893257       $4,970,000  units=-     12715 McGregor Blvd, Fort Myers, Lee, FL 33919
+               sub_type: Restaurant, Storefront, Shopping Center
+               "This neighborhood center has tremendous upside as most current leases are below market"
+     2140540       $1,700,000  units=-     1410 20th St # 1418, Miami Beach, Miami-Dade County,
+               sub_type: Restaurant, Apartment Building, Traditional Office, Apartment/Condo, Office Space, Commercial Condo
+               "Retail | 618 SqFt"
+     2208509         unpriced  units=-     205 4th Ave N, St. Petersburg, Pinellas County, FL 3
+               sub_type: Restaurant, Medical Office, Apartment Building, Commercial, Cafe, Spa
+               "Retail | 3,026 SqFt"
+
+   {Multifamily, Retail}   n=25
+     1653811       $4,500,000  units=-     16855 NW 37th Ave, Miami Gardens, Miami-Dade County,
+               sub_type: Auto Shop, Automotive
+               "Multifamily"
+     2198177      $16,000,000  units=17    249 Collins Ave, Miami Beach, Miami-Dade County, FL 
+               sub_type: Storefront
+               "Rare Development Site for Luxury Condos in South of 5th Miami Beach"
+     2447659       $3,100,000  units=-     2410 NW 7th Ct, Miami, Miami-Dade County, FL 33127
+               sub_type: Storefront, Retail Space
+               "Multifamily"
+
+   {Mixed Use, Multifamily, Office}   n=23
+     1520487         $494,000  units=4     918 KING Street, Jacksonville, Duval, FL 32204
+               sub_type: Apartment Building, Duplex/Triplex/Quadruplex
+               "Mixed Use"
+     1559428         $350,000  units=-     2101 Brickell Ave, Miami, Miami-Dade County, FL 3312
+               sub_type: Apartment Building, Traditional Office, Mixed Use, Apartment/Condo, Office Space
+               "Mixed Use"
+     1751526         $270,000  units=-     7601 E Treasure Dr # 5, North Bay Village, Miami-Dad
+               sub_type: Apartment Building, Traditional Office, Mixed Use, Apartment/Condo, Commercial Office
+               "Mixed Use | 400 SqFt"
+
+   {Mobile Home Park, Multifamily}   n=16
+     1302406         unpriced  units=116   139 North CR 315 Interlachen, FL 32148, Interlachen,
+               sub_type: RV Park
+               "RV Resort Opportunity w/ Entitlements - 116 Sites"
+     1731149         unpriced  units=96    11932 OLD KINGS Road, Jacksonville, Duval, FL 32219
+               sub_type: RV Park, RV & Boat Storage
+               "Also on-Site- 32 Space RV & Boat Storage"
+     2070323       $3,000,000  units=41    208 N Hwy 22 A, Panama City, Bay County, FL 32404
+               "Mobile Home Park | 41 Pads | City Utilities | Stabilized Core with Value-Add Upside | Co"
+
+   {Industrial, Multifamily}   n=14
+     1211240       $2,750,000  units=-     2215 Fillmore Street, Hollywood, Broward County, FL 
+               sub_type: Apartment Building, Warehouse, Duplex/Triplex/Quadruplex
+               "Development Opportunity in Growing City of Hollywood Florida"
+     2564158      $30,000,000  units=-     4385 Southwest 70th Court, Miami, Miami-Dade County,
+               "Redevelopment Multifamily Site"
+     2567262       $3,550,000  units=6     323 Monroe Street # 6 #1-6, Hollywood, Broward Count
+               sub_type: Apartment Building, Warehouse, Duplex/Triplex/Quadruplex, Industrial
+               "Multifamily | 6 Units"
+
+4. THE INCONSISTENCY (surfaced, not fixed)
+   listings_path: listing_filters.py:106-108 (via listing_harvester.py:116-122)
+     rule      (stub_type or "").strip().lower() in self.property_types
+     behaviour EXACT set membership on the JOINED string -> compound types DROPPED
+     deliberate True
+     evidence  listing_harvester.py:116-122 "Strict per operator choice -- compound types like 'Land, Multifamily' are excluded"; locked by test_crexi_listings.py:160 and test_crexi_ingest_service.py:127
+
+   comps_path: harvester.py:141-149
+     rule      "multifamily" not in stub.type.lower() -> reject
+     behaviour SUBSTRING match -> compound types KEPT
+     extra     the comps path additionally requires a non-null in-band unit count at the STUB stage; the listings path does not.
+
+   Two Crexi code paths disagree about what multifamily is.
+   The listings harvester admits 2,410 of 3,496; the comps harvester's rule would admit 3,496 of 3,496.
+   A comp can therefore be a property the listings lane would never have ingested.
+   This is surfaced as a decision, NOT fixed here.

@@ -74,15 +74,55 @@ DEFECTS: dict[str, dict] = {
     ),
     # RUN-level, not per-asset: detected by comparing probe families, not by inspecting
     # one record. classify_ingest() cannot see these; ingest_funnel.py flags them.
+    # SETTLED 2026-08-28 by rig/coverage_probe.py -- the claim was audited, not assumed,
+    # and it SURVIVED. The pre-registered falsifier (whole-state total_count is inflated)
+    # was tested and did NOT fire: a price-partitioned whole-state enumeration returned
+    # 3,496 unique ids, exactly the reported total_count, while the county union is a
+    # strict SUBSET of 1,962. Severity raised: it is a confirmed 43.9% coverage loss,
+    # not a suspected one.
+    #
+    # The MECHANISM is not what the ingest session's hypothesis proposed. That hypothesis
+    # said the county filter "is not a payload-county match". It is the exact opposite:
+    # `counties` is a case-insensitive but otherwise LITERAL string match on the record's
+    # own county field, and that is precisely why it misses -- "Duval County" returns 25
+    # while "Duval" returns 107, "St. Lucie County" 10 vs "St Lucie County" 25. 939 of the
+    # 3,496 carry no county string at all and are unreachable by ANY county key.
     "F-B14": dict(
-        stage="ingest", severity="high", scope="run",
-        title="county partitions do not cover the state scope, and nothing says so",
+        stage="ingest", severity="high", scope="run", status="confirmed",
+        title="county partitioning cannot cover the state scope: the counties filter is a "
+              "literal string match over an un-normalized field, and 27% of records have "
+              "no county at all",
         detect="sum(county totalCount) < whole-state totalCount on a partitioned full sweep",
+        settled="2026-08-28: whole-state enumeration 3496 == total_count 3496; county union "
+                "1962 is a strict subset; 1534 (43.9%) unreachable by county. Falsifier "
+                "tested and did not fire. Evidence: runs/coverage_verdict_FL.json",
     ),
+    # RE-CLASSIFIED 2026-08-28. The original rationale was "config documents substrings;
+    # code does set membership", filed as a code/config disagreement at high severity.
+    # That reading is wrong: the exact-match is DELIBERATE and documented --
+    # listing_harvester.py:116-122 "Strict per operator choice -- compound types like
+    # 'Land, Multifamily' are excluded (exact match against the lower-cased set)", and it
+    # is locked by test_crexi_listings.py:160 and test_crexi_ingest_service.py:127.
+    # Code doing what its docstring and its tests say is not a defect.
+    #
+    # The id is KEPT (traces already tag observations with it) and what it now names is
+    # the part that is genuinely open: (a) whether the POLICY is right -- 1,086 of 3,496
+    # listings are dropped on a type string, and a bounded example fetch shows the drop
+    # set contains real 2-4u multifamily as well as offices and raw land; and (b) that
+    # the listings and comps paths disagree, which no operator ever chose.
     "F-B15": dict(
-        stage="ingest", severity="high", scope="run",
-        title="type gate compares a JOINED compound type string by exact membership",
+        stage="ingest", severity="policy", scope="run", status="reclassified",
+        title="the compound-type policy is undecided, and the two Crexi paths disagree "
+              "about what multifamily is",
         detect="a type-gate drop whose stub type_str CONTAINS a configured property_type",
+        was="high severity, rationale 'config documents substrings; code does set "
+            "membership' -- withdrawn: the exact match is deliberate and test-locked "
+            "(listing_harvester.py:116-122, test_crexi_listings.py:160, "
+            "test_crexi_ingest_service.py:127)",
+        open_question="listings exact-matches and DROPS compound types "
+                      "(listing_filters.py:106-108); comps substring-matches and KEEPS them "
+                      "(harvester.py:141-149). Costs 1,086/3,496 (31.1%). Operator call: "
+                      "see runs/coverage_report_FL.txt",
     ),
     # Kept in the registry although currently INERT: the hazard is in the code, and an
     # id that exists is what lets a future run say "still inert" instead of rediscovering

@@ -1,6 +1,7 @@
 # What we ask Crexi for — and how far to trust the answer
 
-> Code-verified 2026-08-27. Answers the operator's questions: what are the
+> Code-verified 2026-08-27; §4 and §6 updated 2026-08-28 with live-probe results
+> (F-B14 settled). Answers the operator's questions: what are the
 > search parameters, where do they come from, what are we targeting, how
 > accurate is Crexi's search, and what do we store / re-fetch.
 
@@ -87,19 +88,46 @@ disagree about what a multifamily property is.
 
 **`property_sub_type` is the unused signal.** It is captured, normalized, and
 stored — and never filtered on (`property_sub_types` defaults to `()`).
-Observed in our 100 stored rows:
+Observed across **250** detail-fetched assets that **passed today's exact-match
+type gate** (150 from the ingest cassette + 100 stored rows):
 
 | sub_type | n |
 |---|---|
-| Apartment Building, Duplex/Triplex/Quadruplex | 36 |
-| Apartment Building | 24 |
-| Apartment Building, Duplex/Triplex/Quadruplex, Fourplex | 15 |
-| **Single Family Rental Portfolio** | 7 |
-| *(empty)* | 6 |
+| Apartment Building, Duplex/Triplex/Quadruplex | 128 |
+| Apartment Building, Duplex/Triplex/Quadruplex, Fourplex | 40 |
+| Apartment Building | 34 |
+| **(empty)** | 9 |
+| **Single Family Rental Portfolio** | 9 |
+| **Apartment Building, Apartment/Condo** | 7 |
+| **Apartment Building, Duplex/Triplex/Quadruplex, Apartment/Condo** | 6 |
+| Apartment Building, Duplex/Triplex/Quadruplex, Other | 4 |
+| **Apartment Building, Single Family Rental Portfolio** | 3 |
+| **Apartment Building, Duplex/Triplex/Quadruplex, Apartment/Condo, Fourplex** | 3 |
+| **Single Family Rental Portfolio, Apartment Building** | 2 |
 | **Single Family Rental Portfolio, RV Park, Apartment Building** | 2 |
-| Apartment/Condo variants | 3 |
+| **Student Housing, Apartment Building** | 1 |
+| **vacation rental** | 1 |
+| Apartment Building, Duplex/triplex/quadruplex, Townhome | 1 |
 
-We are storing SFR portfolios and an RV park in a 2–4-unit multifamily ingest.
+**43 of 250 (17.2%) are out of scope for a 2–4-unit buy-box** (bold above).
+We are storing SFR portfolios, an RV park, student housing and a vacation rental in a
+2–4-unit multifamily ingest.
+
+**Two caveats that keep this honest.**
+
+*(a) A sub-type rule cannot save a single request.* Sub-type lives in the DETAIL
+document (`summaryDetails` → `SubType`), not in the `/assets/search` feed — so the value
+only arrives **after** the 3-call fetch a sub-type filter would be trying to prevent. It
+can stop storage and downstream value-route work, nothing more. **Type policy is the
+only lever on the fetch bill.** For the same reason this census cannot be projected onto
+the 3,496.
+
+*(b) This sample is biased by construction*, so it says nothing about what admitting
+compounds would bring in: every asset in it already passed the exact-match gate. A
+separate bounded 45-asset fetch of COMPOUND listings — the only sub-type data that has
+ever existed for them — is reported apart in `runs/coverage_report_FL.txt` §2. In that
+(tiny, non-random) sample 14 of 42 are flagged out of scope, and the units split is
+20 NULL / 17 five-plus / 5 in-band / 3 single-unit.
 
 ## 5. Storage and re-ingest economy — the operator's procedural concern
 
@@ -122,21 +150,59 @@ stored `source_updated_on` (`crexi_ingest.py:322-331`). Consequence:
 That is the waste the operator anticipated, quantified: 3 requests per rejected
 listing per update, with no suppression path.
 
-## 6. How much to trust the result set
+## 6. How much to trust the result set — SETTLED 2026-08-28
 
-Not fully — and this is already the top open defect (**F-B14**): county
-partitions reached **1,965 of 3,496** in-scope listings (**56%**). Every
-downstream rate is therefore a rate over the wrong denominator.
+**The scope is 3,496 FL multifamily listings. The sweep reaches 1,962 of them (56.1%).**
+That was F-B14, filed as suspected; it is now confirmed by direct enumeration and the
+mechanism is known. Full write-up in `FINDINGS.md`; the readable report is
+`runs/coverage_report_FL.txt`.
 
-Additional structure worth knowing: partitioning fires only on a full sweep and
-only when `total_count > 1400`; counties come from a committed Census gazetteer
-(FL 67 entries) and an unknown state falls back to price-bisection; zero-count
-counties are skipped.
+**`total_count` is honest.** A price-band partitioning of the identical scope enumerated
+**3,496 distinct ids**, matching the reported `total_count` exactly, in 14 bands with no
+truncation. The county-partition union is a *strict subset* of it. The pre-registered
+falsifier — "the whole-state count is inflated" — was tested and did not fire.
+
+**Why the county filter loses 43.9%.** `counties` is a **case-insensitive but otherwise
+literal string match** on the county value stored on the record — not a geo lookup, not
+normalized. Probed live:
+
+| filter value | `totalCount` |
+|---|---|
+| `"Duval County"` | 25 |
+| `"Duval"` / `"DUVAL"` / `"duval"` | 107 |
+| `"St. Lucie County"` | 10 |
+| `"St Lucie County"` | 25 |
+| `"Volusia County"` / `"Volusia"` | 51 / 98 |
+| `"Belize"` | 4 |
+
+Our `counties` values come from a committed **Census gazetteer**, which supplies exactly
+one canonical form (`"X County"`). That is the wrong key for every record Crexi stored
+any other way. Worse: **939 of the 3,496 carry no county string at all**, so no county
+key of any spelling reaches them.
+
+> County partitioning cannot cover this scope, and no longer county list fixes it.
+> Price bisection already covers it — 3,496/3,496, using the product's own
+> `_price_bisect`, unmodified, in 77 requests.
+
+**The pagination caps are not the cause**, and one of them is misdocumented. The server
+enforces **`offset < 1500`**, not the `offset + count < 1500` its own 400 message (and
+`assets_search.py:14-16`) claims — `offset=1499, count=1` succeeds. `SAFE_WINDOW = 1400`
+is only ever compared against `total_count` to decide *whether* to partition; it never
+truncates a sweep in progress. Delisting is excluded too: all 1,534 missed listings are
+`On-Market`.
+
+**Read every baseline rate against 3,496, not 1,962.** The type gate is 40.2% of scope,
+not 71.7% of swept; strict 2-4u matches are 2.6% of scope, not 4.6%.
 
 ## Recommendations (recommendations, not actions)
 
-1. **Settle F-B14 first** — a denominator that is 56% of scope invalidates every
-   other rate. One live probe: whole-state paged sweep vs the county union.
+1. ~~**Settle F-B14 first**~~ — **DONE 2026-08-28** (§6). The naive form of that probe
+   would have lied: a whole-state paged sweep truncates at 1,499 by our own arithmetic
+   (`assets_search.py:180-182`), so "far fewer than 3,496 came back" is guaranteed
+   before the first call. The replacement for county partitioning is **price-band
+   partitioning**, and it is the recommended first change: no operator decision needed,
+   already proven on this scope, worth +1,003 admitted listings under today's unchanged
+   type gate.
 2. **Decide the targeting question explicitly** — it is an operator call, not a
    code fix: is `"Office, Multifamily"` a deal? Is a `Single Family Rental
    Portfolio`? An `RV Park`? Today the answer is implicit in an exact-match

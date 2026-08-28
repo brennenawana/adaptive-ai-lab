@@ -1,0 +1,2201 @@
+{
+ "population": {
+  "in_scope_total": 3496,
+  "source": "price-partitioned whole-state enumeration (Phase-1 probe), verified equal to the server's own totalCount"
+ },
+ "compound_type_census": {
+  "distinct_joined_strings": 197,
+  "distinct_type_SETS": 111,
+  "order_fragmentation": 86,
+  "exact_Multifamily": 2410,
+  "compound_containing_Multifamily": 1086,
+  "no_Multifamily_at_all": 0,
+  "combinations": [
+   [
+    "Multifamily",
+    2410
+   ],
+   [
+    "Multifamily, Land",
+    248
+   ],
+   [
+    "Land, Multifamily",
+    203
+   ],
+   [
+    "Office, Multifamily",
+    34
+   ],
+   [
+    "Multifamily, Hospitality",
+    32
+   ],
+   [
+    "Multifamily, Mixed Use, Land",
+    32
+   ],
+   [
+    "Hospitality, Multifamily",
+    21
+   ],
+   [
+    "Retail, Multifamily",
+    19
+   ],
+   [
+    "Land, Mixed Use, Multifamily",
+    17
+   ],
+   [
+    "Multifamily, Mixed Use",
+    15
+   ],
+   [
+    "Retail, Multifamily, Mixed Use",
+    14
+   ],
+   [
+    "Mixed Use, Multifamily, Retail",
+    13
+   ],
+   [
+    "Mixed Use, Multifamily",
+    13
+   ],
+   [
+    "Multifamily, Office",
+    13
+   ],
+   [
+    "Land, Multifamily, Retail",
+    12
+   ],
+   [
+    "Mixed Use, Multifamily, Office",
+    11
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Retail",
+    11
+   ],
+   [
+    "Mixed Use, Multifamily, Office, Retail",
+    10
+   ],
+   [
+    "Retail, Multifamily, Office",
+    10
+   ],
+   [
+    "Retail, Multifamily, Land",
+    10
+   ],
+   [
+    "Mobile Home Park, Multifamily",
+    9
+   ],
+   [
+    "Industrial, Multifamily",
+    9
+   ],
+   [
+    "Multifamily, Special Purpose",
+    8
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Office, Retail",
+    8
+   ],
+   [
+    "Multifamily, Hospitality, Land",
+    8
+   ],
+   [
+    "Office, Multifamily, Retail",
+    8
+   ],
+   [
+    "Mixed Use, Land, Multifamily",
+    7
+   ],
+   [
+    "Multifamily, Mobile Home Park",
+    7
+   ],
+   [
+    "Multifamily, Hospitality, Mixed Use",
+    7
+   ],
+   [
+    "Multifamily, Retail",
+    6
+   ],
+   [
+    "Multifamily, Office, Mixed Use",
+    6
+   ],
+   [
+    "Multifamily, Industrial",
+    5
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Office, Retail",
+    5
+   ],
+   [
+    "Mixed Use, Retail, Multifamily",
+    5
+   ],
+   [
+    "Multifamily, Land, Senior Living",
+    5
+   ],
+   [
+    "Multifamily, Mixed Use, Special Purpose",
+    5
+   ],
+   [
+    "Land, Mobile Home Park, Multifamily",
+    5
+   ],
+   [
+    "Multifamily, Office, Retail",
+    5
+   ],
+   [
+    "Multifamily, Land, Special Purpose",
+    5
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Special Purpose",
+    4
+   ],
+   [
+    "Multifamily, Mixed Use, Senior Living",
+    4
+   ],
+   [
+    "Land, Multifamily, Special Purpose",
+    4
+   ],
+   [
+    "Multifamily, Senior Living",
+    4
+   ],
+   [
+    "Business for Sale, Multifamily, Office",
+    4
+   ],
+   [
+    "Business for Sale, Multifamily, Office, Retail",
+    4
+   ],
+   [
+    "Business for Sale, Multifamily",
+    3
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Retail, Self Storage",
+    3
+   ],
+   [
+    "Hospitality, Land, Multifamily",
+    3
+   ],
+   [
+    "Multifamily, Industrial, Land",
+    3
+   ],
+   [
+    "Retail, Multifamily, Hospitality",
+    3
+   ],
+   [
+    "Multifamily, Land, Self Storage",
+    3
+   ],
+   [
+    "Multifamily, Hospitality, Special Purpose",
+    3
+   ],
+   [
+    "Multifamily, Business for Sale, Office",
+    3
+   ],
+   [
+    "Office, Multifamily, Mixed Use",
+    3
+   ],
+   [
+    "Industrial, Land, Multifamily",
+    2
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily, Office",
+    2
+   ],
+   [
+    "Hospitality, Multifamily, Retail",
+    2
+   ],
+   [
+    "Hospitality, Land, Multifamily, Office, Retail",
+    2
+   ],
+   [
+    "Multifamily, Office, Land",
+    2
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily",
+    2
+   ],
+   [
+    "Land, Multifamily, Senior Living",
+    2
+   ],
+   [
+    "Retail, Multifamily, Mixed Use, Land",
+    2
+   ],
+   [
+    "Mixed Use, Special Purpose, Retail, Hospitality, Industrial, Office, Land, Multifamily",
+    2
+   ],
+   [
+    "Industrial, Land, Mixed Use, Multifamily, Office",
+    2
+   ],
+   [
+    "Industrial, Multifamily, Office",
+    2
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Self Storage",
+    2
+   ],
+   [
+    "Retail, Multifamily, Office, Hospitality, Mixed Use",
+    2
+   ],
+   [
+    "Business for Sale, Mixed Use, Multifamily",
+    2
+   ],
+   [
+    "Mixed Use, Industrial, Multifamily",
+    2
+   ],
+   [
+    "Mixed Use, Mobile Home Park, Multifamily, Special Purpose",
+    2
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Special Purpose",
+    2
+   ],
+   [
+    "Land, Multifamily, Office",
+    2
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily, Retail",
+    2
+   ],
+   [
+    "Retail, Multifamily, Office, Mixed Use, Land",
+    2
+   ],
+   [
+    "Hospitality, Multifamily, Senior Living",
+    2
+   ],
+   [
+    "Multifamily, Hospitality, Business for Sale",
+    2
+   ],
+   [
+    "Land, Multifamily, Industrial",
+    2
+   ],
+   [
+    "Mixed Use, Multifamily, Land",
+    2
+   ],
+   [
+    "Business for Sale, Retail, Multifamily, Office, Special Purpose",
+    2
+   ],
+   [
+    "Multifamily, Land, Retail",
+    2
+   ],
+   [
+    "Retail, Office, Multifamily, Special Purpose, Business for Sale",
+    2
+   ],
+   [
+    "Office, Business for Sale, Multifamily, Retail",
+    2
+   ],
+   [
+    "Multifamily, Land, Mobile Home Park",
+    2
+   ],
+   [
+    "Multifamily, Mobile Home Park, Business for Sale",
+    2
+   ],
+   [
+    "Office, Multifamily, Retail, Special Purpose",
+    2
+   ],
+   [
+    "Mixed Use, Office, Land, Hospitality, Industrial, Multifamily, Retail",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Office, Self Storage",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Business for Sale",
+    1
+   ],
+   [
+    "Land, Mobile Home Park, Multifamily, Self Storage, Special Purpose",
+    1
+   ],
+   [
+    "Mixed Use, Multifamily, Office, Special Purpose, Retail",
+    1
+   ],
+   [
+    "Land, Hospitality, Multifamily",
+    1
+   ],
+   [
+    "Retail, Special Purpose, Land, Hospitality, Industrial, Office, Mixed Use, Multifamily",
+    1
+   ],
+   [
+    "Retail, Land, Mixed Use, Multifamily",
+    1
+   ],
+   [
+    "Retail, Multifamily, Office, Industrial, Special Purpose, Land",
+    1
+   ],
+   [
+    "Mixed Use, Retail, Multifamily, Land, Industrial",
+    1
+   ],
+   [
+    "Multifamily, Mixed Use, Land, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Office",
+    1
+   ],
+   [
+    "Retail, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Office, Retail, Industrial, Mixed Use, Special Purpose, Multifamily, Business for Sale",
+    1
+   ],
+   [
+    "Mixed Use, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Land, Mobile Home Park, Multifamily, Self Storage, Senior Living",
+    1
+   ],
+   [
+    "Land, Multifamily, Office, Retail",
+    1
+   ],
+   [
+    "Multifamily, Office, Hospitality, Mixed Use, Land",
+    1
+   ],
+   [
+    "Business for Sale, Hospitality, Multifamily",
+    1
+   ],
+   [
+    "Retail, Multifamily, Office, Mixed Use",
+    1
+   ],
+   [
+    "Hospitality, Multifamily, Office, Retail",
+    1
+   ],
+   [
+    "Mixed Use, Hospitality, Multifamily",
+    1
+   ],
+   [
+    "Mixed Use, Retail, Industrial, Multifamily",
+    1
+   ],
+   [
+    "Multifamily, Hospitality, Mixed Use, Senior Living",
+    1
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Office, Special Purpose",
+    1
+   ],
+   [
+    "Multifamily, Hospitality, Mixed Use, Land, Senior Living",
+    1
+   ],
+   [
+    "Office, Retail, Senior Living, Mixed Use, Industrial, Multifamily",
+    1
+   ],
+   [
+    "Senior Living, Self Storage, Multifamily",
+    1
+   ],
+   [
+    "Hospitality, Industrial, Mixed Use, Multifamily, Retail",
+    1
+   ],
+   [
+    "Business for Sale, Hospitality, Mixed Use, Multifamily",
+    1
+   ],
+   [
+    "Multifamily, Hospitality, Mixed Use, Special Purpose",
+    1
+   ],
+   [
+    "Retail, Multifamily, Hospitality, Land, Business for Sale",
+    1
+   ],
+   [
+    "Land, Industrial, Multifamily, Mixed Use",
+    1
+   ],
+   [
+    "Hospitality, Land, Multifamily, Office",
+    1
+   ],
+   [
+    "Mixed Use, Multifamily, Industrial",
+    1
+   ],
+   [
+    "Mixed Use, Multifamily, Office, Land",
+    1
+   ],
+   [
+    "Business for Sale, Multifamily, Retail, Mixed Use",
+    1
+   ],
+   [
+    "Multifamily, Office, Mixed Use, Land, Self Storage",
+    1
+   ],
+   [
+    "Mixed Use, Retail, Special Purpose, Office, Land, Multifamily",
+    1
+   ],
+   [
+    "Industrial, Mixed Use, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Mixed Use, Retail, Multifamily, Office, Business for Sale",
+    1
+   ],
+   [
+    "Hospitality, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Office, Self Storage",
+    1
+   ],
+   [
+    "Industrial, Land, Multifamily, Office, Retail",
+    1
+   ],
+   [
+    "Mixed Use, Multifamily, Office, Senior Living",
+    1
+   ],
+   [
+    "Land, Multifamily, Office, Industrial, Business for Sale",
+    1
+   ],
+   [
+    "Retail, Multifamily, Office, Land",
+    1
+   ],
+   [
+    "Land, Multifamily, Business for Sale",
+    1
+   ],
+   [
+    "Multifamily, Office, Self Storage",
+    1
+   ],
+   [
+    "Industrial, Retail, Multifamily",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Land",
+    1
+   ],
+   [
+    "Hospitality, Land, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Retail",
+    1
+   ],
+   [
+    "Retail, Multifamily, Office, Hospitality",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Mobile Home Park, Multifamily",
+    1
+   ],
+   [
+    "Mixed Use, Office, Multifamily, Land",
+    1
+   ],
+   [
+    "Multifamily, Business for Sale",
+    1
+   ],
+   [
+    "Multifamily, Business for Sale, Industrial, Retail, Office",
+    1
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Multifamily, Mixed Use, Land, Business for Sale",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Senior Living",
+    1
+   ],
+   [
+    "Industrial, Land, Mixed Use, Multifamily, Retail",
+    1
+   ],
+   [
+    "Multifamily, Hospitality, Special Purpose, Land, Retail, Mixed Use, Office",
+    1
+   ],
+   [
+    "Land, Office, Retail, Multifamily",
+    1
+   ],
+   [
+    "Land, Industrial, Mixed Use, Multifamily",
+    1
+   ],
+   [
+    "Mixed Use, Land, Multifamily, Industrial",
+    1
+   ],
+   [
+    "Multifamily, Mixed Use, Mobile Home Park",
+    1
+   ],
+   [
+    "Office, Mixed Use, Multifamily",
+    1
+   ],
+   [
+    "Multifamily, Retail, Land",
+    1
+   ],
+   [
+    "Office, Retail, Special Purpose, Industrial, Mixed Use, Multifamily, Land",
+    1
+   ],
+   [
+    "Multifamily, Mixed Use, Hospitality",
+    1
+   ],
+   [
+    "Multifamily, Mixed Use, Office",
+    1
+   ],
+   [
+    "Multifamily, Mixed Use, Business for Sale",
+    1
+   ],
+   [
+    "Multifamily, Mixed Use, Retail",
+    1
+   ],
+   [
+    "Retail, Multifamily, Office, Special Purpose",
+    1
+   ],
+   [
+    "Business for Sale, Multifamily, Office, Retail, Industrial",
+    1
+   ],
+   [
+    "Business for Sale, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Multifamily, Office, Business for Sale",
+    1
+   ],
+   [
+    "Multifamily, Industrial, Mixed Use",
+    1
+   ],
+   [
+    "Multifamily, Retail, Mixed Use",
+    1
+   ],
+   [
+    "Mixed Use, Business for Sale, Multifamily, Office, Retail",
+    1
+   ],
+   [
+    "Multifamily, Self Storage, Hospitality, Office, Senior Living, Retail, Land",
+    1
+   ],
+   [
+    "Mixed Use, Office, Retail, Special Purpose, Industrial, Multifamily",
+    1
+   ],
+   [
+    "Multifamily, Hospitality, Mobile Home Park",
+    1
+   ],
+   [
+    "Special Purpose, Multifamily",
+    1
+   ],
+   [
+    "Hospitality, Multifamily, Land",
+    1
+   ],
+   [
+    "Multifamily, Retail, Office",
+    1
+   ],
+   [
+    "Industrial, Office, Multifamily",
+    1
+   ],
+   [
+    "Land, Hospitality, Special Purpose, Office, Mixed Use, Multifamily, Retail",
+    1
+   ],
+   [
+    "Multifamily, Hospitality, Senior Living",
+    1
+   ],
+   [
+    "Retail, Multifamily, Industrial",
+    1
+   ],
+   [
+    "Land, Retail, Multifamily",
+    1
+   ],
+   [
+    "Office, Retail, Multifamily",
+    1
+   ],
+   [
+    "Multifamily, Senior Living, Land",
+    1
+   ],
+   [
+    "Multifamily, Mobile Home Park, Special Purpose",
+    1
+   ],
+   [
+    "Retail, Office, Special Purpose, Hospitality, Mixed Use, Industrial, Multifamily",
+    1
+   ],
+   [
+    "Retail, Office, Special Purpose, Hospitality, Industrial, Land, Multifamily",
+    1
+   ],
+   [
+    "Office, Multifamily, Retail, Business for Sale",
+    1
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Office",
+    1
+   ],
+   [
+    "Mixed Use, Retail, Office, Multifamily, Business for Sale",
+    1
+   ],
+   [
+    "Mixed Use, Office, Multifamily",
+    1
+   ],
+   [
+    "Multifamily, Retail, Special Purpose, Office",
+    1
+   ],
+   [
+    "Retail, Special Purpose, Mixed Use, Office, Land, Industrial, Multifamily, Business for Sale",
+    1
+   ],
+   [
+    "Mixed Use, Retail, Multifamily, Office, Industrial, Business for Sale",
+    1
+   ],
+   [
+    "Hospitality, Industrial, Land, Mixed Use, Mobile Home Park, Multifamily, Retail, Self Storage, Special Purpose",
+    1
+   ],
+   [
+    "Land, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Multifamily, Self Storage",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Senior Living, Special Purpose",
+    1
+   ],
+   [
+    "Retail, Office, Multifamily",
+    1
+   ],
+   [
+    "Industrial, Mixed Use, Multifamily",
+    1
+   ],
+   [
+    "Multifamily, Senior Living, Special Purpose",
+    1
+   ]
+  ],
+  "as_type_sets": [
+   [
+    "Multifamily",
+    2410
+   ],
+   [
+    "Land, Multifamily",
+    451
+   ],
+   [
+    "Land, Mixed Use, Multifamily",
+    58
+   ],
+   [
+    "Hospitality, Multifamily",
+    53
+   ],
+   [
+    "Multifamily, Office",
+    47
+   ],
+   [
+    "Mixed Use, Multifamily, Retail",
+    34
+   ],
+   [
+    "Mixed Use, Multifamily",
+    28
+   ],
+   [
+    "Land, Multifamily, Retail",
+    26
+   ],
+   [
+    "Multifamily, Office, Retail",
+    26
+   ],
+   [
+    "Multifamily, Retail",
+    25
+   ],
+   [
+    "Mixed Use, Multifamily, Office",
+    23
+   ],
+   [
+    "Mobile Home Park, Multifamily",
+    16
+   ],
+   [
+    "Industrial, Multifamily",
+    14
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Retail",
+    14
+   ],
+   [
+    "Hospitality, Land, Multifamily",
+    13
+   ],
+   [
+    "Mixed Use, Multifamily, Office, Retail",
+    11
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Office, Retail",
+    10
+   ],
+   [
+    "Multifamily, Special Purpose",
+    9
+   ],
+   [
+    "Land, Multifamily, Special Purpose",
+    9
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily",
+    9
+   ],
+   [
+    "Land, Multifamily, Senior Living",
+    8
+   ],
+   [
+    "Business for Sale, Multifamily, Office",
+    8
+   ],
+   [
+    "Industrial, Land, Multifamily",
+    7
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Office, Retail",
+    7
+   ],
+   [
+    "Land, Mobile Home Park, Multifamily",
+    7
+   ],
+   [
+    "Business for Sale, Multifamily, Office, Retail",
+    7
+   ],
+   [
+    "Mixed Use, Multifamily, Special Purpose",
+    6
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Special Purpose",
+    5
+   ],
+   [
+    "Hospitality, Multifamily, Retail",
+    5
+   ],
+   [
+    "Industrial, Mixed Use, Multifamily",
+    5
+   ],
+   [
+    "Business for Sale, Multifamily, Office, Retail, Special Purpose",
+    5
+   ],
+   [
+    "Mixed Use, Multifamily, Senior Living",
+    4
+   ],
+   [
+    "Business for Sale, Multifamily",
+    4
+   ],
+   [
+    "Land, Multifamily, Office",
+    4
+   ],
+   [
+    "Multifamily, Senior Living",
+    4
+   ],
+   [
+    "Hospitality, Multifamily, Special Purpose",
+    4
+   ],
+   [
+    "Multifamily, Office, Retail, Special Purpose",
+    4
+   ],
+   [
+    "Hospitality, Industrial, Land, Mixed Use, Multifamily, Office, Retail, Special Purpose",
+    3
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily, Office",
+    3
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Retail, Self Storage",
+    3
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily",
+    3
+   ],
+   [
+    "Land, Multifamily, Office, Retail",
+    3
+   ],
+   [
+    "Business for Sale, Hospitality, Multifamily",
+    3
+   ],
+   [
+    "Industrial, Multifamily, Office",
+    3
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Special Purpose",
+    3
+   ],
+   [
+    "Industrial, Land, Mixed Use, Multifamily",
+    3
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Office",
+    3
+   ],
+   [
+    "Business for Sale, Mixed Use, Multifamily",
+    3
+   ],
+   [
+    "Business for Sale, Mixed Use, Multifamily, Office, Retail",
+    3
+   ],
+   [
+    "Hospitality, Multifamily, Senior Living",
+    3
+   ],
+   [
+    "Land, Multifamily, Self Storage",
+    3
+   ],
+   [
+    "Business for Sale, Hospitality, Mixed Use, Multifamily",
+    2
+   ],
+   [
+    "Industrial, Land, Mixed Use, Multifamily, Retail",
+    2
+   ],
+   [
+    "Hospitality, Land, Multifamily, Office, Retail",
+    2
+   ],
+   [
+    "Hospitality, Multifamily, Office, Retail",
+    2
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Senior Living",
+    2
+   ],
+   [
+    "Industrial, Land, Mixed Use, Multifamily, Office",
+    2
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Self Storage",
+    2
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Office, Self Storage",
+    2
+   ],
+   [
+    "Mixed Use, Mobile Home Park, Multifamily, Special Purpose",
+    2
+   ],
+   [
+    "Industrial, Multifamily, Retail",
+    2
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily, Retail",
+    2
+   ],
+   [
+    "Business for Sale, Industrial, Multifamily, Office, Retail",
+    2
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily, Office, Retail, Special Purpose",
+    2
+   ],
+   [
+    "Business for Sale, Mobile Home Park, Multifamily",
+    2
+   ],
+   [
+    "Hospitality, Industrial, Land, Mixed Use, Multifamily, Office, Retail",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Office, Self Storage",
+    1
+   ],
+   [
+    "Land, Mobile Home Park, Multifamily, Self Storage, Special Purpose",
+    1
+   ],
+   [
+    "Mixed Use, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Industrial, Land, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Office",
+    1
+   ],
+   [
+    "Multifamily, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Business for Sale, Industrial, Mixed Use, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Land, Mobile Home Park, Multifamily, Self Storage, Senior Living",
+    1
+   ],
+   [
+    "Industrial, Mixed Use, Multifamily, Retail",
+    1
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Office, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily, Senior Living",
+    1
+   ],
+   [
+    "Industrial, Mixed Use, Multifamily, Office, Retail, Senior Living",
+    1
+   ],
+   [
+    "Multifamily, Self Storage, Senior Living",
+    1
+   ],
+   [
+    "Hospitality, Industrial, Mixed Use, Multifamily, Retail",
+    1
+   ],
+   [
+    "Business for Sale, Hospitality, Land, Multifamily, Retail",
+    1
+   ],
+   [
+    "Hospitality, Land, Multifamily, Office",
+    1
+   ],
+   [
+    "Business for Sale, Mixed Use, Multifamily, Retail",
+    1
+   ],
+   [
+    "Land, Mixed Use, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Industrial, Mixed Use, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Industrial, Land, Multifamily, Office, Retail",
+    1
+   ],
+   [
+    "Mixed Use, Multifamily, Office, Senior Living",
+    1
+   ],
+   [
+    "Business for Sale, Industrial, Land, Multifamily, Office",
+    1
+   ],
+   [
+    "Business for Sale, Land, Multifamily",
+    1
+   ],
+   [
+    "Multifamily, Office, Self Storage",
+    1
+   ],
+   [
+    "Hospitality, Land, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Retail",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Mobile Home Park, Multifamily",
+    1
+   ],
+   [
+    "Hospitality, Land, Mixed Use, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Business for Sale, Land, Mixed Use, Multifamily",
+    1
+   ],
+   [
+    "Mixed Use, Mobile Home Park, Multifamily",
+    1
+   ],
+   [
+    "Industrial, Land, Mixed Use, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Land, Multifamily, Office, Retail, Self Storage, Senior Living",
+    1
+   ],
+   [
+    "Industrial, Mixed Use, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Mobile Home Park, Multifamily",
+    1
+   ],
+   [
+    "Mobile Home Park, Multifamily, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Industrial, Mixed Use, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Industrial, Land, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Business for Sale, Industrial, Land, Mixed Use, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Business for Sale, Industrial, Mixed Use, Multifamily, Office, Retail",
+    1
+   ],
+   [
+    "Hospitality, Industrial, Land, Mixed Use, Mobile Home Park, Multifamily, Retail, Self Storage, Special Purpose",
+    1
+   ],
+   [
+    "Land, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Hospitality, Multifamily, Office, Retail, Special Purpose",
+    1
+   ],
+   [
+    "Multifamily, Self Storage",
+    1
+   ],
+   [
+    "Hospitality, Mixed Use, Multifamily, Senior Living, Special Purpose",
+    1
+   ],
+   [
+    "Multifamily, Senior Living, Special Purpose",
+    1
+   ]
+  ],
+  "examples_by_type_set": {
+   "Multifamily": [
+    {
+     "asset_id": "1006628",
+     "address": "101 11th Street Ocean, Marathon, Monroe County, FL 33050",
+     "ask": null,
+     "units": 10,
+     "sub_type": "Single Family Rental Portfolio",
+     "description_first_line": "Trophy Income-Producing Rentals | Multiple Units | $485,000 - 629,000/unit",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1018859",
+     "address": "1910 and 1920 Biarritz Dr, Miami Beach, Miami-Dade County, FL 33141",
+     "ask": 2650000.0,
+     "units": 8,
+     "sub_type": "Apartment Building, Duplex/Triplex/Quadruplex, Fourplex",
+     "description_first_line": "Multifamily | 8 Units",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1038943",
+     "address": "1503 9th St N, St. Petersburg, Pinellas County, FL 33704",
+     "ask": 4375000.0,
+     "units": 35,
+     "sub_type": "Apartment Building",
+     "description_first_line": "Multifamily | 35 Units | $125,000/unit",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Hospitality, Industrial, Land, Mixed Use, Multifamily, Office, Retail": [],
+   "Land, Multifamily": [
+    {
+     "asset_id": "1010080",
+     "address": "81 NW 41st St, Miami, Miami-Dade County, FL 33127",
+     "ask": 1200000.0,
+     "units": 2,
+     "sub_type": "Residential, Single Family Development Opportunity",
+     "description_first_line": "81 NW 41 St Buena Vista Opportunity",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1331026",
+     "address": "Dean Dairy Rd, Zephyrhills, Pasco County, FL 33541",
+     "ask": 799000.0,
+     "units": 18,
+     "sub_type": "Apartment Building",
+     "description_first_line": "2 Acres In Opportunity Zone For 18 Unit Mf Res Dev't (Res-9) Available For Sale",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1397726",
+     "address": "6511 SAN JUAN Avenue, Jacksonville, Duval, FL 32210",
+     "ask": 1400000.0,
+     "units": 12,
+     "sub_type": "Apartment Building, Residential, Duplex/Triplex/Quadruplex, Residential",
+     "description_first_line": "Multifamily | 12 Units",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Hospitality, Mixed Use, Multifamily, Office, Self Storage": [],
+   "Land, Mixed Use, Multifamily, Special Purpose": [],
+   "Multifamily, Special Purpose": [],
+   "Business for Sale, Hospitality, Mixed Use, Multifamily": [],
+   "Land, Mobile Home Park, Multifamily, Self Storage, Special Purpose": [],
+   "Industrial, Land, Multifamily": [],
+   "Land, Mixed Use, Multifamily": [
+    {
+     "asset_id": "1169063",
+     "address": "3915 COUNTY ROAD 210, St. Augustine, St. Johns, FL 32092",
+     "ask": 2600000.0,
+     "units": null,
+     "sub_type": "Farm, Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranch/Agricultural, Residential",
+     "description_first_line": "Mixed Use | 4,989 SqFt",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2033680",
+     "address": "241 S Franklin Street, Daytona Beach, Volusia, FL 32114",
+     "ask": 249900.0,
+     "units": 2,
+     "sub_type": "Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranch/Agricultural, Residential",
+     "description_first_line": "Mixed Use | 1,310 SqFt",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2324766",
+     "address": "2101 Vernon Place, Melbourne, Brevard, FL 32901",
+     "ask": 519900.0,
+     "units": 1,
+     "sub_type": "Residential, Single Family Rental Portfolio, Mixed Use, Residential",
+     "description_first_line": "Mixed Use | 1,423 SqFt",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Mixed Use, Multifamily, Office, Retail": [],
+   "Mixed Use, Multifamily, Retail": [
+    {
+     "asset_id": "1202827",
+     "address": "220 Harbor Blvd, Destin, Okaloosa County, FL 32541",
+     "ask": 4500000.0,
+     "units": 10,
+     "sub_type": "Shopping Center",
+     "description_first_line": "Mixed Use | 21,120 SqFt",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1421835",
+     "address": "472 Causeway N, New Smyrna Beach, Volusia County, FL 32169",
+     "ask": 1500000.0,
+     "units": 2,
+     "sub_type": "Apartment Building, B-2 zoning, Development",
+     "description_first_line": "Unique North Causeway STR value add property",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1460923",
+     "address": "2741 & 2747 First St, Fort Myers, Lee County, FL 33916",
+     "ask": 4850000.0,
+     "units": 24,
+     "sub_type": "Apartment Building, Storefront",
+     "description_first_line": "Mixed Use | 24 Units | $202,083/unit",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Mixed Use, Multifamily, Senior Living": [],
+   "Industrial, Multifamily": [
+    {
+     "asset_id": "1211240",
+     "address": "2215 Fillmore Street, Hollywood, Broward County, FL 33020",
+     "ask": 2750000.0,
+     "units": null,
+     "sub_type": "Apartment Building, Warehouse, Duplex/Triplex/Quadruplex",
+     "description_first_line": "Development Opportunity in Growing City of Hollywood Florida",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2564158",
+     "address": "4385 Southwest 70th Court, Miami, Miami-Dade County, FL 33155",
+     "ask": 30000000.0,
+     "units": null,
+     "sub_type": null,
+     "description_first_line": "Redevelopment Multifamily Site",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2567262",
+     "address": "323 Monroe Street # 6 #1-6, Hollywood, Broward County, FL 33019",
+     "ask": 3550000.0,
+     "units": 6,
+     "sub_type": "Apartment Building, Warehouse, Duplex/Triplex/Quadruplex, Industrial",
+     "description_first_line": "Multifamily | 6 Units",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Mixed Use, Multifamily, Office, Retail, Special Purpose": [],
+   "Hospitality, Land, Multifamily": [
+    {
+     "asset_id": "1224714",
+     "address": "9129 N Lagoon Drive, Panama City Beach, Bay, FL 32408",
+     "ask": 6500000.0,
+     "units": null,
+     "sub_type": "Commercial, Apartment Building, Resort, Duplex/Triplex/Quadruplex",
+     "description_first_line": "Land | 304,920 SqFt",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1934777",
+     "address": "580 Bay Esplanade, Clearwater, Pinellas County, FL 33767",
+     "ask": 2000000.0,
+     "units": 4,
+     "sub_type": "Apartment Building, Commercial, Motel",
+     "description_first_line": "Hospitality",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2243091",
+     "address": "4021 Dolphin Dr, Panama City, Bay County, FL 32408",
+     "ask": 1250000.0,
+     "units": 5,
+     "sub_type": "Apartment Building, Hotel",
+     "description_first_line": "Hospitality | 5 Keys",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Land, Multifamily, Special Purpose": [],
+   "Hospitality, Industrial, Land, Mixed Use, Multifamily, Office, Retail, Special Purpose": [],
+   "Mobile Home Park, Multifamily": [
+    {
+     "asset_id": "1302406",
+     "address": "139 North CR 315 Interlachen, FL 32148, Interlachen, Putnam County, FL 32148",
+     "ask": null,
+     "units": 116,
+     "sub_type": "RV Park",
+     "description_first_line": "RV Resort Opportunity w/ Entitlements - 116 Sites",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1731149",
+     "address": "11932 OLD KINGS Road, Jacksonville, Duval, FL 32219",
+     "ask": null,
+     "units": 96,
+     "sub_type": "RV Park, RV & Boat Storage",
+     "description_first_line": "Also on-Site- 32 Space RV & Boat Storage",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2070323",
+     "address": "208 N Hwy 22 A, Panama City, Bay County, FL 32404",
+     "ask": 3000000.0,
+     "units": 41,
+     "sub_type": null,
+     "description_first_line": "Mobile Home Park | 41 Pads | City Utilities | Stabilized Core with Value-Add Upside | Coastal MSA",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Land, Mixed Use, Multifamily, Retail": [
+    {
+     "asset_id": "1307346",
+     "address": "102 N Pine Street, New Smyrna Beach, Volusia, FL 32169",
+     "ask": 1075000.0,
+     "units": null,
+     "sub_type": "Commercial, Apartment Building, Business, Duplex/Triplex/Quadruplex",
+     "description_first_line": "Retail | 2,614 SF",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1577857",
+     "address": "3550 S Washington Ave, Titusville, Brevard County, FL 32780",
+     "ask": 22000000.0,
+     "units": 13,
+     "sub_type": "Shopping Center, Apartment Building, Commercial",
+     "description_first_line": "Titusville Mix Zone redevelopment",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1695174",
+     "address": "3422 State Rte 471, Sumterville, Sumter County, FL 33585",
+     "ask": 1000000.0,
+     "units": null,
+     "sub_type": "Commercial, Residential",
+     "description_first_line": "Land | 10 acres",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Mixed Use, Multifamily": [
+    {
+     "asset_id": "1396093",
+     "address": "1211 CYPRESS Road, St. Augustine, FL 32086",
+     "ask": 1500000.0,
+     "units": null,
+     "sub_type": "RV Park, Mixed Use",
+     "description_first_line": "Mixed Use",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1793621",
+     "address": "13657 Front Beach Rd, Panama City Beach, Bay County, FL 32413",
+     "ask": 3600000.0,
+     "units": null,
+     "sub_type": "Single Family Rental Portfolio",
+     "description_first_line": "Mixed Use | 10.81% CAP | 3,990 SqFt",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2012946",
+     "address": "8700 N Sherman Cir # 108, Miramar, Broward County, FL 33025",
+     "ask": 1355100.0,
+     "units": null,
+     "sub_type": "Apartment Building, Mixed Use, Apartment/Condo",
+     "description_first_line": "Mixed Use | 0 SqFt",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Industrial, Land, Multifamily, Office, Retail, Special Purpose": [],
+   "Industrial, Land, Mixed Use, Multifamily, Retail": [],
+   "Hospitality, Land, Mixed Use, Multifamily, Office": [],
+   "Business for Sale, Multifamily": [],
+   "Multifamily, Office": [
+    {
+     "asset_id": "1503577",
+     "address": "1720 Harrison St, Hollywood, Broward County, FL 33020",
+     "ask": 230000.0,
+     "units": null,
+     "sub_type": "Apartment Building, Traditional Office, Apartment/Condo, Commercial Office",
+     "description_first_line": "Multifamily",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1920176",
+     "address": "1437 SW 1th Street, Miami, FL 33135",
+     "ask": 1200000.0,
+     "units": 1,
+     "sub_type": "Apartment Building, Medical Office, Traditional Office",
+     "description_first_line": "Little Havana Turn-Key Professional Office",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2252504",
+     "address": "644 Cesery Blvd, Jacksonville, Duval County, FL 32211",
+     "ask": 3300000.0,
+     "units": 1,
+     "sub_type": "Executive Office, Traditional Office",
+     "description_first_line": "Most Desireable Office Building in Jacksonville For Sale!",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Hospitality, Mixed Use, Multifamily, Office, Retail": [],
+   "Mixed Use, Multifamily, Office": [
+    {
+     "asset_id": "1520487",
+     "address": "918 KING Street, Jacksonville, Duval, FL 32204",
+     "ask": 494000.0,
+     "units": 4,
+     "sub_type": "Apartment Building, Duplex/Triplex/Quadruplex",
+     "description_first_line": "Mixed Use",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1559428",
+     "address": "2101 Brickell Ave, Miami, Miami-Dade County, FL 33129",
+     "ask": 350000.0,
+     "units": null,
+     "sub_type": "Apartment Building, Traditional Office, Mixed Use, Apartment/Condo, Office Space",
+     "description_first_line": "Mixed Use",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1751526",
+     "address": "7601 E Treasure Dr # 5, North Bay Village, Miami-Dade County, FL 33141",
+     "ask": 270000.0,
+     "units": null,
+     "sub_type": "Apartment Building, Traditional Office, Mixed Use, Apartment/Condo, Commercial Office",
+     "description_first_line": "Mixed Use | 400 SqFt",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Hospitality, Multifamily, Retail": [],
+   "Land, Mixed Use, Multifamily, Office, Retail": [],
+   "Land, Mixed Use, Multifamily, Retail, Self Storage": [],
+   "Hospitality, Mixed Use, Multifamily, Office": [],
+   "Multifamily, Retail, Special Purpose": [],
+   "Hospitality, Land, Multifamily, Office, Retail": [],
+   "Business for Sale, Industrial, Mixed Use, Multifamily, Office, Retail, Special Purpose": [],
+   "Mixed Use, Multifamily, Special Purpose": [],
+   "Land, Multifamily, Office": [],
+   "Hospitality, Land, Mixed Use, Multifamily": [],
+   "Multifamily, Retail": [
+    {
+     "asset_id": "1653811",
+     "address": "16855 NW 37th Ave, Miami Gardens, Miami-Dade County, FL 33056",
+     "ask": 4500000.0,
+     "units": null,
+     "sub_type": "Auto Shop, Automotive",
+     "description_first_line": "Multifamily",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2198177",
+     "address": "249 Collins Ave, Miami Beach, Miami-Dade County, FL 33139",
+     "ask": 16000000.0,
+     "units": 17,
+     "sub_type": "Storefront",
+     "description_first_line": "Rare Development Site for Luxury Condos in South of 5th Miami Beach",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2447659",
+     "address": "2410 NW 7th Ct, Miami, Miami-Dade County, FL 33127",
+     "ask": 3100000.0,
+     "units": null,
+     "sub_type": "Storefront, Retail Space",
+     "description_first_line": "Multifamily",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Land, Multifamily, Senior Living": [],
+   "Land, Mobile Home Park, Multifamily, Self Storage, Senior Living": [],
+   "Land, Multifamily, Office, Retail": [],
+   "Hospitality, Multifamily": [
+    {
+     "asset_id": "1695827",
+     "address": "5245 W Irlo Bronson Memorial Hwy, Kissimmee, Osceola County, FL 34746",
+     "ask": 2500000.0,
+     "units": 25,
+     "sub_type": "Apartment Building, Hotel",
+     "description_first_line": "Up to 25 units in Legacy Grand Condo Hotel, prime location, Kissimmee, FL. High Occupancy.",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1766685",
+     "address": "3025 Indian Creek Dr, Miami Beach, Miami-Dade County, FL 33140",
+     "ask": null,
+     "units": 67,
+     "sub_type": "Apartment Building, Hotel",
+     "description_first_line": "Hospitality",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1810357",
+     "address": "37 Hendricks Isle, Fort Lauderdale, Broward County, FL 33301",
+     "ask": 4300000.0,
+     "units": 6,
+     "sub_type": "Hotel, Low-Rise/Garden",
+     "description_first_line": "Las Olas Waterfront Short Term Rental Property with 5 Houseboat Deep Water Dock Slips",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Business for Sale, Hospitality, Multifamily": [],
+   "Land, Multifamily, Retail": [
+    {
+     "asset_id": "1738101",
+     "address": "1304 US-90, DeFuniak Springs, Walton County, FL 32433",
+     "ask": 579500.0,
+     "units": null,
+     "sub_type": "Commercial, Shopping Center, Storefront",
+     "description_first_line": "Land | 1.184 acres. Duniak Spring Property with High Visibility and Development Potential",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1744526",
+     "address": "241 Martin Luther King Boulevard S, Daytona Beach, Volusia, FL 32114",
+     "ask": 775000.0,
+     "units": null,
+     "sub_type": "Commercial, Apartment Building, Residential, Storefront, Duplex/Triplex/Quadruplex, Residential",
+     "description_first_line": "Land | 1.89 acres",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "1824351",
+     "address": "Collins road & ortega, Jacksonville, 30.201467, -81.724973, FL 32244",
+     "ask": 299000.0,
+     "units": null,
+     "sub_type": "Apartment Building, Residential, Commercial",
+     "description_first_line": "Corner Development Site | Utilities Nearby | 1.97\u00b1 Acres",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Hospitality, Multifamily, Office, Retail": [],
+   "Hospitality, Mixed Use, Multifamily": [],
+   "Industrial, Mixed Use, Multifamily, Retail": [],
+   "Hospitality, Mixed Use, Multifamily, Senior Living": [],
+   "Land, Mixed Use, Multifamily, Office, Special Purpose": [],
+   "Multifamily, Senior Living": [],
+   "Hospitality, Land, Mixed Use, Multifamily, Senior Living": [],
+   "Industrial, Mixed Use, Multifamily, Office, Retail, Senior Living": [],
+   "Multifamily, Self Storage, Senior Living": [],
+   "Industrial, Land, Mixed Use, Multifamily, Office": [],
+   "Multifamily, Office, Retail": [
+    {
+     "asset_id": "1893257",
+     "address": "12715 McGregor Blvd, Fort Myers, Lee, FL 33919",
+     "ask": 4970000.0,
+     "units": null,
+     "sub_type": "Restaurant, Storefront, Shopping Center",
+     "description_first_line": "This neighborhood center has tremendous upside as most current leases are below market",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2140540",
+     "address": "1410 20th St # 1418, Miami Beach, Miami-Dade County, FL 33139",
+     "ask": 1700000.0,
+     "units": null,
+     "sub_type": "Restaurant, Apartment Building, Traditional Office, Apartment/Condo, Office Space, Commercial Condo",
+     "description_first_line": "Retail | 618 SqFt",
+     "detail_source": "packet example fetch"
+    },
+    {
+     "asset_id": "2208509",
+     "address": "205 4th Ave N, St. Petersburg, Pinellas County, FL 33701",
+     "ask": null,
+     "units": null,
+     "sub_type": "Restaurant, Medical Office, Apartment Building, Commercial, Cafe, Spa",
+     "description_first_line": "Retail | 3,026 SqFt",
+     "detail_source": "packet example fetch"
+    }
+   ],
+   "Hospitality, Industrial, Mixed Use, Multifamily, Retail": [],
+   "Industrial, Multifamily, Office": [],
+   "Hospitality, Mixed Use, Multifamily, Special Purpose": [],
+   "Business for Sale, Hospitality, Land, Multifamily, Retail": [],
+   "Industrial, Land, Mixed Use, Multifamily": [],
+   "Hospitality, Land, Multifamily, Office": [],
+   "Land, Mixed Use, Multifamily, Self Storage": [],
+   "Business for Sale, Multifamily, Office": [],
+   "Industrial, Mixed Use, Multifamily": [],
+   "Land, Mixed Use, Multifamily, Office": [],
+   "Business for Sale, Mixed Use, Multifamily, Retail": [],
+   "Business for Sale, Mixed Use, Multifamily": [],
+   "Land, Mixed Use, Multifamily, Office, Self Storage": [],
+   "Land, Mixed Use, Multifamily, Office, Retail, Special Purpose": [],
+   "Industrial, Mixed Use, Multifamily, Special Purpose": [],
+   "Land, Mobile Home Park, Multifamily": [],
+   "Business for Sale, Mixed Use, Multifamily, Office, Retail": [],
+   "Hospitality, Multifamily, Special Purpose": [],
+   "Industrial, Land, Multifamily, Office, Retail": [],
+   "Mixed Use, Mobile Home Park, Multifamily, Special Purpose": [],
+   "Mixed Use, Multifamily, Office, Senior Living": [],
+   "Business for Sale, Industrial, Land, Multifamily, Office": [],
+   "Business for Sale, Land, Multifamily": [],
+   "Multifamily, Office, Self Storage": [],
+   "Industrial, Multifamily, Retail": [],
+   "Hospitality, Land, Multifamily, Special Purpose": [],
+   "Hospitality, Mixed Use, Multifamily, Retail": [],
+   "Hospitality, Land, Mixed Use, Multifamily, Retail": [],
+   "Hospitality, Mixed Use, Mobile Home Park, Multifamily": [],
+   "Business for Sale, Industrial, Multifamily, Office, Retail": [],
+   "Hospitality, Land, Mixed Use, Multifamily, Special Purpose": [],
+   "Business for Sale, Land, Mixed Use, Multifamily": [],
+   "Hospitality, Multifamily, Senior Living": [],
+   "Land, Multifamily, Self Storage": [],
+   "Hospitality, Land, Mixed Use, Multifamily, Office, Retail, Special Purpose": [],
+   "Business for Sale, Multifamily, Office, Retail": [],
+   "Mixed Use, Mobile Home Park, Multifamily": [],
+   "Industrial, Land, Mixed Use, Multifamily, Office, Retail, Special Purpose": [],
+   "Business for Sale, Multifamily, Office, Retail, Special Purpose": [],
+   "Multifamily, Office, Retail, Special Purpose": [],
+   "Hospitality, Land, Multifamily, Office, Retail, Self Storage, Senior Living": [],
+   "Industrial, Mixed Use, Multifamily, Office, Retail, Special Purpose": [],
+   "Hospitality, Mobile Home Park, Multifamily": [],
+   "Business for Sale, Mobile Home Park, Multifamily": [],
+   "Mobile Home Park, Multifamily, Special Purpose": [],
+   "Hospitality, Industrial, Mixed Use, Multifamily, Office, Retail, Special Purpose": [],
+   "Hospitality, Industrial, Land, Multifamily, Office, Retail, Special Purpose": [],
+   "Business for Sale, Industrial, Land, Mixed Use, Multifamily, Office, Retail, Special Purpose": [],
+   "Business for Sale, Industrial, Mixed Use, Multifamily, Office, Retail": [],
+   "Hospitality, Industrial, Land, Mixed Use, Mobile Home Park, Multifamily, Retail, Self Storage, Special Purpose": [],
+   "Land, Multifamily, Office, Retail, Special Purpose": [],
+   "Hospitality, Multifamily, Office, Retail, Special Purpose": [],
+   "Multifamily, Self Storage": [],
+   "Hospitality, Mixed Use, Multifamily, Senior Living, Special Purpose": [],
+   "Multifamily, Senior Living, Special Purpose": []
+  }
+ },
+ "sub_type_census": {
+  "note": "property_sub_type lives in the DETAIL document (summaryDetails -> SubType); the /assets/search feed does not carry it, so neither census below can be projected onto the 3,496. They are also two DIFFERENT populations and are reported apart on purpose.",
+  "admitted_today": {
+   "denominator": 250,
+   "counts": [
+    [
+     "Apartment Building, Duplex/Triplex/Quadruplex",
+     128
+    ],
+    [
+     "Apartment Building, Duplex/Triplex/Quadruplex, Fourplex",
+     40
+    ],
+    [
+     "Apartment Building",
+     34
+    ],
+    [
+     "(empty)",
+     9
+    ],
+    [
+     "Single Family Rental Portfolio",
+     9
+    ],
+    [
+     "Apartment Building, Apartment/Condo",
+     7
+    ],
+    [
+     "Apartment Building, Duplex/Triplex/Quadruplex, Apartment/Condo",
+     6
+    ],
+    [
+     "Apartment Building, Duplex/Triplex/Quadruplex, Other",
+     4
+    ],
+    [
+     "Apartment Building, Single Family Rental Portfolio",
+     3
+    ],
+    [
+     "Apartment Building, Duplex/Triplex/Quadruplex, Apartment/Condo, Fourplex",
+     3
+    ],
+    [
+     "Single Family Rental Portfolio, Apartment Building",
+     2
+    ],
+    [
+     "Single Family Rental Portfolio, RV Park, Apartment Building",
+     2
+    ],
+    [
+     "Student Housing, Apartment Building",
+     1
+    ],
+    [
+     "vacation rental",
+     1
+    ],
+    [
+     "Apartment Building, Duplex/triplex/quadruplex, Townhome",
+     1
+    ]
+   ],
+   "flagged_out_of_scope_for_2_4u": [
+    [
+     "(empty)",
+     9
+    ],
+    [
+     "Single Family Rental Portfolio",
+     9
+    ],
+    [
+     "Apartment Building, Apartment/Condo",
+     7
+    ],
+    [
+     "Apartment Building, Duplex/Triplex/Quadruplex, Apartment/Condo",
+     6
+    ],
+    [
+     "Apartment Building, Single Family Rental Portfolio",
+     3
+    ],
+    [
+     "Apartment Building, Duplex/Triplex/Quadruplex, Apartment/Condo, Fourplex",
+     3
+    ],
+    [
+     "Single Family Rental Portfolio, Apartment Building",
+     2
+    ],
+    [
+     "Single Family Rental Portfolio, RV Park, Apartment Building",
+     2
+    ],
+    [
+     "Student Housing, Apartment Building",
+     1
+    ],
+    [
+     "vacation rental",
+     1
+    ]
+   ],
+   "flagged_total": 43,
+   "description": "assets that PASSED the exact-match type gate and were detail-fetched (ingest cassette + stored crexi_listings rows). Answers: what are we storing today?"
+  },
+  "compound_sample": {
+   "denominator": 42,
+   "counts": [
+    [
+     "Apartment Building, Hotel",
+     3
+    ],
+    [
+     "(empty)",
+     2
+    ],
+    [
+     "Residential, Single Family Development Opportunity",
+     1
+    ],
+    [
+     "Apartment Building",
+     1
+    ],
+    [
+     "Apartment Building, Residential, Duplex/Triplex/Quadruplex, Residential",
+     1
+    ],
+    [
+     "Farm, Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranch/Agricultural, Residential",
+     1
+    ],
+    [
+     "Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranch/Agricultural, Residential",
+     1
+    ],
+    [
+     "Residential, Single Family Rental Portfolio, Mixed Use, Residential",
+     1
+    ],
+    [
+     "Hotel, Low-Rise/Garden",
+     1
+    ],
+    [
+     "Apartment Building, Traditional Office, Apartment/Condo, Commercial Office",
+     1
+    ],
+    [
+     "Apartment Building, Medical Office, Traditional Office",
+     1
+    ],
+    [
+     "Executive Office, Traditional Office",
+     1
+    ],
+    [
+     "Shopping Center",
+     1
+    ],
+    [
+     "Apartment Building, B-2 zoning, Development",
+     1
+    ],
+    [
+     "Apartment Building, Storefront",
+     1
+    ],
+    [
+     "RV Park, Mixed Use",
+     1
+    ],
+    [
+     "Single Family Rental Portfolio",
+     1
+    ],
+    [
+     "Apartment Building, Mixed Use, Apartment/Condo",
+     1
+    ],
+    [
+     "Commercial, Shopping Center, Storefront",
+     1
+    ],
+    [
+     "Commercial, Apartment Building, Residential, Storefront, Duplex/Triplex/Quadruplex, Residential",
+     1
+    ],
+    [
+     "Apartment Building, Residential, Commercial",
+     1
+    ],
+    [
+     "Restaurant, Storefront, Shopping Center",
+     1
+    ],
+    [
+     "Restaurant, Apartment Building, Traditional Office, Apartment/Condo, Office Space, Commercial Condo",
+     1
+    ],
+    [
+     "Restaurant, Medical Office, Apartment Building, Commercial, Cafe, Spa",
+     1
+    ],
+    [
+     "Auto Shop, Automotive",
+     1
+    ],
+    [
+     "Storefront",
+     1
+    ],
+    [
+     "Storefront, Retail Space",
+     1
+    ],
+    [
+     "Apartment Building, Duplex/Triplex/Quadruplex",
+     1
+    ],
+    [
+     "Apartment Building, Traditional Office, Mixed Use, Apartment/Condo, Office Space",
+     1
+    ],
+    [
+     "Apartment Building, Traditional Office, Mixed Use, Apartment/Condo, Commercial Office",
+     1
+    ],
+    [
+     "RV Park",
+     1
+    ],
+    [
+     "RV Park, RV & Boat Storage",
+     1
+    ],
+    [
+     "Apartment Building, Warehouse, Duplex/Triplex/Quadruplex",
+     1
+    ],
+    [
+     "Apartment Building, Warehouse, Duplex/Triplex/Quadruplex, Industrial",
+     1
+    ],
+    [
+     "Commercial, Apartment Building, Business, Duplex/Triplex/Quadruplex",
+     1
+    ],
+    [
+     "Shopping Center, Apartment Building, Commercial",
+     1
+    ],
+    [
+     "Commercial, Residential",
+     1
+    ],
+    [
+     "Commercial, Apartment Building, Resort, Duplex/Triplex/Quadruplex",
+     1
+    ],
+    [
+     "Apartment Building, Commercial, Motel",
+     1
+    ]
+   ],
+   "flagged_out_of_scope_for_2_4u": [
+    [
+     "(empty)",
+     2
+    ],
+    [
+     "Farm, Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranch/Agricultural, Residential",
+     1
+    ],
+    [
+     "Ranch, Residential, Single Family Rental Portfolio, Mixed Use, Farm/Ranch/Agricultural, Residential",
+     1
+    ],
+    [
+     "Residential, Single Family Rental Portfolio, Mixed Use, Residential",
+     1
+    ],
+    [
+     "Apartment Building, Traditional Office, Apartment/Condo, Commercial Office",
+     1
+    ],
+    [
+     "RV Park, Mixed Use",
+     1
+    ],
+    [
+     "Single Family Rental Portfolio",
+     1
+    ],
+    [
+     "Apartment Building, Mixed Use, Apartment/Condo",
+     1
+    ],
+    [
+     "Restaurant, Apartment Building, Traditional Office, Apartment/Condo, Office Space, Commercial Condo",
+     1
+    ],
+    [
+     "Apartment Building, Traditional Office, Mixed Use, Apartment/Condo, Office Space",
+     1
+    ],
+    [
+     "Apartment Building, Traditional Office, Mixed Use, Apartment/Condo, Commercial Office",
+     1
+    ],
+    [
+     "RV Park",
+     1
+    ],
+    [
+     "RV Park, RV & Boat Storage",
+     1
+    ]
+   ],
+   "flagged_total": 14,
+   "description": "the bounded example fetch of COMPOUND-type listings -- the only sub-type data that has ever existed for them, since the gate drops them before any fetch. Tiny and not random (3 per type set): read as anecdote. Answers: what would admitting compounds bring in?"
+  }
+ },
+ "example_units_band": {
+  "n": 45,
+  "counts": [
+   [
+    "units NULL",
+    20
+   ],
+   [
+    "5+ units",
+    17
+   ],
+   [
+    "2-4 units",
+    5
+   ],
+   [
+    "1 unit",
+    3
+   ]
+  ],
+  "note": "3 examples per type set, not a random sample -- read as anecdote, not as a rate. 'units NULL' here is the same defect as F-B10."
+ },
+ "policy_costs": {
+  "rows": [
+   {
+    "policy": "P0 today (exact match)",
+    "rule": "joined type string == \"Multifamily\" (listing_filters.py:106-108)",
+    "admitted": 2410,
+    "excluded": 1086,
+    "admitted_pct": 68.9,
+    "detail_fetches": 7230,
+    "delta_fetches_vs_today": 0
+   },
+   {
+    "policy": "P1 substring (the comps rule)",
+    "rule": "type string CONTAINS \"multifamily\" (harvester.py:141-149)",
+    "admitted": 3496,
+    "excluded": 0,
+    "admitted_pct": 100.0,
+    "detail_fetches": 10488,
+    "delta_fetches_vs_today": 3258
+   },
+   {
+    "policy": "P2 substring minus Land/MHP",
+    "rule": "contains Multifamily AND contains neither \"Land\" nor \"Mobile Home Park\"",
+    "admitted": 2801,
+    "excluded": 695,
+    "admitted_pct": 80.1,
+    "detail_fetches": 8403,
+    "delta_fetches_vs_today": 1173
+   },
+   {
+    "policy": "P3 P2 + at most one co-type",
+    "rule": "as P2, and the listing carries at most 2 types total",
+    "admitted": 2595,
+    "excluded": 901,
+    "admitted_pct": 74.2,
+    "detail_fetches": 7785,
+    "delta_fetches_vs_today": 555
+   },
+   {
+    "policy": "P4 exact + building-only co-types",
+    "rule": "exact Multifamily, OR every co-type is one of Office / Retail / Mixed Use (i.e. there IS a building)",
+    "admitted": 2604,
+    "excluded": 892,
+    "admitted_pct": 74.5,
+    "detail_fetches": 7812,
+    "delta_fetches_vs_today": 582
+   }
+  ],
+  "fetch_unit": "3 requests per admitted listing (get_property_asset + get_asset_brokers + get_asset_gallery, listing_harvester.py:124-129)",
+  "sub_type_cost_note": "NO sub-type policy can appear in this table. property_sub_type is only known AFTER the 3-request detail fetch, so a sub-type filter saves ZERO requests -- it can only prevent storage and downstream value-route work. Type policy is the only lever that moves the fetch bill."
+ },
+ "the_inconsistency": {
+  "listings_path": {
+   "site": "listing_filters.py:106-108 (via listing_harvester.py:116-122)",
+   "rule": "(stub_type or \"\").strip().lower() in self.property_types",
+   "behaviour": "EXACT set membership on the JOINED string -> compound types DROPPED",
+   "deliberate": true,
+   "evidence": "listing_harvester.py:116-122 \"Strict per operator choice -- compound types like 'Land, Multifamily' are excluded\"; locked by test_crexi_listings.py:160 and test_crexi_ingest_service.py:127"
+  },
+  "comps_path": {
+   "site": "harvester.py:141-149",
+   "rule": "\"multifamily\" not in stub.type.lower() -> reject",
+   "behaviour": "SUBSTRING match -> compound types KEPT",
+   "extra": "the comps path additionally requires a non-null in-band unit count at the STUB stage; the listings path does not."
+  },
+  "statement": "Two Crexi code paths disagree about what multifamily is. The listings harvester admits 2,410 of 3,496; the comps harvester's rule would admit 3,496 of 3,496. A comp can therefore be a property the listings lane would never have ingested. This is surfaced as a decision, NOT fixed here."
+ }
+}

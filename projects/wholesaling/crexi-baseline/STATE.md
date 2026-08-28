@@ -7,19 +7,19 @@
 ## Where things stand
 
 **Epic:** build a reproducible, fully-observed baseline of the Crexi
-ingest→analysis lane, then optimize. The **INGEST half is now baselined end to
-end** (`GOAL_INGEST.md`, all three phases, 2026-08-27 — last section of this
-file). The value-route half has instrumentation and defect classes but no frozen
-corpus-wide baseline yet.
+ingest→analysis lane, then optimize. The **INGEST half is baselined end to end**
+(`GOAL_INGEST.md`, 2026-08-27) **and its denominator is now settled**
+(`GOAL_COVERAGE.md`, 2026-08-28 — last section of this file). The value-route half
+has instrumentation and defect classes but no frozen corpus-wide baseline yet.
 
-**Current activity:** walking listings one at a time to harvest defect classes
-(error analysis) — deliberately NOT building a corpus yet. Operator's call, and
-correct: the playbook's ch. 03 §5.1 requires harvesting real failures before
-deriving any ontology.
+**Current status: BLOCKED on an operator decision.** The targeting decision packet is
+`runs/coverage_report_FL.txt`; nothing further should start on the ingest lane until
+the buy-box question is answered. See `NEXT.md`.
 
-**Next task (operator-directed):** full auditability of *what produced each value*
-— deterministic script vs LLM vs external API — at every step, before walking more
-listings. **DONE 2026-08-27** — see "Provenance ledger" at the end of this file.
+Completed and superseded, kept for the trail: walking listings one at a time to harvest
+defect classes (playbook ch. 03 §5.1 — harvest real failures before deriving an
+ontology); and full per-value provenance auditability, **DONE 2026-08-27** — see
+"Provenance ledger" below.
 
 ## The rig
 
@@ -33,12 +33,14 @@ All rig files under `projects/wholesaling/crexi-baseline/`.
 | `rig/preflight.sh` | Wrapper that runs the above from the guarded CWD |
 | `rig/run.sh` | **The only sanctioned way to invoke anything.** cds to the work dir, runs preflight *there*, then execs |
 | `rig/db.sh` | `up / schema / down / nuke / snapshot / restore / psql` |
-| `rig/defects.py` | Stable defect-class registry (F-B1…F-B16), keyed to stages |
+| `rig/defects.py` | Stable defect-class registry (F-B1…F-B16), keyed to stages. F-B14 `confirmed`, F-B15 re-classified `policy` (2026-08-28) |
 | `rig/trace.py` | Per-listing seam CAPTURE for the VALUE-ROUTE lane (runtime wrapping) |
 | `rig/ingest_trace.py` | Per-ASSET seam CAPTURE for the INGEST lane + its driver |
 | `rig/ingest_funnel.py` | Derives + renders the drop-attributed ingest funnel table |
 | `rig/provenance.py` | Per-value provenance ledger: model, derivation, producer-mix aggregate |
 | `rig/cassette.py` | Record/replay for BOTH non-deterministic boundaries: Crexi HTTP + the LLM |
+| `rig/coverage_probe.py` | Bounded LIVE probe that settled F-B14: 5 arms, hard request budget |
+| `rig/coverage_report.py` | Derives the F-B14 verdict + the targeting decision packet. No network |
 | `runs/*.jsonl` | Trace + sweep outputs (`trace_arm*`, `http_arm*`, `ai_arm*`) |
 | `FINDINGS.md` | The defect write-ups with evidence chains |
 
@@ -124,8 +126,11 @@ Recorded because they matter for trusting the rest:
 - Value-route throughput: ~30s–2min/listing, dominated by comp fetches at
   `crexi_requests_per_second=2.0`. A full FL pass (1,511 type-matched) ≈ 12–40h.
 - Income resolution alone: median **7.6s**/listing in Arm B (the LLM call).
-- FL scope: 56 county partitions, 2,087 swept, 1,511 type-matched multifamily,
-  `total_count=3,480`.
+- FL scope: `total_count` = **3,496** (was recorded as 3,480 on an earlier pass; both
+  are live readings of a moving book, and the 2026-08-28 probe enumerated 3,496 assets
+  and matched it exactly). 56 county partitions reach only **1,962** of that — see
+  F-B14, settled 2026-08-28. Earlier figures of "2,087 swept / 1,511 type-matched" are
+  from a pre-baseline pass; the frozen baseline is 1,962 swept / 1,407 type-matched.
 - Prod cron fires 01:41/07:41/13:41/19:41 UTC — stay clear during record passes.
 
 ## Offline replay — the corpus is self-contained
@@ -531,3 +536,157 @@ that does not exist on this path.
 
 Per `GOAL_INGEST.md`: report, do not fix. Nothing in `~/code/wholesaling` was touched.
 Recommended first experiment and its pre-registration are in NEXT.md.
+
+---
+
+## 2026-08-28 — `GOAL_COVERAGE.md`: F-B14 settled, targeting packet delivered
+
+**Task:** `GOAL_COVERAGE.md`, both phases. Built entirely by seam-wrapping and new rig
+scripts in this repo; `git -C ~/code/wholesaling status` clean (0 changed files).
+No product file touched, no ingest run, no DB write.
+
+### What was built
+
+| file | role |
+|---|---|
+| `rig/coverage_probe.py` | the bounded live probe — 5 arms (`window` / `ceiling` / `price` / `variants` / `examples`), a hard `MAX_REQUESTS` budget that aborts rather than sweeps on |
+| `rig/coverage_report.py` | pure derivation from frozen files: the verdict + the decision packet + the rendered report. No network. |
+| `runs/coverage_report_FL.txt` | **the deliverable the operator reads** |
+| `runs/coverage_verdict_FL.json` | F-B14 evidence, incl. per-asset miss attribution and per-county reconciliation |
+| `runs/targeting_packet_FL.json` | the packet as data |
+| `runs/coverage_{window,price,ceiling,variants,examples}_FL.jsonl` | raw arm outputs + `.calls.jsonl` request logs |
+| `runs/cassettes/coverage_fl.jsonl` | every live call this session made, recorded |
+
+**Live cost: 170 requests total, ~85s of wall clock**, all outside the prod cron windows
+(ran 05:33–05:56 UTC; cron fires 01:41 / 07:41 / 13:41 / 19:41).
+
+**Re-derivable offline, proven not inferred.** The whole probe is recorded in
+`runs/cassettes/coverage_fl.jsonl` (170 entries) and the discriminating arm replays
+identically with the network cut:
+
+```
+CREXI_CASSETTE_MODE=replay CREXI_BASE_URL=http://127.0.0.1:1 ./rig/run.sh rig/coverage_probe.py --arm window
+  -> 1499 / 1499 ids, 31 requests, wall 0.0s, id sets identical to the live pass
+```
+
+A replay miss raises (`cassette.py` fails closed), so "it stayed offline" is proven each
+run. `rig/coverage_report.py` makes no network calls at all — the verdict re-derives from
+frozen files, so a taxonomy fix never needs a re-sweep.
+
+### Phase 1 — F-B14: CONFIRMED. The falsifier was tested and did not fire.
+
+```
+whole-state population, ENUMERATED (price-partitioned)   3496
+whole-state total_count reported by Crexi                3496   exact match
+county-partition union (frozen baseline)                 1962
+  intersection                                           1962   <- a strict SUBSET
+  whole-state only                                       1534   43.9% of scope
+  county-union only                                         0
+```
+
+**The obvious probe would have produced a confidently wrong confirmation.** A plain
+whole-state paged sweep truncates at 1,499 by our own arithmetic
+(`assets_search.py:180-182`), so "far fewer than 3,496 came back" is guaranteed before
+the first call and measures our client, not Crexi's coverage. Three arms were used
+instead; the load-bearing one is the disjoint-windows test (newest-1499 ∪ oldest-1499 =
+2,998, **overlap 0**), which bounds the population from below *without trusting
+`total_count` at all*.
+
+**Both alternative explanations ruled out, live.** `SAFE_WINDOW=1400` is only ever
+compared against `total_count` to decide whether to partition — it never truncates a
+sweep. The 1,499 ceiling is real but is not the gap. Bonus correction: the server's
+actual rule is **`offset < 1500`**, not the `offset + count < 1500` its own 400 message
+states — `offset=1499, count=1` succeeds. Delisting is excluded too: all 1,534 missed
+assets are `On-Market` and 0 were activated after the frozen run.
+
+**The mechanism is the OPPOSITE of the pre-registered hypothesis, which was auditing's
+whole point.** The hypothesis said the county filter "is not a payload-county match".
+It is a case-insensitive but otherwise **literal string match** on the record's own
+county field — and that is exactly why it misses, because Crexi's county field is
+un-normalized:
+
+```
+counties=['Duval County'] -> 25     counties=['Duval'] -> 107     counties=['DUVAL'] -> 107
+counties=['St. Lucie County'] -> 10 counties=['St Lucie County'] -> 25  counties=['Belize'] -> 4
+```
+
+Raw payload county form predicts the miss almost perfectly: `"X County"` → 2% miss,
+bare `"X"` → 99% miss, `ALLCAPS` → 93% miss. And **939 of 3,496 records carry no county
+string at all**, so no county key of any spelling can ever reach them.
+
+> County partitioning is structurally incapable of covering the scope. Not a
+> longer-county-list problem. Price bisection already covers it: 3,496/3,496, 14 bands,
+> 77 requests, 0 warnings.
+
+The hypothesis's exhibit was also misread: asset `2297949` *does* return under Brevard
+(it is that partition's winner) as well as Orange and Osceola. It demonstrates the index
+being **over**-inclusive for 2 assets — the opposite failure mode from losing 1,534.
+
+**Consequence for the frozen baseline:** the funnel table and fingerprint
+`3c15972614b09973` are unchanged and still correct for what they measured. The
+denominator moved: type gate 71.7% of swept → **40.2% of scope**; strict matches 4.6% →
+**2.6%**. F-B14 and F-B15 are near-independent (34.6% compound among the missed vs 28.3%
+among the reached), so their fixes are additive.
+
+### Phase 2 — the targeting decision packet
+
+`runs/coverage_report_FL.txt`. Over the corrected 3,496 denominator:
+
+- **Compound-type census.** 2,410 exact `Multifamily` (68.9%, admitted today); **1,086
+  compound (31.1%, dropped today)**; 0 carry no Multifamily at all, so the ANY-match
+  server filter is honest. **197 distinct joined strings but only 111 distinct type
+  SETS** — 86 strings are pure re-orderings (`"Multifamily, Land"` 248 and
+  `"Land, Multifamily"` 203 are two keys for one thing), because the gate compares a
+  joined string.
+- **Sub-type census**, denominator **250** detail-fetched assets (150 ingest cassette +
+  100 stored rows) — stated as a denominator, not projected onto the 3,496, and flagged
+  as a *biased* sample: every asset in it already passed the exact-match gate, so it
+  says nothing about what the 1,086 compounds would bring. 43/250 (17.2%) are flagged
+  out of scope for a 2-4u buy-box (SFR portfolio, RV park, Apartment/Condo, student
+  housing, vacation rental, empty).
+- **Cost of five candidate policies**, in listings *and* in detail fetches (3 requests
+  each): P0 today 2,410 / 7,230 → P1 the comps rule 3,496 / 10,488 (+3,258) → P2 minus
+  Land+MHP 2,801 / 8,403 (+1,173) → P3 2,595 → P4 2,604. **No sub-type policy can
+  appear in that table**: sub-type is only known *after* the 3-request fetch, so it
+  saves zero requests. Type policy is the only lever on the fetch bill.
+- **45 bounded example detail-fetches**, 3 per type set — the only units/sub-type data
+  that has ever existed for compound listings, since the exact-match gate means none
+  had ever been fetched. This is what makes the question answerable: the drop set holds
+  a 4-unit at $494k in Jacksonville (`1520487`, `Mixed Use, Multifamily, Office`) *and*
+  an auto shop (`1653811`, `Multifamily, Retail`) *and* raw acreage.
+- **The inconsistency**, stated and not fixed: listings exact-match and DROP compounds
+  (`listing_filters.py:106-108`); comps substring-match and KEEP them
+  (`harvester.py:141-149`, which additionally demands an in-band unit count at the stub
+  stage). A comp can be a property the listings lane would never have ingested.
+
+### Bookkeeping correction (`rig/defects.py`)
+
+- **F-B14** → `status="confirmed"`, title rewritten to name the real mechanism, `settled`
+  field pointing at the evidence.
+- **F-B15** → severity `high` → **`policy`**, `status="reclassified"`. The original
+  rationale ("config documents substrings; code does set membership") is **withdrawn**:
+  the exact match is deliberate and documented (`listing_harvester.py:116-122`) and
+  test-locked (`test_crexi_listings.py:160`, `test_crexi_ingest_service.py:127`). Code
+  doing what its docstring and tests say is not a defect. The id is kept and re-pointed
+  at the two things that *are* open — whether the policy is right, and the
+  listings/comps disagreement. Both `was` and `open_question` are recorded on the entry
+  so the correction is auditable rather than silent.
+
+Funnel fingerprint re-checked after the registry edit: still `3c15972614b09973`.
+
+### Recommended first change — a recommendation, not an action
+
+**Replace county partitioning with price-band partitioning in `backfill_partitions`.**
+Not the type gate. It needs no operator decision, it is already proven on this exact
+scope by the product's own unmodified `_price_bisect`, and it is worth **+1,003 admitted
+listings under today's unchanged gate** — comparable to the type policy's +1,086 and
+additive with it. Carry this caveat into it: `crexi_ingest.py:175-178` warns that
+unpriced listings "don't attach to price bands reliably"; our probe lost nothing
+(3,496 = 3,496), but every tail band returned a near-constant ~47-52, consistent with
+unpriced records appearing in *every* band. Verify that deliberately before price
+becomes the only partition key.
+
+### Stopped here, per the goal file
+
+Did not change the type gate, add sub-type filtering, or add a do-not-refetch marker;
+did not touch F-B10 / F-B11 / F-B8 / F-B2.

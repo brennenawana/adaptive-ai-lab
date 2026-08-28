@@ -624,3 +624,192 @@ Consequence: reproducing this baseline requires `./rig/db.sh restore pre_ingest_
 *before* every replay. Verified: with the restore, three runs produce identical
 records; without it, the run dies on a cassette miss (which is the correct behaviour —
 it fails closed rather than phoning home).
+
+---
+
+# 2026-08-28 — F-B14 SETTLED, and F-B15 re-classified
+
+Two sessions are involved here. The ingest session **authored** F-B14 and a
+pre-registered hypothesis; this session **audited** it. That distinction matters for
+reading what follows: the claim survived, its stated mechanism did not.
+
+## F-B14 · SETTLED — CONFIRMED as a real coverage loss (43.9%), and the mechanism is the opposite of the one predicted
+
+**Verdict: the pre-registered falsifier was tested and did NOT fire.**
+
+> Falsifier as written: *"if the whole-state paged sweep returns approximately the
+> same 1,965 assets, then the whole-state `total_count` is inflated and F-B14 is a
+> reporting artefact, not a coverage loss."*
+
+| set | n |
+|---|---|
+| whole-state population, **enumerated** (price-partitioned) | **3,496** |
+| whole-state `total_count` reported by Crexi | **3,496** — exact match |
+| county-partition union (frozen baseline) | 1,962 |
+| intersection | **1,962** |
+| whole-state only | **1,534 (43.9%)** |
+| county-union only | **0** |
+
+The county union is a *strict subset*. `total_count` is not inflated by one listing:
+a price-band partitioning of the identical server-side scope enumerated 3,496 distinct
+ids with zero truncation and zero warnings. Every rate the frozen baseline reports over
+`swept` is a rate over 56.1% of the population.
+
+### Why the obvious probe would have lied
+
+"Run a whole-state paged sweep and count" cannot settle this, and running it naively
+would have produced a *confidently wrong* confirmation. `assets_search.py:180-182`
+computes `size = min(page_size, PAGE_WINDOW - 1 - offset)` and returns `truncated` at
+`size <= 0`, so a whole-state sweep stops at **1,499 ids regardless of the population**.
+"The sweep returned far fewer than 3,496" is guaranteed in advance and carries no
+information — it measures our own client and reports it as Crexi's coverage.
+
+Three arms were run instead, each able to falsify on its own.
+
+**Arm 1 — two windows, opposite ends.** Page whole-state twice, `Descending` then
+`Ascending`. Each is capped at 1,499, but the *overlap* is the measurement and no
+pagination cap can manufacture it.
+
+```
+newest-1499 window   1499      oldest-1499 window   1499
+overlap                 0      union                2998
+```
+
+Perfectly **disjoint**. The reachable population is ≥ 2,998 — already 1.5× the county
+union — established without trusting `total_count` at all. Had the population really
+been ~1,965, the two windows would have overlapped by ~1,033.
+
+**Arm 2 — the pagination ceiling, ruled out as an explanation.** Also: the constant
+the code believes in is wrong.
+
+```
+offset=1498 count=1  -> OK   (sum 1499)
+offset=1499 count=1  -> OK   (sum 1500)   <- the documented rule says this must 400
+offset=1500 count=1  -> 400  "Offset + Count must be less than 1500"
+```
+
+The server's actual rule is **`offset < 1500`**; `count` is not in the check, despite
+the error text (and despite `assets_search.py:14-16`, which encodes the message rather
+than the behaviour). Our `PAGE_WINDOW - 1 - offset` arithmetic is therefore slightly
+*more* conservative than the API requires — it collects 1,499 where 1,599 was available.
+Immaterial to F-B14, and noted only so the next reader does not re-derive it.
+
+`SAFE_WINDOW = 1400` (`crexi_ingest.py:61`) is a different constant with a different
+job: it is only ever compared against `total_count` to decide *whether to partition*.
+It never truncates a sweep in progress. **Neither cap explains the gap.**
+
+**Arm 3 — an independent partition key.** Re-partition the same scope by asking price
+using the product's own `_price_bisect`: 14 bands, 0 warnings, every band complete.
+Union = 3,496 = `total_count`. County partitioning loses 43.9% of a scope that price
+partitioning enumerates completely.
+
+### The mechanism — and where the pre-registered hypothesis went wrong
+
+> Hypothesis as written: *"the gap is Crexi's county index, not delisting. Asset
+> `2297949`'s payload says Brevard yet it returns under Orange and Osceola filters."*
+
+**The conclusion is right — it is the county index, and delisting is fully excluded**
+(0 of the 1,534 were activated after the frozen run; all are live in the same feed).
+**The stated mechanism is backwards, and its exhibit is misread.**
+
+Asset `2297949` returns under `Brevard County` — it is that partition's *winner*. It
+*also* returns under Orange and Osceola. So the exhibit demonstrates the index being
+**over**-inclusive for 2 assets in the whole book (F-B16), which is the opposite failure
+mode from losing 1,534. It cannot support "the filter is not a payload-county match".
+
+The filter is very nearly the *opposite* of that. Splitting the population by the raw
+form of `locations[].county` in the payload:
+
+| raw county string form | reached by a county sweep | missed | miss rate |
+|---|---|---|---|
+| `"Duval County"` — Title + suffix | 1,949 | 33 | **2%** |
+| `"Duval"` — Title, no suffix | 4 | 448 | **99%** |
+| `"MANATEE"` — all caps | 9 | 114 | **93%** |
+
+Probed live, one `count=1` request per variant:
+
+```
+counties=['Duval County']       -> 25        counties=['Volusia County']    -> 51
+counties=['Duval']              -> 107       counties=['Volusia']           -> 98
+counties=['DUVAL']              -> 107       counties=['Manatee County']    -> 22
+counties=['duval']              -> 107       counties=['MANATEE']           -> 27
+counties=['St. Lucie County']   -> 10        counties=['Putnam County']     -> 2
+counties=['St Lucie County']    -> 25        counties=['Putnam']            -> 13
+counties=['St Lucie']           -> 0         counties=['Other Florida County'] -> 6
+                                             counties=['Belize']            -> 4
+```
+
+**`counties` is a case-insensitive but otherwise LITERAL string match** on the county
+value stored on the record. Not a geo lookup, not normalized. The suffix matters, the
+period in `St.` matters, case does not. `"Belize"` is a filterable Florida county value.
+
+So the correct statement is: *the county filter matches the record's county string
+exactly, and that is precisely why it misses* — because Crexi's own county field is
+un-normalized. Our committed Census gazetteer supplies the one canonical form
+(`"X County"`), which is the wrong key for every record entered any other way.
+
+Where the 1,534 went:
+
+| | n |
+|---|---|
+| payload carries **no county string at all** | **939** (61%) |
+| payload names a county that **was** swept (wrong string form) | 526 |
+| payload names a county that was not swept | 69 |
+| activated after the frozen run (new stock, not a miss) | **0** |
+
+The 939 are the load-bearing number: **no county key of any spelling can reach them.**
+County partitioning is not fixable by a better county list — it is structurally
+incapable of covering the scope. Price bisection already covers it, today, in 77
+requests.
+
+Every one of the 56 non-zero county partitions swept exactly its probe count (0
+truncated, 0 short), confirming the earlier session's finding that the partitioner is
+internally consistent. Its union is simply not the scope.
+
+### What this does to the frozen baseline's rates
+
+| | over `swept` (as reported) | over the true scope |
+|---|---|---|
+| reached by the sweep | 1,962 / 1,962 = 100% | 1,962 / 3,496 = **56.1%** |
+| admitted by the type gate | 1,407 / 1,962 = 71.7% | 1,407 / 3,496 = **40.2%** |
+| strict 2-4u matches | 90 / 1,962 = 4.6% | 90 / 3,496 = **2.6%** |
+
+The funnel fingerprint `3c15972614b09973` is unchanged and still correct *for what it
+measured*; what changes is the denominator it should be read against.
+
+**F-B14 and F-B15 are largely independent.** The miss set is only mildly type-biased
+(34.6% compound among the missed vs 28.3% among the reached), so closing the coverage
+hole and changing the type policy are additive, not overlapping.
+
+**Evidence:** `runs/coverage_verdict_FL.json`, `runs/coverage_report_FL.txt`,
+`runs/coverage_{window,price,ceiling,variants,examples}_FL.jsonl`, cassette
+`runs/cassettes/coverage_fl.jsonl`. Probe: `rig/coverage_probe.py` (170 live requests
+total, budget-capped). Derivation: `rig/coverage_report.py` (no network).
+
+---
+
+## F-B15 · RE-CLASSIFIED — the exact match is deliberate; the policy and the inconsistency are what is open
+
+The original write-up filed this at **high severity** with the rationale *"the
+`ScrapeConfig` field documents itself as 'Property-type substrings to keep'
+(`scrape_config.py:73-76`); the implementation is exact set membership. The documented
+contract and the code disagree."*
+
+**That rationale is withdrawn.** The exact match is deliberate and documented at the
+call site — `listing_harvester.py:116-122`: *"Strict per operator choice — compound
+types like 'Land, Multifamily' are excluded (exact match against the lower-cased
+set)"* — and it is locked by `test_crexi_listings.py:160` and
+`test_crexi_ingest_service.py:127`. Code that does what its docstring and its tests
+say is not a defect. The stale prose in `scrape_config.py` is a doc-comment nit, not a
+43%-of-a-funnel finding.
+
+**The id is kept** (traces already tag observations with it) and re-pointed at what is
+genuinely open, now at severity `policy`:
+
+1. **Is the policy right?** It costs **1,086 of 3,496 (31.1%)** over the corrected
+   denominator. A bounded example fetch (below) shows the drop set contains real 2-4
+   unit multifamily *and* offices *and* raw land — the rule is indiscriminate in both
+   directions.
+2. **Two code paths disagree about what multifamily is**, and nobody chose that.
+
+Sizing and evidence are in the decision packet: `runs/coverage_report_FL.txt`.
