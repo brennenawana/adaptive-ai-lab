@@ -16,6 +16,13 @@ PHASE 3  iterate: change ONE thing, re-run, measure       <- the payoff
 Phase 3 is the point. Phases 1–2 exist only to make Phase 3's numbers mean
 something.
 
+## ACTIVE GOAL: `GOAL_COVERAGE.md`
+
+Ingest baseline is FROZEN (fingerprint 3c15972614b09973, 1,962 records).
+Next: settle F-B14 (the sweep reached 56% of its own scope, so every rate is
+over the wrong denominator), then build the targeting decision packet for the
+operator. `GOAL_INGEST.md` complete; `GOAL_BASELINE.md` paused.
+
 ## SCOPE CORRECTION 2026-08-27
 
 The instrumentation built so far covers the **value-route / analysis** lane only
