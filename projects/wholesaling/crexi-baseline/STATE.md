@@ -7,8 +7,10 @@
 ## Where things stand
 
 **Epic:** build a reproducible, fully-observed baseline of the Crexi
-ingest→analysis lane, then optimize. Plan approved; Phases 0–1 complete, Phase 2
-(trace instrumentation) partially built, Phase 3+ not started.
+ingest→analysis lane, then optimize. The **INGEST half is now baselined end to
+end** (`GOAL_INGEST.md`, all three phases, 2026-08-27 — last section of this
+file). The value-route half has instrumentation and defect classes but no frozen
+corpus-wide baseline yet.
 
 **Current activity:** walking listings one at a time to harvest defect classes
 (error analysis) — deliberately NOT building a corpus yet. Operator's call, and
@@ -31,8 +33,10 @@ All rig files under `projects/wholesaling/crexi-baseline/`.
 | `rig/preflight.sh` | Wrapper that runs the above from the guarded CWD |
 | `rig/run.sh` | **The only sanctioned way to invoke anything.** cds to the work dir, runs preflight *there*, then execs |
 | `rig/db.sh` | `up / schema / down / nuke / snapshot / restore / psql` |
-| `rig/defects.py` | Stable defect-class registry (F-B1…F-B8), keyed to stages |
-| `rig/trace.py` | Per-listing seam CAPTURE via runtime wrapping (no product edits) |
+| `rig/defects.py` | Stable defect-class registry (F-B1…F-B16), keyed to stages |
+| `rig/trace.py` | Per-listing seam CAPTURE for the VALUE-ROUTE lane (runtime wrapping) |
+| `rig/ingest_trace.py` | Per-ASSET seam CAPTURE for the INGEST lane + its driver |
+| `rig/ingest_funnel.py` | Derives + renders the drop-attributed ingest funnel table |
 | `rig/provenance.py` | Per-value provenance ledger: model, derivation, producer-mix aggregate |
 | `rig/cassette.py` | Record/replay for BOTH non-deterministic boundaries: Crexi HTTP + the LLM |
 | `runs/*.jsonl` | Trace + sweep outputs (`trace_arm*`, `http_arm*`, `ai_arm*`) |
@@ -175,7 +179,8 @@ rather than Crexi's churn.
 - **Routing and gate stages.** Every listing so far terminates at
   `MF_REVIEW_HOLD_REASON`, so the gate has never done real work in a trace.
 - The `F-B5` no-ARV case is undiagnosed.
-- Ingest-stage defects (only the value-route half is instrumented).
+- ~~Ingest-stage defects (only the value-route half is instrumented).~~
+  **Closed 2026-08-27 — see "the INGEST baseline" at the end of this file.**
 
 ---
 
@@ -423,3 +428,106 @@ by hand. And the ledger now shows what the router had actually reached — stage
   estimate so `route` can price a deal.
 - `human_attested` and `external_api` remain unobserved producers across every run
   so far — no value in this lane is either.
+
+---
+
+## 2026-08-27 (ingest) — the INGEST baseline: all three phases of `GOAL_INGEST.md`
+
+**Task:** `GOAL_INGEST.md`. Built entirely by runtime seam-wrapping in this repo;
+`git -C ~/code/wholesaling status` clean (0 changed files).
+
+### What was built
+
+| file | role |
+|---|---|
+| `rig/ingest_trace.py` | per-ASSET capture across all 11 ingest steps + the driver |
+| `rig/ingest_funnel.py` | derives + renders the drop-attributed table from a frozen JSONL |
+| `rig/defects.py` | +7 ingest classes: **F-B10 … F-B16** |
+| `runs/cassettes/ingest_fl.jsonl` | 586 entries, sha16 `6f1db8214a87d568` |
+| `runs/ingest_trace_FL_record.jsonl` | the frozen baseline, 1,962 per-asset records |
+| `runs/ingest_funnel_FL.txt` | the rendered table |
+| `runs/snapshots/pre_ingest_baseline.dump` | **required** to replay (see below) |
+
+Two deliberate departures from `trace.py`:
+
+* **No `_boundary()`.** `ingest_state` is phase-batched, not interleaved, so records
+  key on `asset_id` directly. The misattribution class boundary-detection exists to
+  prevent cannot arise here.
+* **Capture + derive + RECONCILE.** Steps 3/4/5/6 are inline comprehensions with no
+  wrappable seam, so they are reproduced by re-running the product's own predicates —
+  through **pre-patch originals**, so the derivation cannot pollute the observed call
+  counts it is then checked against. All **10/10** derived populations match
+  `IngestStats`; a mismatch exits 1 rather than printing a baseline that does not
+  explain its own aggregate. 34 seams asserted with source digests.
+
+### Phase 1 — record / replay, proven not inferred
+
+```
+record : 456 recorded (130 pre-seeded), wall 228s
+replay : 586 hits / 0 misses, wall 0s, CREXI_BASE_URL=http://127.0.0.1:1
+replay : 586 hits / 0 misses, wall 0s        <- identical fingerprint 3c15972614b09973
+```
+Per-asset records byte-identical across all three; the only manifest difference is
+per-sweep `ms`. A miss **raises**: proven twice, exit=1 (`GET /assets/2429180`, the
+151st detail fetch).
+
+**The ingest is STATEFUL — the cassette alone is not enough.** An `--apply` pass
+stamps `scrape_cursor`, so the next run reads a watermark, takes the INCREMENTAL
+branch (one whole-state scope, no partitions) and issues a search body that was never
+recorded. The DB is an *input to the request shape*. `./rig/db.sh restore
+pre_ingest_baseline` is now a required step before every replay, and is in NEXT.md.
+
+### The baseline (FL, arm A, pinned `2026-08-27T23:00:00Z`, `--max-fetch 150`)
+
+```
+swept 1962   (56 county partitions)
+  -> dropped: type gate        555  28.3%   <- 555/555 are COMPOUND types containing "Multifamily"
+  -> dropped: unpriced           0   0.0%   (step inactive: include_unpriced=True)
+  -> unchanged (economy)        89   4.5%
+  -> capped (--max-fetch)     1168  59.5%   (never offered to a gate; run flagged truncated)
+  -> fetch error                 0   0.0%
+  -> dropped: normalization      0   0.0%
+  -> upserted                  150   7.6%   insert 150 / update 0
+```
+Steps 1–6 are measured over all 1,962; steps 7–11 over the 150 the cap admitted.
+
+### The seven findings (full write-ups + evidence in FINDINGS.md)
+
+| id | sev | rate | summary |
+|---|---|---|---|
+| **F-B14** | high | 43.8% of scope | county partitions reach **1,965 of 3,496** in-scope listings; no counter can show it (`total_in_scope` is None *exactly* when partitioning happened) |
+| **F-B15** | high | 28.3% of sweep | type gate exact-matches a **joined** compound type string; 555/555 drops contain `Multifamily` |
+| **F-B10** | high | 20% of fetched | unit count stated only in prose → `units` NULL; 23/150 are in-band, so strict would move **60.0% → 75.3%** |
+| **F-B11** | medium | 100% | `tenancy_type` / `occupancy_rate_percent` / `neighborhood` NULL by construction — `to_search_stub` never maps them; two configurable filters are silently unusable |
+| **F-B12** | low | 0.7% | plausibility envelopes never run on this path (`registry._sanitize_record` is their only caller and it takes `Property`/`Listing`) |
+| **F-B13** | low | 0% | a normalization drop is uncounted by every counter — latent, 0 occurrences |
+| **F-B16** | inert | 0.1% | cross-partition dedupe is arrival-order dependent; **refuted as a live problem** — payloads byte-identical, winner deterministic |
+
+### Both GOAL leads, resolved
+
+1. **Unit-band strictness — CONFIRMED with the location corrected.** 24.0% have `units`
+   NULL (the prior 29/100 sample holds). But the strict filter is **not a drop at
+   ingest**: `crexi_ingest.py:386-389` uses `strict` only for the counter and the photo
+   mirror; the row is upserted regardless, exactly as the module docstring says. The
+   drop happens one lane downstream. And **yes**, the raw payload carries unit
+   information normalization does not map: 30/150 state it in prose, 23 of those in
+   band.
+2. **Cross-partition dedupe — CONFIRMED as a hazard, REFUTED as a problem.** 2/1,962
+   assets appear in >1 partition. The winner is stable (alphabetical Census county
+   list) and immaterial (byte-identical payloads, verified against the frozen
+   cassette). What the duplicates *do* expose is a server-side filter leak — a
+   Brevard-county payload returned under Orange and Osceola filters — which is the
+   leading hypothesis for F-B14.
+
+### Untested by this corpus — by construction, not by sampling
+
+The UPDATE path (all 150 upserts were INSERTs, so `ON CONFLICT` / `is_sold` sticky /
+enrichment protection never executed); the fetch-error breaker; the unpriced skip;
+price bisection. Also: `upsert_listing_rows` applies **no confidence gate at all**, so
+the GOAL's "fields skipped because a lower-confidence source lost" names a mechanism
+that does not exist on this path.
+
+### Stopped here
+
+Per `GOAL_INGEST.md`: report, do not fix. Nothing in `~/code/wholesaling` was touched.
+Recommended first experiment and its pre-registration are in NEXT.md.

@@ -388,3 +388,239 @@ runs it on the non-Crexi lane via `_refresh_rehab` (`recompute.py:167-174`). A
 unblocking number is not (`property_edit.py:138-141` rejects those outright).
 The estimator simply has nothing to run on here: it returns early when
 `condition_signal is None` (`recompute.py:161-166`), which is 4,116/4,193 rows.
+
+---
+
+# Ingest-lane findings (2026-08-27)
+
+First instrumented pass over the ingest half. Evidence for every number below is
+`runs/ingest_trace_FL_record.jsonl` (1,962 per-asset records, funnel fingerprint
+`3c15972614b09973`, reproduced identically three times) and its rendered report
+`runs/ingest_funnel_FL.txt`. All ten derived populations reconcile exactly against
+`IngestStats`; a mismatch would have exited 1 rather than printed a table.
+
+Scope of the sample: steps 1–6 are measured over **all 1,962 swept assets**; steps
+7–11 over the **newest-updated 150** the `--max-fetch` cap admitted.
+
+---
+
+## F-B14 · A partitioned full sweep reaches 56% of its own scope, and no counter says so
+
+**Severity: high — silent under-collection at the very top of the funnel.**
+
+`backfill_partitions` splits a too-big state into one scope per county. Measured on FL:
+
+| probe | listings |
+|---|---|
+| whole-state scope (`count=1`, identical filters) | **3,496** |
+| sum over all 67 county partitions | **1,965** (56.2%) |
+| unreachable through any partition | **1,531** (43.8%) |
+
+**It is not a missing-county-name bug.** The 11 counties probing zero are all small
+rural ones (Calhoun, Dixie, Gadsden, Hamilton, Holmes, Jefferson, Lafayette, Liberty,
+Union, Wakulla, Washington). And every one of the 56 non-zero partitions swept
+*exactly* its probe count — 0 truncated, 0 short. The partitioner is internally
+consistent. Its union is simply not the scope.
+
+**Corroborated per-asset.** Of the 100 listings this rig had already ingested from
+this exact scope, 89 came back and **11 did not appear in any partition** — all
+`status=Active`, all Broward County, a partition that probed 446 and returned all 446.
+
+**Why no counter shows it.** `backfill_partitions` warns only when a single county
+exceeds `SAFE_WINDOW` or a state has no county reference — neither fired. And
+`crexi_ingest.py:298-299` sets `stats.total_in_scope` only when `len(scopes) == 1`, so it is
+`None` *exactly when partitioning happened*, i.e. exactly when the gap exists. The
+aggregate cannot display the discrepancy that two probe families make obvious.
+
+**Not diagnosed** (needs a live probe; deliberately out of scope for the baseline):
+whether the cause is Crexi's county index differing from the payload county, or
+genuine delisting since the earlier pass. The filter-leak evidence in F-B16 favours
+the former.
+
+---
+
+## F-B15 · The type gate exact-matches a JOINED compound type string
+
+**Severity: high — 28.3% of the sweep dropped before any detail fetch.**
+
+`ListingFilters.stub_type_ok` is `(stub_type or "").strip().lower() in self.property_types`
+— set membership against `("multifamily",)`. But `AssetStub.type_str` is
+`", ".join(item.get("types") or [])` (`assets_search.py:249`), a *compound* string.
+
+Measured: **555 of 1,962 swept assets (28.3%) died at the type gate, and 555 of those
+555 (100%) carry `Multifamily` inside a compound type string.** Top forms:
+
+```
+ 93  Land, Multifamily          20  Multifamily, Mixed Use, Land
+ 55  Multifamily, Land          17  Retail, Multifamily
+ 27  Office, Multifamily        16  Multifamily, Hospitality
+```
+137 distinct compound strings in total.
+
+The `ScrapeConfig` field documents itself as *"Property-type **substrings** to keep"*
+(`scrape_config.py:73-76`); the implementation is exact set membership. The
+documented contract and the code disagree, and the disagreement is worth 28% of the
+sweep.
+
+**This is not automatically a bug to fix.** `"Land, Multifamily"` is plausibly a land
+listing with MF zoning, which nobody wants. `"Office, Multifamily"` mixed-use might
+be. **Whether these should be kept is an underwriting call, not a code call** — what
+is a code fact is that the decision is currently being made by string equality
+against a join, not by anyone's intent.
+
+---
+
+## F-B10 · Unit counts stated only in prose → `units` NULL → disqualified downstream
+
+**Severity: high — and the raw material is already stored.**
+
+Of the 150 fetched + normalized listings:
+
+| units | n | % |
+|---|---|---|
+| mapped from `summaryDetails["Units"]` | 114 | 76.0% |
+| **stated in the name/description only** | **30** | **20.0%** |
+| absent from the payload entirely | 6 | 4.0% |
+| parse failure (`_as_int` could not read a present Units row) | 0 | 0% |
+
+`normalize_listing:70` reads `units` from exactly one place: `_as_int(summary.get("Units"))`.
+When Crexi omits that summary row, the count is lost — even though the description says
+it outright. Of the 30, **23 (15.3% of the sample) state an in-band 2–4 count**
+("duplex", "fourplex", "4-unit"); the other 7 state an out-of-band count and would stay
+non-strict either way.
+
+Spot-checked 10/10 against the stored description: every match is a subject-property
+claim, not a reference to a neighbouring building —
+*"Exceptional income-producing duplex located in…"*, *"This well-maintained duplex
+offers two 1-bedroom, 1-bathroom units"*, *"income-producing fourplex… features 4 units"*.
+
+**Blast radius.** Strict matches would move **90/150 (60.0%) → 113/150 (75.3%)**.
+
+**Correction to the GOAL's framing of step 9.** The GOAL lists the strict unit-band
+filter as an ingest DROP with "unknown units DROPPED". **It is not a drop at ingest.**
+`crexi_ingest.py:386-389` computes `strict` and uses it for exactly two things: the
+`strict_matches` counter and whether to mirror photos. The row is appended to `rows`
+and upserted regardless — the module docstring says so outright. Non-strict listings
+are **stored**; the unit band drops them later, in the value route's qualification
+step. So F-B10's fix belongs in `listing_normalize`, and its *measurable effect* shows
+up one lane downstream. The 29/100 NULL-units figure from the prior sample is confirmed
+(24.0% here) — but its consequence was mislocated.
+
+---
+
+## F-B11 · Three fields are NULL on 100% of ingested listings, by construction
+
+**Severity: medium — two configurable filters are silently unusable.**
+
+`tenancy_type`, `occupancy_rate_percent` and `neighborhood` are NULL on **150/150**.
+Not a data-quality rate: `normalize_listing` reads all three from the *search stub*
+(`stub["tenancy"]`, `stub["occupancyDetails"]`, `addr["neighborhood"]`), and
+`to_search_stub()` does not emit any of them. Its own docstring concedes it:
+*"Fields this feed doesn't carry (tenancy/occupancy details) are simply absent."*
+
+Consequences, both latent:
+
+1. `ListingFilters.tenancy_types` is an explicit-narrowing gate — unknown ⇒ drop. If an
+   operator ever sets it, it drops **100% of the book**, silently.
+2. `occupancy_min`/`occupancy_max` are pushed to the **server** by `scope_for_state`
+   *and* retained as a client-side gate on a field that is always NULL. The two halves
+   of one filter therefore disagree by construction: the server narrows, the client-side
+   check is a no-op (numeric refinements are forgiving on unknowns).
+
+---
+
+## F-B16 · Cross-partition dedupe: order-dependent in code, inert on this data
+
+**The GOAL's second lead — confirmed as a hazard, refuted as a live problem.**
+
+`stubs.setdefault` means the winner of a duplicate is whichever partition ran first.
+Measured: **2 of 1,962 assets (0.1%)** appear in more than one partition —
+`2297949` in Brevard/Orange/Osceola (3), `2657687` in Miami-Dade/Palm Beach (2).
+
+- **Winner is stable.** Partition order is `counties_for_state()`, a committed
+  *alphabetical* Census list, so `setdefault`'s choice is deterministic for a given
+  scope. All three runs produced the identical funnel fingerprint, which includes each
+  duplicate's winning partition.
+- **Winner is immaterial.** Checked directly against the frozen cassette: the stub
+  payloads are **byte-identical** across every partition that returned them. Whichever
+  one `setdefault` keeps, the stored data is the same.
+
+**What the duplicates actually expose is a server-side filter leak.** Asset `2297949`
+carries `county="Brevard County"` in its own payload and is still returned under
+`counties=["Orange County"]` and `counties=["Osceola County"]`. Crexi's county filter
+is demonstrably not a payload-county match — which is the leading hypothesis for F-B14.
+
+---
+
+## F-B12 · The plausibility envelopes never run on the Crexi path
+
+**Severity: low here, but it invalidates an assumption.**
+
+The GOAL asked for fields "nulled by plausibility bounds"
+(`providers/normalization.py:225`). **Measured: zero, because this path never calls
+them.** `plausible_price` / `sqft` / `year_built` / `units` / `latlng` have exactly one
+caller — `registry._sanitize_record` (`registry.py:1629`), the MLS/registry merge
+boundary — and it operates on `Property`/`Listing`, not `CrexiListing`. The Crexi
+ingest reaches no such boundary, so `crexi_listings` can hold values the rest of the
+system would reject.
+
+Counterfactual on this sample: 1 of 150 (`2375589`, `building_sqft`) would be nulled.
+Small — but "the sanity bounds protect this table" was an assumption, and it is false.
+
+`clamp_to_column_limits` **does** run (it is called inside `listing_row`). It fired on
+nothing here: 0 strings truncated, 0 integers nulled for exceeding int4.
+
+---
+
+## F-B13 · A normalization drop is invisible in every counter
+
+**Severity: low — 0 occurrences here, structural nonetheless.**
+
+`if listing is None: continue` (`crexi_ingest.py:383-384`) sits *before*
+`stats.fetched += 1`. An asset whose normalization returns None is therefore not in
+`fetched`, not in `fetch_errors`, and not in any other counter — it costs three HTTP
+requests and vanishes. 0 of 150 this pass, so this is a latent observability hole, not
+an occurring loss. Worth recording because "0" and "uncounted" look identical from the
+aggregate, which is the whole reason this trace exists.
+
+Related and confirmed: `stats.fetched` does not mean "detail fetched". It is
+incremented after the normalize-None check, so it counts **successful normalizations**.
+The reconciliation names it `fetched (== normalized ok)` for that reason.
+
+---
+
+## What this corpus cannot speak to — by construction, not by sampling
+
+Recorded in the same spirit as F-B9's correction: a zero that was never given a chance
+to be non-zero is not a measurement.
+
+- **The UPDATE path never executed.** All 150 upserts were INSERTs. Of the 100
+  pre-existing listings, 89 were economy-skipped and 11 never reappeared (F-B14). So
+  the `ON CONFLICT` branch, the `is_sold` sticky-True rule and the enrichment-column
+  protection are untested here. `upsert_listing_rows` also applies **no confidence
+  gate** of any kind — the GOAL's "which fields were skipped because a lower-confidence
+  source lost" names a mechanism that does not exist on this path. Column-level skips
+  are structural (enrichment columns are simply absent from the `SET` list).
+- **The fetch-error breaker** (`_FETCH_ERROR_BREAKER=5`): 0 fetch errors.
+- **The unpriced skip** (step 5): inactive — the scope runs `include_unpriced=True`.
+- **Price bisection** (`_price_bisect`): no FL county exceeded `SAFE_WINDOW=1400`, so
+  every partition is a plain county scope and no price band was ever cut. This also
+  means the *only* configuration in which cross-partition duplicates could carry
+  differing payloads was never reached.
+- **1,168 of 1,962 swept assets (59.5%)** never reached a gate: `--max-fetch 150`
+  bounded the run, and the run correctly flagged itself `truncated` and withheld
+  `backfilled_at`.
+
+---
+
+## Operational finding: the ingest is STATEFUL, so a cassette alone is not reproducible
+
+Found while proving Phase 1. An `--apply` pass stamps `scrape_cursor`, so the *next*
+run reads a watermark, takes the incremental branch (`scopes = [scope]` — one
+whole-state sweep, no partitions) and issues a search body that was never recorded.
+The DB is an **input to the request shape**, not just an output.
+
+Consequence: reproducing this baseline requires `./rig/db.sh restore pre_ingest_baseline`
+*before* every replay. Verified: with the restore, three runs produce identical
+records; without it, the run dies on a cassette miss (which is the correct behaviour —
+it fails closed rather than phoning home).

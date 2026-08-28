@@ -1,7 +1,7 @@
 # NEXT — the single source of truth for "what do I do now"
 
 > If you read one file, read this one. Updated at every checkpoint.
-> Last updated: 2026-08-27 (ingest baseline, phases 1-2 landed).
+> Last updated: 2026-08-27 (ingest baseline COMPLETE — all three phases).
 
 ## The arc (your mental model is correct)
 
@@ -29,9 +29,34 @@ baseline.
 
 ## THE NEXT ACTION (one thing)
 
-**Ingest baseline — `GOAL_INGEST.md` phases 1 and 2 are DONE.** Phase 3 (the
-drop-attributed funnel table) is the remaining step. See STATE.md
-"Ingest baseline" for what landed.
+**`GOAL_INGEST.md` is DONE — all three phases.** The baseline is frozen at funnel
+fingerprint `3c15972614b09973`; the table is `runs/ingest_funnel_FL.txt`, the
+write-ups are the ingest section of `FINDINGS.md`, and 7 new defect classes
+(F-B10…F-B16) are in `rig/defects.py`.
+
+**Nothing has been fixed. That was the instruction, and it holds until the
+operator picks the experiment.**
+
+**Recommended first ingest experiment — F-B14 (partition coverage).** Not the
+biggest-looking number, the one everything else is conditional on: a sweep that
+reaches 56% of its own scope makes every downstream rate a rate over the wrong
+denominator. It is also the cheapest to settle — one live probe comparing a
+whole-state paged sweep against the county union. Pre-register before looking:
+
+- **Prediction:** the 1,531 gap is Crexi's county index, not delisting. Evidence:
+  asset 2297949's payload says Brevard and it is still returned under Orange and
+  Osceola filters, so the filter is not a payload-county match.
+- **Falsifier:** if a whole-state paged sweep returns the same 1,965 assets the
+  county union did, the whole-state `totalCount` is inflated and F-B14 is a
+  reporting artefact, not a coverage hole.
+- **If confirmed:** the fix is a partitioning key that covers the scope, not a
+  wider county list — the county list is already complete.
+
+Runners-up, in order, and why they wait: **F-B15** (28.3% dropped on a compound
+type string) is blocked on an underwriting decision, not a code decision — is
+"Office, Multifamily" a deal? **F-B10** (units in prose, 60.0% → 75.3% strict) is
+the highest-value pure code fix, but its effect is measured one lane downstream,
+so it wants the value-route baseline running alongside.
 
 Reproducing the frozen pass (fully offline, ~0s):
 
@@ -70,6 +95,10 @@ a defined population. Without that, "we improved it" is unmeasurable.
 A frozen baseline exists: corpus digest + per-field producer mix + per-defect
 rate + the manifest (git SHA, alembic head, arm, cassette digests). That is the
 number every later change is measured against.
+
+**Ingest half: DONE.** `runs/ingest_trace_FL_record.jsonl` + `runs/ingest_funnel_FL.txt`,
+manifest inline, 10/10 counters reconciled, fingerprint reproduced 3x offline.
+Value-route half: still the `trace.py` / `provenance.py` outputs, unchanged.
 
 ## Phase 3: the first experiment is already chosen
 

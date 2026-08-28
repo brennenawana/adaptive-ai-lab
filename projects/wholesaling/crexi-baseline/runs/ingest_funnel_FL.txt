@@ -1,0 +1,222 @@
+==============================================================================
+INGEST FUNNEL BASELINE -- FL   fingerprint 3c15972614b09973
+==============================================================================
+
+swept 1962   (56 county partitions, total_in_scope=None)
+  -> dropped: type gate          555   28.3%
+       of which the stub type STRING CONTAINS a configured type: 555  100.0%   <- F-B15
+  -> dropped: unpriced             0    0.0%   [step inactive: include_unpriced=True]
+  -> unchanged (economy)          89    4.5%
+  -> capped (--max-fetch)       1168   59.5%   [never offered to a gate; run flagged truncated]
+  -> fetch error                   0    0.0%
+  -> dropped: normalization        0    0.0%
+  -> upserted                    150    7.6%
+       of which insert 150 / update 0
+
+------------------------------------------------------------------------------
+F-B14 -- PARTITION COVERAGE: the county set does not cover the state scope
+------------------------------------------------------------------------------
+  whole-state scope totalCount          3496   (one count=1 probe, same filters)
+  sum over 67 county partitions        1965    56.2% of the scope
+  UNREACHABLE through any partition     1531    43.8%
+
+  Not a missing-county-name bug: the 11 counties probing zero are all small
+  rural ones (Calhoun, Dixie, Gadsden, Hamilton, Holmes, Jefferson...), and every
+  non-zero partition's sweep returned EXACTLY its probe count -- 0 partitions
+  truncated, 0 short. The partitioner is internally consistent; its union is not
+  the scope.
+
+  Corroborating per-asset evidence: 11 listings this rig ingested from this exact
+  scope earlier -- all status=Active, all Broward County, a partition that probed
+  446 and returned all 446 -- did not reappear in ANY partition.
+
+  NOT DIAGNOSED (needs a live probe, deliberately out of scope here): whether the
+  cause is Crexi's county index differing from the payload county, or genuine
+  delisting since the earlier pass. The filter-leak evidence under LEAD 2 favours
+  the former -- an asset whose payload says Brevard is returned under Orange and
+  Osceola filters, so the county filter is plainly not a payload-county match.
+
+  Why no counter shows this: backfill_partitions warns only when a county alone
+  exceeds SAFE_WINDOW or a state has no county reference. And ingest_state sets
+  stats.total_in_scope ONLY when len(scopes) == 1 -- so it is None exactly when
+  partitioning happened, i.e. exactly when the gap exists. Reported here: None.
+
+------------------------------------------------------------------------------
+STEP 9 -- strict type + unit-band filter: ADVISORY AT INGEST, NOT A DROP
+------------------------------------------------------------------------------
+crexi_ingest.py:386-389 computes `strict` and uses it for exactly two things:
+the strict_matches counter, and whether to mirror photos. The row is appended
+to `rows` and upserted REGARDLESS. The module docstring says so outright:
+  "The full strict filter set (2-4u etc.) is NOT applied here -- the ingest
+   stores the configured-type superset so the downstream valuation/routing
+   pass owns deal qualification and unknown-unit listings aren't lost."
+So a non-strict asset is STORED. The unit band drops it downstream, in the
+value route's qualification step -- a different stage with a different fix.
+
+of 150 normalized assets:
+  strict match                    90   60.0%   <- what the value route will qualify
+  non-strict: unit_unknown        36   24.0%  <- lead 1
+  non-strict: unit_out_of_band    24   16.0%  <- lead 1
+
+------------------------------------------------------------------------------
+LEAD 1 -- units NULL: does the raw payload carry it?
+------------------------------------------------------------------------------
+  mapped                   114   76.0%   units parsed and stored
+  prose_only                30   20.0%   stated in the name/description, never structured
+  absent_from_source         6    4.0%   Crexi does not state a unit count at all
+
+  units unknown:               36/150   24.0%
+    of which recoverable:      30       20.0%   the payload states it; normalize_listing does not read it
+    of which IN BAND (2-4):    23       15.3%   <- would become strict matches
+
+  So strict matches would move 90 -> 113 of 150 (60.0% -> 75.3%) if units were read from prose.
+
+  Sample (spot-checked against the stored description: all subject-property claims,
+  not references to a neighbouring building):
+      2552778  prose='Duplex'     -> 2 units   (summaryDetails Units key: None, 8 keys present)
+      2641311  prose='fourplex'   -> 4 units   (summaryDetails Units key: None, 9 keys present)
+      2514648  prose='4-unit'     -> 4 units   (summaryDetails Units key: None, 8 keys present)
+      2649728  prose='duplex'     -> 2 units   (summaryDetails Units key: None, 8 keys present)
+      1878143  prose='duplex'     -> 2 units   (summaryDetails Units key: None, 8 keys present)
+      2359262  prose='DUPLEX'     -> 2 units   (summaryDetails Units key: None, 8 keys present)
+    ... and 17 more
+
+------------------------------------------------------------------------------
+LEAD 2 -- cross-partition dedupe (stubs.setdefault, order-dependent)
+------------------------------------------------------------------------------
+  assets seen in >1 of the 56 partitions: 2    0.1%
+  partition multiplicity: {2: 1, 3: 1}
+      2297949  seen in ['FL:Brevard County', 'FL:Orange County', 'FL:Osceola County']
+               winner=FL:Brevard County
+      2657687  seen in ['FL:Miami-Dade County', 'FL:Palm Beach County']
+               winner=FL:Miami-Dade County
+
+  Winner stability: the partition order is counties_for_state(state), a committed
+  ALPHABETICAL Census list, so setdefault's choice is deterministic given the same
+  scope -- and all three runs produced the identical funnel fingerprint, which
+  includes each duplicate's winner.
+
+  Materiality: checked directly against the frozen cassette -- the stub payloads
+  for these assets are BYTE-IDENTICAL across the partitions that returned them,
+  so which one setdefault keeps changes nothing that is stored. The order
+  dependence is real in code and inert on this data.
+
+  What the duplicates actually expose is a SERVER-side filter leak: asset 2297949
+  carries county='Brevard County' in its own payload and is still returned under
+  counties=['Orange County'] and counties=['Osceola County']. The client-side
+  dedupe is what keeps that from triple-counting the sweep.
+
+------------------------------------------------------------------------------
+PER-FIELD ARRIVAL STATE after normalization (n=150 normalized assets)
+------------------------------------------------------------------------------
+  field                        null        
+  neighborhood                  150  100.0%
+  tenancy_type                  150  100.0%
+  occupancy_rate_percent        150  100.0%
+  buildings_count               127   84.7%
+  stories                       120   80.0%
+  lot_acres                      67   44.7%
+  units                          36   24.0%
+  price_per_unit                 36   24.0%
+  apn                            14    9.3%
+  building_sqft                   6    4.0%
+  year_built                      5    3.3%
+  property_sub_type               3    2.0%
+  address_line1                   1    0.7%
+  postal_code                     1    0.7%
+  latitude                        1    0.7%
+  longitude                       1    0.7%
+  marketing_description           1    0.7%
+  (always populated: activated_on, asking_price, asset_id, brokers, city, county, days_on_market, has_offering_memorandum, is_sold, is_unpriced, market, opportunity_zone, photo_urls, property_name, property_type, source_updated_on, state, status, summary_details, url_slug)
+
+------------------------------------------------------------------------------
+STEP 10 -- clamp_to_column_limits, and the plausibility bounds that never run
+------------------------------------------------------------------------------
+  fields truncated to column length: {}
+  fields nulled for exceeding int4:  {}
+
+  The GOAL asked for fields 'nulled by plausibility bounds'
+  (providers/normalization.py:225). Measured: this path NEVER calls them.
+  plausible_price/sqft/year_built/units/latlng are applied only by
+  registry._sanitize_record, the MLS/registry merge boundary, which operates on
+  Property/Listing -- not on CrexiListing. The Crexi ingest reaches no such
+  boundary, so nothing is nulled by an envelope here. COUNTERFACTUAL (what
+  _sanitize_record WOULD null if this path had it):
+    {'building_sqft (plausible_sqft)': 1}
+
+------------------------------------------------------------------------------
+STEP 10b -- upsert writes 'skipped because a lower-confidence source lost'
+------------------------------------------------------------------------------
+  upsert_listing_rows applies NO confidence gate; column-level skips are structural (enrichment columns absent from the ON CONFLICT SET list) plus the is_sold sticky-True case.
+  updates: 0   of which carried downstream enrichment protected from the
+           feed by its absence from the ON CONFLICT SET list: 0
+  is_sold sticky-True suppressed a feed downgrade on: 0
+
+------------------------------------------------------------------------------
+STEPS 1 & 11 -- watermark gate in, cursor stamp out
+------------------------------------------------------------------------------
+  read : key=crexi:sales:FL existed=False stored_fp=None watermark=None
+         -> FULL sweep   run scope fingerprint=791ea5856b57abce
+  write: last_seen_updated_on=2026-08-27T23:00:00+00:00 backfilled_at=None
+         backfilled_at correctly withheld: the run was truncated (--max-fetch),
+         so the delisting anchor is not claimed and the gap stays discoverable.
+
+------------------------------------------------------------------------------
+DEFECT CLASSES (rig/defects.py, stage=ingest) -- rate over the 150 normalized assets
+------------------------------------------------------------------------------
+  F-B11     150  100.0%  medium  tenancy/occupancy/neighborhood unreachable: to_search_stub never maps them
+  F-B10      30   20.0%  high    unit count stated only in prose -> units NULL -> disqualified downstream
+  F-B12       1    0.7%  low     plausibility envelopes never applied on the Crexi path
+  F-B13       0    0.0%  low     a normalization drop is invisible in every IngestStats counter
+
+  run-level (a property of the pass, not of any one asset -- classify_ingest cannot
+  see these):
+  F-B14   FIRED         high    county partitions do not cover the state scope, and nothing says so
+  F-B15   FIRED         high    type gate compares a JOINED compound type string by exact membership
+          F-B14: 1531 of 3496 in-scope listings unreachable through any partition
+          F-B15: 555 of 555 type-gate drops carry a configured type inside a compound string
+
+------------------------------------------------------------------------------
+UNTESTED BY THIS CORPUS -- by construction, not by sampling
+------------------------------------------------------------------------------
+  * The UPDATE path. All 150 upserts were INSERTs. Of the 100 listings already stored, 89
+    came back unchanged (economy skip) and 11 were not returned by the sweep at all.
+    So the ON CONFLICT branch, the is_sold sticky-True rule and the enrichment-column
+    protection never executed. Reporting '0 suppressed' as a measurement of a working
+    mechanism would be the same error F-B9 corrected.
+  * The fetch-error breaker (_FETCH_ERROR_BREAKER=5): 0 fetch errors this pass.
+  * The unpriced skip (step 5): inactive, the scope runs include_unpriced=True.
+  * Price bisection (_price_bisect): no FL county exceeded SAFE_WINDOW=1400, so all
+    56 partitions are plain county scopes and no price band was ever cut.
+  * 1168 of 1962 swept assets (59.5%) never reached a gate: --max-fetch 150
+    bounded the run. Steps 7-11 are measured over the newest-updated 150, steps 1-6
+    over all 1962.
+
+------------------------------------------------------------------------------
+MANIFEST
+------------------------------------------------------------------------------
+  arm                  A
+  wholesaling_git      ea05e9e4
+  lab_git              e542b5a
+  alembic_head         0107_comm_fact_homes
+  pinned_now           2026-08-27T23:00:00+00:00
+  state                FL
+  apply                True
+  max_fetch            150
+  scope_fingerprint    791ea5856b57abce
+  cassette             record
+  cassette_sha16       6f1db8214a87d568
+  cassette_entries     586
+  crexi_base_url       https://api.crexi.com
+  funnel_fingerprint   3c15972614b09973
+  wall_s               228
+  seams asserted       34
+  reconciliation       10/10 counters match
+
+------------------------------------------------------------------------------
+REPRODUCIBILITY CHECK
+------------------------------------------------------------------------------
+  A /Users/totem/code/adaptive-ai-lab/projects/wholesaling/crexi-baseline/runs/ingest_trace_FL_record.jsonl
+  B /Users/totem/code/adaptive-ai-lab/projects/wholesaling/crexi-baseline/runs/ingest_trace_FL_replay2.jsonl
+  funnel fingerprint  A=3c15972614b09973  B=3c15972614b09973  IDENTICAL
+  per-asset records   IDENTICAL  (n=1962 vs 1962)
