@@ -30,6 +30,23 @@ to make it.
   stateful; an `--apply` pass stamps the cursor and the next run takes the
   incremental branch with an unrecorded request body.
 
+## Read this before Phase 1: you are auditing someone else's claim
+
+F-B14 and its hypothesis were authored by a **different session**. You are not
+continuing that work — you are **testing it**. Run this session as if the claim
+might be wrong, because a coverage loss and a reporting artefact look identical
+from the inside.
+
+You do not need that session's context. Everything is in the artifacts:
+
+- `runs/ingest_trace_FL_replay1.jsonl` — 1,962 frozen records, one per swept
+  asset, carrying `asset_id`, `partitions`, `winner_partition`, `n_partitions`,
+  `drop_stage`, `drop_reason`, `outcome`, plus a `_manifest`. The county-union
+  id set is a one-line derivation from this file; do not re-sweep to get it.
+- `runs/ingest_funnel_FL.txt` — the frozen funnel table (fingerprint
+  `3c15972614b09973`).
+- `runs/ingest_http_FL.jsonl` — every outbound call the recorded pass made.
+
 ## Phase 1 — settle F-B14
 
 **Question:** does the county-partition union actually miss ~44% of the FL
