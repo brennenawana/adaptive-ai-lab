@@ -136,24 +136,22 @@ than the frozen router's 17, with fewer escalations and only 4 wasted.
 ## What happened
 
 The honest read went into the round's own report. The router learned *which templates the
-local model fails on*. That is a task-difficulty prior, expressed through
-production-observable proxies. It is not a reusable signal about any individual answer's
-correctness, which is what the team believed they were buying.
+local model fails on*. That is a task-difficulty prior wearing the costume of a
+correctness signal. It says nothing reusable about any individual answer, which is what
+the team believed they were buying.
 
 A thin genuine within-template signal did exist for the challenger — answer length and
 reasoning share carried some real information — but not enough to clear the
 leave-one-group-out floor. No candidate beat the group-identity ceiling by a margin the
 leakage audit would accept.
 
-So the deterministic gate stayed as the system's actual routing mechanism. The
-recommendation for future work was targeted specialization on the templates that fail
-systematically, with a template-difficulty router kept only as an interim gate above the
-deterministic one — and described in writing as a difficulty prior, never as a validated
-content router.
+So the deterministic gate stayed as the system's actual routing mechanism. Future work was
+pointed at targeted specialization on the templates that fail systematically. A
+template-difficulty router was kept only as an interim gate, and described in writing as a
+difficulty prior rather than a validated content router.
 
-Even on cost alone the router lost. Cost per successful case rose 48% and median latency
-2.2× against the deterministic gate, in exchange for a gain that was statistically
-indistinguishable from escalating at random.
+Even on cost alone the router lost: 48% more per successful case and 2.2× the median
+latency, for a gain indistinguishable from escalating at random.
 
 ## The generic lesson
 
@@ -181,13 +179,11 @@ feature from acting as a proxy for the identity you excluded — bundle size, to
 count, and prompt length all did here. Only an adversarial feature-provenance review, one
 that actively tries to reconstruct the group from the allowed features, surfaces that.
 
-A fourth practice made the final number readable. A single held-out confirmation can meet
-a pre-registered numeric bar with p ≈ 0.4 against a random baseline of the same size, when
-the true driver is the group prior rather than the router. Computing the random-escalation
-baseline *from the same look* is what converted a passing result into a correctly-read
-non-result. And disclosing both amendments as moving toward a pass — rather than
-presenting the eventually-frozen protocol as if it had been the only one considered — is
-what let anyone trust that reading.
+Two more habits made the final number readable. A single held-out confirmation can clear a
+pre-registered bar with p ≈ 0.4 against a random baseline of the same size, so compute
+that baseline *from the same look*. And disclose amendments that move toward a pass,
+rather than presenting the eventually-frozen protocol as if it had been the only one
+considered.
 
 ## What would NOT have worked
 

@@ -56,11 +56,10 @@ them.
 gate. **Or write a rule** over things the system can already check about the answer, with
 nothing learned in it at all — a [deterministic gate](../GLOSSARY.md#deterministic-gate).
 
-The team already had a verifier: a plain program that opens the answer, confirms every
-cited log line exists, confirms the cited line actually contains the value the answer
-claims, and flags any assertion with nothing cited behind it. So the deterministic gate
-had three yes/no facts available at the decision point — after the small model's answer is
-parsed and verified, before any hosted call:
+The team already had a verifier: a plain program that checks every cited log line exists,
+checks it holds the value the answer claims, and flags any assertion with nothing cited
+behind it. So the rule had three yes/no facts at the decision point — after the small
+model's answer is parsed and verified, before any hosted call:
 
 1. Did it produce a parseable answer at all?
 2. Did the verifier pass?
@@ -140,8 +139,8 @@ over the same signals failed its own
 
 **Where this sits in the literature.** The four best-known published cascade and router
 designs all use a *learned* gate [EXT-ROUTE-001]. None uses a deterministic rule over
-verifier output. That is worth stating plainly rather than hiding: this design has no
-published precedent, and its case rests on its own measured numbers.
+verifier output. Worth stating plainly rather than hiding: this design has no published
+precedent, and its case rests on its own measured numbers.
 
 ## What happened
 

@@ -109,7 +109,7 @@ checked against the current release notes and found to be noise.
 
 **The break-even, worked.** Take a $2,100 single-card node against renting the secure
 tier at $0.50/hr, with electricity at $0.184/kWh and the machine drawing about 450 W.
-Over a three-year life, ownership only wins above roughly **31 to 34 hours per week,
+Over a three-year life, ownership only wins above roughly **32 hours per week,
 sustained**. The project's total measured usage to date is 31 hours — not per week, in
 total, ever.
 
@@ -120,11 +120,11 @@ No purchase. Instead, a staged plan in which each stage has a written trigger.
 | Stage | Trigger | Content |
 |---|---|---|
 | 0 (now) | none — do it immediately | Rent both candidate card types for about two hours each (≈$4) to measure the one number the purchase turns on: is a desktop-class card of the same generation 1.0× or 1.4× the owned laptop card's real decode rate? Open the GPU-hours ledger. |
-| 1 (standing practice) | none — every round | Rent the second node per round, ≈$4.40–$6.20 for the three short chains. Captures the entire measured overlap saving, for no capital, cheaper than any purchase in this budget. |
+| 1 (standing practice) | none — every round | Rent the second node per round: the three short chains are 6 h 54 m of GPU time, ≈$3.50 at the secure tier. Captures the entire measured overlap saving, for no capital, cheaper than any purchase in this budget. |
 | 2 (the purchase) | Three consecutive months of rented spend above ≈$150/mo, **or** a committed always-on serving tier | Buy exactly **one** card — whichever type the Stage-0 benchmark selects — on a minimal host, ≈$2,100–$2,750 all in, with a memory-temperature acceptance test before it enters service. |
 | 3 (bandwidth) | After the generation-budget experiment settles, and street price ≤ ≈$2,500 (or rented need proven) | A flagship-class bandwidth upgrade, if the long decode chain still governs the critical path by then. |
 
-Committed spend across the next three rounds comes to under $25. About **$4,980 of the
+Committed spend across the next three rounds comes to under $20. About **$4,985 of the
 notional $5,000 stays uncommitted**, inside a documented and still-rising price bubble.
 That was recorded as the decision the evidence supported, not as inaction.
 

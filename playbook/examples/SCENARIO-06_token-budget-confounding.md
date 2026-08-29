@@ -59,6 +59,7 @@ Round one, 60 dev items, cap 4,096:
 | No usable output | 6 (all format failures) | 37 (34 hit the token cap + 3 format failures) |
 | Silent failures (verified clean, still wrong) | 27 | **5** |
 | Cascade: correct / escalation rate / cost per success | 46.7% at 23.3%, $0.0545 | 88.3% at 66.7%, $0.0868 |
+| Median latency | 16 s | 71 s |
 
 The item-by-item movement: 11 items both models got right, 7 the incumbent got right and
 the candidate did not, 4 the reverse, 38 neither. The write-up was blunt about those 7:
@@ -111,7 +112,8 @@ pre-registered gate failed on completion (46 of 60 items produced usable output,
 a threshold of 52), on residual silent failures (19, against a tolerance of 8), and on
 the regression cell (7 items the incumbent got right and the candidate did not, against a
 tolerance of 5). It passed on raw correct count and on cascade cost per success — $0.0508
-at a 43.3% escalation rate, against the incumbent's $0.0545. The incumbent remained
+at a 43.3% escalation rate, against the incumbent's $0.0545 — while median latency, at
+4.4 times the incumbent's, stayed well outside the 30 s bar. The incumbent remained
 incumbent, but now for reasons that had nothing to do with the cap. The 4,096 limit is
 why round one looked the way it did. It is not why the candidate does not qualify: the
 candidate still cannot finish 11 of 60 items inside 8,192 tokens.

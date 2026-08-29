@@ -114,35 +114,33 @@ around 60% runs from about 41% to about 85%. Even the low end of that range clea
 band. That is what licensed acting on fifteen cases, and it is a calculation you have
 to run for your own probe rather than inherit from this one.
 
-Several details sharpened the read rather than merely agreeing with it. Every rescued
-puzzle needed **strictly more** than the old ceiling to pass — the tightest needed a few
-hundred tokens beyond it, the loosest about 3,400 beyond. The ceiling was the binding
-constraint, not a bystander that happened to correlate with hard puzzles. The nine
-rescues split almost evenly across the counterbalanced order, four one way and five the
-other, so nothing about ordering or prompt caching was driving the result — though the
-expected cache effect *was* plainly visible in the raw latency of each pair's second
-arm, which is precisely the confound the counterbalancing existed to average out. The
-frozen rubric fired zero stuck-loop indicators on all five puzzles that were still
-truncated. A human read them afterwards as a check, never as an override, and agreed on
-all five: four had already left their analysis and begun writing the final answer.
+Three details sharpened the read rather than merely agreeing with it. Every rescued
+puzzle needed **strictly more** than the old ceiling to pass — the tightest by a few
+hundred tokens, the loosest by about 3,400. The ceiling was the binding constraint, not
+a bystander that happened to correlate with hard puzzles. The nine rescues split almost
+evenly across the counterbalanced order, four one way and five the other, so ordering
+and prompt caching were not driving the result — though the cache effect *was* plainly
+visible in the raw latency of each pair's second arm, which is exactly the confound the
+counterbalancing existed to average out. And the frozen rubric fired zero stuck-loop
+indicators on the five puzzles still truncated; a human read them afterwards as a check,
+never as an override, and agreed on all five — four had already stopped working the
+position and started writing their answer.
 
 A separate adversarial pass re-derived every load-bearing number straight from the
 primary run records — population, pairing, session identity, ceilings, execution order,
 all nine passes — and found nothing that would change the recommendation.
 
 Applying the frozen rule produced one line: **go ahead with the reasoning-budget
-experiment.** It was recorded as a recommendation to the human owner, not as a trigger.
-The probe's own governing document required a hard stop once its report was written;
-the 18-to-22-hour experiment needed its own separate authorization no matter how clean
-the probe's numbers looked.
+experiment.** It went to the human owner as a recommendation, not as a trigger. The
+probe's governing document required a hard stop once its report was written, and the
+18-to-22-hour experiment needed its own authorization no matter how clean the probe's
+numbers looked. A larger descriptive scan over all 145 historically truncated puzzles
+was run for context, carried zero decision weight, and was barred in advance from
+touching the verdict.
 
-A larger descriptive scan over all 145 historically truncated puzzles was run for
-context, carried zero decision weight, and was barred in advance from influencing the
-verdict.
-
-One planned side task — a small rented-GPU throughput benchmark meant to ride along on
-the same week — could not run, because the lab had no rental account. It was written up
-as an honest incomplete item rather than skipped quietly or estimated from memory.
+One planned side task — a rented-GPU throughput benchmark meant to ride along the same
+week — could not run, because the lab had no rental account. It was written up as an
+honest incomplete item rather than skipped quietly or estimated from memory.
 
 ## The generic lesson
 
