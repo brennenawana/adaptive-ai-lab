@@ -19,8 +19,8 @@ items will produce the same answers.
 The items are support tickets, and the model sorting them belongs to a university's IT
 help desk. It reads the requester's message plus their account and device records,
 assigns one of five queues — accounts and access, network, managed devices, teaching-room
-AV, security — and flags the lines of the record that support its choice. The evaluation suite is 48 tickets, each with
-a known correct queue.
+AV, security — and flags the lines of the record that support its choice. The evaluation
+suite is 48 tickets, each with a known correct queue.
 
 Given a configuration that deterministic, the team had been treating any two runs as
 comparable ticket by ticket, no matter when each was recorded — last Tuesday's run against
@@ -83,8 +83,10 @@ agreed** — no better than a restart on the original machine.
 The measurements agreed with each other, which is what makes them usable. Inside a
 single server session, the system was reproducible to within one ticket's worth of
 cache-predecessor noise, on two separate days. Across a restart — a new process, nothing
-else about the request or the model changed — roughly **half of all ticket-level
-outcomes changed**, twice, a day apart. Across machines it was no better.
+else about the request or the model changed — **about half of all ticket-level outcomes
+changed**: 47.9% on the first measurement, 50.0% on the repeat a day later. Moving to a
+second machine changed 43.8%, which is the same picture rather than a worse one. The
+boundary is the session, and crossing it by any route costs roughly the same.
 
 Notice what this looked like from the aggregate view: the headline pass rate moved by
 about three tickets out of 48, which anyone would have shrugged at. Underneath that calm
