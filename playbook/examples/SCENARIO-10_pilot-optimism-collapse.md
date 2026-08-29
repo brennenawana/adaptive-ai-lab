@@ -11,38 +11,43 @@ part to take seriously.
 
 ## Situation
 
-A chain of bicycle repair shops is building an assistant to read the free-text repair
-requests customers type into its booking form. The assistant does two jobs on every
-request. First it names the underlying fault: a worn chainring, air in a hydraulic
-brake line, a cracked rim bed. Then it picks one shop action from a fixed list of
-nine — book a bench diagnostic, order a part, open a warranty claim, place a safety
-hold, and so on.
+The working theory was that the model could see what was wrong and simply could not
+decide what to do about it. Twelve trail reports said so. Nobody had yet asked what
+twelve reports were worth.
+
+The reports come in on a national park's condition form: a visitor describes what they
+found out on a trail, in their own words, and the backcountry office decides what happens
+next. The assistant under test does two jobs on every report. First it names the
+underlying hazard: a washed-out stretch of tread, a footbridge with a failed stringer, a
+blowdown across the corridor. Then it picks one field response from a fixed list of
+nine — send a crew this week, add it to the fall work list, post an advisory, close the
+segment, refer it to the bridge engineer, and so on.
 
 The question in front of the team was whether a mid-size open-weights model they
-could run on the back-office machine was good enough, or whether the job needed a
+could run on the office machine was good enough, or whether the job needed a
 large hosted model. Both candidates received exactly the same evidence: the
-customer's text plus that bike's service history, assembled once and handed to each
+visitor's text plus that segment's maintenance history, assembled once and handed to each
 model unchanged. Neither had to go find anything. Any difference between them was a
 difference in reasoning, not in retrieval.
 
-The graded corpus was still being written. It would eventually hold 96 requests, eight
-from each of twelve fault families. On the day of the first head-to-head it held
-twelve — one per family. Twelve requests is cheap. You can run them, read every
+The graded corpus was still being written. It would eventually hold 96 reports, eight
+from each of twelve hazard families. On the day of the first head-to-head it held
+twelve — one per family. Twelve reports is cheap. You can run them, read every
 transcript by hand, and change something before lunch. So the first comparison ran on
 twelve.
 
 ## Decision faced
 
-The pilot said something interesting. Across those twelve requests the local model
-named the fault correctly five times (41.7%) and chose the right shop action once
-(8.3%). The wrong actions were not scattered, either. The same action — *order a
-part* — came back for a brake that needed bleeding, a frame crack that was covered by
-warranty, and a wheel that needed truing.
+The pilot said something interesting. Across those twelve reports the local model
+named the hazard correctly five times (41.7%) and chose the right field response once
+(8.3%). The wrong responses were not scattered, either. The same response — *add it to
+the fall work list* — came back for a footbridge with a cracked stringer, a washout that
+was actively taking the tread, and a segment that had been closed since June.
 
-Read straight, that is a clean story: this model can diagnose, it just cannot decide.
-And that story had a week of work attached to it. It would justify finishing the
-corpus, running a 96-request confirmation, and aiming an entire prompt-engineering
-effort at action selection in particular.
+Read straight, that is a clean story: the model knows what it is looking at and cannot
+act on it. And that story had a week of work attached to it. It would justify finishing
+the corpus, running a 96-report confirmation, and aiming an entire prompt-engineering
+effort at response selection in particular.
 
 So: was a twelve-case headline strong enough to characterize the model's weakness and
 commit the next several days to closing exactly that weakness?
@@ -50,45 +55,45 @@ commit the next several days to closing exactly that weakness?
 ## Evidence
 
 The pilot's own caveat was written into the log before anything was scaled: *"n = 12,
-one per family. One request moves any rate by 8.3 points."*
+one per family. One report moves any rate by 8.3 points."*
 
 Here is the same local model, on the same fixed evidence, at pilot size and at
 confirmation size:
 
-| Metric | 12 requests (pilot) | 96 requests (confirmation) | Change |
+| Metric | 12 reports (pilot) | 96 reports (confirmation) | Change |
 |---|---|---|---|
-| Fault named correctly | 41.7% (5/12) | 29.2% (28/96) | **−12.5 pp** |
-| Correct shop action | 8.3% (1/12) | 13.5% (13/96) | +5.2 pp |
-| Both right on the same request | 8.3% (1/12) | 5.2% (5/96) | −3.1 pp |
+| Hazard named correctly | 41.7% (5/12) | 29.2% (28/96) | **−12.5 pp** |
+| Correct field response | 8.3% (1/12) | 13.5% (13/96) | +5.2 pp |
+| Both right on the same report | 8.3% (1/12) | 5.2% (5/96) | −3.1 pp |
 | Every required history line cited | 83.3% (10/12) | 64.6% (62/96) | −18.7 pp |
-| Unsupported claims about the bike | (not counted at 12) | 37 | — |
+| Unsupported claims about the segment | (not counted at 12) | 37 | — |
 
 One reason the pilot ran flattering is worth naming, because it is not special to
-bicycles. The twelve pilot requests were the first one written for each family. First
-exemplars are the clearest cases a person can think of. The eventual eight-per-family
-corpus included the muddled ones: two faults in one message, a customer describing a
-symptom in the wrong vocabulary, a service history that contradicts itself. The pilot
-was never a random sample of the corpus it was standing in for.
+trails. Each of the twelve pilot reports was the first one written for its family,
+and a first exemplar is the clearest case a person can think of. The eight-per-family
+corpus included the muddled ones: two hazards in one message, a visitor placing the
+trouble by a landmark that is not on any map, a maintenance history that contradicts
+itself. The pilot was never a random sample of the corpus it was standing in for.
 
 A second guard ran five weeks later, on the same project, against a different failure
-shape. The corpus had grown to a 48-request development split and a 96-request test
+shape. The corpus had grown to a 48-report development split and a 96-report test
 split. Four prompt variants were compared against the current prompt (call it the
 control) to see whether any of them recovered the citation discipline that had decayed
 at scale. Before the fourth variant was run, the team fixed the rule that would decide
 adoption: *adopt a variant only if citation coverage is at least 5 points above
-control **and** fault accuracy is no more than 3 points below it.*
+control **and** hazard accuracy is no more than 3 points below it.*
 
-| Prompt | Fault named | Every required line cited | Both right |
+| Prompt | Hazard named | Every required line cited | Both right |
 |---|---|---|---|
 | Control | 62.5% (30/48) | 70.8% (34/48) | 35.4% (17/48) |
 | Variant H | 54.2% (26/48) | 64.6% (31/48) | **39.6% (19/48)** |
 
 Variant H failed the rule on both metrics it was written around. It was also the
 best-looking variant in the whole comparison on a metric the rule never mentioned —
-both-right, where it led the control by two requests.
+both-right, where it led the control by two reports.
 
-Two requests out of 48 is 4.2 points. The team had already worked out what this
-suite could resolve: because requests cluster by fault family, and there are only
+Two reports out of 48 is 4.2 points. The team had already worked out what this
+suite could resolve: because reports cluster by hazard family, and there are only
 twelve families, the effective sample is far smaller than 48, and a paired-difference
 analysis put the development split's resolving power at roughly 16–22 percentage
 points ([MDE](../GLOSSARY.md#mde); see also
@@ -98,29 +103,29 @@ was fixed in advance.
 
 ## What happened
 
-The pilot's headline was optimistic, and by a lot. Fault accuracy fell 12.5 points
+The pilot's headline was optimistic, and by a lot. Hazard accuracy fell 12.5 points
 when the sample grew eightfold. A single case at twelve had been worth 8.3 points,
 precisely as the log had flagged before anyone acted on the number.
 
 The pilot's *qualitative* claim survived, though, and this is the part worth being
-careful about. At 96 requests, naming the fault (29.2%) still ran ahead of choosing
-the action (13.5%). The ordering the pilot pointed at was real. Its magnitude was
-not: at twelve requests naming led action five to one, and at 96 it led by roughly two
+careful about. At 96 reports, naming the hazard (29.2%) still ran ahead of choosing
+the response (13.5%). The ordering the pilot pointed at was real. Its magnitude was
+not: at twelve reports naming led response five to one, and at 96 it led by roughly two
 to one. A pilot can tell you which way a gap points. It cannot tell you how wide the
 gap is.
 
-Two details cut against a tidy reading. Action accuracy moved *up* between the pilot
+Two details cut against a tidy reading. Response accuracy moved *up* between the pilot
 and the confirmation, not down — noise does not politely degrade every number in the
 direction your story predicts. And one failure mode was invisible at twelve by
 construction: citation discipline fell nearly nineteen points, with 37 unsupported
-claims appearing only once the harder requests entered the sample. The pilot could not
-have found that, because the requests that produce it were not in the pilot.
+claims appearing only once the harder reports entered the sample. The pilot could not
+have found that, because the reports that produce it were not in the pilot.
 
-The same discipline ran in the other direction, in the same week. The large hosted
-model was deliberately **not** re-run at 96 requests. The booking form was about to be
-replaced, which would regenerate every request text in the corpus and invalidate any
-comparison built on it. Spending the hosted model's budget on a baseline that was
-about to be thrown away was recorded as waste, not as thoroughness.
+Back in the pilot week, the same discipline ran in the other direction. The large
+hosted model was deliberately **not** re-run at 96 reports. The park's condition form
+was about to be replaced, which would regenerate every report text in the corpus and
+invalidate any comparison built on it. Spending the hosted model's budget on a baseline
+that was about to be thrown away was recorded as waste, not as thoroughness.
 
 And the pre-registered adoption rule did its job on variant H. Nothing about H's
 both-right number was wrong as a measurement. What made it dangerous was that it was
@@ -133,7 +138,7 @@ the number a post-hoc read would have reached for.
    number next to the result. A pilot headline is directional. It is a hypothesis, not
    a finding.
 2. **Expect the point estimate to move when you scale.** Only claims about direction
-   or shape ("naming the fault is easier than choosing the action") survive a pilot.
+   or shape ("naming the hazard is easier than choosing the response") survive a pilot.
    Claims about magnitude wait for a split sized to resolve them
    ([MDE](../GLOSSARY.md#mde)).
 3. **Check whether your pilot is a sample or a showcase.** Pilot items assembled by
@@ -167,12 +172,12 @@ write afterwards will already know which candidate you are hoping for.
 - **Planning around the pilot's 41.7%.** It was 12.5 points optimistic against
   confirmation — a swing larger than most of the effects this project was built to
   detect.
-- **Adopting variant H for its both-right rate.** That was a two-request margin on a
+- **Adopting variant H for its both-right rate.** That was a two-report margin on a
   suite that could not resolve anything under about 16 points, on a variant that
   declined on both metrics the rule was written to check.
 - **Reading the pilot's five-to-one gap as the size of the problem.** The ordering
   held. The ratio did not, and the prompt program was scoped against the ratio.
-- **Re-running the hosted model at 96 requests "to be thorough" before the form
+- **Re-running the hosted model at 96 reports "to be thorough" before the form
   change.** The comparison was days from being invalid regardless. The spend would
   have bought a number nobody could use.
 

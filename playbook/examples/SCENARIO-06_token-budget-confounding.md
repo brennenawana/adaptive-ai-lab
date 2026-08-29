@@ -10,21 +10,29 @@ part to take seriously.
 
 ## Situation
 
-A regional transit agency runs a trip-planning helper. A rider types something like
-*"north campus to the airport, need to be there before 7:15, I use a wheelchair"* and
-the system returns an itinerary: which bus, which transfer, which platform, what time.
+`max_output_tokens: 4096` — one line in a configuration file, inherited from an earlier
+round, sitting between the frozen recipe corpus and the pinned prompt. Nobody had it on
+the list of things this experiment was varying. It looked like the kind of setting you fix
+so it stops moving, rather than a number anyone was measuring.
+
+The system it governs scales recipes for a catering company. A chef types something like
+*"take this braise from 8 portions to 140, we have two 40-quart tilt skillets and one
+oven, and one table is coeliac"* and the assistant returns a scaled ingredient list, a
+revised method, and notes on equipment and timing. The answers run long, and they have to:
+a brigade halfway through a service cannot supply a step the assistant left out.
 
 Behind it is a two-stage arrangement. A small local model answers first. A rule-based
-checker then verifies the itinerary against the published timetable — every leg exists,
-every connection has legal transfer time. Anything the checker cannot confirm gets
-escalated to a much larger, much more expensive model. Cheap model first, expensive
-model only when needed.
+checker then verifies the arithmetic — every ingredient scaled by one consistent factor,
+total volume inside the declared equipment capacity, temperatures and times in range.
+Anything the checker cannot confirm gets escalated to a much larger, much more expensive
+model. Cheap model first, expensive model only when needed. That arrangement is a
+cascade, and how often it escalates is most of what it costs to run.
 
-The interesting failure here is not a wrong bus number, which the checker catches. It is
-an itinerary that passes every check and is still not the answer to the question — the
-right stops at the right times, on a route with a staircase the rider cannot use. The
-project calls those **silent failures**: verified clean, confidently wrong, and invisible
-until a rider is stranded.
+The interesting failure here is not a botched multiplication, which the checker catches.
+It is an answer that passes every check and is still wrong — the salt and the leavening
+scaled linearly when they should not have, or the gluten-free substitution the chef asked
+for quietly dropped out of the method. The project calls those **silent failures**:
+verified clean, confidently wrong, and invisible until a service goes out ruined.
 
 The experiment asked one question. Should a new candidate model replace the incumbent in
 the first stage? The incumbent is a quantized 8-billion-parameter open-weights model that
@@ -32,15 +40,15 @@ answers tersely. The candidate is a similarly sized quantized model tuned to rea
 loud at length before it answers.
 
 Round one ran both on the same 60 development items, with everything else pinned: same
-prompt, same timetable snapshot, same output format, same checker, greedy decoding, one
-seed. A same-session control ran incumbent → candidate → incumbent again inside a single
+prompt, same recipe corpus, same output format, same checker, greedy decoding, one seed.
+A same-session control ran incumbent → candidate → incumbent again inside a single
 model-server process, and the two incumbent runs came back byte-identical. So any
 difference between the arms was down to the model swap alone.
 
-Or so the design assumed. One setting was carried over from an earlier configuration and
-never questioned: the cap on how many tokens a model may generate per answer, frozen at
-4,096. It was treated as a property of the test rig, like the timetable snapshot. It is
-not. It is a property of the thing being tested.
+Or so the design assumed. The one setting nobody had questioned was the line above: the
+cap on how many tokens a model may generate per answer, frozen at 4,096 since a previous
+round. It was treated as a property of the test rig, like the recipe corpus. It is not.
+It is a property of the thing being tested.
 
 ## Decision faced
 
@@ -65,8 +73,12 @@ The item-by-item movement: 11 items both models got right, 7 the incumbent got r
 the candidate did not, 4 the reverse, 38 neither. The write-up was blunt about those 7:
 *all seven are the 4,096-token cap being hit in the middle of the candidate's reasoning.*
 
-Against the pre-registered gate, criteria 1, 3, 4, and 5 failed. Only criterion 2 passed.
-The verdict — *the candidate does not qualify; the incumbent stays* — was correct.
+Against the pre-registered gate: the candidate was 3 items *worse* on correctness rather
+than 5 better, so criterion 1 failed. It had 7 regressions against a tolerance of 3, so
+criterion 3 failed. Its median latency was 71 s against a 30 s bar, so criterion 4
+failed. It cost more per success, so criterion 5 failed. Only criterion 2 passed — and it
+passed enormously, with 22 fewer silent failures. The verdict, *the candidate does not
+qualify and the incumbent stays*, was correct.
 
 But the report flagged its own result as unsafe to read as a statement about the models.
 One number was doing all the emotional work: the candidate appeared to cut silent
@@ -107,8 +119,9 @@ that still ran out of tokens at 8,192. So the same cap had been manufacturing bo
 illusions at once: it made a capable model look unreliable, and it made an unreliable
 model look safe.
 
-Even with the confound gone, the candidate still did **not** qualify. The re-run's
-pre-registered gate failed on completion (46 of 60 items produced usable output, against
+One setting had been quietly doing the work everyone was attributing to the models. That
+is a confound, and this one was now gone. Even so, the candidate still did **not**
+qualify. The re-run's pre-registered gate failed on completion (46 of 60 items produced usable output, against
 a threshold of 52), on residual silent failures (19, against a tolerance of 8), and on
 the regression cell (7 items the incumbent got right and the candidate did not, against a
 tolerance of 5). It passed on raw correct count and on cascade cost per success — $0.0508
@@ -118,8 +131,9 @@ incumbent, but now for reasons that had nothing to do with the cap. The 4,096 li
 why round one looked the way it did. It is not why the candidate does not qualify: the
 candidate still cannot finish 11 of 60 items inside 8,192 tokens.
 
-The budget question was settled by running one factor twice in a paired design. The
-adoption question was settled separately, by the gate, on the corrected numbers.
+The budget question was settled by running the same comparison twice, changing one
+setting, for both models. The adoption question was settled separately, by the gate, on
+the corrected numbers.
 
 ## The generic lesson
 

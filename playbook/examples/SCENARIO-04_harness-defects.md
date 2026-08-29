@@ -10,22 +10,28 @@ part to take seriously.
 
 ## Situation
 
-A city bike-share operator collects a few hundred fault reports a day. *Brakes feel
-soft. Wouldn't unlock. Battery died halfway home.* Today a mechanic reads the report,
-pulls up that bike's history, works out what is actually broken, and books the right
-repair. The operator wants a model to do that first pass.
+On one of the ten root-cause classes, the frontier system scored 1 of 8 test items and a
+much smaller local model scored 3. No fact about model quality explains that. A weaker
+system beating a stronger one on a whole class of problem is not a result — it is a lead,
+and where it leads is almost never the model.
 
-The evaluation copies the mechanic's job. Each test item hands the system one fault
-report. The system calls a fixed set of tools — ride history, dock lock-and-charge
-logs, parts-replacement records, on-bike sensor telemetry. It names one root cause from
-a closed list of ten fault types. It cites the record IDs its diagnosis rests on. It
-recommends one repair from a sanctioned list.
+The class belongs to a regional water utility that gets a few hundred billing complaints
+a day. *My bill tripled and nothing changed. The meter reads higher than my own reading.
+There's water in the alley.* An investigator opens the account, pulls the meter reads and
+the pressure logs, works out what actually happened, and books the right response — a
+re-read, a leak crew, a corrected bill. The utility wants a model to do that first pass.
+
+The evaluation copies the investigator's job. Each test item hands the system one
+complaint. The system calls a fixed set of tools — meter read history, pressure-sensor
+logs, work-order history, the service-line map. It names one root cause from a closed
+list of ten. It cites the record IDs its finding rests on. It recommends one response
+from a sanctioned list.
 
 Three pieces of software decide whether the answer was right, and this is where the
 trouble lives. A rule-based scorer checks the answer's shape. A second checker — the
 verifier — confirms that every cited record ID was actually returned by a tool call
-rather than invented. A third flags unsafe claims: asserting a severed cable or a
-failed brake the evidence does not support.
+rather than invented. A third flags unsafe claims: asserting a burst main or a
+contaminated supply the evidence does not support.
 
 Three systems ran the identical items with the identical tools and the identical fixed
 evidence plan: two small open-weights models and one much stronger frontier model. Any
@@ -36,7 +42,7 @@ Over ten days the corpus grew from a 10-item pilot to 240 seeded scenarios (120 
 
 ## Decision faced
 
-Several times in those ten days, a fault type or a system scored badly, or scored
+Several times in those ten days, a root-cause class or a system scored badly, or scored
 strangely, and someone had to pick where the next hour went. One option is the
 appealing one: change the prompt, swap the model, raise the generation budget. The
 other option is dull. Go and audit the test.
@@ -59,22 +65,22 @@ touching a model.
 | # | When | What was wrong | How it surfaced | Measured effect |
 |---|---|---|---|---|
 | 1 | Pilot (n=10) | The schema compiler rejected the length constraints in the output format | Every local call came back an HTTP error | 0 of 10 local calls produced any output at all until fixed |
-| 2 | Pilot | The verifier rejected citations that named the maintenance ticket rather than the underlying part record | Hand review of all 10 traces | 8 of 10 *correct* citations were scored as inventions |
-| 3 | Pilot | The fixed tool plan never fetched the dock lock-and-charge logs | Hand review of the same traces | The evidence needed to answer was structurally out of reach for 3 of the 10 fault types |
-| 4 | Scale-up (10→240) | Record IDs (a counter plus three random digits) collided between scenarios of the same fault type | A uniqueness test written for the scale-up | Would have spliced one scenario's evidence into another's |
+| 2 | Pilot | The verifier rejected citations that named the work order rather than the underlying meter-read record | Hand review of all 10 traces | 8 of 10 *correct* citations were scored as inventions |
+| 3 | Pilot | The fixed tool plan never fetched the pressure-sensor logs at all | Hand review of the same traces | The evidence needed to answer was structurally out of reach for 3 of the 10 root causes |
+| 4 | Scale-up (10→240) | Record IDs (a counter plus three random digits) collided between scenarios of the same root cause | A uniqueness test written for the scale-up | Would have spliced one scenario's evidence into another's |
 | 5 | Scale-up | Scenario keys collided across splits — two different seeds rendered the same id | The same uniqueness test | Would have silently defeated the disjoint train/test seed ranges meant to prevent leakage |
-| 6 | Corpus rebuild | Sensor telemetry was unreachable by any tool call, for the whole pre-rebuild corpus (0 of 260 snapshots) | [Reachability ceiling](../GLOSSARY.md#reachability-ceiling) measured per fault type by replaying the evidence plan through the real tools | 4 of 10 fault types capped below the 0.8 pass threshold — ceilings of 0.250–0.500 — no matter how good the model was |
-| 7 | Corpus rebuild | A "shared-dock" fault type was defined, but every tool was keyed by a single bike id, and a shared event clock scattered the cluster across a month | Ceiling review of a 0.000 root-cause rate on every item in that type | The fault type was unwinnable in principle, not merely hard |
-| 8 | Rebaseline | Ride history came back sorted by trip start time, with the internal sequence number never exposed — and one fault type's signature turns on exactly that ordering | Weak-beats-strong [inversion](../GLOSSARY.md#inversion-check): on that type's 8 test items the frontier system scored 1 (12.5%) and a *smaller* local model scored 3 | Frontier score on that type went from 1 of 8 to 8 of 8 once rows were returned in sequence order with the sequence number included |
-| 9 | Rebaseline | The unsafe-claim flagger was a bare substring match with no handling of negation | Reading the frontier system's 6 flagged "unsafe claims" against its own well-cited reasoning — implausible on its face | All 6 were denials ("the hub is **not** reporting a lock fault"); corrected all-pass rose from 90.0% as scored (72 of 80) to 97.5% (78 of 80) |
-| 10 | Second suite release | Background fleet activity was generated but never published through the real event pipeline, leaving one fault type's fingerprint sitting as unlabeled noise inside six other types | Cross-arm disagreement review; deferred rather than patched mid-baseline | Fixed by publishing every background event through the real pipeline instead of writing it straight to storage |
-| 11 | Second release | A battery fault type drew the reported charge level and the dock's last delivered charge independently; in 3 of that type's 24 worlds the reported level exceeded anything the dock had ever supplied | The same review | Briefly made a forbidden hypothesis genuinely consistent with the world in those items |
+| 6 | Corpus rebuild | Night-flow sensor readings were unreachable by any tool call, for the whole pre-rebuild corpus (0 of 260 readings) | [Reachability ceiling](../GLOSSARY.md#reachability-ceiling) measured per root cause by replaying the evidence plan through the real tools | 4 of 10 root causes capped below the 0.8 pass threshold — ceilings of 0.250–0.500 — no matter how good the model was |
+| 7 | Corpus rebuild | A "shared service line" root cause was defined, but every tool was keyed by a single account id, and a shared event clock scattered the affected properties across a month | Ceiling review of a 0.000 correct-diagnosis rate on every item in that class | The class was unwinnable in principle, not merely hard |
+| 8 | Rebaseline | Meter reads came back sorted by reading date, with the utility's internal read-sequence number never exposed — and one root cause's whole signature is an out-of-order estimated read | Weak-beats-strong [inversion](../GLOSSARY.md#inversion-check): on that class's 8 test items the frontier system scored 1 (12.5%) and a *smaller* local model scored 3 | Frontier score on that class went from 1 of 8 to 8 of 8 once reads were returned in sequence order with the sequence number included |
+| 9 | Rebaseline | The unsafe-claim flagger was a bare substring match with no handling of negation | Reading the frontier system's 6 flagged "unsafe claims" against its own well-cited reasoning — implausible on its face | All 6 were denials ("the pressure log does **not** show a main break"); corrected all-pass rose from 90.0% as scored (72 of 80) to 97.5% (78 of 80) |
+| 10 | Second suite release | Background neighbourhood consumption was generated but never published through the real event pipeline, leaving one root cause's fingerprint sitting as unlabeled noise inside six other classes | Cross-arm disagreement review; deferred rather than patched mid-baseline | Fixed by publishing every background event through the real pipeline instead of writing it straight to storage |
+| 11 | Second release | A high-consumption class drew the billed volume and the meter's maximum flow rate independently; in 3 of that class's 24 worlds the billed volume exceeded anything the meter could physically have passed | The same review | Briefly made a forbidden hypothesis genuinely consistent with the world in those items |
 | 12 | Second release | The negation bug generalized: a lookback-only window, a dead boundary guard, and cues lost at the start of a sentence or a field | The same review, plus one surviving real false positive replayed against the fix | Replaced with a documented, bidirectional same-sentence rule, versioned inside the scorer |
 | 13 | Second release | The verifier harvested most observed-id fields, but not the one key a required tool handed straight back to the model | The same review | A correct citation of evidence the model had genuinely been shown was scored as a fabrication |
 
 Rows 4 and 5 are worth keeping separate from the other eleven. They were caught by an
 ordinary engineering invariant test, not by a statistical signal. The other eleven only
-became visible once the suite had enough fault types and enough competing systems to
+became visible once the suite had enough root-cause classes and enough competing systems to
 expose a ceiling, an inversion, or a disagreement.
 
 ## What happened
@@ -83,11 +89,11 @@ Not one of the thirteen was fixed by changing a model, a prompt, or a generation
 budget. Each was a reproducible property of the measuring instrument, and each was
 fixed at the instrument.
 
-The corpus had an invariant of its own: every fault type must be answerable from
+The corpus had an invariant of its own: every root-cause class must be answerable from
 evidence the tools actually return. That invariant was violated across the entire
 corpus for a full release cycle, and the resulting scores looked exactly like a weak
-model. After the fixes, the measured reachability ceiling is 1.000 for all ten fault
-types.
+model. After the fixes, the measured reachability ceiling is 1.000 for all ten root-cause
+classes.
 
 The second suite release, which closed defects 10 through 13, shipped 134 new automated
 tests: 58 corpus-wide scenario invariants, 30 negation fixtures for the unsafe-claim
@@ -95,11 +101,11 @@ flagger, 15 verifier fixtures, 6 database-gated corpus checks, 3 reference-sanit
 checks, and 22 revised pipeline tests. Every one of them guards an invariant these
 defects had broken.
 
-The release gates were explicit. The measured per-type reachability ceiling had to be
-1.000, with zero capped types, on both the dev and test splits. And the suite had to
-pass a [frontier-saturation check](../GLOSSARY.md#frontier-saturation-check): the
-strongest available system runs the corpus to completion, and no change is made to the
-suite afterwards. It passed 40 of 40 on the dev sanity split. A suite that the
+The release gates were explicit. The measured per-class reachability ceiling had to be
+1.000, with zero capped classes, on both the dev and test splits. And the strongest available
+system had to run the whole corpus to completion, with no change made to the suite
+afterwards — a
+[frontier-saturation check](../GLOSSARY.md#frontier-saturation-check). It passed 40 of 40 on the dev sanity split. A suite that the
 strongest available system cannot get near its own measured ceiling on is presumed
 broken. By the release gate, this one was not: on the 80-item confirmation split the
 frontier system's corrected all-pass rate reached 98.8%, close to saturating the
@@ -125,10 +131,10 @@ audit itself. A minority of instrument defects (here, two of thirteen) are inste
 plain engineering bugs, caught by plain invariant and uniqueness tests. Worth having,
 but a different mechanism from the other three.
 
-Chapter 03 turns this into
-[static integrity gates](../GLOSSARY.md#static-integrity-gates) that run on the full
-corpus, always, and are protected from being subsetted for speed — precisely because
-they are the instruments that catch instrument defects. The release discipline that
+Chapter 03 turns this into checks that run on the full
+corpus, always, and are protected from being trimmed down for speed — precisely because
+they are the instruments that catch instrument defects. It calls them
+[static integrity gates](../GLOSSARY.md#static-integrity-gates). The release discipline that
 closed defects 10 through 13 is generalized in
 [templates/EVAL_SUITE_RELEASE_CONTRACT.md](../templates/EVAL_SUITE_RELEASE_CONTRACT.md),
 which requires per-stratum ceilings to be measured and printed, and a
@@ -168,7 +174,7 @@ score.
 
 **Reading the before-and-after score jump as a model-quality signal.** This was
 explicitly rejected. The same model on the same seed now faces a changed world in
-several fault types, a scorer with corrected negation handling everywhere, and a larger
+several root-cause classes, a scorer with corrected negation handling everywhere, and a larger
 set of observable evidence. The difference mixes at least three effects, and none of
 them is the model changing.
 

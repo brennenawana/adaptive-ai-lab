@@ -135,6 +135,27 @@ fifteen chapters that sound identical. Chapters differ in what they have to say 
 differ in how they say it. A reviewer noting "this doesn't open the way chapter 04 does"
 is enforcing the wrong thing.
 
+## Briefing parallel authors
+
+When several people or agents write against this guide at once, uniformity is the
+likely defect, and it comes from the brief rather than from the guide.
+
+This happened on the first pass. Twelve scenarios were written in parallel from one
+brief, and all twelve opened with the same sentence frame — *"A [organization] [verb]s a
+[thing]."* Three of the twelve landed on bicycles; two were nearly the same scenario. No
+author did anything wrong. They were each given the same shape and each filled it in.
+
+So when briefing in parallel:
+
+- **Assign the constraint, not the construction.** "Open on something concrete" is a
+  principle. "Open by introducing the organization" is a template, and you will get it
+  back twelve times.
+- **Say what the neighbours are doing.** An author who cannot see the other eleven
+  outputs cannot avoid colliding with them. Name the subjects already taken.
+- **Review the set, not just the pieces.** Every one of those twelve files passed on its
+  own. The defect only existed in the collection, and only a pass that read them in
+  sequence could see it.
+
 ---
 
 ## Calibration

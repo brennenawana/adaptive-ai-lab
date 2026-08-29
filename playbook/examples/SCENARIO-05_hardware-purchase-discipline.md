@@ -9,21 +9,24 @@ part to take seriously.
 
 ## Situation
 
-An agricultural extension service is building a tool that reads growers' field reports
-— planting dates, soil notes, pest sightings, harvest weights — and drafts the regional
-yield summary an agronomist currently writes by hand. The yield data is unreleased and
-commercially sensitive, so the models run on the service's own hardware rather than a
-managed API. That hardware is one machine, with one 16 GB consumer accelerator in it.
+Somebody has to approve a hardware order this week, or decline it. The proposal is a
+two-card workstation build against a notional $5,000 budget — a second accelerator, and
+ideally a bigger one — and the case for it is an honest one: the last evaluation round
+took twenty hours, and the single card in the building was busy for nearly all of them.
+
+The buyer would be a legal aid clinic, which is building a tool that reads a new client's
+intake notes and filed documents, then drafts the case summary a supervising attorney
+currently writes by hand — what is being claimed, what deadlines are live, what evidence
+is missing. Client files are confidential and cannot leave the building, so the models run
+on the clinic's own hardware rather than a managed API. That hardware is one machine, with
+one 16 GB consumer accelerator in it.
 
 That single card had just carried the project's second evaluation round: four candidate
-models compared across 432 report-summarizing cases, one case at a time, twenty hours
-of wall clock end to end. Zero errors, zero retries, nothing crashed. It simply took all
-day and most of a night, because everything went through one card in a queue.
-
-The felt experience of that round produced an obvious next move. Buy more GPU. A draft
-proposal went round for a two-card workstation build against a notional $5,000 budget,
-on the reasoning that a second card — and ideally a bigger one — would make rounds like
-this one faster.
+models compared across 432 summary-drafting items, one at a time, twenty hours of wall clock
+end to end. Zero errors, zero retries, nothing crashed. It simply took all day and most
+of a night, because everything went through one card in a queue. The felt experience of
+that round is what produced the proposal: buy more GPU, and rounds like this one get
+faster.
 
 Nothing was ordered. Instead the project did two things first. It reconstructed exactly
 where those twenty hours went, from run-ledger timestamps, database insert times,
@@ -47,9 +50,11 @@ all 432 cases. That measurement found two real constraints, not one.
 
 *One card forces the candidates to queue.* The four candidate chains were 11 h 30 m,
 2 h 46 m, 2 h 12 m, and 1 h 56 m of GPU time. The longest chain alone (11 h 30 m) is
-longer than the other three put together (6 h 54 m). So a second node of *any* speed
-absorbs the whole queue and the round's floor becomes the longest chain: 20 h 00 m drops
-to about 13 h 06 m, and the second node finishes with 4 h 36 m of slack.
+longer than the other three put together (6 h 54 m). That longest chain is the round's
+critical path — the run of work that nothing else can get ahead of, and the thing any
+speed-up has to shorten to count. So a second node of *any* speed absorbs the whole
+queue, and the round's floor becomes that chain: 20 h 00 m drops to about 13 h 06 m,
+with the second node finishing 4 h 36 m early.
 
 *16 GB is a capacity ceiling, not a speed ceiling.* The largest candidate occupied 94%
 of the card's memory. That blocks two models being resident at once, and it caps how
@@ -119,7 +124,7 @@ No purchase. Instead, a staged plan in which each stage has a written trigger.
 
 | Stage | Trigger | Content |
 |---|---|---|
-| 0 (now) | none — do it immediately | Rent both candidate card types for about two hours each (≈$4) to measure the one number the purchase turns on: is a desktop-class card of the same generation 1.0× or 1.4× the owned laptop card's real decode rate? Open the GPU-hours ledger. |
+| 0 (now) | none — do it immediately | Rent both candidate card types for about two hours each (≈$2.50) to measure the one number the purchase turns on: is a desktop-class card of the same generation 1.0× or 1.4× the owned laptop card's real decode rate? Open the GPU-hours ledger. |
 | 1 (standing practice) | none — every round | Rent the second node per round: the three short chains are 6 h 54 m of GPU time, ≈$3.50 at the secure tier. Captures the entire measured overlap saving, for no capital, cheaper than any purchase in this budget. |
 | 2 (the purchase) | Three consecutive months of rented spend above ≈$150/mo, **or** a committed always-on serving tier | Buy exactly **one** card — whichever type the Stage-0 benchmark selects — on a minimal host, ≈$2,100–$2,750 all in, with a memory-temperature acceptance test before it enters service. |
 | 3 (bandwidth) | After the generation-budget experiment settles, and street price ≤ ≈$2,500 (or rented need proven) | A flagship-class bandwidth upgrade, if the long decode chain still governs the critical path by then. |
@@ -129,10 +134,9 @@ notional $5,000 stays uncommitted**, inside a documented and still-rising price 
 That was recorded as the decision the evidence supported, not as inaction.
 
 Then the plan hit a wall, and how that was handled matters. The Stage-0 rented benchmark
-could not run: no rental account or API credentials existed anywhere in the lab, and
-creating one needed the human owner. Under the project's
-[fail-closed](../GLOSSARY.md#fail-closed) rule, this was recorded rather than quietly
-skipped or filled in with an estimate. The
+could not run: no rental account or API credentials existed anywhere in the clinic, and
+creating one needed the human owner. It was recorded rather than quietly skipped or filled in
+with an estimate — the project's [fail-closed](../GLOSSARY.md#fail-closed) rule. The
 [demand ledger](../GLOSSARY.md#demand-ledger)'s opening rows for both rented card types
 carry an honest zero — 0 GPU-hours, $0 spend — with the reason written in the notes
 column. The monthly rollup that reads the purchase trigger therefore showed $0 of rented

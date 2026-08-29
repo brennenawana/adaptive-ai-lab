@@ -12,11 +12,16 @@ part to take seriously.
 
 ## Situation
 
-A farm-equipment dealership runs a service-diagnosis assistant for its technicians. A
-technician types the symptom — *"combine loses hydraulic pressure after twenty minutes,
-no fault code"* — and the assistant reads the machine's service bulletins and writes a
-numbered diagnostic plan, each step citing the bulletin it came from. The plans are long.
-A thorough one runs several thousand tokens.
+Somewhere around step seven, the answer stops. Not finishes — stops, mid-clause, because
+the model has just spent the last token the runner was willing to give it. The scorer
+marks the case failed, and it is right to: half a repair procedure is not a repair
+procedure.
+
+The system doing the writing is a service-diagnosis assistant at a farm-equipment
+dealership. A technician types the symptom — *"combine loses hydraulic pressure after
+twenty minutes, no fault code"* — and the assistant reads the machine's service bulletins
+and writes a numbered diagnostic plan, each step citing the bulletin it came from. The
+plans are long. A thorough one runs several thousand tokens.
 
 The team was in its second evaluation round, comparing four locally hosted candidate
 models. One was new: a 27B dense open-weights model, quantized to fit the shop's single

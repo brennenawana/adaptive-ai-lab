@@ -11,19 +11,22 @@ part to take seriously.
 
 ## Situation
 
-A regional water utility routes its inbound support tickets with a model. The model
-reads the customer's message plus the account notes, assigns one of five queues —
-billing dispute, outage, meter access, hardship, safety — and flags the lines of the
-account record that support its choice. The evaluation suite is 48 tickets, each with a
-known correct queue.
+Greedy decoding, `temperature 0`. A fixed seed. A pinned set of weights, a pinned build
+of the inference engine. One request at a time, no concurrent traffic. Every line of that
+list was true here — and that list is the entire case for believing two runs of the same
+items will produce the same answers.
 
-The serving setup looked as deterministic as a serving setup gets. Greedy decoding
-(`temperature 0`). A fixed seed. A pinned set of weights. A pinned build of the
-inference engine. One request at a time, no concurrent traffic. Given all that, the
-team had been treating any two runs as comparable ticket by ticket, no matter when each
-was recorded — last Tuesday's run against this morning's, across however many times the
-model server had been stopped and started in between. Prompt-variant choices and
-routing decisions were being read off exactly that kind of comparison.
+The items are support tickets, and the model sorting them belongs to a university's IT
+help desk. It reads the requester's message plus their account and device records,
+assigns one of five queues — accounts and access, network, managed devices, teaching-room
+AV, security — and flags the lines of the record that support its choice. The evaluation suite is 48 tickets, each with
+a known correct queue.
+
+Given a configuration that deterministic, the team had been treating any two runs as
+comparable ticket by ticket, no matter when each was recorded — last Tuesday's run against
+this morning's, across however many times the model server had been stopped and started in
+between. Prompt-variant choices and routing decisions were being read off exactly that kind
+of comparison.
 
 ## Decision faced
 
@@ -32,8 +35,7 @@ whenever each was produced? Or does the envelope within which runs actually agre
 [reproducibility boundary](../GLOSSARY.md#reproducibility-boundary) — have to be
 measured before any claim is allowed to cross it?
 
-That is not a rhetorical question with an obvious answer. It is cheap to measure. So
-they measured it.
+The boundary is cheap to measure, so they measured it.
 
 ## Evidence
 
@@ -78,20 +80,15 @@ agreed** — no better than a restart on the original machine.
 
 ## What happened
 
-The measurements agreed with each other, which is the part that makes them usable.
-
-Inside a single server session, this system was reproducible to within one ticket's
-worth of cache-predecessor noise: 47 or 48 of 48 exact outputs, and 48 of 48 identical
-scored outcomes, on two separate days.
-
-Across a restart of the server process — a new process, nothing else about the request
-or the model changed — roughly **half of all ticket-level outcomes changed**. Twice, a
-day apart: 23 of 48 flipped in the first measurement, and in the second, only 24 of 48
-still agreed. Across machines it was the same story again, at 21 of 48.
+The measurements agreed with each other, which is what makes them usable. Inside a
+single server session, the system was reproducible to within one ticket's worth of
+cache-predecessor noise, on two separate days. Across a restart — a new process, nothing
+else about the request or the model changed — roughly **half of all ticket-level
+outcomes changed**, twice, a day apart. Across machines it was no better.
 
 Notice what this looked like from the aggregate view: the headline pass rate moved by
-about three tickets out of 48, which anyone would have shrugged at. Underneath that
-calm surface, half the individual answers were different. The instability was nearly
+about three tickets out of 48, which anyone would have shrugged at. Underneath that calm
+surface, half the individual answers were different. The instability was nearly
 invisible in the summary and enormous at the ticket level.
 
 One consequence landed immediately. A prompt-variant choice made earlier in the project
@@ -105,13 +102,13 @@ on it.
 **No bug was found, and none was fixed.** Restart-to-restart variation under greedy
 decoding on this kind of inference stack is a property of the runtime, not a defect in
 the application. Independent work on GPU nondeterminism points at the mechanism:
-floating-point reduction order shifts with GPU and runtime state, so the same input can
-take a marginally different numerical path and, at a token where two candidates are
-nearly tied, come out the other side [EXT-DETERM-001]. It happens with no concurrency
-and a fixed seed. The mitigation that literature recommends — deterministic,
-batch-invariant kernels — ships in major engines only as an opt-in beta with a
-throughput cost. The response here was procedural instead, and it targets the level
-that actually matters for decisions: the outcome, not the bit pattern.
+floating-point reduction order shifts with GPU and runtime state, so the same input takes
+a marginally different numerical path and, at a token where two candidates are nearly
+tied, comes out the other side [EXT-DETERM-001]. It happens with no concurrency and a
+fixed seed. That literature's own mitigation — deterministic, batch-invariant kernels —
+ships in major engines only as an opt-in beta with a throughput cost. The response here
+was procedural instead, aimed at the level that decides things: the outcome, not the bit
+pattern.
 
 Three changes went in:
 
@@ -127,12 +124,12 @@ Three changes went in:
    [contemporaneous paired control](../GLOSSARY.md#contemporaneous-paired-control), and
    it is the only design that survives a boundary this narrow.
 
-One more thing fell out of the instrumentation work, unlooked for. While session
-identity was being added, every timing span was made to record both a wall-clock stamp
-and a monotonic stamp. Cross-checking the two revealed a systematic skew on the
-virtualized host: the two clocks drifted against each other, which had been quietly
-biasing every latency number the project had published. Nobody suspected it. It was
-found because both clocks were captured and could be compared —
+Something else fell out of that instrumentation work, unlooked for. While session
+identity was being added, every timing span was made to carry both a wall-clock and a
+monotonic stamp. Cross-checking the two revealed a systematic skew on the virtualized
+host — the clocks drifted against each other, quietly biasing every latency number the
+project had published. Nobody suspected it. It was found only because both clocks were
+captured and could be compared:
 [dual-clock telemetry](../GLOSSARY.md#dual-clock-telemetry) is cheap at write time and
 impossible to reconstruct later.
 
@@ -179,14 +176,14 @@ to a session you did not write down.
 
 - **Trusting "greedy decoding plus a fixed seed" for item-level reproducibility across
   sessions.** That is the assumption this exercise falsified, twice, a day apart — the
-  second time with the generation budget deliberately held fixed on both sides so that
-  the session was the only thing left to explain the difference.
+  second time with the generation budget held fixed on both sides, so the session was
+  the only thing left to explain the difference.
 - **Reading deltas between two historical runs as caused by whatever changed between
-  them.** Session-to-session noise of 23 to 24 outcomes per 48 is large enough to
-  manufacture an effect that was never there, or to hide one that was.
+  them.** Session noise of 23 to 24 outcomes per 48 can manufacture an effect that was
+  never there, or hide one that was.
 - **Averaging over more historical runs to smooth it out.** This is not sampling
   variance that shrinks as you add runs. It is a property of *which session* produced a
-  given answer, and more runs drawn the same confounded way inherit the same confound.
+  given answer, and more runs drawn the same way inherit the same confound.
 - **Reading the aggregates and concluding all was well.** The pass rate moved by about
   three tickets. Half the individual answers had changed underneath it.
 - **Treating it as a bug to fix.** There was nothing to patch. The fix was to measure

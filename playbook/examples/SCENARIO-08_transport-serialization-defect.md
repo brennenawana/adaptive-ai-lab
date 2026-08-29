@@ -9,23 +9,28 @@ part to take seriously.
 
 ## Situation
 
-A public radio archive is indexing thirty years of tape. A model reads each episode
-transcript and emits one structured record per segment: where the segment starts and ends,
-who is speaking, what it is about, a couple of quotable lines, a confidence number, and a
-one-line summary. The records go into a search index the public will use, so the fields
-have to be exactly the shape the index expects — no prose, no missing keys.
+The new gateway added three milliseconds to an 8.9-second call, returned no errors, and
+reconciled its token accounting to the exact token. It also produced a different output on
+every one of the fifty episodes that passed through it.
+
+The episodes belong to a public radio archive that is indexing thirty years of tape. A
+model reads each episode transcript and emits one structured record per segment: where the
+segment starts and ends, who is speaking, what it is about, a couple of quotable lines, a
+confidence number, and a one-line summary. The records go into a search index the public
+will use, so the fields have to be exactly the shape the index expects — no prose, no
+missing keys.
 
 The archive got that guarantee by constraining the model as it writes. The model server
 takes the JSON schema for the record, compiles it into a grammar, and only allows tokens
 that keep the output valid. The model cannot emit a stray sentence, because at every step
 the illegal tokens are simply unavailable.
 
-The archive then wanted to put a routing gateway in front of that model server. Not to
-route anything yet — the eventual plan was to send hard episodes to a larger model — but to
-get the plumbing in place first. They deployed an open-source gateway with exactly one
-route configured, of the plainest kind it offers: forward this request to that model
-server. No retries. No fallback. No timeout logic on that route type. And on the client
-side, the code that builds the outgoing request was the *same function* on both paths. The
+The gateway came later, and not to route anything yet — the eventual plan was to send hard
+episodes to a larger model, and this was the plumbing going in first. They deployed an
+open-source gateway with exactly one route configured, of the plainest kind it offers:
+forward this request to that model server. No retries. No fallback. No timeout logic on
+that route type. And on the client side, the code that builds the outgoing request was the
+*same function* on both paths. The
 request going out should have been byte-for-byte the same whether it went direct or through
 the gateway.
 
@@ -90,7 +95,7 @@ routing time. None of that surfaced anything.
 | no parseable record | 3 | 2 | −1 |
 
 Read the shape of that, not just the rows. Fourteen episodes changed outcome, in **both
-directions** — topic labelling got worse, speaker attribution and citation recall got
+directions** — topic labeling got worse, speaker attribution and citation recall got
 better — so the headline pass rate moved by two episodes out of fifty. A weekly quality
 dashboard would have shown nothing. A spot check of five episodes would probably have shown
 nothing. The defect is visible in exactly one row: 0/50 identical.
@@ -199,8 +204,8 @@ had changed.
 
 - [EXT-OPS-002] Breck et al., ML Test Score rubric — training/serving skew, the general
   defect class this scenario is one instance of.
-- [SCENARIO-12](SCENARIO-12_restart-instability-paired-controls.md) — why only same-session
-  runs were comparable case by case, and how that boundary is measured.
+- [SCENARIO-12](SCENARIO-12_restart-instability-paired-controls.md) — the same
+  reproducibility boundary, measured deliberately, in a different setting.
 - Governing chapters: [02](../02_EXECUTION_SYSTEM_MODEL.md),
   [08](../08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md),
   [12](../12_OBSERVABILITY_LEARNING_AND_PROMOTION.md).

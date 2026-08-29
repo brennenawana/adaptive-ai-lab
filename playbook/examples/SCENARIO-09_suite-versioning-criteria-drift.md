@@ -10,11 +10,18 @@ part to take seriously.
 
 ## Situation
 
-A city building department is testing an assistant that pre-checks permit applications.
-Someone submits plans for a deck, a sign, a kitchen remodel. The assistant reads the
-submission and answers three things: what is blocking approval, which section of the
-municipal code says so, and what the applicant has to do next. If it works, it saves
-counter staff a first pass on a few hundred applications a week.
+The evaluation had been disagreeing with itself between runs. Reading the transcripts is
+what surfaced why: four defects, none of them in the documentation or the rubric, all of
+them in the generator and the scorer themselves — the machinery that manufactures the
+truth, and the machinery that checks against it. Not one was found by re-reading the
+specification.
+
+The suite those defects sit in belongs to a city building department, which is testing an
+assistant that pre-checks permit applications. Someone submits plans for a deck, a sign, a
+kitchen remodel. The assistant reads the submission and answers three things: what is blocking
+approval, which section of the municipal code says so, and what the applicant has to do
+next. If it works, it saves counter staff a first pass on a few hundred applications a
+week.
 
 To test it, the team built a suite that generates fake applications with known defects
 planted in them — an expired contractor licence, a setback that violates the zoning table,
@@ -25,12 +32,9 @@ looks at a model's score: the list of defect types, the list of evidence an answ
 cite for each application type, the list of claims an answer is forbidden to make, and the
 code that reads an answer and decides whether it passed.
 
-An instrument audit found thirteen problems with the suite
-([SCENARIO-04](SCENARIO-04_harness-defects.md)). Four of them were not in the
-documentation or the rubric. They were in the generator and the scorer themselves — the
-machinery that manufactures the truth and the machinery that checks against it. All four
-were found the same way: by reading real model transcripts and noticing that the evaluation
-disagreed with itself between runs. None was found by re-reading the specification.
+The four defects came out of an audit of that suite — the kind
+[SCENARIO-04](SCENARIO-04_harness-defects.md) walks through in a different setting — which
+found thirteen problems in all.
 
 This scenario is not about those four defects. It is about what the team did next.
 
@@ -40,13 +44,12 @@ Four confirmed bugs sat in live scoring and generation code. Two full baseline r
 already been run and reported under that code.
 
 **Option one: fix them in place.** Edit the generator, edit the scorer, re-run. It is a
-day's work. It also silently voids every number already circulated, and — this is the part
-that matters — it makes each fix permanently indistinguishable from a fix chosen *because a
-particular model's answer looked wrong*. Six months later, nobody can tell the difference,
-including the people who made the change.
+day's work. It also voids every number already circulated, and makes each fix permanently
+indistinguishable from one chosen *because a particular model's answer looked wrong*. Six
+months later nobody can tell the difference, including the people who made the change.
 
 **Option two: freeze a new numbered release of the suite.** Old numbers stay on the record,
-labelled with the version that produced them. New numbers start a new series. The tooling
+labeled with the version that produced them. New numbers start a new series. The tooling
 itself refuses to put a number from one series next to a number from the other. This costs
 a complete re-baseline of all three model arms across both splits before a single one of
 the four fixes can be credited with anything.
@@ -65,11 +68,10 @@ score.**
 That constraint is the whole design. Everything else in the release is machinery for making
 it enforceable.
 
-**The four defects closed** (technical detail in
-[SCENARIO-04](SCENARIO-04_harness-defects.md)):
+**The four defects closed:**
 
 - Filler records in the generated case files carried one defect type's signature into five
-  other application types as unlabelled noise, so a correct answer on those types could be
+  other application types as unlabeled noise, so a correct answer on those types could be
   scored wrong.
 - The fee-shortfall type drew the fee owed and the fee paid independently. In 4 of 30
   generated applications the payment exceeded the fee owed — which made a claim on the
@@ -81,7 +83,7 @@ it enforceable.
 
 **The versioning machinery, so the release was enforced rather than merely documented.** A
 suite-version identifier stamped on every generated application and every scored result row
-from that point on. Prior versions' rows relabelled and backfilled — never deleted, never
+from that point on. Prior versions' rows relabeled and backfilled — never deleted, never
 rewritten. A canonical digest computed over the regenerated corpus and confirmed identical
 across two independent regenerations from scratch. And six analysis tools changed to group
 results by *(run, suite version)* and to refuse, by default, to place rows from different
@@ -102,9 +104,8 @@ pass, the gates and the sanity pass are both re-run rather than the result kept.
 **What deliberately did not change.** The defect taxonomy, the set of actions an answer may
 recommend, and the mapping between them kept their existing version. This release fixed
 the suite's fidelity to the task it already claimed to measure. It did not change what the
-task is. The release record draws that line explicitly, because the two kinds of change
-have different consequences and blurring them is how a suite quietly becomes a different
-suite.
+task is. The release record draws that line explicitly: blurring it is how a suite quietly
+becomes a different suite while keeping its name.
 
 ## What happened
 
@@ -121,7 +122,7 @@ regenerated from scratch and the sanity pass restarted, rather than the in-fligh
 patched and kept. That is the moment the discipline actually cost something, and it is the
 only moment that tells you whether the discipline is real.
 
-Every result row from the earlier versions survived, labelled, and is still queryable. What
+Every result row from the earlier versions survived, labeled, and is still queryable. What
 changed is that the comparison tooling will not pair an old row with a new one without an
 explicit flag, and says why whenever the flag is used.
 
@@ -147,16 +148,16 @@ look at actual behavior — this is a measured finding about how evaluation work
 sign that somebody was sloppy [EXT-EVAL-004]. Four independent defects here were found only
 by reading transcripts, under a suite that was already contract-frozen.
 
-Given that, two responses are available and both are wrong. "Specify everything perfectly
-up front" did not happen and does not happen. "Edit the live suite whenever a defect turns
-up" silently invalidates every number already reported and destroys your ability to prove,
-later, that you were not tuning the test to the answer.
+Two responses suggest themselves and both are wrong. "Specify everything perfectly up
+front" did not happen here and does not happen. "Edit the live suite whenever a defect
+turns up" invalidates every number already reported, and destroys your ability to prove
+later that you were not tuning the test to the answer.
 
 The licensed third response is a [suite release](../GLOSSARY.md#suite-release): a written
 changelist whose only admissible justification is a stated invariant violation, never a
 model's score; a version stamp that makes non-comparability a property of the *tooling*
 rather than a footnote in a document
-([cross-suite refusal](../GLOSSARY.md#cross-suite-refusal)); and unmodified, labelled
+([cross-suite refusal](../GLOSSARY.md#cross-suite-refusal)); and unmodified, labeled
 retention of everything the previous version produced. Chapter 03 defines
 [criteria drift](../GLOSSARY.md#criteria-drift) and this discipline normatively; the
 generic form is in
@@ -169,14 +170,13 @@ become folklore: *that permit type always seemed weird.* The same defects, close
 dated and gated release, become a fact anyone can reproduce.
 
 **How this lands on your project.** Ask one question about your own evaluation: if you
-fixed a scorer bug this afternoon, would last month's reported numbers still be labelled in
-a way that tells you they came from a different instrument? If the answer is no, you have
-one series of numbers that quietly spans two instruments, and no way to separate them now.
-The fix is small and worth doing before you need it. Stamp a version on every generated
-item and every result row. Make your comparison script refuse to mix versions and require a
-flag to override. Keep a changelist where each entry names the invariant that was broken.
-None of that takes a week. All of it is unrecoverable if you skip it and discover the
-scorer bug afterwards.
+fixed a scorer bug this afternoon, would last month's reported numbers still be labeled in
+a way that says they came from a different instrument? If not, you have one series of
+numbers quietly spanning two instruments and no way to separate them now. Three things fix
+that, and none takes a week. Stamp a version on every generated item and every result row.
+Make your comparison script refuse to mix versions unless someone passes a flag. Keep a
+changelist where each entry names the invariant that was broken. All three are cheap in
+advance and unrecoverable afterwards.
 
 ## What would NOT have worked
 
@@ -198,8 +198,8 @@ weighed on its own merits rather than in response to the two answers that raised
 - [EXT-EVAL-004] EvalGen / "Who Validates the Validators" (Shankar et al.) — the
   practitioner-study evidence that criteria and reference answers co-evolve as outputs are
   seen, and the source of "criteria drift" as this playbook uses the term.
-- [SCENARIO-04](SCENARIO-04_harness-defects.md) — the technical content of the defects this
-  release closed, and how they were detected.
+- [SCENARIO-04](SCENARIO-04_harness-defects.md) — how defects like these are detected in
+  the first place, and why they impersonate model weakness until they are.
 - Governing chapters: [00](../00_PRINCIPLES_AND_SCOPE.md),
   [03](../03_EVALUATION_FOUNDATION.md),
   [13](../13_GOVERNANCE_PROVENANCE_AND_SECURITY.md).

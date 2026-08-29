@@ -11,16 +11,17 @@ part to take seriously.
 
 ## Situation
 
-A regional library system built an assistant for its reference desk. A patron asks
-something like *"does any branch have the 1954 county plat book, and can I borrow it?"*
-and the assistant answers from the catalog, the local-history archive index, and the
-interlibrary-loan rules, citing what it used.
+Fifteen kinds of question the desk actually gets — holdings lookup, archive citation, loan
+eligibility, hours and access, and so on. Eight questions written for each. One hundred
+and twenty items in the finished suite. That felt like a real sample size, and for two
+rounds nobody questioned it.
 
-To decide which model to run, the team built a test suite the way most eval suites get
-built. They listed the 15 kinds of question the desk actually gets — holdings lookup,
-archive citation, loan eligibility, hours and access, and so on — and wrote 8 questions
-for each. Fifteen times eight is 120 items. That felt like a real sample size, and for
-two rounds nobody questioned it.
+The desk in question is at a regional library system, and the suite exists to decide which
+model should be working it. A patron asks something like *"does any branch have the 1954
+county plat book, and can I borrow it?"* and the assistant answers from the catalog, the
+local-history archive index, and the interlibrary-loan rules, citing what it used. The
+suite itself was put together the way most eval suites get put together: list the kinds of
+question, write a handful of each.
 
 Reporting followed the same instinct. Item count was treated as sample size.
 Percentage-point gaps were read straight off the pass-rate table.
@@ -49,10 +50,9 @@ The headline table, exactly as it was reported:
 
 Then someone re-read those same scores a different way.
 
-Nothing new was run. No model was called again, no item was rescored, no experiment was
-repeated. Every number above is exactly what was measured. What changed is that the
-re-read asked one question first: **within what grouping do these outcomes travel
-together?**
+Nothing new was run. No model was called again, no item was rescored. Every number above
+is exactly what was measured. What changed is that the re-read asked one question first:
+**within what grouping do these outcomes travel together?**
 
 The answer was the question family. Whether the assistant gets a holdings lookup right is
 mostly determined by what holdings lookups demand — the catalog fields they need, the
@@ -162,19 +162,17 @@ The refresh was committed to adding families before adding items within families
 ## What would NOT have worked
 
 **Adding more items inside the same 15 families.** With m already at 8 and ICC at 0.42,
-DEFF is set almost entirely by the clustering, not by N. The arithmetic is in the previous
-section: doubling the suite moves effective N by about three. That is a lot of runtime for
-almost no evidence.
+DEFF is set almost entirely by the clustering, not by N. Doubling the suite moves effective
+N by about three. That is a lot of runtime for almost no evidence.
 
 **Trusting the McNemar secondary statistic on its own.** McNemar assumes the discordant
-pairs are independent. Measured ICC 0.42 makes that assumption false for this suite, and
-the test would have read as more decisive than the clustered data support. This is exactly
-the anti-conservative failure the statistics canon names it for.
+pairs are independent. Measured ICC 0.42 makes that assumption false here, so the test
+would have read as more decisive than the clustered data support — exactly the
+anti-conservative failure the statistics canon names it for.
 
-**Treating the earlier screening gate as confirmation.** The 4-item margin that separated
-the candidates at the 45-item gate was under a third of that gate's corrected MDE. Two
-weak signals pointing the same way are not one strong signal; they are the same underlying
-noise, sampled twice from the same clusters.
+**Treating the earlier screening gate as confirmation.** Two weak signals pointing the same
+way are not one strong signal. They are the same underlying noise, sampled twice from the
+same clusters.
 
 **Running the whole thing again.** Worth stating explicitly, because it is the most common
 reflex when a result gets questioned. Nothing in this scenario required a new experiment.
@@ -184,13 +182,13 @@ one had asked it the right question.
 
 **How this lands on your project.** Take your current eval suite and answer one question:
 what were the items generated *from*? If they came from a list of categories, templates,
-source documents, or personas with several items each, you have clusters, and your
-effective sample size is smaller than your item count — possibly by a factor of three or
-four. Compute it: measure ICC on the per-cluster pass rates you already have, then
-DEFF = 1 + (m − 1)·ICC, then N / DEFF. Do it against a comparison you have already shipped
-a decision on. If the margin that drove that decision is smaller than what the suite can
-resolve, you have not necessarily made the wrong call — but you did not make it on the
-evidence you thought you had, and you should say so before the next one.
+source documents, or personas with several items each, you have clusters — and your
+effective sample size is smaller than your item count, possibly by a factor of three or
+four. Compute it from numbers you already have: ICC on the per-cluster pass rates, then
+DEFF = 1 + (m − 1)·ICC, then N / DEFF. Run it against a comparison you have already shipped
+a decision on. If that decision's margin is smaller than what the suite can resolve, you
+have not necessarily made the wrong call — but you did not make it on the evidence you
+thought you had, and the next one deserves to know that.
 
 ## References
 
