@@ -1,7 +1,6 @@
 ---
 import Layout from '../../components/Layout.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
-import { GITHUB_REPO } from '../../lib/repo.ts';
 import { CURRENT_VERSION } from '../../lib/versions.ts';
 
 const base = import.meta.env.BASE_URL;
@@ -9,72 +8,84 @@ const u = (r: string) => base.replace(/\/$/, '') + r;
 ---
 
 <Layout
-  title="About the Lab"
-  description="How the Adaptive AI Lab works: playbook → projects → evidence → evolution, and what is normative where."
+  title="About the Playbook"
+  description="What the Adaptive AI Systems Playbook is, how its rules earn their place, and how to read it."
   section="about"
 >
   <header class="doc-head">
     <div class="doc-eyebrow">
       <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'About' }]} />
     </div>
-    <h1>About the lab</h1>
+    <h1>About this playbook</h1>
   </header>
 
   <div class="prose">
     <p>
-      The <strong>Adaptive AI Lab</strong> develops and validates the
-      <a href={u('/playbook/')}>Adaptive AI Systems Playbook</a> — an evidence-driven,
-      project-independent methodology for building AI systems. The playbook is the lab's product.
-      Everything else exists to make it trustworthy.
+      The <a href={u('/playbook/')}>Adaptive AI Systems Playbook</a> answers one question, over and
+      over, at every stage of a project: <em>what should I do next, and what evidence would justify
+      it?</em> It covers the whole arc — deciding what to build, building something that can measure
+      it, running experiments whose answers you can act on, choosing models and runtimes, optimizing,
+      deploying, and knowing when to stop.
+    </p>
+    <p>
+      It is written to be project-independent. Nothing in it assumes a particular company, domain,
+      budget, or stack. This site renders version {CURRENT_VERSION}.
     </p>
 
-    <h2>The loop</h2>
+    <h2>How a rule earns its place</h2>
     <p>
-      The lab runs <em>real project implementations</em>, harvests their frozen experimental evidence
-      into <a href={u('/cases/')}>curated case studies</a>, and promotes what survives into the
-      playbook:
+      Every claim in the book carries a label saying how much weight it can bear. This matters more
+      than it sounds, because the honest answer is often "less than you'd like":
     </p>
-    <pre class="ascii-diagram">research evidence → playbook → project implementations → primary records
-        ↑                                                      ↓
-        └──────── playbook evolution ← curated case studies ←──┘</pre>
-    <p>
-      The first project implementation is <strong>FIS — the Fintech Integration Sandbox</strong>: a
-      realistic synthetic fintech laboratory with deterministic ground truth, frozen eval suites, and
-      fail-closed cryptographic provenance. It is the empirical source of every real case study shipped
-      so far. It is a project <em>in</em> this lab, not the lab itself — which is why its operational
-      records appear here only where case-study provenance reaches them, at
-      <a href={`${GITHUB_REPO}/tree/main/projects/fis`} rel="noopener"><code>projects/fis/</code></a>.
-    </p>
-
-    <h2>Authority in one breath</h2>
     <ul>
-      <li><code>playbook/</code> is normative for reusable methodology (this site renders v{CURRENT_VERSION});</li>
-      <li><code>projects/&lt;name&gt;/</code> is normative for that project's plan and execution;</li>
-      <li><code>docs/</code> is normative for lab governance;</li>
-      <li>frozen records are authoritative for the facts of their own events;</li>
-      <li>none of them overrides another in its own domain.</li>
+      <li>
+        <strong>consensus</strong> — widely agreed across independent practitioners and vendors.
+      </li>
+      <li>
+        <strong>strong evidence</strong> — supported by published results that were checked, with the
+        source recorded in the <a href={u('/references/sources/')}>ledger</a>.
+      </li>
+      <li>
+        <strong>inference</strong> — reasoned from first principles and argued in place. Useful, but
+        not measured. The book says so rather than dressing it up.
+      </li>
     </ul>
     <p>
-      <a href={u('/research/')}>Research reports</a> are evidence, never rules: a report changes nothing
-      by itself. Findings reach the playbook only through the promotion path — evidence-map
-      adjudication, then a chapter rule with a strength label, then a
-      <a href={u('/changelog/')}>changelog</a> entry.
+      The <a href={u('/references/sources/')}>source ledger</a> lists every citation with a verdict —
+      FOLLOW, ADAPT, REFERENCE, or DEPRECATED — and the date it was last checked. Guidance that has
+      aged badly is marked, not quietly deleted.
     </p>
 
-    <h2>This website</h2>
+    <h2>What the scenarios are and aren't</h2>
     <p>
-      This site is a <strong>derived presentation layer</strong> for humans: reading, navigation,
-      search, cross-referencing, and visual learning over the canonical repository files. It maintains
-      no content of its own — every page is generated from the repository's Markdown, YAML, and Git
-      history at build time, and every page links back to its canonical source. Historical playbook
-      versions are extracted from the exact release commits (see <a href={u('/versions/')}>Versions</a>).
-      The repository — not this website — is the evidence of record:
-      <a href={GITHUB_REPO} rel="noopener">{GITHUB_REPO.replace('https://', '')}</a>.
+      The <a href={u('/cases/')}>scenarios</a> are invented. Every project, number, and name in them
+      is fictional, and they are labelled that way on every page. Each one takes a rule the book
+      argues for, shows a team ignoring it for entirely reasonable-sounding motives, and follows what
+      that cost.
+    </p>
+    <p>
+      They illustrate rules. They are never the evidence for them. Where the book claims something is
+      established, the support is an external source in the ledger — never a scenario.
+    </p>
+
+    <h2>How to read it</h2>
+    <p>
+      Start with the <a href={u('/playbook/quickstart/')}>Quickstart</a>, which routes you by what
+      kind of project you have and what is at stake. The <a href={u('/learn/')}>lifecycle map</a>
+      shows how the chapters connect if you'd rather see the shape first. The
+      <a href={u('/playbook/glossary/')}>glossary</a> defines every term the book uses, and those
+      definitions appear on hover throughout the site — so you should never need to leave a page to
+      understand it.
+    </p>
+    <p>
+      You do not have to adopt the whole thing. Chapters are written to be useful on their own, and
+      the <a href={u('/playbook/00-principles-and-scope/')}>rigor dial</a> in chapter 00 exists
+      precisely so that a weekend project and a regulated deployment can follow the same book without
+      pretending to be each other.
     </p>
   </div>
 
   <footer class="site-footer">
-    Governance details live in the repository's <code>docs/</code> directory — the canonical index is
-    <a href={`${GITHUB_REPO}/blob/main/docs/README.md`} rel="noopener">docs/README.md</a>.
+    Playbook v{CURRENT_VERSION} · <a href={u('/changelog/')}>Changelog</a>
   </footer>
 </Layout>

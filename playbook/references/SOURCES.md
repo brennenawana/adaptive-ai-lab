@@ -6,7 +6,7 @@
 > do not edit by hand. The YAML file is the record of record; chapters cite
 > stable IDs; this page is the human-readable rendering.
 
-102 sources. Verdict counts: FOLLOW 18 · ADAPT 28 · REFERENCE 34 · DEPRECATED 10 · CASE 12
+90 sources. Verdict counts: FOLLOW 18 · ADAPT 28 · REFERENCE 34 · DEPRECATED 10 · CASE 0
 
 ## FOLLOW
 
@@ -132,18 +132,6 @@
 
 | ID | Source | Claims we cite it for | Strength | Freshness | Verified |
 |---|---|---|---|---|---|
-| INT-CASE-001 | **internal (source project)** — Case study: consequence-bearing tolerances (`examples/CASE-001_consequence-bearing-tolerances.md`) | A pre-registered tolerance whose escape hatch carried no priced consequence let a measured multiple-of-tolerance calibration breach proceed into a large share of a milestone wall clock scoring zero; the fix is naming ABORT/RECALIBRATE/PROCEED-WITH-DECLARED-CEILING per tolerance, enforced fail-closed | case-study | stable | 2026-08-21 |
-| INT-CASE-002 | **internal (source project)** — Case study: clustered eval effective N (`examples/CASE-002_clustered-eval-effective-n.md`) | Stratum-clustered outcomes silently collapsed a held-out suite to a small fraction of its nominal item count; the headline model comparison was not significant cluster-robustly; independent strata grow effective N without bound while within-stratum replications saturate at k/ICC | case-study | stable | 2026-08-21 |
-| INT-CASE-003 | **internal (source project)** — Case study: learned-router leakage (`examples/CASE-003_learned-router-leakage.md`) | A learned router scored well until a leave-one-group-out audit showed features encoded WHICH template an item was (class-identity ceiling); nothing beat the ceiling; the deterministic gate was retained | case-study | stable | 2026-08-21 |
-| INT-CASE-004 | **internal (source project)** — Case study: harness defects as instrument findings (`examples/CASE-004_harness-defects.md`) | A double-digit count of harness/scenario defects initially indistinguishable from model weakness was found by three statistical detection mechanisms: measured reachability ceilings, weak-beats-strong inversions, cross-arm disagreement review | case-study | stable | 2026-08-21 |
-| INT-CASE-005 | **internal (source project)** — Case study: hardware purchase discipline (`examples/CASE-005_hardware-purchase-discipline.md`) | A measured critical path refuted an intuitive multi-GPU purchase (the second device saved nothing); the demand ledger showed trivial sustained demand; adopted: rented per-milestone nodes + a pre-committed purchase trigger | case-study | stable | 2026-08-21 |
-| INT-CASE-006 | **internal (source project)** — Case study: token-budget confounding (`examples/CASE-006_token-budget-confounding.md`) | A generation-cap confound inflated a model-comparison headline; isolating the budget factor shrank the claimed gap dramatically; caps must be calibrated with consequence-bearing tolerances and reported as measurement ceilings | case-study | stable | 2026-08-21 |
-| INT-CASE-007 | **internal (source project)** — Case study: deterministic cascade gate (`examples/CASE-007_deterministic-cascade-gate.md`) | A deterministic verifier-gated cascade achieved near-perfect rescue with zero unnecessary escalations — outside the published learned-gate design space (FrugalGPT/RouteLLM/AutoMix/HybridLLM) | case-study | stable | 2026-08-21 |
-| INT-CASE-008 | **internal (source project)** — Case study: transport serialization defect (`examples/CASE-008_transport-serialization-defect.md`) | A 'transparent' proxy reordered JSON keys, breaking a grammar-constrained consumer; found only by byte-equivalence verification; training/serving-skew class (ML Test Score Monitor-3) | case-study | stable | 2026-08-21 |
-| INT-CASE-009 | **internal (source project)** — Case study: suite versioning under criteria drift (`examples/CASE-009_suite-versioning-criteria-drift.md`) | Eval criteria drifted as outputs were seen (external: EvalGen); versioned suite releases with cross-suite comparison refusal made the drift explicit and auditable instead of silent | case-study | stable | 2026-08-21 |
-| INT-CASE-010 | **internal (source project)** — Case study: pilot optimism collapse (`examples/CASE-010_pilot-optimism-collapse.md`) | Small-sample pilot headlines ran optimistic; scaling from the pilot to the full confirmation set collapsed the effect; pre-registered adoption rules with fluke guards caught cherry-picks | case-study | stable | 2026-08-21 |
-| INT-CASE-011 | **internal (source project)** — Case study: diagnostic gate before an expensive experiment (`examples/CASE-011_diagnostic-gate.md`) | A cheap paired-probe diagnostic (a fraction of a day) was pre-registered to decide a multi-day experiment's fate, with data-sufficiency precedence: completion alone never produces GO | case-study | stable | 2026-08-21 |
-| INT-CASE-012 | **internal (source project)** — Case study: restart instability and paired controls (`examples/CASE-012_restart-instability-paired-controls.md`) | A large share of item outcomes flipped across a mere server restart; reproducibility was measured, then scoped by rule (same-session comparisons; contemporaneous paired controls for causal claims) | case-study | stable | 2026-08-21 |
 
 ## Deprecation / supersession watchlist
 

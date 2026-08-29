@@ -2,24 +2,20 @@
 /** Changelog view from the canonical playbook/CHANGELOG.md. */
 import Layout from './Layout.astro';
 import Breadcrumbs from './Breadcrumbs.astro';
-import VersionBar from './VersionBar.astro';
-import CanonicalNote from './CanonicalNote.astro';
 import { loadChangelog } from '../lib/changelog.ts';
 import { makeCtx } from '../lib/rendering.ts';
 import { renderFragment } from '../lib/markdown/render.ts';
 import { sidebarFor } from '../lib/nav.ts';
 import { VERSIONS } from '../lib/versions.ts';
-import { githubCommitUrl } from '../lib/repo.ts';
 import type { PageDef } from '../lib/corpus.ts';
 
 interface Props {
   page: PageDef;
 }
 const { page } = Astro.props;
-const base = import.meta.env.BASE_URL;
-const u = (r: string) => base.replace(/\/$/, '') + r;
 
 const cl = loadChangelog(page.space);
+const base = import.meta.env.BASE_URL;
 const ctx = makeCtx(page.space, 'playbook/CHANGELOG.md', base);
 const intro = renderFragment(cl.introMarkdown, ctx);
 const releases = cl.versions.map((v) => ({
@@ -40,7 +36,6 @@ const releases = cl.versions.map((v) => ({
   <header class="doc-head">
     <div class="doc-eyebrow">
       <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'Playbook', href: '/playbook/' }, { label: 'Changelog' }]} />
-      <span class="version-bar"><VersionBar space={page.space} route={page.route} /></span>
     </div>
     <h1>Changelog</h1>
     <p class="doc-meta-row"><span>Every change carries its why and its evidence.</span></p>
@@ -59,19 +54,9 @@ const releases = cl.versions.map((v) => ({
           {r.bump && <span class="badge accent">{r.bump}</span>}
           {r.name && <span class="doc-meta-row">{r.name}</span>}
           {r.date && <span class="release-date">{r.date}</span>}
-          <span class="release-links ui">
-            {r.snapshot && <a href={u(`/versions/${r.version}/playbook/`)}>browse this version</a>}
-            {r.snapshot && (
-              <a href={githubCommitUrl(r.snapshot.commit)} rel="noopener" class="ext">
-                release commit
-              </a>
-            )}
-          </span>
         </div>
         <div class="prose"><Fragment set:html={r.html} /></div>
       </section>
     ))
   }
-
-  <CanonicalNote repoPath="playbook/CHANGELOG.md" space={page.space} />
 </Layout>

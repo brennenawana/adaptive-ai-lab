@@ -122,7 +122,7 @@ simultaneous clustering dimensions — identify
 the coarsest binding unit or move to a mixed-effects model; negative ICC
 estimates from small `k` — cap at 0 and investigate.
 
-Evidence: [EXT-STATS-001]; [CASE: CASE-002].
+Evidence: [EXT-STATS-001]; [SCENARIO: SCENARIO-02].
 
 ---
 
@@ -354,7 +354,7 @@ information. **Rule: a curtailed arm's results never enter a paired
 comparison, ranking, or leaderboard** — only the interval (6b) and a
 standalone descriptive report are licensed. The argument is first-principles
 (above); it has been *demonstrated on a real comparison in a counterfactual
-replay* [CASE: CASE-001] — curtailing one arm and recomputing the paired test
+replay* [SCENARIO: SCENARIO-01] — curtailing one arm and recomputing the paired test
 on the items both arms retained moved the p-value materially, by composition
 alone. No live instance of a curtailed arm entering a paired comparison is
 recorded: the rule exists so there never is one.
@@ -380,7 +380,7 @@ adopting curtailment for speed rather than decision quality — a speed
 rationale for a stopping rule is [REJECTED].
 
 Evidence: this playbook's own machinery, corroborated by the pre-specification
-consensus [EXT-STOPPING-002]; [CASE: CASE-001].
+consensus [EXT-STOPPING-002]; [SCENARIO: SCENARIO-01].
 
 ---
 
@@ -427,7 +427,7 @@ alongside ICC, DEFF and MDE, with a named owner:
    realized α **on your own cluster structure and execution order** before
    trusting the nominal boundary. The motivating case study measured a
    realized error rate of roughly twice nominal under material clustering
-   with blocked ordering [CASE: CASE-001]; the multiplier depends on ICC,
+   with blocked ordering [SCENARIO: SCENARIO-01]; the multiplier depends on ICC,
    cluster count, and boundary shape — simulate for your own design, never
    assume a figure (including that one).
 
@@ -466,8 +466,8 @@ measured, not assumed.
 
 Evidence: [EXT-STOPPING-001] (`contested` under clustered execution);
 [EXT-STOPPING-002] (`consensus` for which rule runs, not a calibration
-substitute); [CASE: CASE-001] (the one measured α-inflation instance, from a
-replay); [CASE: CASE-002] (the clustering structure that causes it).
+substitute); [SCENARIO: SCENARIO-01] (the one measured α-inflation instance, from a
+replay); [SCENARIO: SCENARIO-02] (the clustering structure that causes it).
 
 ---
 
@@ -621,7 +621,7 @@ demand, not busy-percentage within one run — near-100% utilization during
 one intense week can coexist with near-zero average weekly demand. Drive the
 decision from a [demand ledger](../GLOSSARY.md#demand-ledger) tracking actual
 hours/month (including honest zero/not-run periods), never from a single
-run's peak utilization [CASE: CASE-005]. Understating `TDP_kW` biases `H*`
+run's peak utilization [SCENARIO: SCENARIO-05]. Understating `TDP_kW` biases `H*`
 low, making ownership look easier to justify than it is (the dangerous
 direction); overstating it biases toward renting (the safe direction if you
 must estimate rather than measure).
@@ -629,8 +629,7 @@ must estimate rather than measure).
 **When this breaks:** mid-life hardware failure shortens real `L` below
 plan; `R` from a single volatile-market snapshot (re-verify at order time,
 chapter 11); no time-value-of-money discounting on `P`; using one run's
-busy-percentage as the `H` input instead of the demand ledger [CASE:
-CASE-005]; the formula answers own-vs-rent for an already-chosen
+busy-percentage as the `H` input instead of the demand ledger [SCENARIO: SCENARIO-05]; the formula answers own-vs-rent for an already-chosen
 configuration — it does not say which configuration to price.
 
 Evidence: first-principles TCO algebra (`inference`); [EXT-HW-001] for the
@@ -912,9 +911,9 @@ for the specific `1/λ²` sizing rule beyond the algebra shown.
 | [EXT-JUDGE-003] | κ deflation against raw agreement; anchor-reliability reading (§13) |
 | [NV-MODELOPTRESEARCH-001] | Binomial margin-of-error table + first-N ordering-bias caveat (§11) |
 | [EXT-HW-001] | Market-snapshot discipline for rent-vs-buy inputs (§10) |
-| [CASE-001](../examples/CASE-001_consequence-bearing-tolerances.md) | Curtailment guards; counterfactual replay of the paired-comparison firewall (§6) and the one measured sequential α-inflation instance (§7) |
-| [CASE-002](../examples/CASE-002_clustered-eval-effective-n.md) | Clustering/effective-N collapse this file's §2 and §7 draw on |
-| [CASE-005](../examples/CASE-005_hardware-purchase-discipline.md) | Honest-utilization warning for rent-vs-buy (§10) |
+| [SCENARIO-01](../examples/SCENARIO-01_consequence-bearing-tolerances.md) | Curtailment guards; counterfactual replay of the paired-comparison firewall (§6) and the one measured sequential α-inflation instance (§7) |
+| [SCENARIO-02](../examples/SCENARIO-02_clustered-eval-effective-n.md) | Clustering/effective-N collapse this file's §2 and §7 draw on |
+| [SCENARIO-05](../examples/SCENARIO-05_hardware-purchase-discipline.md) | Honest-utilization warning for rent-vs-buy (§10) |
 
 ---
 

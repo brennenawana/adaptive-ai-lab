@@ -383,11 +383,11 @@ The rubric's operational use as a periodic self-audit is chapter 12's subject.
 
 ## 11. Worked examples
 
-- [CASE-011](examples/CASE-011_diagnostic-gate.md) — a cheap, pre-registered
+- [SCENARIO-11](examples/SCENARIO-11_diagnostic-gate.md) — a cheap, pre-registered
   diagnostic determined whether a large experiment should run at all, before any of
   its cost was spent; illustrates naming the decision and its evidence bar ahead of
   spend (§5.2, §5.6).
-- [CASE-005](examples/CASE-005_hardware-purchase-discipline.md) — a demand ledger
+- [SCENARIO-05](examples/SCENARIO-05_hardware-purchase-discipline.md) — a demand ledger
   and a pre-committed purchase trigger, set before the hardware was wanted,
   prevented a purchase that a later measurement showed would not have paid for
   itself; illustrates kill-criteria discipline applied to a capex decision (§5.3).
@@ -421,8 +421,6 @@ The rubric's operational use as a periodic self-audit is chapter 12's subject.
 | [EXT-EVAL-001] | Explicit-criteria-first eval design ordering |
 | [EXT-EVAL-002] | Objective→dataset→metrics ordering, adapted one level up to project intake |
 | [EXT-OPS-002] | ML Test Score rubric — previewed here as the shape of eventual obligations |
-| [INT-CASE-011] | Case evidence: a diagnostic gate deciding an expensive experiment's fate before spend |
-| [INT-CASE-005] | Case evidence: kill-criteria/purchase-trigger discipline at a capex decision |
 
 Gap dispositions in this chapter: **G2 (rigor sizing, shared with 00): COVERED** —
 the profile capture point is §5.1 field 21 and the always-mandatory field set of §7;

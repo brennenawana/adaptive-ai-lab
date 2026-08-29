@@ -120,7 +120,7 @@ verifier/grader + environment. Never collapse these into one ambiguous label.*
   session per arm for the duration of the run; artifact digests verified
   post-transfer, on the remote node, before the run starts — not assumed from the
   upload step. See [reproducibility boundary](../GLOSSARY.md#reproducibility-boundary),
-  [CASE-012](../examples/CASE-012_restart-instability-paired-controls.md).
+  [SCENARIO-12](../examples/SCENARIO-12_restart-instability-paired-controls.md).
 - **Reproducibility boundary declared:** [same session / across restarts / across
   hosts / under concurrency — state which boundary this experiment's claims are
   scoped to; measured, not assumed [EXT-DETERM-001]]

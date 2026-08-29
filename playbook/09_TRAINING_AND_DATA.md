@@ -341,10 +341,10 @@ Neutral illustrative walk-through of §5 (all numbers invented and round):
 > paired comparison against the frozen base system reports CONFIRMED at the
 > pre-declared MDE, and the artifact moves to chapter 10's promotion pipeline.
 
-- [CASE-011](examples/CASE-011_diagnostic-gate.md) — the general pattern of a cheap,
+- [SCENARIO-11](examples/SCENARIO-11_diagnostic-gate.md) — the general pattern of a cheap,
   pre-registered diagnostic deciding an expensive experiment's fate before it runs;
   the same discipline applies to the train-at-all gate (§7).
-- [CASE-006](examples/CASE-006_token-budget-confounding.md) — a budget confound
+- [SCENARIO-06](examples/SCENARIO-06_token-budget-confounding.md) — a budget confound
   inflated a headline comparison before the underlying factor was isolated; the same
   caution applies to a tuned-vs-base comparison run under an uncontrolled generation
   budget.
@@ -409,7 +409,6 @@ path above.
 | [NV-TOOLCALLTUTORIAL-001] | Tool-calling fine-tune data-design pattern (§6, §10) |
 | [EXT-TESTBED-001] | Toy-case-before-scaling corroboration for the rig-first principle (§4) |
 | [NV-AGENTICBLOGS-001] | Evaluate/measure-first ordering, corroborating the evidence threshold (§4) |
-| [INT-CASE-006], [INT-CASE-011] | Internal case evidence for diagnostic-gate and budget-confound discipline applied here (§11) |
 
 **Gap dispositions in this chapter:**
 - **G7 (model-license review for base weights, shared with chapter 13): COVERED** —

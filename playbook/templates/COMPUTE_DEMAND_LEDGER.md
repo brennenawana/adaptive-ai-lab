@@ -95,7 +95,7 @@ is met by the ledger, never before. *Outcomes:*
 2. **Trigger met** → open a benchmark-first sizing pass: run the actual (or
    representative) workload across candidate configurations and select the
    *minimal* configuration that clears the stated latency/throughput/cost
-   target — not the largest affordable one [CASE: CASE-005].
+   target — not the largest affordable one [SCENARIO: SCENARIO-05].
 
 **[STOP CONDITION] Stale-price purchase.** Before any order is placed,
 re-verify current prices, specs, and availability for both the owned candidate

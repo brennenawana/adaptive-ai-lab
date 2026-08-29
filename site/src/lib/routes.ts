@@ -17,7 +17,7 @@ export interface RouteInfo {
   /** Space-relative route, with leading + trailing slash, e.g. "/playbook/quickstart/". */
   route: string;
   /** Top-level site section the page belongs to. */
-  section: 'playbook' | 'references' | 'cases' | 'changelog' | 'research';
+  section: 'playbook' | 'references' | 'cases' | 'changelog';
 }
 
 /**
@@ -28,15 +28,6 @@ export interface RouteInfo {
  */
 export function repoPathToRoute(repoPath: string): RouteInfo | null {
   const p = repoPath.replace(/^\.\//, '');
-
-  // ---- research/ (current space only; never versioned) ----
-  if (p.startsWith('research/')) {
-    const rest = p.slice('research/'.length);
-    if (rest === 'README.md') return { route: '/research/', section: 'research' };
-    const m = rest.match(/^(.+)\.md$/);
-    if (m) return { route: `/research/${fileSlug(m[1]!)}/`, section: 'research' };
-    return null;
-  }
 
   if (!p.startsWith('playbook/')) return null;
   const rest = p.slice('playbook/'.length);

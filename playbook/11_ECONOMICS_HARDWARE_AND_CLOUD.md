@@ -61,7 +61,7 @@ spend per period, including honest NOT-RUN rows — is the evidence base, built
 First-principles argument: a capital purchase is the least reversible resource
 decision in the lifecycle (P4, [00 §4](00_PRINCIPLES_AND_SCOPE.md#4-normative-principles));
 without a ledger the only available evidence is recency-biased memory of the last
-busy week, which systematically overstates sustained demand. [CASE: CASE-005]
+busy week, which systematically overstates sustained demand. [SCENARIO: SCENARIO-05]
 measured this gap directly: within-run utilization was high, but lifetime sustained
 demand was a small fraction of what an intuitive purchase would have implied.
 
@@ -73,7 +73,7 @@ or a signed always-on serving commitment — is defined *before* anyone wants th
 hardware, and does not move afterward. This is
 [P7](00_PRINCIPLES_AND_SCOPE.md#4-normative-principles) (pre-registration with
 consequences) applied to capital: a threshold chosen after the desire already
-exists is a rationalization wearing a control's clothes. [CASE: CASE-005] recorded
+exists is a rationalization wearing a control's clothes. [SCENARIO: SCENARIO-05] recorded
 the corollary anti-pattern by name (§9): a trigger that moves because one
 favorable benchmark appeared has already failed at its one job.
 
@@ -84,8 +84,7 @@ Evaluate a candidate device against the workload's *measured* constraint —
 A device can be more expensive, newer, and still make the workload slower if it
 misses the actual bottleneck. This is [P2 and P5](00_PRINCIPLES_AND_SCOPE.md#4-normative-principles)'s
 measurement-validity argument applied to a purchase claim instead of a
-model-comparison claim: an unmeasured comparison is not a comparison. [CASE:
-CASE-005] found exactly this inversion — a capacity-comparable candidate device was
+model-comparison claim: an unmeasured comparison is not a comparison. [SCENARIO: SCENARIO-05] found exactly this inversion — a capacity-comparable candidate device was
 rejected once compared on the workload's actual bandwidth bottleneck.
 
 **[PRINCIPLE] Measure the critical path before buying parallelism.** (evidence:
@@ -95,7 +94,7 @@ multiplier on throughput; a third node can be worth zero. First-principles
 argument: if a milestone decomposes into K independent chains that each run
 serially on one device, wall clock is bounded below by the *longest* chain
 assigned to any one device — once the longest chain has a device to itself,
-additional devices cannot shorten wall clock further. [CASE: CASE-005]'s measured
+additional devices cannot shorten wall clock further. [SCENARIO: SCENARIO-05]'s measured
 critical-path reconstruction is the demonstrated instance: an intuitive
 second-device purchase saved nothing, because the critical path was bound
 elsewhere.
@@ -133,7 +132,7 @@ not by whichever tier is cheapest this week (table, §8).
    to a rented session exactly as they would to owned hardware.
 5. **If the purchase trigger has fired** (§7): buy the minimal configuration chosen
    by a cheap benchmark run on the *actual* pinned artifact — not the largest
-   configuration the budget allows. [CASE: CASE-005]'s pattern: a small rented
+   configuration the budget allows. [SCENARIO: SCENARIO-05]'s pattern: a small rented
    benchmark on the pinned artifact measures the one number the purchase decision
    turns on, before any capital moves.
 6. **Re-enter this chapter** at capacity planning (real chapter-06 bottleneck data)
@@ -340,13 +339,13 @@ the longest chain already has a device to itself. Worked as a table in §11.
 - **Justifying a purchase from within-run busy-percentage.** A device saturated
   *during an active experiment* measures that run, not whether sustained fleet
   demand needs more of it. Only the demand ledger answers the fleet question.
-  [CASE: CASE-005].
+  [SCENARIO: SCENARIO-05].
 - **Reactive purchase-trigger adjustment.** Moving, loosening, or firing an
   already-defined trigger because one favorable benchmark appeared, or because
   waiting has become unpleasant. A trigger that moves with mood is not a trigger.
 - **Buying capacity or bandwidth without first classifying the constraint.** A
   capacity fix does nothing for a bandwidth-bound workload, and vice versa.
-  [CASE: CASE-005] measured exactly this mismatch on a real candidate device.
+  [SCENARIO: SCENARIO-05] measured exactly this mismatch on a real candidate device.
 
 **[REJECTED]** (condition: applying a vendor $/M-token or TCO formula chain to a
 small-lab or local-hardware decision without re-deriving its inputs) Vendor TCO
@@ -437,11 +436,11 @@ one device:
 The second device captures the entire 9-hour overlap available. The third device
 saves nothing, because Chain A alone already bounds the critical path at 14 hours
 — no number of additional devices shortens a milestone below its longest single
-chain. This is the generic shape of [CASE: CASE-005]'s measured finding: a second
+chain. This is the generic shape of [SCENARIO: SCENARIO-05]'s measured finding: a second
 purchased device can be worth most of a workday; a second-again device can be worth
 minutes.
 
-Further reading: [CASE-005](examples/CASE-005_hardware-purchase-discipline.md)
+Further reading: [SCENARIO-05](examples/SCENARIO-05_hardware-purchase-discipline.md)
 (the full measured critical-path and demand-ledger narrative behind §4's
 principles) and [SYNTH-10](examples/SYNTH-10_hardware-rent-vs-buy.md) (a synthetic
 end-to-end rent-vs-buy walkthrough using this chapter's decision tree and
@@ -475,7 +474,6 @@ formulas).
 | [NV-LEPTONBREV-001] | Rentable GPU marketplace reference; rental-rate input source |
 | [NV-DGXCLOUD-DEP-001] | Rentable-cloud product-naming churn caution |
 | [EXT-FT-003], [EXT-UNSLOTH-001] | VRAM-floor guidance for sizing training/fine-tuning capacity (full defaults in chapter 09) |
-| [INT-CASE-005] | Empirical case backing the four normative principles (§4) |
 
 Gap dispositions in this chapter: no G-item is assigned to chapter 11 as primary.
 Hardware/cloud policy is carried entirely as [DEFAULT]/[PARAMETER]-class material —

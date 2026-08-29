@@ -82,7 +82,7 @@ without re-reading the context — this is the sentence that gets quoted elsewhe
 ### 5. Evidence
 
 *What supports this decision: cited source IDs (`[EXT-...]`, `[NV-...]`), internal
-case links (`[CASE-00N]`), or first-principles reasoning stated in place. Per the
+scenario links (`[SCENARIO-NN]`), or first-principles reasoning stated in place. Per the
 extraction rules this playbook follows, a single project's result alone caps a
 claim at generic-default strength, not principle strength — say so if that is the
 ceiling here, and carry an

@@ -7,7 +7,7 @@ restructuring). Run from anywhere: python3 playbook/tools/check_playbook.py
 
 Checks (each prints PASS/FAIL + details; exit 1 if any FAIL):
   1. inventory   — every required file exists
-  2. portability — banned project strings outside examples/CASE-* (with allowlist)
+  2. portability — banned project strings anywhere in shipped content (with allowlist)
   3. skeleton    — chapters 00-13 carry the 13-section skeleton
   4. links       — relative markdown links resolve; no link escapes playbook/
   5. citations   — every [SRC-ID] cited exists in sources.yaml
@@ -34,7 +34,7 @@ TEMPLATES = ['PROJECT_PROFILE.md', 'EXPERIMENT_CONTRACT.md', 'EVAL_SUITE_RELEASE
              'PERFORMANCE_AUTOPSY.md', 'TEST_LOOK_LEDGER.md', 'COMPUTE_DEMAND_LEDGER.md',
              'PREDICTION_LEDGER.md', 'OPERATIONAL_HANDOFF.md', 'METHOD_DECISION_RECORD.md']
 REFERENCES = ['sources.yaml', 'SOURCES.md', 'STATISTICS_FORMULAS.md', 'VENDOR_RECIPE_NOTES.md']
-CASES = [f'CASE-{i:03d}' for i in range(1, 13)]
+SCENARIOS = [f'SCENARIO-{i:02d}' for i in range(1, 13)]
 SYNTH = [f'SYNTH-{i:02d}' for i in range(1, 11)]
 SKELETON = ['1. Purpose', '2. Inputs', '3. Decisions', '4. Normative principles',
             '5. Default procedure', '6. Project adaptation parameters',
@@ -70,6 +70,13 @@ BANNED = [
     (re.compile(r'projects/fis'), None),
     (re.compile(r'N_eff\s*[≈~]=?\s*22'), None),
     (re.compile(r'\blearning\.(registry|case_scores|trajectories)'), None),
+    # other lab projects that share this monorepo on private branches
+    (re.compile(r'\bcrexi\b', re.I), None),
+    (re.compile(r'\bwholesal(ing|er)\b', re.I), None),
+    (re.compile(r'\bmillwork\b', re.I), None),
+    # the real cases were removed; nothing may cite them or their source IDs
+    (re.compile(r'\bCASE-0\d{2}\b'), None),
+    (re.compile(r'\bINT-CASE-\d{3}\b'), None),
 ]
 
 LINK_RE = re.compile(r'\[[^\]]*\]\(([^)#\s]+)?(#[^)\s]*)?\)')
@@ -90,11 +97,9 @@ def shipped_files():
         out.append(p)
     return out
 
-def is_case(p: Path) -> bool:
-    # CASE files are the sanctioned home of project material; examples/README.md is
-    # the case library's index and must identify the source project (justified
-    # navigation reference per the authoring spec). WALKTHROUGH/SYNTH stay generic.
-    return p.parent.name == 'examples' and (p.name.startswith('CASE-') or p.name == 'README.md')
+# The public build has no sanctioned home for project material: the real case
+# studies were removed and replaced by invented scenarios, so the ban below is
+# absolute across every shipped file. Nothing is exempt.
 
 def main():
     failures = []
@@ -108,7 +113,7 @@ def main():
     for f in REFERENCES:
         if not (PB / 'references' / f).exists(): missing.append(f'references/{f}')
     ex = PB / 'examples'
-    for stem in CASES + SYNTH:
+    for stem in SCENARIOS + SYNTH:
         if not list(ex.glob(stem + '_*.md')): missing.append(f'examples/{stem}_*.md')
     if not list(ex.glob('WALKTHROUGH_*.md')): missing.append('examples/WALKTHROUGH_*.md')
     if not (ex / 'README.md').exists(): missing.append('examples/README.md')
@@ -118,7 +123,7 @@ def main():
     # 2. portability
     hits = []
     for p in shipped_files():
-        if p.suffix not in ('.md', '.yaml', '.py') or is_case(p):
+        if p.suffix not in ('.md', '.yaml', '.py'):
             continue
         for i, line in enumerate(p.read_text(errors='replace').splitlines(), 1):
             for pat, allow in BANNED:

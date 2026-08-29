@@ -95,8 +95,8 @@ function buildSidebars(space: Space): Map<string, NavGroup[]> {
       })),
     },
     {
-      title: 'Case studies — real evidence',
-      items: by((p) => /CASE-\d+_/.test(p.repoPath)).map((p) => item(p, space)),
+      title: 'Scenarios — illustrated lessons',
+      items: by((p) => /SCENARIO-\d+_/.test(p.repoPath)).map((p) => item(p, space)),
     },
     {
       title: 'Synthetic worked examples',
@@ -108,25 +108,10 @@ function buildSidebars(space: Space): Map<string, NavGroup[]> {
     },
   ];
 
-  const research: NavGroup[] = [
-    {
-      title: null,
-      items: by((p) => p.repoPath === 'research/README.md').map((p) => ({
-        ...item(p, space),
-        label: 'Research index',
-      })),
-    },
-    {
-      title: 'Frozen reports',
-      items: by((p) => /^research\/\d{4}-/.test(p.repoPath)).map((p) => item(p, space)),
-    },
-  ];
-
   return new Map<string, NavGroup[]>([
     ['playbook', playbook],
     ['references', references],
     ['cases', cases],
-    ['research', research],
     ['changelog', playbook],
   ]);
 }

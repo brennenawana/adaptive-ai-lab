@@ -214,9 +214,9 @@ both result sets and raises an error rather than emit a comparison if they diffe
 scientific baseline) · [TEST_LOOK_LEDGER.md](TEST_LOOK_LEDGER.md) ·
 [PROJECT_PROFILE.md](PROJECT_PROFILE.md)
 
-**See also:** [CASE-009](../examples/CASE-009_suite-versioning-criteria-drift.md)
+**See also:** [SCENARIO-09](../examples/SCENARIO-09_suite-versioning-criteria-drift.md)
 (suite-versioning criteria drift) ·
-[CASE-004](../examples/CASE-004_harness-defects.md) (harness defects an integrity
+[SCENARIO-04](../examples/SCENARIO-04_harness-defects.md) (harness defects an integrity
 gate would have caught)
 
 [Index](../README.md) · [Glossary](../GLOSSARY.md)

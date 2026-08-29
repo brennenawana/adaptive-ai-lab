@@ -2,8 +2,6 @@
 /** The glossary as a first-class learning surface: searchable, filterable, anchored. */
 import Layout from './Layout.astro';
 import Breadcrumbs from './Breadcrumbs.astro';
-import VersionBar from './VersionBar.astro';
-import CanonicalNote from './CanonicalNote.astro';
 import { loadGlossary } from '../lib/glossary.ts';
 import { makeCtx } from '../lib/rendering.ts';
 import { renderFragment, renderInlineFragment } from '../lib/markdown/render.ts';
@@ -45,7 +43,6 @@ const entries = g.terms.map((t) => ({
   <header class="doc-head">
     <div class="doc-eyebrow">
       <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'Playbook', href: '/playbook/' }, { label: 'Glossary' }]} />
-      <span class="version-bar"><VersionBar space={page.space} route={page.route} /></span>
     </div>
     <h1>Glossary</h1>
     <p class="doc-meta-row"><span>{entries.length} terms</span><span class="sep">·</span><span>hover any dotted term anywhere on the site for its definition</span></p>
@@ -86,8 +83,6 @@ const entries = g.terms.map((t) => ({
     ))}
     <p class="glossary-empty" id="gloss-empty" hidden>No terms match.</p>
   </div>
-
-  <CanonicalNote repoPath="playbook/GLOSSARY.md" space={page.space} />
 
   <script>
     const input = document.getElementById('gloss-filter') as HTMLInputElement;

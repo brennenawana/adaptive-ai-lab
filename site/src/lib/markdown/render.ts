@@ -1,12 +1,12 @@
 /**
  * Canonical-Markdown -> HTML pipeline.
  *
- * Renders repository files (chapters, templates, cases, research, glossary…)
+ * Renders repository files (chapters, templates, scenarios, glossary…)
  * with presentation-layer enhancements that bind ONLY to explicit source
  * semantics discovered in the corpus:
  *   - badge callouts:  **[PRINCIPLE] …**, [STOP CONDITION], [DECISION GATE], …
  *   - doctrine marker: `status: doctrine — not yet exercised`
- *   - citation tokens: [EXT-…-NNN] / [NV-…] / [INT-CASE-NNN] / [CASE: CASE-NNN]
+ *   - citation tokens: [EXT-…-NNN] / [NV-…] / [SCENARIO: SCENARIO-NN]
  *     linkified only when the ID exists in references/sources.yaml (the record
  *     of record) — unknown tokens are left as literal text
  *   - glossary links (GLOSSARY.md#term) get popover affordances
@@ -30,7 +30,6 @@ import type { Root as MdastRoot, RootContent as MdastContent } from 'mdast';
 import type { Root as HastRoot, Element, ElementContent, Text as HastText } from 'hast';
 
 import { repoPathToRoute, spacePrefix } from '../routes.ts';
-import { githubBlobUrl } from '../repo.ts';
 import type { Space } from '../corpus.ts';
 
 export interface RenderCtx {
@@ -43,18 +42,12 @@ export interface RenderCtx {
   gitRef: string;
   /** all known source-ledger IDs for this space */
   ledgerIds: ReadonlySet<string>;
-  /** CASE-NNN -> space-relative route */
+  /** SCENARIO-NN -> space-relative route */
   caseRoutes: ReadonlyMap<string, string>;
   /** valid glossary anchor slugs for this space */
   glossarySlugs: ReadonlySet<string>;
   /** optional collector for link validation */
   collectLink?: (targetRepoPath: string, anchor: string | null, from: string) => void;
-  /**
-   * CASE files cite primary project records as bare backticked filenames;
-   * when set, those names (resolved via the repository's explicit path map,
-   * and only when the target file exists) link to the canonical record.
-   */
-  fisRecords?: ReadonlyMap<string, string> | null;
   /**
    * Presentation-layer anchor aliases: fragment -> existing heading slug.
    * Used where canonical links cite anchors that have no matching heading in
@@ -79,17 +72,8 @@ export interface DocMeta {
   governingChapter?: string;
   /** templates: rendered purpose lede from the header blockquote */
   templateLede?: string;
-  /** CASE files: provenance panel pieces */
-  caseHeader?: {
-    disclaimer?: string;
-    sourceId?: string;
-    dates?: string;
-    citedBy?: string;
-  };
   /** SYNTH files: the italic synthetic disclaimer, rendered */
   synthDisclaimer?: string;
-  /** research reports: bold-label header fields, rendered */
-  researchFields?: { label: string; value: string }[];
 }
 
 export interface RenderedDoc {
@@ -145,12 +129,10 @@ function isNavBlockquote(node: MdastContent): boolean {
 interface Extracted {
   title: string | null;
   headerRawSlices: string[]; // raw markdown of removed leading chrome
-  caseHeaderRaw: string | null; // CASE files: raw source before first H2
-  researchHeaderRaw: string | null;
 }
 
 function extractStructure(tree: MdastRoot, source: string, ctx: RenderCtx): Extracted {
-  const out: Extracted = { title: null, headerRawSlices: [], caseHeaderRaw: null, researchHeaderRaw: null };
+  const out: Extracted = { title: null, headerRawSlices: [] };
   const kids = tree.children;
 
   // title = first H1
@@ -159,33 +141,9 @@ function extractStructure(tree: MdastRoot, source: string, ctx: RenderCtx): Extr
     kids.shift();
   }
 
-  const isCase = /^playbook\/examples\/CASE-\d+_/.test(ctx.repoPath);
   const isSynth = /^playbook\/examples\/SYNTH-\d+_/.test(ctx.repoPath);
-  const isResearchReport = /^research\/\d{4}-/.test(ctx.repoPath);
 
-  if (isCase) {
-    // capture everything before the first H2 as the provenance header region
-    let cut = 0;
-    while (cut < kids.length && !(kids[cut]!.type === 'heading' && (kids[cut] as { depth?: number }).depth === 2)) {
-      cut++;
-    }
-    if (cut > 0 && cut < kids.length) {
-      const first = kids[0]!.position?.start.offset ?? 0;
-      const last = kids[cut - 1]!.position?.end.offset ?? first;
-      out.caseHeaderRaw = source.slice(first, last);
-      kids.splice(0, cut);
-    }
-  } else if (isResearchReport) {
-    // bold-label metadata paragraph right after the H1, then a '---'
-    if (kids[0]?.type === 'paragraph' && mdToString(kids[0]).startsWith('Date:')) {
-      const first = kids[0].position?.start.offset ?? 0;
-      const last = kids[0].position?.end.offset ?? first;
-      out.researchHeaderRaw = source.slice(first, last);
-      kids.shift();
-      const after = kids[0] as MdastContent | undefined;
-      if (after?.type === 'thematicBreak') kids.shift();
-    }
-  } else {
+  {
     // strip leading nav/header blockquotes (chapters, glossary, quickstart,
     // README, CHANGELOG, templates, examples index, walkthrough, synth)
     while (kids.length && isNavBlockquote(kids[0]!)) {
@@ -288,12 +246,13 @@ function resolveHref(
     }
     return { href };
   }
-  // unrendered repository file -> canonical GitHub link at the right ref
-  return { href: githubBlobUrl(resolved, ctx.gitRef) + anchor, cls: ['ext', 'canonical'], external: true };
+  // A repository file that is not published as a page. The standalone site has
+  // no repository to point at, so the link text is kept and the link is dropped.
+  return { href: '', cls: ['unlinked'] };
 }
 
 const TOKEN_RE =
-  /\[(FOLLOW|ADAPT|REFERENCE|DEPRECATED|CASE):\s*([A-Z0-9-]+)\]|\[((?:NV|EXT|INT)-[A-Z0-9-]*\d{3}[A-C]?)\]/g;
+  /\[(FOLLOW|ADAPT|REFERENCE|DEPRECATED|SCENARIO):\s*([A-Z0-9-]+)\]|\[((?:NV|EXT|INT)-[A-Z0-9-]*\d{3}[A-C]?)\]/g;
 
 /** Linkify citation/case tokens inside a text node; returns replacement nodes or null. */
 function linkifyTokens(value: string, ctx: RenderCtx): ElementContent[] | null {
@@ -306,13 +265,13 @@ function linkifyTokens(value: string, ctx: RenderCtx): ElementContent[] | null {
     const [full, verdict, verdictId, bareId] = m;
     let node: ElementContent | null = null;
     if (verdict && verdictId) {
-      if (verdictId.startsWith('CASE-') && ctx.caseRoutes.has(verdictId)) {
+      if (verdictId.startsWith('SCENARIO-') && ctx.caseRoutes.has(verdictId)) {
         node = el(
           'a',
           {
             href: joinBase(ctx.base, spacePrefix(ctx.space) + ctx.caseRoutes.get(verdictId)!),
             className: ['token', 'token-case'],
-            title: `Case study ${verdictId}`,
+            title: `Scenario ${verdictId}`,
           },
           [text(full)],
         );
@@ -481,32 +440,6 @@ function transformHast(tree: HastRoot, ctx: RenderCtx): TocEntry[] {
     }
   });
 
-  /* -- primary-record citations (`R6_….md`) -> canonical GitHub links -- */
-  if (ctx.fisRecords) {
-    visit(tree, 'element', (node: Element, index, parent) => {
-      if (node.tagName !== 'code' || index === undefined || !parent) return;
-      if ((parent as Element).tagName === 'pre' || (parent as Element).tagName === 'a') return;
-      const t = hastTextContent(node);
-      const target = /^[A-Za-z0-9_.-]+\.md$/.test(t) ? ctx.fisRecords!.get(t) : undefined;
-      if (!target) return;
-      const info = repoPathToRoute(target);
-      const href = info
-        ? joinBase(ctx.base, info.route) // research reports render on-site
-        : githubBlobUrl(target, 'main');
-      (parent as Element).children[index] = el(
-        'a',
-        {
-          href,
-          className: ['record-link', ...(info ? [] : ['ext', 'canonical'])],
-          title: `Primary record: ${target}`,
-          ...(info ? {} : { rel: 'noopener' }),
-        },
-        [node],
-      );
-      return SKIP;
-    });
-  }
-
   /* -- headings: ids + anchors + toc -- */
   visit(tree, 'element', (node: Element) => {
     if (!/^h[1-4]$/.test(node.tagName)) return;
@@ -627,37 +560,6 @@ function parseChapterHeaderMeta(rawSlices: string[], ctx: RenderCtx, meta: DocMe
   }
 }
 
-function parseCaseHeader(rawIn: string, ctx: RenderCtx, meta: DocMeta): void {
-  const raw = rawIn.replace(/^> ?/gm, '').replace(/\n---\s*$/, '');
-  const ch: NonNullable<DocMeta['caseHeader']> = {};
-  const src = raw.match(/\b(INT-CASE-\d{3})\b/);
-  if (src) ch.sourceId = src[1]!;
-  const dates = raw.match(/\*?\*?Dates?(?: range)?:\*?\*?\s*([0-9]{4}-[0-9]{2}-[0-9]{2}[^·\n]*)/);
-  if (dates) ch.dates = dates[1]!.trim().replace(/[.·]\s*$/, '');
-  // disclaimer: sentences mentioning the source project, before the metadata line
-  const disc = raw.match(/((?:Real empirical case|This is a real case)[\s\S]*?)(?=\n\n|\*\*Source|\nSource:|$)/);
-  if (disc) ch.disclaimer = renderInlineFragment(disc[1]!.replace(/\s+/g, ' ').trim(), ctx);
-  const cited = raw.match(/Cited by:\*?\*?\s*([\s\S]+)$/);
-  if (cited) {
-    ch.citedBy = renderInlineFragment(cited[1]!.replace(/\s+/g, ' ').trim(), ctx);
-  }
-  meta.caseHeader = ch;
-}
-
-function parseResearchHeader(raw: string, ctx: RenderCtx, meta: DocMeta): void {
-  // "**Date:** … **Method:** …" — one paragraph of bold-label fields
-  const fields: { label: string; value: string }[] = [];
-  const re = /\*\*([^*]+):\*\*\s*([\s\S]*?)(?=\*\*[^*]+:\*\*|$)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(raw))) {
-    fields.push({
-      label: m[1]!.trim(),
-      value: renderInlineFragment(m[2]!.replace(/\s+/g, ' ').trim(), ctx),
-    });
-  }
-  if (fields.length) meta.researchFields = fields;
-}
-
 /** Render a full canonical document. */
 export function renderDoc(source: string, ctx: RenderCtx): RenderedDoc {
   const mdast = parser.parse(source) as MdastRoot;
@@ -669,8 +571,6 @@ export function renderDoc(source: string, ctx: RenderCtx): RenderedDoc {
     const synth = extracted.headerRawSlices.find((s) => s.includes('Synthetic worked example'));
     if (synth) meta.synthDisclaimer = renderInlineFragment(synth.replace(/^\*|\*$/g, ''), ctx);
   }
-  if (extracted.caseHeaderRaw) parseCaseHeader(extracted.caseHeaderRaw, ctx, meta);
-  if (extracted.researchHeaderRaw) parseResearchHeader(extracted.researchHeaderRaw, ctx, meta);
 
   const hast = toHast.runSync(mdast) as HastRoot;
   const toc = transformHast(hast, ctx);

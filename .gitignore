@@ -34,4 +34,7 @@ Thumbs.db
 # local model server logs
 *.log
 
-# FIS-project-specific generated/runtime paths live in projects/fis/.gitignore
+
+# site build output
+site/dist/
+site/.versions-cache/

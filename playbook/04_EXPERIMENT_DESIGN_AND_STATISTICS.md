@@ -93,7 +93,7 @@ cost may be invented later to rescue it. First-principles
 argument: a tolerance whose breach clause is silent — "record and proceed" with no
 priced consequence — is not a control, because detecting a violation changes
 nothing about what happens next. Corroborated by the DSMB pre-specification pattern
-[EXT-STOPPING-002] and by [CASE-001](examples/CASE-001_consequence-bearing-tolerances.md),
+[EXT-STOPPING-002] and by [SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md),
 where exactly this gap let a measured, large tolerance breach proceed unpriced.
 
 **[PRINCIPLE] Screening ranks; only a frozen comparison infers.** (strong-evidence)
@@ -159,7 +159,7 @@ intervention without a
 both arms in the same session/window, everything but the intervention fixed,
 order pre-registered and counterbalanced — or the claim MUST be declared
 unavailable and the comparison relabeled descriptive
-[CASE-012](examples/CASE-012_restart-instability-paired-controls.md). Session
+[SCENARIO-12](examples/SCENARIO-12_restart-instability-paired-controls.md). Session
 instability is itself outcome correlation — model it as §8 models any clustering
 unit, not as a separate problem.
 
@@ -169,7 +169,7 @@ A cheap probe run to inform a GO/RE-SCOPE/DROP decision (chapter 07's
 [diagnostic run kind](GLOSSARY.md#diagnostic-run-kind): ledgered, cryptographically
 non-promotable — it can inform, it cannot qualify. A relaxed, unrecorded path
 recreates exactly the defect [provenance](GLOSSARY.md#provenance) exists to forbid
-(chapter 00's P10) [CASE-011](examples/CASE-011_diagnostic-gate.md).
+(chapter 00's P10) [SCENARIO-11](examples/SCENARIO-11_diagnostic-gate.md).
 
 ## 5. Default procedure
 
@@ -550,7 +550,7 @@ rejection, and the arms that consume the most wall clock in practice are the one
 near the decision boundary, which rarely trigger it. Report savings honestly, never
 oversold; adopt curtailment for tail-risk and decision-quality protection — a speed
 rationale for a stopping rule is chapter 00's anti-pattern
-[CASE-001](examples/CASE-001_consequence-bearing-tolerances.md). Full arithmetic:
+[SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md). Full arithmetic:
 [references/STATISTICS_FORMULAS.md#curtailment](references/STATISTICS_FORMULAS.md#curtailment).
 
 ### Sequential-rule admissibility
@@ -626,13 +626,13 @@ printed, not "competitive." Never treat a null result as evidence of equivalence
 - **Unpriced escape hatches.** A tolerance breach clause of "record and proceed"
   with no stated consequence — including a PROCEED-WITH-DECLARED-CEILING whose
   ceiling or projected cost is written after the breach rather than pre-registered
-  at freeze [CASE: CASE-001].
+  at freeze [SCENARIO: SCENARIO-01].
 - **Speed rationales for stopping rules.** Curtailment's value is decision quality
   and tail-risk protection; the speed framing invites cutting exactly the guards
   that matter.
 - **Promoting sub-MDE margins to decisions.** Adopting or eliminating a candidate
   on a margin the design cannot resolve — including reading a gap larger than one
-  SE, but smaller than the MDE, as a difference [CASE: CASE-002], [CASE: CASE-010].
+  SE, but smaller than the MDE, as a difference [SCENARIO: SCENARIO-02], [SCENARIO: SCENARIO-10].
 - **Silent rank-based permanent elimination at a screening rung.** Dropping the
   bottom 1 − 1/η by rank is a deferral mechanism; treating it as elimination
   without a racing confidence bound, an at-threshold margin, or a method decision
@@ -643,13 +643,13 @@ printed, not "competitive." Never treat a null result as evidence of equivalence
   without a margin ±d and a passed TOST-style check (§8).
 - **Calibrated sequential tests without an independence check.** (condition:
   outcomes cluster within execution-ordered groups, unchecked) — SPRT-family rules
-  inflate their real error rate here [CASE: CASE-002], [EXT-STOPPING-001];
+  inflate their real error rate here [SCENARIO: SCENARIO-02], [EXT-STOPPING-001];
   assumption-free curtailed counting is the default absent a passed check.
 - **Post-hoc threshold shopping disguised as an amendment.** A mid-run change
   failing any of §7's five amendment-legitimacy conditions, applied without a
   method decision record.
 - **Diagnostics running outside the fail-closed record.** The exact unrecorded
-  path provenance exists to forbid [CASE: CASE-011].
+  path provenance exists to forbid [SCENARIO: SCENARIO-11].
 - **Gold labels reachable at inference time, or used to select/route/tune on a
   qualify/confirm split.** Always wrong, structurally enforced in chapter 13.
 - **Curtailed arms entering paired comparisons, rankings, or screening rungs.**
@@ -660,7 +660,7 @@ printed, not "competitive." Never treat a null result as evidence of equivalence
   rung, a curtailment check, or any other interim read (§5 Step 10).
 - **A single small-sample pilot headline treated as a validated result.** A
   candidate or claim from a pilot alone, without qualify/confirm-split validation,
-  is a hypothesis, not a finding [CASE: CASE-010].
+  is a hypothesis, not a finding [SCENARIO: SCENARIO-10].
 
 **A materiality/noise threshold needs its own measured floor per configuration
 family**, not a one-time or borrowed estimate — re-derive, don't inherit, when a
@@ -681,20 +681,20 @@ configuration changes.
 
 ## 11. Worked examples
 
-- [CASE-001](examples/CASE-001_consequence-bearing-tolerances.md) — a tolerance's
+- [SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md) — a tolerance's
   breach clause carried no priced consequence; a measured, large calibration
   breach proceeded anyway. Lesson: name the consequence, or the tolerance is
   decoration.
-- [CASE-002](examples/CASE-002_clustered-eval-effective-n.md) — clustered outcomes
+- [SCENARIO-02](examples/SCENARIO-02_clustered-eval-effective-n.md) — clustered outcomes
   silently collapsed a suite's effective N; a headline comparison that looked
   significant was not, once computed cluster-robustly. Lesson: under material
   clustering, adding independent clusters buys power without bound, while
   replications inside existing clusters saturate at N_eff = k/ICC.
-- [CASE-010](examples/CASE-010_pilot-optimism-collapse.md) — a small pilot's
+- [SCENARIO-10](examples/SCENARIO-10_pilot-optimism-collapse.md) — a small pilot's
   headline result ran optimistic and collapsed at confirmation scale; a
   pre-registered adoption rule with fluke guards caught it. Lesson: small-n pilots
   direct; they do not confirm.
-- [CASE-011](examples/CASE-011_diagnostic-gate.md) — a cheap, pre-registered
+- [SCENARIO-11](examples/SCENARIO-11_diagnostic-gate.md) — a cheap, pre-registered
   paired-probe diagnostic decided an expensive experiment's fate under a
   data-sufficiency precedence rule. Lesson: completion alone never produces GO.
 - A full worked INCONCLUSIVE verdict — reported with its confidence interval and
@@ -730,7 +730,6 @@ configuration changes.
 | [NV-EVALSDK-001] | Productized McNemar/power/INCONCLUSIVE tooling — cited for the operational implementation |
 | [EXT-AMAZON-LLMSTATS-001] | Independently published, standalone-usable paired McNemar method |
 | [NV-MODELOPTRESEARCH-001] | Progressive-subset margin-of-error table pattern; first-N ordering-bias warning |
-| [INT-CASE-001], [INT-CASE-002], [INT-CASE-010], [INT-CASE-011], [INT-CASE-012] | Empirical case evidence backing §4, §8, §9, §11 |
 
 **Gap dispositions in this chapter:**
 

@@ -1,13 +1,11 @@
 {
-  "name": "adaptive-ai-lab-site",
+  "name": "playbook-site",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Derived human-learning web interface over the Adaptive AI Systems Playbook. Canonical content lives in the repository; this site is a presentation layer only.",
   "scripts": {
-    "predev": "node scripts/materialize-versions.mjs",
     "dev": "astro dev",
-    "prebuild": "node scripts/materialize-versions.mjs",
     "build": "astro build && pagefind --site dist && node scripts/validate-links.mjs",
     "preview": "astro preview",
     "check": "astro check",

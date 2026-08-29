@@ -65,14 +65,14 @@ constraint — a configuration either fits the accelerator's memory or it does n
 Bandwidth is a rate constraint — it sets decode speed regardless of remaining
 capacity headroom. A model that "fits comfortably" can still run near its bandwidth
 ceiling; neither can be inferred from the other, so both must be measured.
-[CASE: CASE-005].
+[SCENARIO: SCENARIO-05].
 
 **[PRINCIPLE] A large cost bucket is not automatically waste.** (evidence: inference —
 first-principles; full test in §9) If a dominant bucket is task-intrinsic and changes
 the comparison the experiment exists to make, it is *evidence about the system under
 study*, belonging in the analysis plan, not the backlog. Treating it as overhead to
 engineer away before anyone has looked at what it means discards the finding along
-with the inefficiency. [CASE: CASE-006].
+with the inefficiency. [SCENARIO: SCENARIO-06].
 
 **[PRINCIPLE] Measure the metric that will govern the decision, on the tool that will
 be reused.** (evidence: strong-evidence) Metric definitions are not standardized
@@ -151,7 +151,7 @@ hosts can let a monotonic timer drift materially against realtime while appearin
 run normally — invisible until cross-checked against an independent realtime source.
 **[DEFAULT]** (evidence: case-study; single-project origin, capped per the A–H
 taxonomy) Declare the authoritative clock and record both stamps before trusting any
-latency figure. [CASE: CASE-005] found this the hard way, by forensic reconstruction
+latency figure. [SCENARIO: SCENARIO-05] found this the hard way, by forensic reconstruction
 after the fact — landing the dual-clock floor before the run is strictly cheaper.
 
 **C. Effective-bandwidth accounting.** Vendor spec-sheet bandwidth is a ceiling, not
@@ -195,7 +195,7 @@ evidentiary labeling — generalizes even though its one exercised instance does
    systems), compute what it would have saved *given the measured bottleneck*, never
    given headline specs — a hardware upgrade that misses the actual bottleneck
    resource can make a workload slower, not faster (§8's arithmetic).
-   [CASE: CASE-005].
+   [SCENARIO: SCENARIO-05].
 5. **Clock-forensics cross-checks.** Compare every monotonic-derived figure against
    an independent realtime source; a systematic skew invalidates every prior number
    computed the same way, uniformly, until corrected.
@@ -376,7 +376,7 @@ decision depends on it (2: yes), recurs at the deployment target (3: yes) —
 **A is a finding**, feeding chapter 07's generation-budget calibration. Test B:
 changes neither arm's standing (1: no) nor the decision (2: no), and is a fixable
 harness property (3: no) — **B is waste**, routed to the backlog with a priced
-ticket. [CASE: CASE-005] and [CASE: CASE-006] both turned on this classification: a
+ticket. [SCENARIO: SCENARIO-05] and [SCENARIO: SCENARIO-06] both turned on this classification: a
 dominant truncation-time bucket that was the finding driving the next
 budget-calibration experiment, not overhead to optimize away.
 
@@ -429,13 +429,13 @@ budget-calibration experiment, not overhead to optimize away.
   calculations.
 - **Finding-vs-waste applied to two cost buckets** — §9, illustrative worked
   classification.
-- [CASE: CASE-005](examples/CASE-005_hardware-purchase-discipline.md) — a
+- [SCENARIO: SCENARIO-05](examples/SCENARIO-05_hardware-purchase-discipline.md) — a
   performance autopsy's multi-source reconstruction uncovered a systematic clock
   discrepancy that had silently understated every previously published latency, and
   its counterfactual costing (measured against the workload's actual bottleneck
   resource, not vendor spec) reversed an intuitive hardware-purchase instinct — the
   case behind chapter 11's per-milestone-rental and purchase-trigger discipline.
-- [CASE: CASE-006](examples/CASE-006_token-budget-confounding.md) — a generation-cap
+- [SCENARIO: SCENARIO-06](examples/SCENARIO-06_token-budget-confounding.md) — a generation-cap
   constraint was initially read as a quality difference between two candidates;
   isolating the cap as its own factor showed most of the apparent gap was a capacity
   artifact, not a capability one — the finding-vs-waste test (§9) applied in reverse:
@@ -471,8 +471,6 @@ budget-calibration experiment, not overhead to optimize away.
 | [EXT-PERF-003] | REFERENCE/research corroboration that backend choice alone moves quality scores — evidentiary basis for §4's separation principle |
 | [NV-DYNAMOAICONFIG-001] | REFERENCE datacenter sizing automation; explicit scope limit (no workstation data) |
 | [EXT-TESTBED-001] | Corroboration for cheap-sanity-gate-before-scale reasoning behind the fit probe (§5.2.D) |
-| [INT-CASE-005] | Performance autopsy + counterfactual hardware costing case |
-| [INT-CASE-006] | Generation-cap/capacity confound case, feeding the finding-vs-waste test |
 
 **Gap dispositions in this chapter:**
 

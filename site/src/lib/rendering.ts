@@ -5,7 +5,6 @@ import { pagesInSpace, readCanonical, type Space } from './corpus.ts';
 import { ledgerIdSet } from './sources.ts';
 import { loadGlossary } from './glossary.ts';
 import { VERSIONS } from './versions.ts';
-import { fisRecordMap } from './fisRecords.ts';
 import { renderDoc, type RenderCtx, type RenderedDoc } from './markdown/render.ts';
 
 const ctxCache = new Map<string, Omit<RenderCtx, 'repoPath' | 'base'>>();
@@ -17,7 +16,7 @@ export function spaceCtx(space: Space): Omit<RenderCtx, 'repoPath' | 'base'> {
 
   const caseRoutes = new Map<string, string>();
   for (const p of pagesInSpace(space)) {
-    const m = p.repoPath.match(/^playbook\/examples\/(CASE-\d{3})_/);
+    const m = p.repoPath.match(/^playbook\/examples\/(SCENARIO-\d{2})_/);
     if (m) caseRoutes.set(m[1]!, p.route);
   }
   const gitRef = space === null ? 'main' : (VERSIONS.find((v) => v.version === space)?.commit ?? 'main');
@@ -34,12 +33,10 @@ export function spaceCtx(space: Space): Omit<RenderCtx, 'repoPath' | 'base'> {
 }
 
 export function makeCtx(space: Space, repoPath: string, base: string): RenderCtx {
-  const isCasePage = /^playbook\/examples\/(CASE-\d+_|README)/.test(repoPath);
   return {
     ...spaceCtx(space),
     repoPath,
     base,
-    fisRecords: isCasePage ? fisRecordMap() : null,
     anchorAliases:
       repoPath === 'playbook/references/STATISTICS_FORMULAS.md' ? formularyAliases(space) : null,
   };

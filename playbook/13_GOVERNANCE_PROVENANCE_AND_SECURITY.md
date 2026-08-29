@@ -83,7 +83,7 @@ lineage-by-reference; none of it gives you tamper evidence
 [EXT-OPS-003]. If a decision's provenance must survive an audit, a dispute, or a
 "what actually produced this number" question asked six months later, the chain has
 to be hash-linked and append-only by construction — dashboards may mirror it, they
-never replace it (P10). [CASE: CASE-009] shows what versioned, non-negotiable record
+never replace it (P10). [SCENARIO: SCENARIO-09] shows what versioned, non-negotiable record
 discipline looks like in practice: comparisons across instrument versions were
 refused by the tooling itself, which is what made a real criteria drift auditable
 instead of silently absorbed.
@@ -100,7 +100,7 @@ attempts the leak through the model-facing path and asserts refusal. This applie
 identically to answer keys (below) and to any other data class this chapter treats
 as protected — the same pattern this playbook calls
 [ground-truth isolation](GLOSSARY.md#ground-truth-isolation) when the protected
-class is an answer key. [CASE: CASE-003] is the general cautionary instance: a
+class is an answer key. [SCENARIO: SCENARIO-03] is the general cautionary instance: a
 feature set looked clean until a leave-one-group-out audit showed it had
 reconstructed a forbidden signal by another route — a
 [class-identity ceiling](GLOSSARY.md#class-identity-ceiling) reached by a channel
@@ -115,7 +115,7 @@ registration, a frozen contract, passed integrity gates — is refused
 merely discouraged by a written rule (P10). The
 same applies one level down: a pre-registered [consequence-bearing
 tolerance](GLOSSARY.md#consequence-bearing-tolerance) whose breach clause is not
-mechanically enforced is not a control, it is a hope. [CASE: CASE-001] is the
+mechanically enforced is not a control, it is a hope. [SCENARIO: SCENARIO-01] is the
 generalizable failure: a named consequence existed on paper and did not fire,
 because nothing in the execution path was wired to enforce it.
 
@@ -491,7 +491,6 @@ field sets to instantiate until one is written (open issue, §13).
 | [NV-GARAK-001] | Security-probing tool referenced for tool-calling threat-model red-teaming |
 | [NV-WORKBENCH-001], [NV-NEMOCLAW-001] | Agent-sandbox and credential-custody building blocks |
 | [EXT-EVAL-007] | Canary-string convention for publication hygiene |
-| [INT-CASE-001], [INT-CASE-003], [INT-CASE-009] | Empirical case evidence — fail-closed enforcement, leakage-audit discipline, versioned record discipline |
 
 **Gap dispositions in this chapter:**
 

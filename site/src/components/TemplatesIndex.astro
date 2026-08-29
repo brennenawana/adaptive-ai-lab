@@ -2,7 +2,6 @@
 /** Generated index over playbook/templates/ — derived from the files themselves. */
 import Layout from './Layout.astro';
 import Breadcrumbs from './Breadcrumbs.astro';
-import VersionBar from './VersionBar.astro';
 import { pagesInSpace, readCanonical, titleOf, type PageDef } from '../lib/corpus.ts';
 import { sidebarFor } from '../lib/nav.ts';
 
@@ -51,7 +50,6 @@ const templates = pagesInSpace(page.space)
   <header class="doc-head">
     <div class="doc-eyebrow">
       <Breadcrumbs crumbs={[{ label: 'Home', href: '/' }, { label: 'Playbook', href: '/playbook/' }, { label: 'Templates' }]} />
-      <span class="version-bar"><VersionBar space={page.space} route={page.route} /></span>
     </div>
     <h1>Templates</h1>
     <p class="doc-meta-row">

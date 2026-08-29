@@ -115,7 +115,7 @@ candidate handles cleanly, because different model families tend to fail
 differently and often silently (a confidently wrong answer, not a refusal —
 [silent failure](GLOSSARY.md#silent-failure)). Before declaring one candidate
 dominant, check pairwise pass-set overlap and unique-success counts, not the
-aggregate alone [CASE: CASE-007]. This is what makes a downstream
+aggregate alone [SCENARIO: SCENARIO-07]. This is what makes a downstream
 [cascade](GLOSSARY.md#cascade) worth building at all: a second arm earns its keep
 by [rescuing](GLOSSARY.md#rescue) cases the first arm fails, which requires the
 failure sets to be genuinely different, not a strict subset. Chapter 08 is where
@@ -398,7 +398,7 @@ ran; the scorecard never substitutes for that check.
   rather than accepting a candidate's ineligibility or adding a thin serving
   adapter (§4).
 
-**[CASE: CASE-006]** A generation-length (decoding budget) cap shared across
+**[SCENARIO: SCENARIO-06]** A generation-length (decoding budget) cap shared across
 compared arms confounded a design-time model comparison: an apparent quality gap
 shrank substantially once the operational constraint was isolated in its own
 one-factor experiment. Before attributing any selection-stage delta to "the model,"
@@ -407,7 +407,7 @@ verify no shared operational constraint — context length, decoding budget, tim
 one-factor-per-arm discipline and chapter 07's generation-budget calibration
 procedure.
 
-**[CASE: CASE-007]** A deterministic cascade gate over two locally-served
+**[SCENARIO: SCENARIO-07]** A deterministic cascade gate over two locally-served
 candidates achieved near-complete rescue with negligible unnecessary escalation —
 outside the design space of the published learned-router literature — because the
 two arms' failure sets were genuinely complementary rather than nested. The
@@ -451,9 +451,9 @@ model class.
    deferred to the qualification split rather than eliminated. On the confirmation
    split, quality resolves statistically and the scorecard is not needed.
 
-Further worked examples from the case library: [CASE-006](examples/CASE-006_token-budget-confounding.md)
+Further worked examples from the case library: [SCENARIO-06](examples/SCENARIO-06_token-budget-confounding.md)
 (a confound that inflated an apparent selection-stage quality gap) and
-[CASE-007](examples/CASE-007_deterministic-cascade-gate.md) (complementary arms
+[SCENARIO-07](examples/SCENARIO-07_deterministic-cascade-gate.md) (complementary arms
 enabling a cascade).
 
 ## 12. Outputs and artifacts
@@ -485,7 +485,6 @@ enabling a cascade).
 | [NV-TRTLLM-001] | Vendor-optimized-regime example engine, as-of-dated |
 | [NV-NAT-001] | Agent-harness tooling; documents the harness-selection gap this chapter's §5.3 fills as doctrine |
 | [NV-NEMOPLATFORM-001] | Integrated lifecycle platform, watch item, not yet a selection method |
-| [INT-CASE-006], [INT-CASE-007] | Empirical case evidence backing §4's model-diversity principle and §9's confound anti-pattern |
 
 **Gap dispositions in this chapter:** **G20 (contradictions register), the
 runtime-selection contested pair: COVERED** — resolved by the regime criterion in

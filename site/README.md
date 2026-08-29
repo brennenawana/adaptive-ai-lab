@@ -19,8 +19,8 @@ From the repository root:
 
 | Command | What it does |
 |---|---|
-| `make site` | local dev server with hot reload (http://localhost:4321); edits to `playbook/` and `research/` reload live |
-| `make site-build` | reproducible production build: materialize historical versions → `astro build` → Pagefind search index → internal-link/anchor validation (build fails on broken links) |
+| `make site` | local dev server with hot reload (http://localhost:4321); edits to `playbook/` reload live |
+| `make site-build` | reproducible production build: `astro build` → Pagefind search index → internal-link/anchor validation (build fails on broken links) |
 | `make site-preview` | serve the last production build |
 
 Direct npm equivalents (`cd site && …`): `npm run dev`, `npm run build`,
@@ -57,39 +57,31 @@ this tree. Key modules:
 - `src/lib/routes.ts` — the single source of truth mapping repository paths to
   site routes (both for page generation and for rewriting inter-document
   links).
-- `src/lib/corpus.ts` — enumerates canonical files per *space* (the current
-  working tree, or a materialized historical version) and defines page kinds,
-  groups and reading order. Adding a playbook chapter/template/case/report
+- `src/lib/corpus.ts` — enumerates canonical files and defines page kinds,
+  groups and reading order. Adding a playbook chapter, template or scenario
   requires **zero site configuration** — pages, navigation, prev/next and
   search pick it up on the next build.
 - `src/lib/markdown/render.ts` — the unified/remark pipeline. It binds styling
   ONLY to explicit source semantics: `**[PRINCIPLE]…**`-family badges,
   `[STOP CONDITION]`, `status: doctrine — not yet exercised`, citation tokens
-  (`[EXT-…-NNN]`, `[CASE: CASE-NNN]`) validated against
+  (`[EXT-…-NNN]`, `[SCENARIO: SCENARIO-NN]`) validated against
   `playbook/references/sources.yaml`, and explicit `GLOSSARY.md#term` links
   (which become popovers). It never alters canonical prose: no reflow, no math
   pass (all `$` in the corpus is currency), no syntax-highlight guessing (all
   fences are bare ASCII/unicode diagrams), no auto-linking of plain words.
-- `src/lib/{glossary,sources,changelog,research}.ts` — structured parsers for
-  the glossary, the source ledger (`sources.yaml`, the record of record), the
-  changelog grammar, and the research catalog (`research/README.md`).
-- `scripts/materialize-versions.mjs` + `versions.json` — the historical-version
-  mechanism (below).
+- `src/lib/{glossary,sources,changelog}.ts` — structured parsers for the
+  glossary, the source ledger (`sources.yaml`, the record of record), and the
+  changelog grammar.
 - `scripts/validate-links.mjs` — post-build validation of every internal href
   and `#anchor` across the built site; the build fails on any broken link.
 
-### Historical versions
+### Historical versions — disabled
 
-`versions.json` maps each released playbook version to its exact commit —
-derived from the history of `playbook/VERSION`, which changes only at releases.
-At build time `git show` extracts `playbook/` from each commit into the
-gitignored `.versions-cache/` (byte-for-byte; authoring scaffolding that was
-never part of the book is excluded and listed in each snapshot's `.meta.json`).
-The build **refuses to run** if a commit's `playbook/VERSION` disagrees with
-the manifest. Snapshots render at `/versions/<v>/…` with an archive banner
-naming the commit, are excluded from search, and never mix current content
-into version-scoped pages. Adding a future release = appending one manifest
-entry.
+This build renders the current working tree only. `versions.json` keeps an empty
+`versions` list: with no entries, `allPages()` produces no version-scoped routes.
+The mechanism it replaced rebuilt `playbook/` from pinned commits via `git show`,
+which on a public build would resurrect content that was deliberately removed.
+Leave the list empty.
 
 ### Search
 
@@ -143,10 +135,7 @@ not built in the MVP; the Learn page carries the concept note.
 
 ## Boundaries this site never crosses
 
-- It writes nothing into `playbook/`, `research/`, `docs/`, or `projects/`
-  (the playbook's portability validator scans those trees).
-- It never edits frozen records; research reports are ingested byte-identical
-  (they are cited by line number from committed evidence).
+- It writes nothing into `playbook/` (the playbook's portability validator
+  scans that tree).
 - Claim→source links are rendered only where the repository itself encodes
-  them (citation tokens ↔ `sources.yaml`, `Cited by:` headers, the explicit
-  FIS path map). Nothing is inferred.
+  them: citation tokens resolved against `sources.yaml`. Nothing is inferred.

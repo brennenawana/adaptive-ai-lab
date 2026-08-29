@@ -1,43 +1,49 @@
-# Examples — Case-Study Library and Synthetic Worked Examples
+# Examples — Scenarios and Worked Examples
 
 > Part of the **Adaptive AI Systems Playbook** v0.1.1 · [Index](../README.md) ·
 > [Quickstart](../QUICKSTART.md)
 
-Two kinds of material live here, with different evidence status — read the label.
+Everything in this directory is invented. No real project, client, or measurement
+appears anywhere in it. What is real is the reasoning: each example works through a
+decision the playbook has an opinion about, and shows what went wrong when that
+opinion was ignored.
 
-## Real empirical case studies (CASE-001…012)
+Read them for the shape of the mistake, not for the numbers.
 
-These are **real**: they come from the FIS project (Fintech Integration Sandbox), a
-realistic synthetic fintech-operations laboratory in which this playbook's
-methodology was developed and stress-tested. Case files are the one place in the
-playbook where that project's real numbers, names, and dates appear. Each follows a
-fixed format — *Situation · Decision faced · Evidence · What happened · The generic
-lesson · What would NOT have worked · References* — and separates **what happened in
-that project** from **the rule you should take away**. Generic chapters cite these
-by `[CASE: CASE-00N]` and remain readable without them.
+## Scenarios (SCENARIO-01…12)
 
-| ID | Case | The lesson in one line | Backs chapters |
+Twelve fictional projects, each built around one lesson that is easy to agree with in
+the abstract and easy to miss in practice. Each follows the same arc — *Situation ·
+Decision faced · Evidence · What happened · The generic lesson · What would NOT have
+worked · References* — and ends by telling you what to go check in your own work.
+
+The chapters cite these as `[SCENARIO: SCENARIO-NN]`. A scenario illustrates a rule;
+it is never the evidence for one. Where a chapter claims something is established,
+the support is an external source in the [ledger](../references/SOURCES.md), not a
+scenario. Chapters stay readable if you skip these entirely.
+
+| ID | Scenario | The lesson in one line | Illustrates chapters |
 |---|---|---|---|
-| [CASE-001](CASE-001_consequence-bearing-tolerances.md) | Consequence-bearing tolerances | Detection without a priced consequence is not a control | 00, 04, 07 |
-| [CASE-002](CASE-002_clustered-eval-effective-n.md) | Clustered eval, effective N | Clustering silently destroys power; measure ICC before claiming significance | 03, 04 |
-| [CASE-003](CASE-003_learned-router-leakage.md) | Learned-router leakage | A learned component must beat the group-identity ceiling under leave-one-group-out | 03, 04, 08 |
-| [CASE-004](CASE-004_harness-defects.md) | Harness defects as instrument findings | Instrument defects impersonate model weakness; ceilings/inversions/disagreement find them | 02, 03 |
-| [CASE-005](CASE-005_hardware-purchase-discipline.md) | Hardware purchase discipline | Measure the critical path and the demand ledger before spending capital | 06, 11 |
-| [CASE-006](CASE-006_token-budget-confounding.md) | Token-budget confounding | An uncalibrated generation cap can manufacture a model-quality headline | 04, 05, 07 |
-| [CASE-007](CASE-007_deterministic-cascade-gate.md) | Deterministic cascade gate | A verifier-gated deterministic cascade can beat the learned-gate design space | 08, 10 |
-| [CASE-008](CASE-008_transport-serialization-defect.md) | Transport serialization defect | "Transparent" layers aren't; verify byte equivalence end to end | 02, 08, 12 |
-| [CASE-009](CASE-009_suite-versioning-criteria-drift.md) | Suite versioning under criteria drift | Criteria drift is real; version the instrument, refuse cross-version comparison | 03, 13 |
-| [CASE-010](CASE-010_pilot-optimism-collapse.md) | Pilot optimism collapse | Small-sample headlines run optimistic; adoption rules with fluke guards catch them | 03, 04 |
-| [CASE-011](CASE-011_diagnostic-gate.md) | Diagnostic gate | A cheap pre-registered probe can decide an expensive experiment's fate | 04, 07 |
-| [CASE-012](CASE-012_restart-instability-paired-controls.md) | Restart instability, paired controls | Measure your reproducibility boundary; then pair your controls | 02, 04 |
+| [SCENARIO-01](SCENARIO-01_consequence-bearing-tolerances.md) | Consequence-bearing tolerances | A threshold with no named consequence is an escape hatch nobody chose | 00, 04, 07 |
+| [SCENARIO-02](SCENARIO-02_clustered-eval-effective-n.md) | Clustered eval, effective N | Count your groups, not your rows | 03, 04 |
+| [SCENARIO-03](SCENARIO-03_learned-router-leakage.md) | Learned-router leakage | A learned component must beat the group-identity ceiling, or it learned the wrong thing | 03, 04, 08 |
+| [SCENARIO-04](SCENARIO-04_harness-defects.md) | Harness defects | Check the ruler before you trust the measurement | 02, 03 |
+| [SCENARIO-05](SCENARIO-05_hardware-purchase-discipline.md) | Hardware purchase discipline | Measure the critical path before you spend the money | 06, 11 |
+| [SCENARIO-06](SCENARIO-06_token-budget-confounding.md) | Token-budget confounding | An uncalibrated output cap can invent a quality difference that isn't there | 04, 05, 07 |
+| [SCENARIO-07](SCENARIO-07_deterministic-cascade-gate.md) | Deterministic cascade gate | Price routing's ceiling first; a few booleans may capture most of it | 08, 10 |
+| [SCENARIO-08](SCENARIO-08_transport-serialization-defect.md) | Transport serialization defect | "Transparent" is a claim to test, not a property to assume | 02, 08, 12 |
+| [SCENARIO-09](SCENARIO-09_suite-versioning-criteria-drift.md) | Suite versioning under criteria drift | Version the instrument; refuse comparisons across versions of it | 03, 13 |
+| [SCENARIO-10](SCENARIO-10_pilot-optimism-collapse.md) | Pilot optimism collapse | Small-sample headlines run optimistic | 03, 04 |
+| [SCENARIO-11](SCENARIO-11_diagnostic-gate.md) | Diagnostic gate | A cheap probe, agreed in advance, can settle an expensive question | 04, 07 |
+| [SCENARIO-12](SCENARIO-12_restart-instability-paired-controls.md) | Restart instability, paired controls | Determinism is measured, not assumed | 02, 04 |
 
 ## The synthetic walkthrough
 
 [WALKTHROUGH_rag-document-qa.md](WALKTHROUGH_rag-document-qa.md) — one complete
 navigator pass ([QUICKSTART](../QUICKSTART.md) → profile → tier → archetype → first
 sprint → frozen contract) on an invented document-QA project. **Entirely
-fictional**, and deliberately shaped unlike the source project — it exists to prove
-the navigator runs without any source-project knowledge.
+fictional**, and deliberately shaped unlike everything else here — it exists to
+show the navigator running end to end on an unfamiliar problem.
 
 ## Synthetic worked examples (SYNTH-01…10)
 

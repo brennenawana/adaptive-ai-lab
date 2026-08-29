@@ -16,8 +16,8 @@ const u = (r: string) => base.replace(/\/$/, '') + r;
     <h1>The Adaptive AI Systems Playbook, built for deep reading.</h1>
     <p class="lede">
       An evidence-driven, project-independent methodology for designing, evaluating, optimizing,
-      deploying, and continuously improving AI systems. Every rule carries its evidence and its strength
-      label; every case study traces back to primary project records.
+      deploying, and continuously improving AI systems. Every rule carries its evidence and how strong
+      that evidence is — including the rules that rest only on reasoning.
     </p>
     <div class="hero-actions">
       <a class="btn primary" href={u('/playbook/quickstart/')}>Start with the Quickstart</a>
@@ -48,12 +48,9 @@ const u = (r: string) => base.replace(/\/$/, '') + r;
       Nine working artifacts, from the project profile to experiment contracts and the three ledgers.
     </a>
     <a class="card" href={u('/cases/')}>
-      <span class="card-title">Case studies</span>
-      Twelve real, provenance-linked cases plus ten synthetic worked examples and a full walkthrough.
-    </a>
-    <a class="card" href={u('/research/')}>
-      <span class="card-title">Research</span>
-      Frozen research reports — the evidence layer behind the rules, clearly separated from the rules.
+      <span class="card-title">Scenarios</span>
+      Twelve worked scenarios, ten compact examples, and one full walkthrough — every one invented, each
+      built around a mistake that is easy to make.
     </a>
     <a class="card" href={u('/references/sources/')}>
       <span class="card-title">Source ledger</span>
@@ -62,29 +59,25 @@ const u = (r: string) => base.replace(/\/$/, '') + r;
     </a>
     <a class="card" href={u('/changelog/')}>
       <span class="card-title">Changelog</span>
-      Evidence-backed release history, linked to browsable historical versions.
-    </a>
-    <a class="card" href={u('/versions/')}>
-      <span class="card-title">Versions</span>
-      Read any released playbook version exactly as it was, extracted from its Git commit.
+      Release history, with the evidence behind each rule change.
     </a>
   </div>
 
-  <h2 class="section-h">How knowledge flows here</h2>
+  <h2 class="section-h">How a rule gets in here</h2>
   <p class="section-sub">
-    The lab runs real project implementations, harvests their frozen experimental evidence into curated
-    case studies, and promotes what survives into the playbook. The playbook is the product; projects
-    are its proving grounds.
+    Nothing becomes a rule because it sounds right. A claim starts as evidence, gets a strength label
+    saying how far it can be pushed, and only then becomes something the book tells you to do. Scenarios
+    illustrate the rules; they are never the evidence for them.
   </p>
   <div class="pb-map" style="max-width:44rem">
     <ol>
       {
         [
-          { n: 'Research evidence', d: 'frozen, dated reports — informative, never normative', href: '/research/' },
-          { n: 'Playbook', d: 'the generic methodology — rules with evidence classes and strength labels', href: '/playbook/' },
-          { n: 'Project implementations', d: 'real projects instantiate the playbook and produce primary records', href: '/about/' },
-          { n: 'Curated case studies', d: 'frozen project evidence, curated with full provenance', href: '/cases/' },
-          { n: 'Playbook evolution', d: 'what survives promotion becomes rule changes — recorded in the changelog', href: '/changelog/' },
+          { n: 'Sources', d: 'every citation, with a verdict and a verification date', href: '/references/sources/' },
+          { n: 'Strength labels', d: 'consensus, strong evidence, or inference — stated, never implied', href: '/playbook/00-principles-and-scope/' },
+          { n: 'The rules', d: 'the methodology itself, chapters 00-14', href: '/playbook/' },
+          { n: 'Scenarios', d: 'invented projects that show each rule being ignored, and what it cost', href: '/cases/' },
+          { n: 'Changes', d: 'when evidence moves, the rule moves - and the changelog says why', href: '/changelog/' },
         ].map((s) => (
           <li class="map-stage">
             <span class="map-rail" aria-hidden="true">
@@ -102,7 +95,7 @@ const u = (r: string) => base.replace(/\/$/, '') + r;
   </div>
 
   <footer class="site-footer">
-    This site is a derived presentation layer: the repository's Markdown, YAML and Git history remain
-    the canonical source of record. · <a href={u('/about/')}>About the lab</a>
+    A reading interface over the playbook's Markdown source. ·
+    <a href={u('/about/')}>About this playbook</a>
   </footer>
 </Layout>

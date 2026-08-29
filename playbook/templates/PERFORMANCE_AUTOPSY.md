@@ -179,7 +179,7 @@ Second-node purchase deferred pending re-measurement.
 (purchase-trigger evidence) ·
 [EXPERIMENT_CONTRACT.md](EXPERIMENT_CONTRACT.md) (§16 analysis-plan economics)
 
-**See also:** [CASE-005](../examples/CASE-005_hardware-purchase-discipline.md)
+**See also:** [SCENARIO-05](../examples/SCENARIO-05_hardware-purchase-discipline.md)
 (hardware-purchase discipline)
 
 [Index](../README.md) · [Glossary](../GLOSSARY.md)

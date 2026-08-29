@@ -100,7 +100,7 @@ attribution to one intervention. The only admissible design is a
 arms run in the same session/window, everything held fixed except the intervention,
 order pre-registered and counterbalanced (e.g., AB/BA). Where a contemporaneous
 control is unavailable, the causal claim **MUST** be declared unavailable and the
-comparison relabeled descriptive. [CASE: CASE-012] is the field case this principle
+comparison relabeled descriptive. [SCENARIO: SCENARIO-12] is the field case this principle
 generalizes from — restart instability large enough to flip a meaningful share of
 per-item outcomes, addressed by scoping every causal comparison to the measured
 boundary rather than assuming a wider one.
@@ -136,7 +136,7 @@ Report each probe as an agreement rate (§8), not a pass/fail label — the rate
 what downstream chapters need to decide whether a paired control is required.
 *status: doctrine — not yet exercised* for the concurrency and provider-redeploy
 probes specifically (the restart and cross-host designs are exercised in
-[CASE-012](examples/CASE-012_restart-instability-paired-controls.md); see that case
+[SCENARIO-12](examples/SCENARIO-12_restart-instability-paired-controls.md); see that case
 for what a completed probe record looks like).
 
 **Step 3 — Scope every comparability claim to the measured boundary.** If the
@@ -253,7 +253,7 @@ treat it as an integrity defect, not data.
 - **Collapsing the execution system into one label.** "The model got better/worse"
   when the runtime, provider, quantization, harness, or generation budget changed
   is the anti-pattern P5 exists to forbid — the sentence names one component and
-  silently changed several [CASE: CASE-006], [CASE: CASE-008].
+  silently changed several [SCENARIO: SCENARIO-06], [SCENARIO: SCENARIO-08].
 - **Assuming determinism because a runtime supports a deterministic mode.**
   The two engines the source ledger verifies for this (see the EXT-VLLM-001 and
   EXT-SGLANG-001 rows) expose opt-in deterministic/batch-invariant modes at a
@@ -329,11 +329,11 @@ often they recur:
 
 ## 11. Worked examples
 
-- [CASE-012](examples/CASE-012_restart-instability-paired-controls.md) — a restart
+- [SCENARIO-12](examples/SCENARIO-12_restart-instability-paired-controls.md) — a restart
   probe found a large share of case outcomes unstable across a mere server restart;
   the response was to scope causal comparisons to the measured boundary
   (same-session, contemporaneous paired controls) rather than to chase bit-identity.
-- [CASE-008](examples/CASE-008_transport-serialization-defect.md) — a transport
+- [SCENARIO-08](examples/SCENARIO-08_transport-serialization-defect.md) — a transport
   layer presented as transparent silently reordered structured output, breaking a
   downstream consumer that depended on byte-level fidelity; found only by explicit
   byte-equivalence verification, not by output inspection. A tool-contract instance
@@ -366,7 +366,6 @@ often they recur:
 | [EXT-PERF-003] | Backend/runtime choice alone moving evaluation scores materially (research-only caution) |
 | [EXT-VLLM-001], [EXT-SGLANG-001], [EXT-LLAMACPP-001] | Serving-engine determinism-mode specifics for §10 |
 | [NV-NVFP4PLAYBOOK-001] | Format-portability trap worked instance |
-| [INT-CASE-012], [INT-CASE-008], [INT-CASE-006] | Empirical case evidence backing §4, §9, §11 |
 
 Gap dispositions in this chapter: none assigned to 02_EXECUTION_SYSTEM_MODEL by the
 chapter briefs.

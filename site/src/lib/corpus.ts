@@ -25,8 +25,8 @@ export interface PageDef {
   section: RouteInfo['section'];
   kind: PageKind;
   space: Space;
-  /** document group used for ordering/prev-next: 'book' | 'templates' | 'cases' | 'references' | 'research' */
-  group: 'book' | 'templates' | 'cases' | 'references' | 'research' | 'meta';
+  /** document group used for ordering/prev-next: 'book' | 'templates' | 'cases' | 'references' */
+  group: 'book' | 'templates' | 'cases' | 'references' | 'meta';
   /** order within its group */
   order: number;
 }
@@ -57,7 +57,6 @@ function groupFor(repoPath: string): PageDef['group'] {
   if (repoPath.startsWith('playbook/templates/')) return 'templates';
   if (repoPath.startsWith('playbook/examples/')) return 'cases';
   if (repoPath.startsWith('playbook/references/')) return 'references';
-  if (repoPath.startsWith('research/')) return 'research';
   return 'meta';
 }
 
@@ -66,8 +65,8 @@ function orderFor(repoPath: string): number {
   const chapter = repoPath.match(/^playbook\/(\d\d)_/);
   if (repoPath === 'playbook/QUICKSTART.md') return -1;
   if (chapter) return Number(chapter[1]);
-  const caseM = repoPath.match(/^playbook\/examples\/CASE-(\d+)_/);
-  if (caseM) return Number(caseM[1]);
+  const scenarioM = repoPath.match(/^playbook\/examples\/SCENARIO-(\d+)_/);
+  if (scenarioM) return Number(scenarioM[1]);
   const synthM = repoPath.match(/^playbook\/examples\/SYNTH-(\d+)_/);
   if (synthM) return 100 + Number(synthM[1]);
   if (repoPath.startsWith('playbook/examples/WALKTHROUGH')) return 200;
@@ -75,7 +74,6 @@ function orderFor(repoPath: string): number {
   if (repoPath === 'playbook/references/SOURCES.md') return 1;
   if (repoPath === 'playbook/references/STATISTICS_FORMULAS.md') return 2;
   if (repoPath === 'playbook/references/VENDOR_RECIPE_NOTES.md') return 3;
-  if (repoPath === 'research/README.md') return -1;
   return 50;
 }
 
@@ -90,15 +88,15 @@ function listRepoPaths(space: Space): string[] {
       if (name.endsWith('.md')) out.push(`${rel}/${name}`);
     }
   };
-  // playbook top level
+  // playbook top level. STYLE.md is authoring guidance for writing the book,
+  // not part of the book — it is never published.
   const pbAbs = join(root, 'playbook');
   for (const name of readdirSync(pbAbs)) {
-    if (name.endsWith('.md')) out.push(`playbook/${name}`);
+    if (name.endsWith('.md') && name !== 'STYLE.md') out.push(`playbook/${name}`);
   }
   pushDir('playbook/templates');
   pushDir('playbook/references');
   pushDir('playbook/examples');
-  if (space === null) pushDir('research'); // research is never versioned
   return out.sort();
 }
 

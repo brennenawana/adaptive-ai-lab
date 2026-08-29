@@ -93,7 +93,7 @@ comparison of outcome *distributions*, evaluated with the same clustered/paired
 statistical machinery as any other experiment (04), not a demand that every
 individual case match. Treating a single differing output as a regression, on a
 system that was never shown to reproduce case-by-case even against a frozen copy of
-*itself*, manufactures false alarms. [CASE: CASE-012] is the internal precedent for
+*itself*, manufactures false alarms. [SCENARIO: SCENARIO-12] is the internal precedent for
 measuring the boundary before trusting a comparison across it.
 
 **[PRINCIPLE] Rollback is a designed, rehearsed path.** (inference — first-principles;
@@ -350,7 +350,7 @@ that profile at the chosen operating point, it does not redefine it.
 - **Per-case parity as the shadow-comparison bar.** Flagging any single differing
   output as a regression on a system whose reproducibility boundary was never
   measured to be case-by-case identity manufactures false alarms and trains
-  operators to ignore the alarm (§4; [CASE: CASE-012]).
+  operators to ignore the alarm (§4; [SCENARIO: SCENARIO-12]).
 - **Mistaking a native rolling update for a real canary.** Many serving stacks'
   default upgrade path is a plain rolling update with rollback undocumented or
   manual; verify what your specific serving stack's rollback story actually is
@@ -398,7 +398,7 @@ it into a contract or a runbook [NV-DGXCLOUD-DEP-001].
 
 ## 11. Worked examples
 
-- [CASE-007](examples/CASE-007_deterministic-cascade-gate.md) — the deterministic
+- [SCENARIO-07](examples/SCENARIO-07_deterministic-cascade-gate.md) — the deterministic
   verifier-gated cascade that chapter 08 develops was, in the source project's
   record, a *production-topology* decision: promoting a
   [cascade](GLOSSARY.md#cascade) does not require promoting a
@@ -407,7 +407,7 @@ it into a contract or a runbook [NV-DGXCLOUD-DEP-001].
   a cascade gate is itself a component with its own execution-system identity to
   pin and its own shadow/canary comparison to run before it is trusted with real
   traffic.
-- [CASE-012](examples/CASE-012_restart-instability-paired-controls.md) — the
+- [SCENARIO-12](examples/SCENARIO-12_restart-instability-paired-controls.md) — the
   internal precedent for §4's distributional-comparison principle: restarting the
   serving process by itself changed outcomes that had been stable moments before,
   on an otherwise-unchanged execution system. The response was not to chase
@@ -449,7 +449,6 @@ it into a contract or a runbook [NV-DGXCLOUD-DEP-001].
 | [EXT-OPS-002] | ML Test Score rubric — Monitor-7 pattern behind the postmortem→failure-harvesting link into 12 |
 | [EXT-PERF-002] | k6 load-test taxonomy — the out-of-scope multi-tenant/SLA skeleton (§7) |
 | [EXT-DETERM-001] | Nondeterminism as a measured property — grounds §4's distributional-comparison principle |
-| [INT-CASE-007], [INT-CASE-012] | Internal case evidence, §11 |
 
 **Gap dispositions in this chapter:**
 - **G10 (rollback / incident-response runbook mechanics): COVERED-AS-DOCTRINE-NOT-YET-EXERCISED.**

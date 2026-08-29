@@ -77,7 +77,7 @@ only for open-ended output, behind the calibration protocol of §5.7. Operationa
 [P11](00_PRINCIPLES_AND_SCOPE.md).
 
 **[PRINCIPLE] The instrument's ceiling is measured before its score is believed.**
-(strong-evidence [EXT-EVAL-005], [EXT-EVAL-008]; case-study [CASE: CASE-004])
+(strong-evidence [EXT-EVAL-005], [EXT-EVAL-008]; case-study [SCENARIO: SCENARIO-04])
 A stratum's [reachability ceiling](GLOSSARY.md#reachability-ceiling) is an empirical
 property of the instrument, not an assumption. Human-reviewing a widely used
 benchmark down from 1,699 to 500 tasks moved the measured solve rate on the *same
@@ -88,7 +88,7 @@ points of instrument noise"; §9's cross-version-subtraction rejection binds thi
 playbook's own citations too. What the episode does establish is the point that
 matters here: **a large share of a measured score can be a property of the corpus
 rather than the model.** For the decomposed, same-corpus version of that lesson see
-[CASE: CASE-004], where seven flagged forbidden claims were all detector artifacts
+[SCENARIO: SCENARIO-04], where seven flagged forbidden claims were all detector artifacts
 and the corrected all-pass rate moved from 91.7% to 99.0% with no change to the
 systems under test. A low score on an unvalidated stratum measures the defect, not
 the model (P2). The sequel makes the deeper point: the same benchmark's publisher
@@ -105,10 +105,10 @@ at inference time, and MUST NOT select, route, or tune anything on a held-out sp
 — anything the system can read at inference time is not held out, and anything a
 selection decision can see is not blind. Corroborated by a structural-leakage
 finding: item-identity-encoding features defeated this boundary silently until an
-explicit audit caught it [CASE: CASE-003].
+explicit audit caught it [SCENARIO: SCENARIO-03].
 
 **[PRINCIPLE] Criteria drift is real; the response is versioning, never silent
-edits.** (strong-evidence [EXT-EVAL-004]; case-study [CASE: CASE-009])
+edits.** (strong-evidence [EXT-EVAL-004]; case-study [SCENARIO: SCENARIO-09])
 Evaluation criteria cannot be fully specified before seeing outputs — a grader's
 criteria and the ground truth it applies co-evolve as real outputs are seen. This is
 an empirical finding about how people write rubrics, not a discipline failure
@@ -126,7 +126,7 @@ the response; §5.8.
 **[PRINCIPLE] A rubric changes only for an independently identified instrument
 defect, never in response to a system's answer.** (consensus — the same
 pre-registration norm as chapter 00's P7 [EXT-STOPPING-002]; case-study
-corroboration [CASE: CASE-009])
+corroboration [SCENARIO: SCENARIO-09])
 Widening a rubric because a system disagreed with it, or narrowing it because a
 system now agrees, is the instrument adapting to the thing it measures. Investigate
 whether the disagreement reproduces under a controlled re-check; change the rubric
@@ -307,12 +307,12 @@ replacement — that is the only way the comparison means anything (chapter 01).
   `confirmed the user violated security policy` — never derivable from login
   evidence alone.
 - **[DEFAULT] Per-instance consistency, not just the modal case.** (case-study
-  [CASE: CASE-004]) Every generated instance — not only the typical one — must be
+  [SCENARIO: SCENARIO-04]) Every generated instance — not only the typical one — must be
   checked against the forbidden hypotheses it is supposed to rule out; a generator
   right on average but wrong on a subset silently hands the model a data-consistent
   forbidden claim.
 - **[DEFAULT] Background content through the real pipeline.** (case-study
-  [CASE: CASE-004]; mechanism is first-principles) Filler/background content SHOULD
+  [SCENARIO: SCENARIO-04]; mechanism is first-principles) Filler/background content SHOULD
   be produced by the same generation path as primary content. A direct-write
   shortcut carries whatever the real pipeline would have normalized — an ID format,
   a timestamp pattern, a field-ordering difference — and any such artifact that
@@ -373,7 +373,7 @@ procedure, which supplies a counterpart for every row.
 
 [Static integrity gates](GLOSSARY.md#static-integrity-gates) run all of the above on
 the full corpus, as executable commands, and MUST be protected from subsetting —
-they are the instruments that catch instrument defects. [CASE: CASE-004] found
+they are the instruments that catch instrument defects. [SCENARIO: SCENARIO-04] found
 thirteen harness/scenario defects this way, every one initially indistinguishable
 from model weakness.
 
@@ -482,12 +482,12 @@ baselines and generalizes directly to judge calibration.
   prior exposure, not regression.
 - **[PRINCIPLE] Train/eval separation.** (consensus) Training data MUST never touch
   qualify/confirm content (mechanics: chapter 09; enforcement: chapter 13).
-- **[PRINCIPLE] Structural leakage.** (case-study [CASE: CASE-003]) A feature letting
+- **[PRINCIPLE] Structural leakage.** (case-study [SCENARIO: SCENARIO-03]) A feature letting
   a learned or judge-mediated component
   infer which stratum an item belongs to — not the signal it's meant to learn — is a
   leakage vector even with no gold field in sight. The audit that catches a router
   encoding item identity ([leakage audit](GLOSSARY.md#leakage-audit),
-  [class-identity ceiling](GLOSSARY.md#class-identity-ceiling); [CASE: CASE-003])
+  [class-identity ceiling](GLOSSARY.md#class-identity-ceiling); [SCENARIO: SCENARIO-03])
   applies to any grading or gating component.
 
 ### 5.9 Suite versioning and release contracts
@@ -509,7 +509,7 @@ fixed skeleton:
 | Known limitations left unfixed | Recorded explicitly, not silently lived with |
 
 Template: [templates/EVAL_SUITE_RELEASE_CONTRACT.md](templates/EVAL_SUITE_RELEASE_CONTRACT.md).
-[CASE: CASE-009] used this skeleton to make criteria drift explicit and auditable
+[SCENARIO: SCENARIO-09] used this skeleton to make criteria drift explicit and auditable
 instead of silent, keeping old-version results as labeled history — never
 subtracted from new-version results.
 
@@ -884,13 +884,13 @@ against the interval's lower bound, not its midpoint.
 
 - **Ceiling-blind scoring**: reporting per-stratum accuracy without first computing
   that stratum's reachability ceiling — an unwinnable stratum reads as a weak model
-  until someone checks [CASE: CASE-004].
+  until someone checks [SCENARIO: SCENARIO-04].
 - **Score-driven harness changes**: modifying a scorer, verifier, or rubric because
   of what a specific system's score looks like, not a proven, independently
   justified defect (§5.9 checklist step 6).
 - **Rubric drift from results**: widening a rubric because a system disagreed with
   it, or narrowing it because it now agrees, absent an independently identified
-  defect [CASE: CASE-009].
+  defect [SCENARIO: SCENARIO-09].
 - **Cross-version score subtraction**: diffing raw pass rates between two instrument
   versions and reporting the delta as a capability change (§5.9).
 - **Silent instrument-version mixing**: comparing run rows against manifests from a
@@ -934,13 +934,13 @@ against the interval's lower bound, not its midpoint.
   ambiguous category, a distractor action, an absence case, and a forbidden claim,
   with the lookup-ceiling arithmetic worked through. §5.1's shape map says what to
   build instead when the task is classification, extraction, or generation.
-- [CASE-004](examples/CASE-004_harness-defects.md) — thirteen harness/scenario
+- [SCENARIO-04](examples/SCENARIO-04_harness-defects.md) — thirteen harness/scenario
   defects, initially indistinguishable from model weakness, found by reachability
   ceilings, weak-beats-strong inversions, and cross-arm disagreement review.
-- [CASE-009](examples/CASE-009_suite-versioning-criteria-drift.md) — criteria drift
+- [SCENARIO-09](examples/SCENARIO-09_suite-versioning-criteria-drift.md) — criteria drift
   made explicit and auditable through a versioned release contract instead of
   silent in-place edits.
-- [CASE-003](examples/CASE-003_learned-router-leakage.md) — structural leakage
+- [SCENARIO-03](examples/SCENARIO-03_learned-router-leakage.md) — structural leakage
   (class-identity ceiling) caught by leave-one-group-out validation; the same audit
   generalizes to any learned or judge-mediated grading component (§5.8).
 - [SYNTH-08](examples/SYNTH-08_high-stakes-audited-deployment.md) — the
@@ -996,7 +996,6 @@ against the interval's lower bound, not its midpoint.
 | [NV-GARAK-001] | Calibration-bag/z-score pattern adapted for judge calibration |
 | [EXT-TESTBED-001] | Sanity-gate recipe behind static integrity gates |
 | [EXT-TESTBED-003] | Small-N reliability caution for corpus-size parameter |
-| [INT-CASE-003], [INT-CASE-004], [INT-CASE-009] | Case evidence — leakage, instrument defects, suite versioning |
 
 **Gap dispositions in this chapter:**
 

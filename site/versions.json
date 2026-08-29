@@ -1,29 +1,4 @@
 {
-  "comment": "Playbook version -> exact git commit manifest. Historical site versions are materialized from these commits at build time (site/scripts/materialize-versions.mjs). The build verifies that playbook/VERSION at each commit matches the declared version and refuses to build otherwise. 'exclude' removes authoring scaffolding that was present inside playbook/ at release time but was never part of the released book (later archived to docs/history/playbook-v0.1/); every historical page still identifies the exact commit it was extracted from.",
-  "versions": [
-    {
-      "version": "0.1.1",
-      "commit": "619d9c7976d847d43d413c0e9943f5f56571f8ff",
-      "date": "2026-08-21",
-      "label": "v0.1.1 — independent-audit corrections",
-      "exclude": [
-        "playbook/PASS2_AUTHORING_SPEC.md",
-        "playbook/PLAYBOOK_BUILD_PLAN.md",
-        "playbook/SOURCE_MAP_DRAFT.md",
-        "playbook/planning/"
-      ]
-    },
-    {
-      "version": "0.1.0",
-      "commit": "3565e6bc99a374794457a7cc0cfece26f0ba6dfc",
-      "date": "2026-08-21",
-      "label": "v0.1.0 — first authored release (Pass 2)",
-      "exclude": [
-        "playbook/PASS2_AUTHORING_SPEC.md",
-        "playbook/PLAYBOOK_BUILD_PLAN.md",
-        "playbook/SOURCE_MAP_DRAFT.md",
-        "playbook/planning/"
-      ]
-    }
-  ]
+  "comment": "Historical version snapshots are disabled on the public build. The mechanism materialized playbook/ from pinned git commits, which on this branch would resurrect content that was deliberately removed. Keep this list empty: with no entries, allPages() renders the current working tree only.",
+  "versions": []
 }

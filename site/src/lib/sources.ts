@@ -26,14 +26,13 @@ export interface SourceEntry {
   notes?: string | null;
 }
 
-export const CLASSIFICATION_ORDER = ['FOLLOW', 'ADAPT', 'REFERENCE', 'DEPRECATED', 'CASE'] as const;
+export const CLASSIFICATION_ORDER = ['FOLLOW', 'ADAPT', 'REFERENCE', 'DEPRECATED'] as const;
 
 export const CLASSIFICATION_BLURB: Record<string, string> = {
   FOLLOW: 'Adopt this recipe as written; validate only your project-specific parameters.',
   ADAPT: 'Sound core, but adapt it — parts are project-specific, stale, or need validation.',
   REFERENCE: 'Background evidence and context; not an executable recipe.',
   DEPRECATED: 'Superseded or no longer current — kept for the record, do not follow.',
-  CASE: 'Internal case study — real project evidence curated into the playbook.',
 };
 
 const cache = new Map<string, SourceEntry[]>();

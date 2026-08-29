@@ -69,7 +69,7 @@ low-blast-radius pilot) to push it past Tier 1.
    look strong in-distribution and collapse out-of-distribution
    [EXT-ROUTE-001] — is exactly what the audit catches here, and a fuller
    worked instance of the same failure lives in
-   [CASE-003](CASE-003_learned-router-leakage.md).
+   [SCENARIO-03](SCENARIO-03_learned-router-leakage.md).
 4. **[Break-even](../GLOSSARY.md#break-even) computed before rollout.** The
    minimum share of traffic the cheap tier must handle for the gate's own
    verification overhead to pay for itself is derived from the routing
@@ -131,7 +131,7 @@ low-blast-radius pilot) to push it past Tier 1.
   shadow-then-canary rollout
 - [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md) — ladder
   rung discipline (never descend past a routing-level fix that suffices)
-- See also [CASE-003](CASE-003_learned-router-leakage.md) — the measured
+- See also [SCENARIO-03](SCENARIO-03_learned-router-leakage.md) — the measured
   instance this refusal parallels
 
 ---

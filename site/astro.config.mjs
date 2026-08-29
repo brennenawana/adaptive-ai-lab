@@ -3,8 +3,8 @@ import { defineConfig } from 'astro/config';
 import { fileURLToPath } from 'node:url';
 
 // Static presentation layer over the canonical repository content.
-// SITE_URL / SITE_BASE are provided by the deploy environment (e.g. GitHub
-// Pages sets SITE_BASE=/adaptive-ai-lab/); local dev serves from '/'.
+// SITE_URL / SITE_BASE are provided by the deploy environment. Cloudflare Pages
+// serves from a domain root, so SITE_BASE stays '/'; local dev also serves '/'.
 export default defineConfig({
   site: process.env.SITE_URL ?? 'http://localhost:4321',
   base: process.env.SITE_BASE ?? '/',

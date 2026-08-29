@@ -38,14 +38,14 @@ evaluation for the task. Building the evaluation is the first engineering act, n
 tax on the "real" work. Corroborated across vendor and practitioner guidance
 [NV-AGENTICBLOGS-001], [EXT-EVAL-001], [EXT-EVAL-002], and by repeated field
 experience that untrusted evals silently redirect entire projects
-[CASE: CASE-004].
+[SCENARIO: SCENARIO-04].
 
 **[PRINCIPLE] P2 — The instrument outranks the score.** (strong-evidence)
 Before believing any low score, validate the instrument: measure
 [reachability ceilings](GLOSSARY.md#reachability-ceiling), check
 [inversions](GLOSSARY.md#inversion-check), review cross-arm disagreement. A large
 share of apparent model failures are instrument defects, and the two are initially
-indistinguishable [EXT-EVAL-005], [CASE: CASE-004]. Diagnosis class RC-1 in the
+indistinguishable [EXT-EVAL-005], [SCENARIO: SCENARIO-04]. Diagnosis class RC-1 in the
 [canonical failure taxonomy](GLOSSARY.md#canonical-failure-taxonomy) exists for this
 reason and always ranks first.
 
@@ -93,7 +93,7 @@ The scarce resources of a small lab are operator attention and measurement valid
 not compute. Stopping rules, tolerances, and gates exist to make decisions *priced
 and chosen* rather than drifted into. In the one internally measured instance,
 certainty curtailment would have recovered only about 2% of total wall clock
-[CASE: CASE-001] — because that project's dominant arm happened to sit near its
+[SCENARIO: SCENARIO-01] — because that project's dominant arm happened to sit near its
 qualification bar, not because a stopping rule's speed value is generically small;
 on a project where hopeless arms dominate wall clock, or per-item cost is high, the
 speed value can be genuinely large, and that is not itself a problem (§9). The
@@ -105,7 +105,7 @@ A number is comparable only within a
 [frozen execution system](GLOSSARY.md#frozen-identity) and inside a *measured*
 [reproducibility boundary](GLOSSARY.md#reproducibility-boundary). Runtime, provider,
 harness, hardware, and configuration are part of the identity; nondeterminism is a
-measured property, not an assumption [EXT-DETERM-001], [CASE: CASE-012]. Chapter 02
+measured property, not an assumption [EXT-DETERM-001], [SCENARIO: SCENARIO-12]. Chapter 02
 is the foundation; do not trust any cross-run number until you have read it.
 
 **[PRINCIPLE] P6 — Frozen instruments, versioned change.** (strong-evidence)
@@ -113,7 +113,7 @@ Evaluation criteria drift as outputs are seen — this is an empirical finding a
 humans, not a discipline failure [EXT-EVAL-004]. The response is versioned
 [suite releases](GLOSSARY.md#suite-release) with
 [cross-suite refusal](GLOSSARY.md#cross-suite-refusal), never silent in-place edits
-[CASE: CASE-009].
+[SCENARIO: SCENARIO-09].
 
 **[PRINCIPLE] P7 — Pre-registration with consequences.** (consensus)
 Decision-driving thresholds are fixed before data, and every tolerance names its
@@ -123,7 +123,7 @@ ABORT / RECALIBRATE / PROCEED-WITH-DECLARED-CEILING with the projected cost stat
 The pre-specification doctrine is clinical-trial consensus — pre-register the
 adaptation rule, and let the rule execute rather than the investigator's mid-run
 judgment [EXT-STOPPING-002]. A detection without a consequence is not a control
-[CASE: CASE-001].
+[SCENARIO: SCENARIO-01].
 
 **[PRINCIPLE] P8 — Held-out evidence is consumable.**
 (look-spend / overfitting-by-looking: inference — first-principles;
@@ -145,7 +145,7 @@ Every comparison carries a pre-computed [MDE](GLOSSARY.md#mde) on the design's
 [effective N](GLOSSARY.md#effective-n); results below it are INCONCLUSIVE, never
 "equivalent" or "no difference". Clustered suites can have an effective N several
 times smaller than their item count, quietly voiding headline claims
-[EXT-STATS-001], [CASE: CASE-002]. An experiment that cannot say INCONCLUSIVE will
+[EXT-STATS-001], [SCENARIO: SCENARIO-02]. An experiment that cannot say INCONCLUSIVE will
 eventually say something false.
 
 **[PRINCIPLE] P10 — Fail closed, on a record of record.** (case-study + inference)
@@ -289,7 +289,7 @@ N/A — this chapter defines principles; the statistics canon lives in chapter 0
 
 - **Unpriced escape hatches**: a tolerance whose breach clause is "record and
   proceed" at no stated cost. The failure is not detection — it is that detection
-  carries no consequence [CASE: CASE-001].
+  carries no consequence [SCENARIO: SCENARIO-01].
 - **Judges on verifiable tasks without calibration**: using an LLM judge, instead of
   a deterministic check, to grade schema conformance, exact/fuzzy match, or another
   deterministically checkable output. JudgeBench found frontier judges weak
@@ -299,14 +299,14 @@ N/A — this chapter defines principles; the statistics canon lives in chapter 0
   where a deterministic check exists, an uncalibrated judge replaces a free,
   auditable measurement with a noisier and costlier one.
 - **Promoting sub-MDE margins to decisions**: adopting or eliminating a candidate on
-  a margin the design cannot resolve [CASE: CASE-002], [CASE: CASE-010].
+  a margin the design cannot resolve [SCENARIO: SCENARIO-02], [SCENARIO: SCENARIO-10].
 - **Benchmark worship**: treating public leaderboard scores as evidence about your
   task, your harness, your budget, or your failure modes.
 - **The relaxed lane**: a parallel "quick" execution path outside the provenance
   machinery. It recreates the unrecorded path the machinery exists to forbid; cheap
   tiers go inside as non-promotable states (P10).
 - **"The model got better/worse"** when the runtime, provider, quantization,
-  harness, or budget changed (P5) [CASE: CASE-006], [CASE: CASE-008].
+  harness, or budget changed (P5) [SCENARIO: SCENARIO-06], [SCENARIO: SCENARIO-08].
 
 **[REJECTED]** (condition: a stopping rule's guards are being weakened, skipped, or
 argued against *because* they cost wall clock)
@@ -316,7 +316,7 @@ argued against *because* they cost wall clock)
   Stopping rules purchase decision quality; a rule adopted for decision quality MAY
   incidentally save time too, and that is a welcome side effect, not the
   justification. In the one internally measured instance the recoverable wall
-  clock was small — about 2% of the run [CASE: CASE-001] — but the rejection does
+  clock was small — about 2% of the run [SCENARIO: SCENARIO-01] — but the rejection does
   not depend on that number, and does not become weaker on a project where the
   speed value is genuinely large (P4).
 
@@ -335,11 +335,11 @@ ADAPT with the substitution stated.
 
 ## 11. Worked examples
 
-- [CASE-001](examples/CASE-001_consequence-bearing-tolerances.md) — a measured 5×
+- [SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md) — a measured 5×
   tolerance breach proceeded unpriced; what a consequence clause would have changed.
-- [CASE-002](examples/CASE-002_clustered-eval-effective-n.md) — clustering silently
+- [SCENARIO-02](examples/SCENARIO-02_clustered-eval-effective-n.md) — clustering silently
   collapsed a 96-item suite to ~22 effective pairs.
-- [CASE-004](examples/CASE-004_harness-defects.md) — thirteen instrument defects
+- [SCENARIO-04](examples/SCENARIO-04_harness-defects.md) — thirteen instrument defects
   initially indistinguishable from model weakness.
 - [WALKTHROUGH](examples/WALKTHROUGH_rag-document-qa.md) — the full lifecycle run on
   a synthetic non-trivial project.
@@ -365,7 +365,6 @@ ADAPT with the substitution stated.
 | [EXT-DETERM-001] | Nondeterminism as a measured property |
 | [EXT-FT-001] | Retrieval/prompt-first direction for knowledge tasks |
 | [EXT-OPS-003] | Lineage tools lack tamper evidence — why the record of record is built |
-| [INT-CASE-001], [INT-CASE-002], [INT-CASE-004], [INT-CASE-006], [INT-CASE-008], [INT-CASE-009], [INT-CASE-010], [INT-CASE-012] | Empirical case evidence backing P2, P4–P9 |
 
 Gap dispositions in this chapter: **G2 (rigor sizing): COVERED** (§6, with the
 profile capture in 01 and the QUICKSTART application).

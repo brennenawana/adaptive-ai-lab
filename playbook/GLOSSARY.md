@@ -146,7 +146,7 @@ committed *in the contract, at freeze* — never authored after the breach is
 observed). Evaluated by [curtailed exact counting](#curtailed-exact-counting) and
 enforced [fail-closed](#fail-closed) by the runner. A tolerance without a named
 consequence is an unpriced escape hatch — the anti-pattern this concept exists to
-kill. Chapter 04; [CASE-001](examples/CASE-001_consequence-bearing-tolerances.md).
+kill. Chapter 04; [SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md).
 
 ### context policy
 The part of an [execution system](#execution-system) that governs what enters the
@@ -208,14 +208,14 @@ signals (verifier results, schema conformance, evidence citations) rather than a
 learned classifier. When a task-level verifier exists, the deterministic gate is this
 playbook's default: auditable, leakage-immune, and empirically capable of
 near-perfect [rescue](#rescue) routing.
-[CASE-007](examples/CASE-007_deterministic-cascade-gate.md); chapter 08.
+[SCENARIO-07](examples/SCENARIO-07_deterministic-cascade-gate.md); chapter 08.
 
 ### diagnostic gate
 A cheap, pre-registered probe run *before* an expensive experiment, designed to
 decide that experiment's fate (GO / re-scope / DROP) with decision bands fixed in
 advance. Carries data-sufficiency precedence: an underpowered diagnostic returns
 [INCONCLUSIVE](#inconclusive), and completion alone never produces GO. Chapter 07;
-[CASE-011](examples/CASE-011_diagnostic-gate.md).
+[SCENARIO-11](examples/SCENARIO-11_diagnostic-gate.md).
 
 ### diagnostic run kind
 A run type inside the provenance machinery that is recorded in the ledger but
@@ -250,7 +250,7 @@ The number of statistically independent observations a clustered sample is worth
 N_eff = N / [DEFF](#design-effect). Comparisons on clustered suites can have an
 effective N several times smaller than the item count — small enough to turn headline
 differences into noise. Chapter 04;
-[CASE-002](examples/CASE-002_clustered-eval-effective-n.md).
+[SCENARIO-02](examples/SCENARIO-02_clustered-eval-effective-n.md).
 
 ### elimination rule
 No candidate is withdrawn from selection on a margin smaller than the pilot's own
@@ -409,7 +409,7 @@ The validation battery any learned component must pass before its measured
 performance is believed: group-identity ceiling comparison, leave-one-group-out
 evaluation, feature-provenance review (what could this feature encode?), and
 out-of-distribution checks. Chapter 08;
-[CASE-003](examples/CASE-003_learned-router-leakage.md).
+[SCENARIO-03](examples/SCENARIO-03_learned-router-leakage.md).
 
 ### learned router
 A routing/escalation gate implemented as a trained model over task or trajectory
@@ -518,7 +518,7 @@ the [record of record](#record-of-record). Chapter 13.
 A pre-committed condition (e.g., K consecutive months of rented spend above X, or a
 committed always-on serving requirement) that must fire before capital is spent —
 defined *before* wanting the hardware, fed by the [demand ledger](#demand-ledger).
-Chapter 11; [CASE-005](examples/CASE-005_hardware-purchase-discipline.md).
+Chapter 11; [SCENARIO-05](examples/SCENARIO-05_hardware-purchase-discipline.md).
 
 ### reachability ceiling
 The measured maximum score a stratum permits given the corpus, tools, and thresholds
@@ -540,7 +540,7 @@ too noisy to decide with. Chapter 03.
 The empirically measured envelope within which repeated runs agree (same session?
 across restarts? across hosts? across provider redeploys? under concurrency?).
 Measured by probes, then comparisons are scoped to it. Never assumed. Chapter 02;
-[CASE-012](examples/CASE-012_restart-instability-paired-controls.md).
+[SCENARIO-12](examples/SCENARIO-12_restart-instability-paired-controls.md).
 
 ### rescue
 In a [cascade](#cascade), the event where escalation succeeds on an item the lower
@@ -649,7 +649,7 @@ The full behavioral specification of a tool exposed to a model: schema, addressi
 result ordering, pagination, cohort/tenant keying, permissions, error semantics, and
 byte-level transport fidelity. Tool contracts are part of the
 [execution system](#execution-system) and are versioned like code. Chapter 08;
-[CASE-008](examples/CASE-008_transport-serialization-defect.md).
+[SCENARIO-08](examples/SCENARIO-08_transport-serialization-defect.md).
 
 ### trajectory record
 The minimum durable record of one task execution: identifiers, execution-system

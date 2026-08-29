@@ -91,7 +91,7 @@ the argument and is labelled as such: vendor guidance to "start lightweight, inv
 early in evaluation, and layer in training-based techniques where measurement shows
 they're needed" [NV-AGENTICBLOGS-001] is a framing statement, not a study; and one
 internal case shows a diagnostic run at a small fraction of an expensive experiment's
-cost correctly gating the decision to proceed [CASE: CASE-011] — a single instance,
+cost correctly gating the decision to proceed [SCENARIO: SCENARIO-11] — a single instance,
 not a base rate. §5.2 gives the design pattern.
 
 **[PRINCIPLE] Never train (rung 7+) around a defect at rungs 0–4.** (strong-evidence)
@@ -111,7 +111,7 @@ optimizing a proxy instead of the target. A generation that finishes without
 truncating is not thereby a generation that is *right*; only the deterministic scorer
 (or calibrated judge, chapter 03) gets to say that. An internal case shows a
 generation-cap confound inflating a model-comparison headline until the budget factor
-was isolated [CASE: CASE-006], and the direct anti-pattern — letting a completion
+was isolated [SCENARIO: SCENARIO-06], and the direct anti-pattern — letting a completion
 proxy alone justify a go decision — recurs often enough to name explicitly (§9).
 
 ## 5. Default procedure
@@ -147,7 +147,7 @@ accounting, §6):
 | Rung | Fixes (RC class) | Cost class | Entry evidence (this rung is indicated) | Exit evidence (this rung is exhausted) | Cheap diagnostic first |
 |---|---|---|---|---|---|
 | 0 — instrument integrity | RC-1 measurement/instrument defect | C0–C1 | Always entered first: no integrity evidence exists yet for the current suite version and execution-system identity, or RC-1 is the diagnosis | Static integrity gates green: measured [reachability ceilings](GLOSSARY.md#reachability-ceiling), no [inversions](GLOSSARY.md#inversion-check), gold-answer gate passed, determinism verified (ch. 03) | The integrity gates *are* the diagnostic; there is no cheaper check |
-| 1 — infrastructure/runtime | RC-2 infrastructure/runtime defect | C1 | Restart, concurrency, host, transport, or configuration variance is implicated: results move without the system under test moving | [Reproducibility boundary](GLOSSARY.md#reproducibility-boundary) measured (ch. 02) and the gap persists inside it; byte-level transport fidelity verified end to end through every serving, proxy, and serialization hop [CASE: CASE-008] | Restart/concurrency/cross-host probes (ch. 02); byte-equivalence check through every proxy [CASE: CASE-008] |
+| 1 — infrastructure/runtime | RC-2 infrastructure/runtime defect | C1 | Restart, concurrency, host, transport, or configuration variance is implicated: results move without the system under test moving | [Reproducibility boundary](GLOSSARY.md#reproducibility-boundary) measured (ch. 02) and the gap persists inside it; byte-level transport fidelity verified end to end through every serving, proxy, and serialization hop [SCENARIO: SCENARIO-08] | Restart/concurrency/cross-host probes (ch. 02); byte-equivalence check through every proxy [SCENARIO: SCENARIO-08] |
 | 2 — evidence/retrieval/context | RC-3 missing/unreachable evidence | C1–C2 | Failure cases lack, in context, a fact the task requires, and the fact is plausibly obtainable | [Evidence reachability](GLOSSARY.md#evidence-reachability) audited per stratum and cleared (ch. 08) — the required evidence is demonstrably reachable and the gap persists | Reachability replay against the real tool broker, not the generator's assumptions |
 | 3 — tool contracts & output enforcement | RC-4 tool/API contract defect, RC-5 output/format enforcement gap | C1–C2 | The failure sample shows schema, addressing, ordering, or permission mismatches, or correct content lost to parsing/structure failures | [Tool contract](GLOSSARY.md#tool-contract) audit passed; schema/grammar conformance of the **tool-emitted payload** verified against its declared contract; gap persists with contracts clean | Contract schema validation against the actually emitted payload (byte corruption *introduced by the transport itself* is rung 1's, not this rung's — see the discriminator note below) |
 | 4 — specification & verification | RC-6 task-specification gap, RC-7 verification gap | C1–C2 | Failures look like the system was never told what to do, or the verifier is passing known-bad outputs | Controlled, single-factor prompt/workflow variants (§5.4) show no further pre-registered gain; verifier coverage checked against known silent-failure modes | One factor per arm against a pre-registered adoption rule, not an unstructured sweep |
@@ -160,7 +160,7 @@ accounting, §6):
 **Transport-vs-contract discriminator (RC-2 vs RC-4).** Byte-level fidelity is
 diagnosed at exactly one rung depending on *where the corruption originates*: when the
 serving stack, a proxy, or the serialization layer alters bytes independently of any
-tool, it is RC-2 and belongs at **rung 1** — this is the shape [CASE: CASE-008]
+tool, it is RC-2 and belongs at **rung 1** — this is the shape [SCENARIO: SCENARIO-08]
 teaches. When the payload a tool emits does not match its declared schema, addressing,
 ordering, or permission contract, it is RC-4 and belongs at **rung 3**. The
 discriminating test is cheap: replay the identical payload through the transport with
@@ -243,9 +243,9 @@ rather than aspirational. Design pattern:
    decision owner reads the result and, absent a written override, follows the
    pre-registered consequence — exactly the discipline a
    [consequence-bearing tolerance](GLOSSARY.md#consequence-bearing-tolerance)
-   enforces (chapter 04) [CASE: CASE-001].
+   enforces (chapter 04) [SCENARIO: SCENARIO-01].
 
-This pattern generalizes directly: [CASE: CASE-011] is a diagnostic gate run under this
+This pattern generalizes directly: [SCENARIO: SCENARIO-11] is a diagnostic gate run under this
 design — a cheap paired probe with pre-registered bands and a sufficiency floor taking
 precedence over the primary metric, deciding a much larger experiment's fate before it
 was allowed to run. Read it as the source of the pattern, and apply step 3's interval
@@ -256,7 +256,7 @@ property of that probe's `n` and observed rate, and must be computed, never inhe
 
 A procedure, not a number to copy from another project or model generation
 (§6 — output-length distributions shift across model families and versions; a cap
-calibrated on one is not valid evidence for another [CASE: CASE-006]).
+calibrated on one is not valid evidence for another [SCENARIO: SCENARIO-06]).
 
 1. **Pilot the generation-length distribution on the iterate split.** Record the full
    distribution of tokens actually generated per case, not just the mean.
@@ -278,7 +278,7 @@ calibrated on one is not valid evidence for another [CASE: CASE-006]).
    reported.** Cases that complete inside a smaller budget are systematically the
    easier ones; a rescue rate measured at a larger budget is an upper bound on how
    much of the *harder*, still-truncated population would convert, not a given
-   [CASE: CASE-006].
+   [SCENARIO: SCENARIO-06].
 
 ### 5.4 Prompt/workflow optimization discipline (rung 4)
 
@@ -560,7 +560,7 @@ stopped reconfirming are a differently-composed subset, and cases that already c
 inside the smaller budget are systematically the easier ones. Report `f_rescue` as a
 rate on the reconfirmed subset with the subset's definition attached; it is an upper
 bound on what the harder, still-truncated remainder would convert, never a population
-rescue rate [CASE: CASE-006].
+rescue rate [SCENARIO: SCENARIO-06].
 
 **Quantization recovery** (§5.5):
 ```
@@ -605,7 +605,7 @@ run and tracked against the pre-registered tolerance.
 
 - **Completion-as-success proxy**: treating a finished (non-truncated) generation as
   evidence of correctness and letting that alone justify a GO or adoption decision,
-  without scoring against ground truth [CASE: CASE-006].
+  without scoring against ground truth [SCENARIO: SCENARIO-06].
 - **Training around a defect at rungs 0–4**: escalating to fine-tuning or a larger
   model when the diagnosed root cause is an instrument, infrastructure, evidence,
   tool-contract, or specification defect. The most expensive rung cannot fix a
@@ -619,7 +619,7 @@ run and tracked against the pre-registered tolerance.
 - **A generation-budget cap copied from another project or an earlier model
   generation**: output-length distributions shift across model families and
   versions; a cap not re-derived from the current artifact's own iterate-split
-  distribution is a placeholder wearing a number's clothes [CASE: CASE-006].
+  distribution is a placeholder wearing a number's clothes [SCENARIO: SCENARIO-06].
 - **Variant spam**: generating many prompt/workflow variants without first
   enumerating the hypothesis space each is meant to test, or without a pre-registered
   adoption rule — turns rung 4 into an unstructured search with no fluke guard.
@@ -662,14 +662,14 @@ source-attribution summary.
 
 ## 11. Worked examples
 
-- [CASE-011](examples/CASE-011_diagnostic-gate.md) — a cheap paired probe,
+- [SCENARIO-11](examples/SCENARIO-11_diagnostic-gate.md) — a cheap paired probe,
   pre-registered with data-sufficiency precedence, gated an experiment an order of
   magnitude more expensive than the probe itself.
-- [CASE-006](examples/CASE-006_token-budget-confounding.md) — isolating a
+- [SCENARIO-06](examples/SCENARIO-06_token-budget-confounding.md) — isolating a
   generation-budget factor shrank a claimed model-vs-model gap substantially, and
   surfaced the selection-effect caveat that a completion-based rescue estimate is an
   upper bound, not a given.
-- [CASE-001](examples/CASE-001_consequence-bearing-tolerances.md) — the general
+- [SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md) — the general
   failure mode §5.2 step 5 and §5.3 step 3 exist to close: a detected tolerance
   breach with no named consequence is not a control.
 - See §8 for fully worked illustrative-number calculations of the rescue fraction and
@@ -717,9 +717,6 @@ source-attribution summary.
 | [NV-MODELOPTRESEARCH-001] | Progressive-evaluation-subset margin-of-error tables for screening variants (verified live 2026-08-21) |
 | [EXT-FT-001] | Retrieval/prompt-first ladder-ordering evidence for rungs 2–4 vs. rung 7 |
 | [EXT-STOPPING-003] | Racing/successive-halving screening discipline reused in §5.4 |
-| [INT-CASE-011] | Diagnostic-gate case evidence |
-| [INT-CASE-006] | Budget-confound and completion-is-not-correctness case evidence |
-| [INT-CASE-001] | Consequence-bearing-tolerance case evidence underlying §5.2 step 5 and §5.3 step 3 |
 
 **Gap dispositions in this chapter:** **G14 (finding-vs-waste decision test):
 COVERED** — normatively defined in chapter 06; applied here to a rung's dominant cost
