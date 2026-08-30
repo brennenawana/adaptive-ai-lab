@@ -6,34 +6,58 @@
 
 ## 1. Purpose and when to read this
 
-Read this chapter first for every new engagement, immediately after chapter 00 —
-before a model is shortlisted, before an evaluation is designed, before compute is
-rented or bought. Its job is to turn a fuzzy request ("we want AI to help with X")
-into a named decision, a completed [project profile](GLOSSARY.md#project-profile), an
-assigned [stakes tier](GLOSSARY.md#stakes-tier), an inventory of hard and soft
-constraints, a first-pass [archetype](GLOSSARY.md#archetype), and a committed first
-sprint.
+*"We want AI to help with X."*
 
-**Honesty note.** Much of this chapter is playbook synthesis: a navigator/intake
-method assembled from general evaluation-practice literature and first-principles
-argument, not read off a large internal record of varied project intakes. Individual
-claims are marked `(inference)` where that is the case; where an external source
-corroborates a step, it is cited. Treat this chapter as a well-argued starting
-procedure, not as a validated instrument — revise it in your own
+Some version of that sentence starts most projects, and there is nothing wrong with
+it. It is honest about the goal and honest about the vagueness. The problem is that
+nothing follows from it. It does not say what would count as help, who is harmed when
+the help is wrong, or what result would mean the idea was a dead end. Months later it
+also gives you no way to settle whether the thing you built worked.
+
+This chapter is the conversion. Read it first on every new engagement, immediately
+after chapter 00 — before a model is shortlisted, before an evaluation is designed,
+before compute is rented or bought. What you have at the end that the opening sentence
+did not contain:
+
+- a **named decision** — a question with a yes and a no, each implying something
+  different to do next;
+- a completed [project profile](GLOSSARY.md#project-profile), the intake record every
+  later chapter reads its facts from;
+- an assigned [stakes tier](GLOSSARY.md#stakes-tier), which fixes how much proof this
+  project owes;
+- an **inventory of constraints**, sorted into the ones that eliminate options and the
+  ones you can trade against;
+- a first-pass [archetype](GLOSSARY.md#archetype) — the project shape that sets your
+  reading order;
+- a **committed first sprint**, with a stated place where it stops.
+
+**Honesty note.** Much of this chapter is playbook synthesis. The intake method here
+was assembled from general evaluation-practice literature and first-principles
+argument — it was not read off a large internal record of varied project intakes.
+Individual claims are marked `(inference)` where that is the case; where an external
+source corroborates a step, it is cited. So treat this chapter as a well-argued
+starting procedure, not as a validated instrument, and revise it in your own
 [method decision record](GLOSSARY.md#method-decision-record) as it meets real
 projects.
 
 ## 2. Inputs required
 
-- Whoever owns the business decision, reachable for the intake conversation (§5.1).
-- Access to whatever already exists: an incumbent system, prior evaluations,
-  production logs, support tickets, cost data.
-- Chapter 00's principles and [rigor dial](GLOSSARY.md#rigor-dial) — this chapter
-  applies them, it does not redefine them.
+Three things. The first is the one that gets skipped.
 
-No completed template is required to start this chapter; it produces the first one.
+- **Whoever owns the business decision**, reachable for the intake conversation
+  (§5.1). Several of the fields below have no answer anywhere except in that person's
+  head.
+- **Access to whatever already exists**: an incumbent system, prior evaluations,
+  production logs, support tickets, cost data.
+- **Chapter 00's principles and [rigor dial](GLOSSARY.md#rigor-dial).** This chapter
+  applies them at the intake boundary; it does not redefine them.
+
+No completed template is required to start this chapter. It produces the first one.
 
 ## 3. Decisions this chapter supports
+
+Five decisions run through this chapter. Each is cheaper to make here than anywhere
+downstream of here.
 
 - Whether a request is a decision-driving work item at all, or must be re-scoped
   before anything else happens.
@@ -47,40 +71,45 @@ No completed template is required to start this chapter; it produces the first o
 ## 4. Normative principles
 
 **[PRINCIPLE] Name the decision before naming the work.** (consensus)
-"Build an eval," "try a few models," and "see if fine-tuning helps" are activities,
-not decisions — they only make sense once a decision is named ("should we replace
-provider X's API with a self-hosted model for this population, at this quality bar,
-by this date?"). This instantiates 00 P1 (evaluate first) at the intake boundary: an
-evaluation built before its decision is named tends to measure whatever was easy to
-measure. External guidance on evaluation design opens with the objective and works
-backward to the dataset and metrics, never forward from a convenient dataset
-[EXT-EVAL-002], [EXT-EVAL-001]; vendor practitioner guidance independently converges
-on evaluation infrastructure as the first engineering act, not a late addition
-[NV-AGENTICBLOGS-001].
+"Build an eval." "Try a few models." "See if fine-tuning helps." Each of those is an
+activity, and none of them is a decision. They start making sense only once someone
+states the decision they serve — *should we replace provider X's API with a
+self-hosted model for this population, at this quality bar, by this date?* That
+question has a yes and a no, and the two answers lead somewhere different. This
+instantiates 00 P1 (evaluate first) at the intake boundary: an evaluation built before
+its decision is named tends to measure whatever was easy to measure. External guidance
+on evaluation design opens with the objective and works backward to the dataset and
+metrics, never forward from a convenient dataset [EXT-EVAL-002], [EXT-EVAL-001];
+vendor practitioner guidance independently converges on evaluation infrastructure as
+the first engineering act, not a late addition [NV-AGENTICBLOGS-001].
 
 **[PRINCIPLE] Constraints are inventoried, and hard ones enforced, before any
 candidate is shortlisted.** (inference — first-principles)
-Selecting a candidate model, provider, or deployment surface before checking hard
-constraints (data residency, licensing, tool permissions, an unreachable latency
-floor) risks discovering inadmissibility after evaluation cost is already sunk.
-Constraints define the *admissible set*; candidate selection (05) ranks *within* it.
-Reversing the order wastes the more expensive step on candidates the cheaper step
-would have eliminated for free.
+Picture three weeks spent evaluating four models, a winner chosen — and then someone
+notices that the data may not leave the jurisdiction, and the winner has no endpoint
+inside it. Nothing about the evaluation was wrong. It was simply run on a candidate
+that was never admissible — and the check that would have caught it is the cheap one.
+Selecting a model, provider, or deployment surface before checking hard constraints
+(data residency, licensing, tool permissions, an unreachable latency floor) risks
+discovering inadmissibility after evaluation cost is already sunk. Constraints define
+the *admissible set*; candidate selection (05) ranks *within* it. Reversing the order
+wastes the more expensive step on candidates the cheaper step would have eliminated
+for free.
 
 **[PRINCIPLE] Stakes tier is set at intake, not discovered at deployment.**
 (inference — first-principles)
 The rigor dial (00 §6) scales the mandatory-artifact set from the very first
 experiment contract onward. Assigning the tier only after a first result is
-inconvenient means retrofitting provenance and statistics that the
-[never-skippable floor](GLOSSARY.md#never-skippable-floor) already named as
+inconvenient means retrofitting provenance and statistics — and the
+[never-skippable floor](GLOSSARY.md#never-skippable-floor) has already named those as
 unrepairable after the fact (00 §6: you cannot reconstruct what produced a number
-after the fact). The tier is a profile field (§5.1), not an afterthought.
+after the fact). That is why the tier is a profile field (§5.1), not an afterthought.
 
 **[PRINCIPLE] Kill criteria are pre-registered at intake, not discovered after a
 disappointing pilot.** (inference — first-principles, extends 00 P7)
 00 P7 pre-registers *experiment*-level tolerances with consequences; this principle
-applies the same discipline one level up, to the *project*: the conditions under
-which the project itself is re-scoped or stopped are named before evaluation-suite
+applies the same discipline one level up, to the *project*. The conditions under which
+the project itself is re-scoped or stopped are named before evaluation-suite
 construction begins, not read off a result the team did not want. A kill criterion
 discovered only in hindsight was never a criterion — it was a rationalization.
 
@@ -90,12 +119,17 @@ discovered only in hindsight was never a criterion — it was a rationalization.
 
 **[DEFAULT] The intake field set.** (inference) Mirrors
 [templates/PROJECT_PROFILE.md](templates/PROJECT_PROFILE.md); every field SHOULD be
-answered before archetype selection (§5.4), and every field marked "always
-mandatory" MUST be answered before any spend on evaluation or compute.
+answered before archetype selection (§5.4), and every field marked "always mandatory"
+MUST be answered before any spend on evaluation or compute.
 
 Field names below are identical strings to
 [templates/PROJECT_PROFILE.md](templates/PROJECT_PROFILE.md)'s field headers, so
 the two tables stay grep-able as one questionnaire.
+
+Twenty-one questions is a lot to ask in one sitting, so the third column says why each
+one earns its place here rather than later, and the fourth says which chapter is
+waiting on the answer. Other files in this playbook cite these fields **by number** —
+so the numbering is part of the interface, not presentation.
 
 | # | Field | Captures | Why it matters at intake | Primarily feeds |
 |---|---|---|---|---|
@@ -122,10 +156,19 @@ the two tables stay grep-able as one questionnaire.
 | 21 | Stakes / consequence tolerance | The decision owner's direct statement of how wrong is acceptable, and to whom | Sets the stakes tier directly | 00 §6 |
 
 Fields 3, 4, 6, 19, and 21 are **always mandatory**, even for a one-person Tier-1
-exploration: they are the inputs the never-skippable floor and the stakes tier
-depend on. The remaining fields SHOULD be answered as completely as the project's
-maturity allows; an honest "unknown — to be measured" is an acceptable value and is
-itself a profile entry, not a blank.
+exploration: they are the inputs the never-skippable floor and the stakes tier depend
+on. The remaining fields SHOULD be answered as completely as the project's maturity
+allows. An honest "unknown — to be measured" is an acceptable value and is itself a
+profile entry, not a blank — usually it is also your next action.
+
+Those five are also the tier conversation in miniature, which is why they cannot wait.
+Field 3 asks what a wrong answer costs and who pays it. Field 19 asks whether an
+auditor, a regulator, or a legal regime has a claim on the answer. Field 21 asks the
+decision owner to state out loud how wrong is acceptable. Read together against the tier signatures in 00 §6, they usually
+name the tier without an argument; when two of them point at different tiers, the
+higher one wins (§6). Do this at intake and the tier is what keeps a small project
+small — it is the mechanism that lets an exploratory piece of work skip artifacts a
+regulated deployment could never skip, deliberately rather than by drift.
 
 ### 5.2 Requirement → evaluation claim formulation
 
@@ -151,6 +194,11 @@ Chapter 03            E becomes a task ontology, a stratified corpus, and a
                        assumed (03 §5, requirement → task-ontology derivation).
 ```
 
+Each step down that ladder is narrower than the one above it. A decision carries a
+date and an alternative; a claim carries a threshold, a population, and the instrument
+that will measure it. If you cannot yet fill in Q or Z, intake is not finished — and
+the blank is telling you which conversation to have next.
+
 The requirement → task ontology derivation itself (error-analysis-first, root-cause
 stratification, [task ontology](GLOSSARY.md#task-ontology) versioning) is chapter
 03's subject; this chapter's job ends at handing off a decision and a claim that 03
@@ -160,6 +208,12 @@ can operationalize.
 
 **[DEFAULT] Classify every constraint as hard or soft before shortlisting.**
 (inference)
+
+The split is about what a constraint does to your candidate set. A hard constraint
+removes candidates outright, however well they score. A soft one is something you buy
+and sell against — worse latency for lower cost, more spend for more quality. Sorting
+them at intake is cheap. Skipping the sort costs you the whole selection you then run
+without it.
 
 | Constraint class | Example | Usually hard or soft | Effect on the candidate set |
 |---|---|---|---|
@@ -178,12 +232,24 @@ for it. Record the check's outcome and its date in the project profile — a "no
 constraint eliminates every candidate" finding is itself evidence, not an absence of
 one.
 
+Writing the kill condition down while you still have no results is the entire
+mechanism, and it is the part teams resist. Afterwards every number is negotiable: the
+pilot was unlucky, the prompt was never tuned, one more week would do it. Some of
+those objections will be true. What you cannot do afterwards is tell your own judgment
+apart from your own investment in the answer, because by then they feel identical from
+the inside. A threshold fixed while you are still indifferent to which side of it you
+land on is the only kind that survives landing on the wrong side.
+
 This is the project-level analog of a
 [consequence-bearing tolerance](GLOSSARY.md#consequence-bearing-tolerance) (04): it
 predates any experiment, but it obeys the same rule — the condition and its
 consequence are stated *before* the fact that would trigger it is known.
 
 ### 5.4 Archetype selection — preview
+
+Projects rhyme. Six shapes cover most of them, and the shape you are in decides which
+three or four chapters you open first — so this is the step that turns fifteen
+chapters into a short reading list.
 
 **[DEFAULT] Archetype table.** (inference) A first-pass classification, using only
 facts already captured in §5.1. [QUICKSTART.md](QUICKSTART.md) is the *normative*
@@ -211,8 +277,11 @@ navigator pass, profile through first sprint, is worked end-to-end in
 ### 5.5 Cold-start parameterization
 
 **[DEFAULT] Cold-start parameterization procedure.** (inference — first-principles)
-A recurring intake problem: a threshold, eligibility gate, or utilization cap must be
-set with no incumbent system and no prior evidence base to calibrate it against.
+You have to set a number and nothing tells you what it should be. A confidence
+threshold for escalating to a human, an eligibility gate, a utilization cap — and
+there is no incumbent system to copy it from and no prior evidence base to calibrate
+it against. This is a recurring intake problem, and the tempting response is to pick a
+round number and move on. Five steps make the number defensible instead.
 
 1. **Anchor on task consequence.** Start from the stakes tier (00 §6), not from a
    convenient round number — a Tier-3 decision earns a tighter provisional band than
@@ -254,6 +323,11 @@ here):
 
 ### 5.6 The first-sprint contract
 
+Intake ends in a commitment, and the commitment is deliberately small: one sprint,
+with the place it stops written down in advance. Everything after that first sprint
+depends on what the first sprint finds, so committing to it now would be committing on
+information you do not have yet.
+
 **[DEFAULT] Every first sprint ends at the same place.** (inference) Whatever the
 archetype, the first sprint's committed scope stops at:
 
@@ -266,10 +340,10 @@ archetype, the first sprint's committed scope stops at:
   yet required.
 
 "Lightweight" scales the *weight* of each floor item, not which floor items exist:
-nothing in the never-skippable floor (00 §6) is waived. The Tier-1 deliverable is
-defined as satisfying all six floor items, mapped 1:1 onto what the completed
-profile, the locked archetype, and the first three actions already produce — not a
-separate content list to author from scratch:
+nothing in the never-skippable floor (00 §6) is waived. So the Tier-1 deliverable is
+not a separate content list to author from scratch. It is defined as satisfying all
+six floor items, mapped one-to-one onto what the completed profile, the locked
+archetype, and the first three actions already produce:
 
 | # | Never-skippable floor item (00 §6) | Satisfied at Tier 1 by |
 |---|---|---|
@@ -297,6 +371,9 @@ program-wide one.
 
 ## 6. Project adaptation parameters
 
+Four things in this chapter are yours to set rather than to copy. The third column
+says what to check the setting against.
+
 | Parameter | How to choose/measure it | Calibrate against |
 |---|---|---|
 | Stakes-tier assignment | Read fields 3, 4, 6, 19, 21 against the tier signatures in 00 §6; when signals conflict, take the higher tier | 00 §6's tier table |
@@ -315,6 +392,8 @@ complete before the first-sprint contract is frozen, and MUST be complete at Tie
 skippable-at-start list are recorded in the profile before the first sprint's
 actions begin. A later archetype change is a profile amendment, not a silent drift.
 
+The three conditions below mean stop, not slow down. Each one says what to do instead.
+
 **[STOP CONDITION] No decision named.** Work is about to start ("build an eval,"
 "try some models") with no decision stated behind it — restates 00's global tripwire
 1 at the intake boundary. Stop and complete §5.2 first.
@@ -331,11 +410,14 @@ explicitly re-flag the value as provisional in the decision record.
 
 ## 8. Metrics and formulas
 
-N/A — intake produces no statistics of its own. The statistics canon begins at
-chapter 04; formula derivations live in
+N/A — intake produces no statistics of its own; there is nothing here to compute. The
+statistics canon begins at chapter 04; formula derivations live in
 [references/STATISTICS_FORMULAS.md](references/STATISTICS_FORMULAS.md).
 
 ## 9. Failure modes and anti-patterns
+
+Three of the five below are one move wearing different clothes: something that should
+have been fixed in advance gets decided by a result instead.
 
 **[REJECTED]** (condition: always)
 
@@ -382,6 +464,9 @@ demonstrate, scaled by the stakes tier assigned here — not run as a self-audit
 The rubric's operational use as a periodic self-audit is chapter 12's subject.
 
 ## 11. Worked examples
+
+All of these are invented illustrations rather than case evidence. What travels from
+them is the reasoning, never the numbers.
 
 - [SCENARIO-11](examples/SCENARIO-11_diagnostic-gate.md) — a cheap, pre-registered
   diagnostic determined whether a large experiment should run at all, before any of

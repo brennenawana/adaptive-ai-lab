@@ -7,48 +7,66 @@
 
 ## 1. Purpose and when to read this
 
+Same suite, two configurations, and the new one comes out ahead by four points.
+Somebody now has to say whether that is a reason to switch.
+
+The honest answer turns on things nobody was watching while the run was going. How
+many genuinely independent observations those items carried. What size of gap the
+suite could ever have told apart from noise. Whether the bar the result is being
+compared against was written down before the numbers came back, or after. Get those
+wrong and you do not get an obviously wrong answer. You get a confident one, which
+is worse, because nothing about it looks broken from the outside.
+
 Read this chapter before designing, freezing, or running any experiment a decision
 will be made from — a model or configuration comparison, a calibration pilot, a
-routing or fine-tuning acceptance test. It turns "we ran an eval and got a number"
-into a claim that survives scrutiny: what the design can and cannot detect, when
-an arm may stop early without breaking the claim, what a mid-run change is allowed
-to do, and what verdict the finished comparison is actually entitled to.
+routing or fine-tuning acceptance test. It is what turns "we ran an eval and got a
+number" into a claim that survives scrutiny. Four questions, in order:
 
-This chapter does not build the instrument (chapter 03) or pin what is being
-measured (chapter 02); it assumes both exist and answers one question: given a
-trustworthy [evaluation instrument](03_EVALUATION_FOUNDATION.md) and a
+- What can this design detect, and what is it blind to?
+- When may an arm stop early without breaking the claim?
+- What is a mid-run change allowed to do?
+- What verdict is the finished comparison actually entitled to?
+
+This chapter does not build the instrument, and it does not pin down what is being
+measured. Chapter 03 builds the instrument; chapter 02 pins the thing under test.
+Both are assumed to exist by the time you are here, which leaves one question:
+given a trustworthy [evaluation instrument](03_EVALUATION_FOUNDATION.md) and a
 [frozen execution-system identity](GLOSSARY.md#frozen-identity), how do you design
-an experiment whose answer you can act on? The statistics stated here are the
-canon this playbook uses everywhere else; full derivations, assumption boxes, and
-worked calculations live in
+an experiment whose answer you can act on?
+
+The statistics stated here are the canon this playbook uses everywhere else. They
+are *stated*, not derived. Full derivations, assumption boxes, and worked
+calculations live in
 [references/STATISTICS_FORMULAS.md](references/STATISTICS_FORMULAS.md) — this
-chapter states what to use and why; that file proves it.
+chapter says what to use and why; that file proves it.
 
 ## 2. Inputs required
 
-- A trusted evaluation instrument from chapter 03: validated categories, measured
-  ceilings, isolated gold labels.
-- A [frozen execution-system identity](GLOSSARY.md#frozen-identity) per arm and
-  any relevant [reproducibility-boundary](GLOSSARY.md#reproducibility-boundary)
-  probe results (chapter 02 §5) — a comparison is not "about the model" if the
-  runtime, harness, or hardware moved underneath it.
-- A stated decision the experiment drives, and the project's
+- **A trusted evaluation instrument** from chapter 03: validated categories,
+  measured ceilings, isolated gold labels. Everything below assumes the instrument
+  itself has already been checked.
+- **A [frozen execution-system identity](GLOSSARY.md#frozen-identity) per arm**,
+  plus any relevant [reproducibility-boundary](GLOSSARY.md#reproducibility-boundary)
+  probe results (chapter 02 §5). A comparison is not "about the model" if the
+  runtime, harness, or hardware moved underneath it while you were measuring.
+- **The decision this experiment drives, stated**, together with the project's
   [stakes tier](GLOSSARY.md#stakes-tier) ([rigor dial](GLOSSARY.md#rigor-dial),
-  chapter 00 §6) — which fixes how much of this chapter's machinery is mandatory.
-- For clustered domains: a candidate [clustering unit](GLOSSARY.md#clustering-unit)
-  and an [ICC](GLOSSARY.md#icc) estimate — measured on a related suite, or, for a
-  cold-start project with no prior suite, a **declared prior** ICC labelled as such
-  and frozen together with the pre-registered re-estimation procedure that will
-  replace it before the qualification look (§5 Step 9, §7).
+  chapter 00 §6). The tier is what fixes how much of this chapter's machinery is
+  mandatory rather than merely advisable.
+- **For clustered domains**: a candidate [clustering unit](GLOSSARY.md#clustering-unit)
+  and an [ICC](GLOSSARY.md#icc) estimate — measured on a related suite. A cold-start
+  project with no prior suite to measure on freezes a **declared prior** ICC,
+  labelled as such, together with the pre-registered re-estimation procedure that
+  will replace it before the qualification look (§5 Step 9, §7).
 
 ## 3. Decisions this chapter supports
 
-- Is this experiment worth running, and at roughly what size? (prediction ledger,
-  [MDE](GLOSSARY.md#mde))
-- Can this arm stop now, and what may the report say if it does? (curtailment,
-  [spend semantics](GLOSSARY.md#spend-semantics))
-- Is a mid-run change a legitimate amendment or post-hoc threshold shopping?
-  (amendment legitimacy)
+- Is this experiment worth running at all, and at roughly what size? (prediction
+  ledger, [MDE](GLOSSARY.md#mde))
+- Can this arm stop now, and what is the report allowed to say if it does?
+  (curtailment, [spend semantics](GLOSSARY.md#spend-semantics))
+- Is this mid-run change a legitimate amendment, or is it post-hoc threshold
+  shopping? (amendment legitimacy)
 - Where does a cheap diagnostic or exploratory run live in the record? (diagnostic
   run kind)
 - What did the finished comparison actually establish — CONFIRMED, REFUTED,
@@ -57,210 +75,279 @@ chapter states what to use and why; that file proves it.
 ## 4. Normative principles
 
 **[PRINCIPLE] The contract executes; nobody improvises mid-run.** (consensus)
-An [experiment contract](GLOSSARY.md#experiment-contract) fixes the question,
-prediction, splits, calibration rules, statistical plan, and gates before any data
-is collected — [pre-registration](GLOSSARY.md#pre-registration). Once
-[frozen](GLOSSARY.md#freeze), the rule runs the experiment, not the investigator's
-judgment mid-run. This is clinical-trial consensus: a data/safety monitoring board
-executes a pre-specified adaptation rule rather than exercising discretion in the
-moment [EXT-STOPPING-002]. The adaptation rule itself MAY be pre-registered — what
+Write down the question, the prediction, the splits, the calibration rules, the
+statistical plan, and the gates — all of it, before any data is collected. That
+document is an [experiment contract](GLOSSARY.md#experiment-contract), and writing
+it in advance is [pre-registration](GLOSSARY.md#pre-registration). Once it is
+[frozen](GLOSSARY.md#freeze), the rule runs the experiment; the investigator's
+judgment mid-run does not. Medicine settled this a long time ago: a data and safety
+monitoring board executes an adaptation rule specified in advance, rather than
+exercising discretion in the moment [EXT-STOPPING-002]. Note what this does *not*
+forbid. The adaptation rule itself MAY be pre-registered — adapting is fine. What
 is forbidden is inventing a rule after seeing outcomes.
 
 **[PRINCIPLE] A held-out split is spent at the first executed item.** (strong-evidence)
-[Spend semantics](GLOSSARY.md#spend-semantics): a partial run already reveals the
-sufficient statistic for the item it ran, so there is no "peek and re-run." Every
-[look](GLOSSARY.md#look) — including an offline replay of stored outputs — is
-recorded in the [look ledger](GLOSSARY.md#look-ledger)
-([templates/TEST_LOOK_LEDGER.md](templates/TEST_LOOK_LEDGER.md)), and a
-pre-registered exposure threshold triggers the suite-refresh review (chapter 03).
-This is also why [certainty curtailment](GLOSSARY.md#certainty-curtailment) is admissible: its
-only possible consequence is irreversibly rejecting an already-spent look, not an
-early peek at a fresh one.
+Start a held-out run, stop it after three items, and it can feel as though you
+still hold an unused split. You do not. Those three items have already shown you
+their outcomes, and there is no un-seeing them — so there is no "peek and re-run."
+That is [spend semantics](GLOSSARY.md#spend-semantics): a partial run already
+reveals the sufficient statistic for the item it ran. Every
+[look](GLOSSARY.md#look) is recorded in the [look ledger](GLOSSARY.md#look-ledger)
+([templates/TEST_LOOK_LEDGER.md](templates/TEST_LOOK_LEDGER.md)) — including an
+offline replay of stored outputs, which is still a look — and a pre-registered
+exposure threshold triggers the suite-refresh review (chapter 03). This is also why
+[certainty curtailment](GLOSSARY.md#certainty-curtailment) is admissible: its only
+possible consequence is irreversibly rejecting an already-spent look, not an early
+peek at a fresh one.
 
 **[PRINCIPLE] Every tolerance names its breach consequence before data.** (strong-evidence)
-A [consequence-bearing tolerance](GLOSSARY.md#consequence-bearing-tolerance) states,
+A threshold detects. A control detects *and* does something. The gap between them
+is one sentence, and that sentence is this principle. A
+[consequence-bearing tolerance](GLOSSARY.md#consequence-bearing-tolerance) states,
 in the contract, what happens on breach: **ABORT**, **RECALIBRATE**, or
-**PROCEED-WITH-DECLARED-CEILING** — evaluated by
-[curtailed exact counting](GLOSSARY.md#curtailed-exact-counting)
-and enforced [fail-closed](GLOSSARY.md#fail-closed) by the runner. The PROCEED
-branch carries a hard condition: **the declared ceiling and the projected cost of
-proceeding are pre-registered in the contract at freeze, per tolerance** — not
-written after the breach is observed, by the party that wants to proceed. A price
-authored post-data is the unpriced escape hatch under another name and returns the
-decision to mid-run investigator judgment, which the first principle above forbids;
-a PROCEED clause with no pre-registered cost MUST fail contract review (§7), and no
-cost may be invented later to rescue it. First-principles
-argument: a tolerance whose breach clause is silent — "record and proceed" with no
-priced consequence — is not a control, because detecting a violation changes
-nothing about what happens next. Corroborated by the DSMB pre-specification pattern
-[EXT-STOPPING-002] and by [SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md),
-where exactly this gap let a measured, large tolerance breach proceed unpriced.
+**PROCEED-WITH-DECLARED-CEILING**. Breaches are evaluated by
+[curtailed exact counting](GLOSSARY.md#curtailed-exact-counting) and enforced
+[fail-closed](GLOSSARY.md#fail-closed) by the runner, so the check is machinery
+rather than a reviewer's memory.
+
+The PROCEED branch is the one that gets abused, so it carries a hard condition:
+**the declared ceiling and the projected cost of proceeding are pre-registered in
+the contract at freeze, per tolerance** — not written after the breach is observed,
+by the party that wants to proceed. A price authored post-data is the unpriced
+escape hatch under another name, and it returns the decision to mid-run
+investigator judgment, which the first principle above forbids. So a PROCEED clause
+with no pre-registered cost MUST fail contract review (§7), and no cost may be
+invented later to rescue it.
+
+Why this and not something lighter, from first principles: a tolerance whose breach
+clause is silent — "record and proceed" with no priced consequence — is not a
+control, because detecting a violation changes nothing about what happens next.
+Corroborated by the DSMB pre-specification pattern [EXT-STOPPING-002] and by
+[SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md), where exactly
+this gap let a measured, large tolerance breach proceed unpriced.
 
 **[PRINCIPLE] Screening ranks; only a frozen comparison infers.** (strong-evidence)
-[Screening vs inference](GLOSSARY.md#screening-vs-inference): racing and
-successive-halving (ASHA-style rungs) on the iterate split rank candidates cheaply
-to decide who advances [EXT-STOPPING-003]. Screening results MUST NOT carry
-significance claims and MUST NOT replace the frozen qualify/confirm comparison —
-it feeds that comparison; it never substitutes for it.
+There are cheap ways to narrow eight candidates to two: run everyone briefly, drop
+the laggards, run the survivors longer. Racing and successive halving (ASHA-style
+rungs) on the iterate split do exactly that, and they are worth using
+[EXT-STOPPING-003]. What they produce is an ordering, not a result. That is
+[screening vs inference](GLOSSARY.md#screening-vs-inference), and the boundary is
+strict: screening results MUST NOT carry significance claims and MUST NOT replace
+the frozen qualify/confirm comparison. Screening feeds that comparison; it never
+substitutes for it.
 
-**Defer is not eliminate — the precedence rule.** The two families inside
-[EXT-STOPPING-003] behave differently and MUST NOT be conflated. A *rank-based*
-rung (successive halving / ASHA drops the bottom 1 − 1/η by rank at every rung)
-separates candidates on margins that are arbitrarily small and routinely far below
-the rung's own MDE; such a rung MAY only **DEFER** or **SUSPEND** a candidate —
-stop spending on it now, keep it revivable at the frozen comparison, and record the
-deferral with its margin. **Permanent** elimination requires one of exactly two
+**Defer is not eliminate — the precedence rule.** [EXT-STOPPING-003] holds two
+families of method that look alike from outside and behave differently, and they
+MUST NOT be conflated.
+
+The first cuts by *rank*. Successive halving and ASHA drop the bottom 1 − 1/η by
+rank at every rung, and rank does not care how close the race was: the candidate a
+hundredth of a point behind is cut exactly like the one ten points behind. Those
+margins are arbitrarily small and routinely far below the rung's own MDE. So a
+rank-based rung MAY only **DEFER** or **SUSPEND** a candidate — stop spending on it
+now, keep it revivable at the frozen comparison, and record the deferral with its
+margin.
+
+The second cuts on a *bound*. **Permanent** elimination requires one of exactly two
 warrants: a *racing* confidence bound (Hoeffding/Bernstein, computed at the
 [clustering unit](GLOSSARY.md#clustering-unit), which eliminates only once the
-bound separates candidates) or a margin at or above the elimination rule's
-threshold below. Absent one of those, a candidate that lost a rung is deferred, not
-gone. Accepting rank-based permanent elimination anyway is a deliberate, priced
-trade-off: record it as a [method decision record](GLOSSARY.md#method-decision-record)
-naming the noise-elimination risk you are buying.
+bound separates candidates), or a margin at or above the elimination rule's
+threshold, stated below. Absent one of those, a candidate that lost a rung is
+deferred, not gone.
+
+You may accept rank-based permanent elimination anyway. It is a deliberate, priced
+trade-off, and pricing it means recording a
+[method decision record](GLOSSARY.md#method-decision-record) that names the
+noise-elimination risk you are buying.
 
 **[PRINCIPLE] No candidate is eliminated on a margin the design cannot resolve.** (strong-evidence)
-The [elimination rule](GLOSSARY.md#elimination-rule): no candidate is withdrawn from
-selection on a margin smaller than the pilot's own [MDE](GLOSSARY.md#mde). Below
-that margin the licensed moves are: both candidates proceed under a pre-registered
-budget, the decision defers to the qualification split, or the selection metric
-changes to one the pilot can actually resolve. First-principles argument: a
-decision made on noise the design admits it cannot distinguish from zero is a coin
-flip dressed as one. This rule binds *screening as well as selection* — a rung's
-rank order is not a margin, so rungs defer and racing bounds eliminate (see the
-precedence rule above). It governs *comparative* margins only; an absolute
+Dropping a candidate is a decision, and it needs the same standard of evidence as
+choosing one. The [elimination rule](GLOSSARY.md#elimination-rule) says it plainly:
+no candidate is withdrawn from selection on a margin smaller than the pilot's own
+[MDE](GLOSSARY.md#mde). Below that margin exactly three moves are licensed — both
+candidates proceed under a pre-registered budget, the decision defers to the
+qualification split, or the selection metric changes to one the pilot can actually
+resolve.
+
+The argument is first-principles: a decision made on noise the design admits it
+cannot distinguish from zero is a coin flip dressed as one. Two scope notes do real
+work here. This rule binds *screening as well as selection* — a rung's rank order
+is not a margin, which is why rungs defer and racing bounds eliminate (see the
+precedence rule above). And it governs *comparative* margins only; an absolute
 pass-rate gate is a decision rule rather than an inference and is deliberately
 exempt, under the sizing obligation stated in §8.
 
 **[PRINCIPLE] Same-item comparisons pair; clustered outcomes cluster-correct.** (strong-evidence)
-[Paired design](GLOSSARY.md#paired-design): same-item cross-arm comparisons use
-paired standard errors, not two-sample SEs — free statistical power any same-item
-design should claim [EXT-STATS-001]. Separately, whenever outcomes correlate within
-a [clustering unit](GLOSSARY.md#clustering-unit) (task class, template, document,
-session), cluster-robust paired inference (a t-test on per-cluster means, df =
-clusters − 1) is the primary statistic; McNemar exact on discordant pairs is
-secondary, MUST be labeled anti-conservative under clustering [EXT-STATS-001]. A
-comparison reported without checking for clustering is wrong not because
+Two obligations here, and they are separate.
+
+First: if both arms ran the *same items*, analyze the per-item differences instead
+of comparing two overall averages. Item difficulty then cancels rather than
+contributing noise. That is a [paired design](GLOSSARY.md#paired-design), and its
+standard errors are tighter than two-sample SEs — free statistical power that any
+same-item design should claim, because you already paid for it by running the same
+items [EXT-STATS-001].
+
+Second, and separately: whenever outcomes correlate within a
+[clustering unit](GLOSSARY.md#clustering-unit) — task class, template, document,
+session — cluster-robust paired inference is the primary statistic. That means a
+t-test on the per-cluster means, df = clusters − 1. McNemar exact on discordant
+pairs is secondary and MUST be labeled anti-conservative under clustering
+[EXT-STATS-001]: it reads as more decisive than the clustered data support.
+
+A comparison reported without checking for clustering is wrong — not because
 clustering is exotic, but because independence was never verified.
 
 **[PRINCIPLE] Gold labels score; they never choose.** (consensus)
-The [gold-label](GLOSSARY.md#gold-labels) boundary: ground truth MAY score outcomes
-and fit pre-registered calibration procedures on the iterate split. It MUST NOT be
-readable by the system under test at inference time, and MUST NOT select, route, or
-tune anything on qualify or confirm splits — enforced structurally, not by
-convention (see [ground-truth isolation](GLOSSARY.md#ground-truth-isolation) and
-chapter 13's permission/role-isolation mechanics).
+The answer key grades the work. It gets no vote in what runs. That is the
+[gold-label](GLOSSARY.md#gold-labels) boundary, and it permits exactly two uses:
+ground truth MAY score outcomes, and MAY fit pre-registered calibration procedures
+on the iterate split. Everything else is closed. It MUST NOT be readable by the
+system under test at inference time, and MUST NOT select, route, or tune anything
+on qualify or confirm splits. Every version of "we used the labels to pick
+something" converts a measurement into a fit. Enforced structurally, not by
+convention — see [ground-truth isolation](GLOSSARY.md#ground-truth-isolation) and
+chapter 13's permission/role-isolation mechanics.
 
 **[PRINCIPLE] A causal claim across an instability boundary needs a paired control.** (strong-evidence)
-Chapter 02's principle, restated because it binds experiment design directly: once
-a [reproducibility-boundary](GLOSSARY.md#reproducibility-boundary) probe finds an
+This is chapter 02's principle, restated because it binds experiment design
+directly. Run the baseline Monday and the change Wednesday, and everything that
+moved in between is sitting inside your result. So: once a
+[reproducibility-boundary](GLOSSARY.md#reproducibility-boundary) probe finds an
 axis unstable, no comparison crossing it may claim causal attribution to one
 intervention without a
-[contemporaneous paired control](GLOSSARY.md#contemporaneous-paired-control) —
-both arms in the same session/window, everything but the intervention fixed,
-order pre-registered and counterbalanced — or the claim MUST be declared
-unavailable and the comparison relabeled descriptive
-[SCENARIO-12](examples/SCENARIO-12_restart-instability-paired-controls.md). Session
-instability is itself outcome correlation — model it as §8 models any clustering
-unit, not as a separate problem.
+[contemporaneous paired control](GLOSSARY.md#contemporaneous-paired-control) — both
+arms in the same session/window, everything but the intervention fixed, order
+pre-registered and counterbalanced. Without that control, the claim MUST be
+declared unavailable and the comparison relabeled descriptive
+[SCENARIO-12](examples/SCENARIO-12_restart-instability-paired-controls.md).
+
+One connection saves you inventing machinery: session instability *is* outcome
+correlation. Model it as §8 models any clustering unit, not as a separate problem.
 
 **[PRINCIPLE] A diagnostic run lives inside the fail-closed record, non-promotable.** (strong-evidence)
-A cheap probe run to inform a GO/RE-SCOPE/DROP decision (chapter 07's
-[diagnostic gate](GLOSSARY.md#diagnostic-gate)) is recorded under the
-[diagnostic run kind](GLOSSARY.md#diagnostic-run-kind): ledgered, cryptographically
-non-promotable — it can inform, it cannot qualify. A relaxed, unrecorded path
-recreates exactly the defect [provenance](GLOSSARY.md#provenance) exists to forbid
-(chapter 00's P10) [SCENARIO-11](examples/SCENARIO-11_diagnostic-gate.md).
+Before committing to an expensive experiment you want a cheap probe run, to inform
+a GO / RE-SCOPE / DROP decision (chapter 07's
+[diagnostic gate](GLOSSARY.md#diagnostic-gate)). The temptation is to run it off to
+one side, unregistered, because it is only a probe. It goes in the record instead,
+under the [diagnostic run kind](GLOSSARY.md#diagnostic-run-kind): ledgered,
+cryptographically non-promotable — it can inform, it cannot qualify. A relaxed,
+unrecorded path is not a shortcut; it recreates exactly the defect
+[provenance](GLOSSARY.md#provenance) exists to forbid (chapter 00's P10)
+[SCENARIO-11](examples/SCENARIO-11_diagnostic-gate.md).
 
 ## 5. Default procedure
 
-**Step 1 — State the question, the decision, and a prediction.** One sentence: the
-question this experiment answers and the decision its answer drives. Record a
-pre-run point estimate and interval for the primary metric in the
-[prediction ledger](templates/PREDICTION_LEDGER.md) — scored against the actual
-result on completion. A handful of entries turns "is this experiment worth
-running?" from taste into an empirical question about your own calibration.
+**Step 1 — State the question, the decision, and a prediction.** One sentence for
+the question this experiment answers, and one for the decision its answer drives.
+Then, before the run, write down what you expect: a point estimate and an interval
+for the primary metric, in the [prediction ledger](templates/PREDICTION_LEDGER.md).
+On completion, score that prediction against the actual result. A handful of
+entries turns "is this experiment worth running?" from taste into an empirical
+question about your own calibration.
 
-**Step 2 — Define splits and roles.** Three roles, whatever their sizes: an
-**iterate split** (freely re-run for screening, calibration, pilots, diagnostics —
-consequence-bearing tolerances apply, re-runs ledgered), a **qualification split**
-(one look per candidate, against pre-frozen gates), and a **confirmation split**
-(one look, confirmation only) — [one-look discipline](GLOSSARY.md#one-look-discipline):
-select on the qualification look, confirm on the confirmation look, never iterate
-against either. **Do not size these splits by tradition or by copying another
-project's numbers** — derive them from a power analysis targeted at the MDE the
-decision needs (§8); a round default with no derivation is a placeholder that
-silently becomes policy if nobody revisits it.
+**Step 2 — Define splits and roles.** Three roles, whatever their sizes.
+
+- An **iterate split** you may re-run freely — screening, calibration, pilots,
+  diagnostics. Consequence-bearing tolerances still apply, and re-runs are still
+  ledgered.
+- A **qualification split**, read once per candidate, against pre-frozen gates.
+- A **confirmation split**, read once, for confirmation only.
+
+That is [one-look discipline](GLOSSARY.md#one-look-discipline): select on the
+qualification look, confirm on the confirmation look, never iterate against either.
+
+**Do not size these splits by tradition or by copying another project's numbers.**
+Derive them from a power analysis targeted at the MDE the decision needs (§8). A
+round default with no derivation behind it is a placeholder, and a placeholder
+nobody revisits silently becomes policy.
 
 **Step 3 — Freeze the execution-system identity per arm.** Pin every arm per
-chapter 02 §5 Step 1 before any iterate-split inference; if arms cross a measured
-reproducibility boundary, design the contemporaneous paired control now (§4), not
-after seeing results.
+chapter 02 §5 Step 1, before any iterate-split inference. If arms cross a measured
+reproducibility boundary, design the contemporaneous paired control now (§4) — not
+after seeing which way the results went.
 
-**Step 4 — Pre-register calibration rules as consequence-bearing tolerances.** For
-every parameter calibrated on the iterate split (a generation cap, a decoding
-budget, a server setting), state the calibration procedure, the tolerance, and the
-named consequence on breach (ABORT / RECALIBRATE / PROCEED-WITH-DECLARED-CEILING —
-the declared ceiling and its projected cost written *here, at freeze*, never after
-the breach); evaluate by curtailed exact counting (§8) — halt the phase
-and execute the named consequence at violation *k*+1 of a ≤*k*-in-*n* tolerance, no
-hypothesis test, no error-rate claim. Check whether the tolerance is actually
-likely to bind for this candidate class before trusting it: a rule whose fallback
-fires for every candidate has not calibrated anything; it has silently become the
-policy.
+**Step 4 — Pre-register calibration rules as consequence-bearing tolerances.**
+Some parameters get calibrated on the iterate split: a generation cap, a decoding
+budget, a server setting. For each one, state three things — the calibration
+procedure, the tolerance, and the named consequence on breach (ABORT /
+RECALIBRATE / PROCEED-WITH-DECLARED-CEILING, with the declared ceiling and its
+projected cost written *here, at freeze*, never after the breach).
+
+Evaluate by curtailed exact counting (§8): halt the phase and execute the named
+consequence at violation *k*+1 of a ≤*k*-in-*n* tolerance. No hypothesis test, no
+error-rate claim — a count.
+
+Then check something the arithmetic will not tell you. Is this tolerance actually
+likely to bind for this candidate class? A rule whose fallback fires for every
+candidate has not calibrated anything; it has silently become the policy.
 
 **Step 5 — If screening more than two candidates, pre-register racing/ASHA
-rungs.** Rungs run on the iterate split only and MUST be stratum-balanced at every
-rung (a rung built from one stratum's cases inverts real rankings under
-clustering — §9); screening produces a ranking, feeding but never replacing the
-frozen qualify/confirm comparison (§4). Pre-register which rung outcome is a
-**deferral** (rank-based: revivable at the frozen comparison) and which, if any, is
-a **permanent elimination** (racing confidence bound at the clustering unit, or a
-margin ≥ the elimination-rule threshold) — §4's precedence rule. Filter
-near-duplicate configurations with a cheap bake-off before paying full evaluation
-cost for each.
+rungs.** Rungs run on the iterate split only, and every rung MUST be
+stratum-balanced — a rung built from one stratum's cases inverts real rankings
+under clustering (§9). What comes out is a ranking, feeding but never replacing the
+frozen qualify/confirm comparison (§4).
 
-**Step 6 — Pre-register the statistical plan.** State the clustering unit and its
-ICC (measured, or a declared prior with the re-estimation procedure that replaces
-it — §7), the design effect and effective N it implies, the MDE at the project's
-α/power targets, and — before any data — what each possible outcome will be read as
-(CONFIRMED / REFUTED / INCONCLUSIVE / RANKED; §8). Where the outcome is judge- or
-annotator-graded, state the grader reliability assumed in the power calculation
-(κ or agreement rate) and its source — a noisy grader inflates the N you need (§8).
-If a [descriptive vocabulary](GLOSSARY.md#descriptive-vocabulary) is licensed,
-define its categories now, together with any equivalence margin ±d and the
-equivalence test that a "competitive"/"no material difference" category requires
-(§8) — no margin, no such category. Set the elimination-rule threshold from the
-same MDE (§4) and commit to the three licensed moves below it. If the decision also
-turns on an absolute pass-rate bar, record the bar's own resolvability here
-(is `bar ± MDE` straddled? — §8).
+Pre-register which rung outcome is a **deferral** (rank-based: revivable at the
+frozen comparison) and which, if any, is a **permanent elimination** (racing
+confidence bound at the clustering unit, or a margin ≥ the elimination-rule
+threshold) — §4's precedence rule. And filter near-duplicate configurations with a
+cheap bake-off before paying full evaluation cost for each of them.
+
+**Step 6 — Pre-register the statistical plan.** This is the step that gets skipped,
+and skipping it is what produces confidently wrong results. Before any data, write
+down:
+
+- The clustering unit and its ICC — measured, or a declared prior carrying the
+  re-estimation procedure that will replace it (§7).
+- The design effect and effective N that ICC implies.
+- The MDE at the project's α/power targets.
+- What each possible outcome will be read as: CONFIRMED / REFUTED / INCONCLUSIVE /
+  RANKED (§8). Fixing this before the data is what stops the result choosing its
+  own interpretation.
+- Where the outcome is judge- or annotator-graded, the grader reliability assumed
+  in the power calculation (κ or agreement rate) and its source. A noisy grader
+  inflates the N you need (§8).
+- If a [descriptive vocabulary](GLOSSARY.md#descriptive-vocabulary) is licensed,
+  its categories — together with any equivalence margin ±d and the equivalence test
+  that a "competitive"/"no material difference" category requires (§8). No margin,
+  no such category.
+- The elimination-rule threshold, set from the same MDE (§4), plus a commitment to
+  the three licensed moves below it.
+- If the decision also turns on an absolute pass-rate bar, that bar's own
+  resolvability: is `bar ± MDE` straddled? (§8)
 
 **Step 7 — Pre-register curtailment.** State whether certainty curtailment applies
-to qualify/confirm arms, its bar, and the three mandatory guards (§8): spend
-semantics, interval-only partial reporting, and the paired-comparison firewall.
-Disabling curtailment requires a written justification in the contract.
+to qualify/confirm arms, what its bar is, and the three mandatory guards (§8):
+spend semantics, interval-only partial reporting, and the paired-comparison
+firewall. Disabling curtailment is allowed; it requires a written justification in
+the contract.
 
 **Step 8 — Pre-register the amendment procedure, if any**, against §7's amendment
 legitimacy gate: what may be amended, from what evidence, under what disclosure.
-Silence here means no amendment is legitimate later without a
+Silence here is not neutral. It means no amendment is legitimate later without a
 [method decision record](GLOSSARY.md#method-decision-record).
 
-**Step 9 — Freeze.** Commit the contract (content-hash bound) **before any
+**Step 9 — Freeze.** Commit the contract, content-hash bound, **before any
 qualification- or confirmation-split item executes, and before any iterate-split
-evidence is used for inference** — screening, calibration, and an ICC-estimation
-pilot on the iterate split MAY precede the freeze, each still running under its own
-rules registered before it executes (Steps 4–5), but the moment iterate-split
-output feeds an inferential claim or fixes a gate value, freeze first. Cold start
-with no prior ICC: freeze carrying a *declared prior* ICC plus the pre-registered
-re-estimation procedure that MUST complete before the qualification look (§7).
-Nothing above the amendment log changes after this point.
+evidence is used for inference.**
 
-**Step 10 — Execute in round-robin order.** For any run whose prefix might inform
-an interim decision — a screening rung, a curtailment check, a calibration pilot —
-interleave execution across strata (one item per stratum, repeat) so every prefix
-is approximately stratum-balanced. Stratum-*blocked* order (all of one class, then
-the next) makes every prefix unrepresentative — the worst case for any interim
-rule, since the strata seen first and last are not a random sample of the whole
-(§9).
+Both halves of that bind. Screening, calibration, and an ICC-estimation pilot on
+the iterate split MAY precede the freeze, each still running under its own rules
+registered before it executes (Steps 4–5). But the moment iterate-split output
+feeds an inferential claim or fixes a gate value, freeze first.
+
+Cold start with no prior ICC: freeze carrying a *declared prior* ICC plus the
+pre-registered re-estimation procedure that MUST complete before the qualification
+look (§7). Nothing above the amendment log changes after this point.
+
+**Step 10 — Execute in round-robin order.** One item per stratum, then round again.
+This matters for any run whose prefix might inform an interim decision — a
+screening rung, a curtailment check, a calibration pilot — because interleaving
+makes every prefix approximately stratum-balanced.
+
+The alternative is stratum-*blocked* order: all of one class, then the next. That
+makes every prefix unrepresentative, which is the worst case for any interim rule,
+since the strata seen first and last are not a random sample of the whole (§9).
 
 **Step 11 — Score against pre-frozen gates; apply curtailment where it fires.**
 Report a curtailed arm's certain interval and unrun strata (§8) — never a partial
@@ -268,19 +355,23 @@ point estimate — and exclude it from every paired comparison, ranking, and
 screening rung.
 
 **Step 12 — Compute the verdict.** Primary: cluster-robust paired inference.
-Secondary: McNemar exact, labeled anti-conservative under clustering. Read the
-verdict off the pre-registered test, not off the point estimate: the primary
-statistic either crosses its pre-registered threshold (CONFIRMED in the predicted
-direction, REFUTED against it) or it does not, and every non-crossing result is
-**INCONCLUSIVE** — reported with its confidence interval *and* the design's MDE, so
-the reader sees what this design could have resolved. Never "no difference" or
-"equivalent"; a "competitive"/"no material difference" reading is licensed only by
-a pre-registered equivalence margin and a passed equivalence check (§8).
+Secondary: McNemar exact, labeled anti-conservative under clustering.
 
-**Step 13 — Close the loop.** Score the prediction ledger entry against the
-actual result, append the look(s) to the look ledger and any executed amendment to
-the amendment log, and route exploratory or diagnostic side-runs to the
-non-promotable diagnostic run kind (§4) — never off the record.
+Read the verdict off the pre-registered test, not off the point estimate. The
+primary statistic either crosses its pre-registered threshold or it does not.
+Crossing in the predicted direction is CONFIRMED; crossing against it is REFUTED.
+Every non-crossing result is **INCONCLUSIVE** — however large the observed gap
+looks — reported with its confidence interval *and* the design's MDE, so the reader
+sees what this design could have resolved.
+
+Never "no difference." Never "equivalent." A "competitive"/"no material difference"
+reading is licensed only by a pre-registered equivalence margin and a passed
+equivalence check (§8).
+
+**Step 13 — Close the loop.** Score the prediction ledger entry against the actual
+result. Append the look or looks to the look ledger, and any executed amendment to
+the amendment log. Route exploratory or diagnostic side-runs to the non-promotable
+diagnostic run kind (§4) — never off the record.
 
 ## 6. Project adaptation parameters
 
@@ -289,30 +380,33 @@ decision needs (§8), not copied from another project — a Tier-1 direction-fin
 pilot needs far less power than a Tier-3 adoption gate on the same metric. State
 the derivation in the contract, not just the resulting number.
 
-**[PARAMETER] α and power targets.** Default α=.05, power=.80 for a Tier-2 project
-(the canonical MDE formula, §8). A Tier-3 decision SHOULD tighten one or both and
-state the tightened values; a Tier-1 pilot MAY relax power in exchange for an
-explicit "screening only, not inference" label.
+**[PARAMETER] α and power targets.** Default α=.05, power=.80 for a Tier-2 project;
+these are the values the canonical MDE formula in §8 assumes. A Tier-3 decision
+SHOULD tighten one or both and state the tightened values. A Tier-1 pilot MAY relax
+power, in exchange for an explicit "screening only, not inference" label.
 
-**[PARAMETER] Curtailment bar and tolerance *k*.** The pass-rate `bar` in the
-certainty curtailment rule (§8) is the decision's actual adoption/rejection
-threshold, taken from the contract's qualification/confirmation gate, not
-convention — and N is sized so `bar ± MDE` is not straddled, because curtailment's
-rejection is irreversible (§8). The tolerance *k* for a consequence-bearing
-calibration rule comes from a source that exists *before* the pilot it governs: a
-prior suite's measured violation rate, a stated operational tolerance for the
-failure mode, or an explicit pre-registered pilot run under a separate contract. It
-is never derived from the pilot this tolerance governs — that is circular against
-the freeze point (§5 Step 9) and is post-hoc threshold selection — and never picked
-to make a preferred setting pass.
+**[PARAMETER] Curtailment bar and tolerance *k*.** Two numbers, two different
+rules.
+
+The pass-rate `bar` in the certainty curtailment rule (§8) is the decision's actual
+adoption/rejection threshold, taken from the contract's qualification/confirmation
+gate — not a conventional round number. And N is sized so `bar ± MDE` is not
+straddled, because curtailment's rejection is irreversible (§8).
+
+The tolerance *k* for a consequence-bearing calibration rule comes from a source
+that exists *before* the pilot it governs: a prior suite's measured violation rate,
+a stated operational tolerance for the failure mode, or an explicit pre-registered
+pilot run under a separate contract. It is never derived from the pilot this
+tolerance governs — that is circular against the freeze point (§5 Step 9) and is
+post-hoc threshold selection — and never picked to make a preferred setting pass.
 
 **[PARAMETER] Racing/ASHA rung sizes and reduction factor η.** Calibrate to
 candidate count and iterate-split size; every rung MUST be stratum-balanced
 regardless (§5 Step 5, §9).
 
 **[PARAMETER] Look-ledger refresh threshold.** The count of qualify/confirm looks
-against one suite version that triggers the chapter 03 suite-refresh review — state
-it in writing; a threshold decided informally after the fact is not a threshold.
+against one suite version that triggers the chapter 03 suite-refresh review. State
+it in writing — a threshold decided informally after the fact is not a threshold.
 
 **[PARAMETER] pass^k subset and *k*.** Sized to be affordable against a stochastic
 arm's per-call cost, not fixed at one value across every project.
@@ -322,8 +416,8 @@ arm's per-call cost, not fixed at one value across every project.
 **[DECISION GATE] Freeze gate.** The freeze point is one point, stated once:
 **before any qualification- or confirmation-split item executes, and before any
 iterate-split evidence is used for inference.** All of the following MUST be true
-at that point — this table is the canonical checklist the contract template and
-chapter 14 restate:
+at that point. This table is the canonical checklist — the contract template and
+chapter 14 restate it rather than adding to it.
 
 | # | Requirement | Where it lives |
 |---|---|---|
@@ -337,35 +431,40 @@ chapter 14 restate:
 | 8 | Curtailment clause + the three guards stated, or disabled with written justification | §5 Step 7, §8 |
 
 The contract template MAY append template-implementation items — a recorded
-smoke/integrity pass, declared round-robin ordering — tied to its own sections;
-those are implementation detail, not additional gate requirements.
+smoke/integrity pass, declared round-robin ordering — tied to its own sections.
+Those are implementation detail, not additional gate requirements.
 
 *Tier applicability.* Rows 2, 5, and 6 restate never-skippable floor items
 (chapter 00 §6: predeclared consequences, recorded held-out exposure, identifiable
-provenance) and bind at **every** tier, Tier 1 included — at Tier 1 in their floor
-form (exposure recorded durably somewhere; the full look ledger is the Tier-2
-instrument). Rows 1, 3, 4, 7, and 8 are mandatory at **Tier 2+**; a Tier-1
-exploratory pilot MAY carry them in notes-grade form provided its output is
+provenance), so they bind at **every** tier, Tier 1 included — at Tier 1 in their
+floor form, meaning exposure recorded durably somewhere, with the full look ledger
+being the Tier-2 instrument. Rows 1, 3, 4, 7, and 8 are mandatory at **Tier 2+**; a
+Tier-1 exploratory pilot MAY carry them in notes-grade form provided its output is
 labelled "screening only, not inference" (§6) and never used for an adoption claim.
 A Tier-1 project making a Tier-3 decision inherits the higher tier's rows
 (chapter 00 §6's rule of proportion).
 
 *Cold start — no prior ICC.* A greenfield project has no related suite to measure
-an ICC on, and this playbook forbids both assuming zero (§8) and copying another
-project's number (§6). The licensed path: freeze carrying a **declared prior ICC**,
-labelled as such in the contract, plus a pre-registered re-estimation procedure —
-an ICC-estimation pilot on the iterate split, or under the non-promotable
-[diagnostic run kind](GLOSSARY.md#diagnostic-run-kind) (§4) — which MUST complete,
-with its DEFF / N_eff / MDE revision committed, **before the qualification look**.
-Because that procedure was pre-registered, draws only on iterate-split evidence,
-and lands before any qualify/confirm execution, the revision satisfies the
-amendment-legitimacy gate below by construction; it is still logged as an
-amendment, with condition 4's direction-of-benefit disclosure (a downward ICC
-revision raises N_eff and lowers the stated MDE — exactly the direction a
-skeptical reader must be shown).
+an ICC on, and this playbook forbids both of the easy answers: assuming zero (§8)
+and copying another project's number (§6). The licensed path is to freeze carrying
+a **declared prior ICC**, labelled as such in the contract, plus a pre-registered
+re-estimation procedure — an ICC-estimation pilot on the iterate split, or under
+the non-promotable [diagnostic run kind](GLOSSARY.md#diagnostic-run-kind) (§4).
+That procedure MUST complete, with its DEFF / N_eff / MDE revision committed,
+**before the qualification look**.
 
-**[DECISION GATE] Amendment legitimacy.** A change to a frozen contract is a
-legitimate amendment, not post-hoc threshold shopping, only if **all five** hold:
+Notice that the revision satisfies the amendment-legitimacy gate below by
+construction: the procedure was pre-registered, it draws only on iterate-split
+evidence, and it lands before any qualify/confirm execution. It is still logged as
+an amendment, and it still carries condition 4's direction-of-benefit disclosure —
+a downward ICC revision raises N_eff and lowers the stated MDE, which is exactly
+the direction a skeptical reader must be shown.
+
+**[DECISION GATE] Amendment legitimacy.** Halfway through, you notice a threshold
+in the frozen contract was set wrong. Fixing it might be honest engineering, or it
+might be moving the goalposts to somewhere the results can clear — and from the
+inside those two feel identical. A change to a frozen contract is a legitimate
+amendment, not post-hoc threshold shopping, only if **all five** hold:
 
 1. The amendment procedure itself was pre-registered at freeze.
 2. It is derived only from iterate-split evidence, via formulas fixed at freeze.
@@ -407,18 +506,33 @@ section by section below. All worked numbers in this section are **illustrative,
 invented, and round** — a generic support-ticket-triage classifier comparison, not
 any project's measured data.
 
-### Clustering unit, ICC, design effect, effective N
+### Clustering unit, ICC, design effect, effective N — count your groups, not your rows
 
-A [clustering unit](GLOSSARY.md#clustering-unit) is any grouping within which
-outcomes correlate — task category, template, document, or (per chapter 02) a
-session/host axis a reproducibility probe found unstable. [ICC](GLOSSARY.md#icc)
-is the share of outcome variance attributable to cluster membership, estimated
-from data (one-way ANOVA on per-cluster indicators; never assumed zero, never
-copied from another project). A cold-start project with nothing to estimate from
-freezes a *declared prior* and re-estimates it before the qualification look, under
-§7's cold-start path — a labelled prior with a committed replacement procedure, not
-a borrowed number. Full estimation forms (ANOVA and paired-difference):
+Start with the mistake, because it is almost invisible from a results table.
+
+You built a suite by listing 20 kinds of task and writing 10 questions of each
+kind. That is 200 items, and 200 feels like a sample size. But whether the system
+handles a given kind of task is mostly decided by what that kind of task demands —
+so it tends to get all 10 of a category right, or all 10 wrong. Those 10 items are
+not 10 independent tests. They are closer to one.
+
+The grouping inside which outcomes travel together is the
+[clustering unit](GLOSSARY.md#clustering-unit): task category, template, document,
+or (per chapter 02) a session/host axis a reproducibility probe found unstable. How
+strongly outcomes travel together inside it is the [ICC](GLOSSARY.md#icc) — the
+share of outcome variance attributable to cluster membership. It is estimated from
+data (one-way ANOVA on per-cluster indicators; never assumed zero, never copied
+from another project). A cold-start project with nothing to estimate from freezes a
+*declared prior* and re-estimates it before the qualification look, under §7's
+cold-start path — a labelled prior with a committed replacement procedure, not a
+borrowed number. Full estimation forms (ANOVA and paired-difference):
 [references/STATISTICS_FORMULAS.md#icc](references/STATISTICS_FORMULAS.md#icc).
+
+Those two facts convert rows into evidence. The
+[design effect](GLOSSARY.md#design-effect) is the factor by which clustering
+inflates your noise; divide by it and you have the
+[effective N](GLOSSARY.md#effective-n) — the number to use anywhere you were about
+to use the item count:
 
 ```
 DEFF   = 1 + (m − 1) × ICC        # m = average cluster size
@@ -430,20 +544,39 @@ grouped into 20 task categories, 10 items each (m=10). A pilot measures ICC = 0.
 **on the per-item paired differences `d_i`** — not on either arm's marginal
 outcomes, which is a different number and the wrong input for a paired analysis
 (see [references/STATISTICS_FORMULAS.md §2](references/STATISTICS_FORMULAS.md#icc)).
-`DEFF = 1 + (10−1)×0.30 = 3.70`. `N_eff = 200 / 3.70 ≈ 54` — the suite carries the
-statistical weight of about 54 independent pairs, not 200. **To grow N_eff:** the
-cluster count `k` enters linearly and without bound; items-per-cluster `m` enters
-with diminishing returns and saturates at `k/ICC` (here 20/0.30 ≈ 67, however many
-items the 20 categories hold — while 50 *new* categories of 10 would carry
-N_eff ≈ 500/3.70 ≈ 135 more on their own). Compute both options before buying
-items. Full derivation:
+So `DEFF = 1 + (10−1)×0.30 = 3.70` and `N_eff = 200 / 3.70 ≈ 54`. The suite carries
+the statistical weight of about 54 independent pairs, not 200.
+
+Nothing about the measured scores changed. What changed is what those scores are
+allowed to support.
+
+**To grow N_eff**, the two obvious moves are not equivalent, and the gap is larger
+than it looks. The cluster count `k` enters linearly and without bound.
+Items-per-cluster `m` enters with diminishing returns and saturates at `k/ICC` —
+here 20/0.30 ≈ 67, however many items those 20 categories are made to hold.
+
+Compare the two as increments from where this suite already stands, at N_eff ≈ 54:
+
+- **More items in the same 20 categories:** at most **+13**, no matter how many you
+  buy. You are already 80% of the way to that ceiling.
+- **50 new categories of 10 items:** N_eff ≈ 500/3.70 ≈ 135, so about **+135**.
+
+Ten times the return, for the same 500 items. Compute both before buying anything. Full derivation:
 [references/STATISTICS_FORMULAS.md#design-effect](references/STATISTICS_FORMULAS.md#design-effect).
 
-### Minimum detectable effect (MDE)
+### Minimum detectable effect (MDE) — the smallest gap this design can see
 
-[MDE](GLOSSARY.md#mde) is computed before the experiment, at stated α and power,
-after clustering correction. For a paired binary comparison, an approximate
-closed form (McNemar-based; full derivation, exact and asymptotic forms:
+Every design has a floor: a true difference so small the design cannot reliably
+tell it from zero. Knowing that floor *before* you run is what tells you whether
+the experiment is worth running at all. If it works out to 30 points, an argument
+about a 5-point gap is not one this design can settle, and you have saved yourself
+the run.
+
+That floor is the [MDE](GLOSSARY.md#mde). It is computed before the experiment, at
+stated α and power, and after clustering correction — in that order, because the
+clustering correction is what makes the number honest. For a paired binary
+comparison, an approximate closed form (McNemar-based; full derivation, exact and
+asymptotic forms:
 [references/STATISTICS_FORMULAS.md#mde](references/STATISTICS_FORMULAS.md#mde)):
 
 ```
@@ -451,76 +584,82 @@ MDE ≈ (z_α/2 + z_power) × √(pd / N_eff)
 ```
 
 where `pd` is the expected **discordance rate** (share of item-pairs where the two
-arms disagree at all). **The MDE ≤ pd constraint**: a paired difference in success
-rate can never exceed the discordance rate by construction (|Δ| ≤ pd — only
-discordant pairs can contribute to a paired difference), so a design whose stated
-MDE exceeds its plausible discordance cannot detect *any* effect this comparison
-could produce. That is an underpowering signal, not necessarily an arithmetic slip:
-it falls out of a correctly evaluated formula whenever `N_eff < 7.84 / pd` at
-α=.05 / power=.80 (7.84 = (1.96+0.84)²). Recheck the arithmetic first, then add
-clusters or relax the power target — and either way, do not read MDE > pd as
-evidence about the world.
+arms disagree at all). Items both arms pass, or both fail, say nothing about which
+arm is better, so they do not enter.
+
+**The MDE ≤ pd constraint**: a paired difference in success rate can never exceed
+the discordance rate by construction (|Δ| ≤ pd — only discordant pairs can
+contribute to a paired difference), so a design whose stated MDE exceeds its
+plausible discordance cannot detect *any* effect this comparison could produce.
+That is an underpowering signal, not necessarily an arithmetic slip: it falls out
+of a correctly evaluated formula whenever `N_eff < 7.84 / pd` at α=.05 / power=.80
+(7.84 = (1.96+0.84)²). Recheck the arithmetic first, then add clusters or relax the
+power target — and either way, do not read MDE > pd as evidence about the world.
 
 *Worked example (illustrative, continuing above).* At α=.05, power=.80
 (`z_α/2≈1.96`, `z_power≈0.84`), N_eff≈54, expected discordance `pd=0.20`:
 `MDE ≈ (1.96+0.84) × √(0.20/54) ≈ 0.17` — this design resolves a ~17-point paired
 difference and no smaller one. Since 0.17 ≤ 0.20 the design is just barely coherent
 at this discordance rate (equivalently, N_eff ≈ 54 clears the 7.84/0.20 ≈ 39
-threshold); a design on the wrong side of it needs more N_eff — prefer adding
+threshold). A design on the wrong side of that needs more N_eff — prefer adding
 independent clusters, which grow N_eff without bound; adding items inside existing
 clusters still helps while ICC < 1, with returns that flatten once m approaches
-1/ICC and a ceiling at N_eff = k/ICC however many items each cluster holds
-— or a relaxed power target before it is worth running.
+1/ICC and a ceiling at N_eff = k/ICC however many items each cluster holds — or a
+relaxed power target, before it is worth running.
 
 **Assumption — the per-item outcome is observed without error.** Every MDE and
 power form here, and in the formulary's §1–§5, treats the recorded score as the
-truth. A noisy grader — an LLM judge, or annotators at imperfect agreement —
-attenuates the observed effect toward zero and inflates the N needed to detect a
-real one, so a judge-graded design sized straight from these formulas is
+truth. Often it is not. A noisy grader — an LLM judge, or annotators at imperfect
+agreement — attenuates the observed effect toward zero and inflates the N needed to
+detect a real one. So a judge-graded design sized straight from these formulas is
 systematically underpowered on exactly the dimension chapter 03 §5.7 flags as
-highest-risk (and, where the noise is asymmetric between arms, it can bias the
-direction as well). See the measurement-error note in
+highest-risk; and where the noise is asymmetric between arms, it can bias the
+direction as well. See the measurement-error note in
 [references/STATISTICS_FORMULAS.md](references/STATISTICS_FORMULAS.md), and state
 the grader reliability used in the power calculation (κ or agreement rate) and its
 source in the contract (§5 Step 6).
 
-### Paired-difference standard error
+### Paired-difference standard error — resolution you already paid for
 
-[Paired design](GLOSSARY.md#paired-design): paired SE is strictly smaller than the
-naive two-sample SE whenever per-item outcomes correlate positively across arms —
-true almost always for same-item designs, since items easy for one arm tend to be
-easy for the other. *Worked example (illustrative).* Two-sample: p₁=0.70, p₂=0.60,
-n=100 each → `SE ≈ √(0.70×0.30/100 + 0.60×0.40/100) ≈ 0.067`. Paired, same 100
-items, discordance pd=0.25 → `SE ≈ √(0.25/100) = 0.050`.
+Run both arms on the same items and you have bought something you may not be
+claiming. [Paired design](GLOSSARY.md#paired-design): paired SE is strictly smaller
+than the naive two-sample SE whenever per-item outcomes correlate positively across
+arms — true almost always for same-item designs, since items easy for one arm tend
+to be easy for the other. *Worked example (illustrative).* Two-sample: p₁=0.70,
+p₂=0.60, n=100 each → `SE ≈ √(0.70×0.30/100 + 0.60×0.40/100) ≈ 0.067`. Paired, same
+100 items, discordance pd=0.25 → `SE ≈ √(0.25/100) = 0.050`.
 
-An SE is not a resolvable effect: **"resolves" is reserved for the MDE**, which at
-α=.05 / power=.80 is ≈ 2.80 × SE. So this pair of designs resolves ~14 points
-paired (2.80 × 0.050 = 0.140) versus ~18.8 points two-sample (2.80 × 0.067 =
-0.188) — a ~25% tighter design for free, and neither resolves the 10-point observed
-gap in this example, which is **INCONCLUSIVE** at this design. Reading the 10-point
-gap as a difference because it exceeds one SE is precisely the sub-MDE promotion
-§9 rejects and chapter 00's tripwire #6 fires on. Full derivation:
+Now the part that gets misused. An SE is not a resolvable effect: **"resolves" is
+reserved for the MDE**, which at α=.05 / power=.80 is ≈ 2.80 × SE. So this pair of
+designs resolves ~14 points paired (2.80 × 0.050 = 0.140) versus ~18.8 points
+two-sample (2.80 × 0.067 = 0.188) — a ~25% tighter design for free, and neither
+resolves the 10-point observed gap in this example, which is **INCONCLUSIVE** at
+this design. Reading the 10-point gap as a difference because it exceeds one SE is
+precisely the sub-MDE promotion §9 rejects and chapter 00's tripwire #6 fires on.
+Full derivation:
 [references/STATISTICS_FORMULAS.md#paired-difference-se](references/STATISTICS_FORMULAS.md#paired-difference-se).
 
-### Curtailment arithmetic
+### Curtailment arithmetic — stopping when the outcome is already decided
 
 **Consequence-bearing tolerances** ([curtailed exact counting](GLOSSARY.md#curtailed-exact-counting)):
 with a tolerance of at most *k* violations in *n*, halt the phase at violation
-*k*+1 and execute the named consequence. Exact arithmetic; no distributional
-assumption, no error-rate claim. *Worked example*: tolerance ≤3 violations of 40
-iterate-split items → the phase halts and escalates at the 4th violation, wherever
-in the sequence it falls.
+*k*+1 and execute the named consequence. That is the whole procedure. Exact
+arithmetic; no distributional assumption, no error-rate claim. *Worked example*:
+tolerance ≤3 violations of 40 iterate-split items → the phase halts and escalates
+at the 4th violation, wherever in the sequence it falls.
 
 **[Certainty curtailment](GLOSSARY.md#certainty-curtailment)** (qualify/confirm
-arms): halt an arm when `passes + items_remaining < ⌈bar × N⌉`. *Worked example*:
-bar=0.60, N=50 (`⌈0.60×50⌉=30`); after 35 items, 8 passes, 15 remaining →
-`8+15=23 < 30` → curtail — this arm cannot reach the bar even if every remaining
-item passes. Three mandatory guards, all in force whenever curtailment is enabled:
+arms) answers a different question — can this arm still reach its bar? Halt it when
+`passes + items_remaining < ⌈bar × N⌉`. *Worked example*: bar=0.60, N=50
+(`⌈0.60×50⌉=30`); after 35 items, 8 passes, 15 remaining → `8+15=23 < 30` →
+curtail — this arm cannot reach the bar even if every remaining item passes, so
+every further item spends money to learn nothing. Three mandatory guards, all in
+force whenever curtailment is enabled:
 
 1. **Spend semantics** — curtailment's only admissible consequence is irreversible
-   rejection of an already-spent arm, never an early peek. To keep it that way, the
-   curtailment statistic is computed by the runner and exposed only as
-   **HALT / CONTINUE**: interim pass counts on a qualify/confirm arm are not
+   rejection of an already-spent arm, never an early peek. Keeping it that way is
+   mechanical: the curtailment statistic is computed by the runner and exposed only
+   as **HALT / CONTINUE**. Interim pass counts on a qualify/confirm arm are not
    disclosed to the operator before that arm completes or halts, so a legitimate
    stopping rule cannot quietly become an interim read of held-out outcomes that
    informs other in-flight choices.
@@ -537,55 +676,73 @@ item passes. Three mandatory guards, all in force whenever curtailment is enable
 arm's *observed* count cannot reach ⌈bar × N⌉. That is arithmetic about the run,
 not an inference about the arm's true rate — so a pass-rate bar is a **decision
 rule**, and absolute gates are deliberately exempt from the MDE floor that governs
-comparative margins (§4). The exemption is a design choice, not an oversight, and
-it carries an obligation: **size N so that `bar ± MDE` is not straddled.** A design
-whose certain interval can only ever land within one MDE of the bar cannot
-distinguish "misses the bar" from "sits at the bar," and curtailment's rejection is
-irreversible. Compute the bar's own resolvability in the statistical plan (§5
-Step 6) and record it; where N cannot be raised, state in the contract that
-near-bar rejections are accepted as a known, priced cost of the gate.
+comparative margins (§4).
 
-Curtailment's savings are asymmetric: it fires only on arms already headed for
-rejection, and the arms that consume the most wall clock in practice are the ones
-near the decision boundary, which rarely trigger it. Report savings honestly, never
-oversold; adopt curtailment for tail-risk and decision-quality protection — a speed
-rationale for a stopping rule is chapter 00's anti-pattern
-[SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md). Full arithmetic:
+The exemption is a design choice, not an oversight, and it carries an obligation:
+**size N so that `bar ± MDE` is not straddled.** A design whose certain interval
+can only ever land within one MDE of the bar cannot distinguish "misses the bar"
+from "sits at the bar," and curtailment's rejection is irreversible. Compute the
+bar's own resolvability in the statistical plan (§5 Step 6) and record it; where N
+cannot be raised, state in the contract that near-bar rejections are accepted as a
+known, priced cost of the gate.
+
+One thing to be honest about. Curtailment's savings are asymmetric: it fires only
+on arms already headed for rejection, and the arms that consume the most wall clock
+in practice are the ones near the decision boundary, which rarely trigger it.
+Report savings honestly, never oversold; adopt curtailment for tail-risk and
+decision-quality protection — a speed rationale for a stopping rule is chapter 00's
+anti-pattern
+[SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md). Full
+arithmetic:
 [references/STATISTICS_FORMULAS.md#curtailment](references/STATISTICS_FORMULAS.md#curtailment).
 
-### Sequential-rule admissibility
+### Sequential-rule admissibility — when the early-stopping guarantee is not yours
 
-[Sequential-rule admissibility](GLOSSARY.md#sequential-rule-admissibility): a
-calibrated sequential test's (SPRT and relatives) nominal error-rate guarantee
-assumes an exchangeable/independent outcome stream in execution order. When
-outcomes cluster by stratum and execution proceeds in **blocked** order, the
-effective number of independent looks is smaller than the nominal count and the
-realized false-positive rate can inflate materially above α — the multiplier
-depends on ICC and block structure and MUST be checked, not assumed away
-[EXT-STOPPING-001] (contested; admissible only after a **passed** independence
-check — the check's steps and its pass criterion are stated once, in
+Rules that let you stop an experiment early come with an error-rate guarantee, and
+that guarantee has fine print. [Sequential-rule
+admissibility](GLOSSARY.md#sequential-rule-admissibility): a calibrated sequential
+test's (SPRT and relatives) nominal error-rate guarantee assumes an
+exchangeable/independent outcome stream in execution order. Evaluation runs
+frequently are not. When outcomes cluster by stratum and execution proceeds in
+**blocked** order, the effective number of independent looks is smaller than the
+nominal count and the realized false-positive rate can inflate materially above α —
+the multiplier depends on ICC and block structure and MUST be checked, not assumed
+away [EXT-STOPPING-001].
+
+That source is contested here: the sequential rules it describes are admissible
+only after a **passed** independence check. The check's steps and its pass
+criterion are stated once, in
 [references/STATISTICS_FORMULAS.md §7](references/STATISTICS_FORMULAS.md#sequential-admissibility),
-and are not restated here; §9 carries this chapter's REJECTED-conditional).
-Curtailed exact counting and certainty curtailment make no distributional
-claim and are immune to this failure mode — this playbook's default. Mechanism in
-full:
+and are not restated here; §9 carries this chapter's REJECTED-conditional.
+
+Curtailed exact counting and certainty curtailment make no distributional claim at
+all, so they are immune to this failure mode — which is why they are this
+playbook's default. Mechanism in full:
 [references/STATISTICS_FORMULAS.md#sequential-admissibility](references/STATISTICS_FORMULAS.md#sequential-admissibility).
 
-### pass@k vs pass^k
+### pass@k vs pass^k — capability under retry, reliability under repetition
 
-[pass-at-k-vs-pass-to-the-k](GLOSSARY.md#pass-at-k-vs-pass-to-the-k): pass@k (Chen
-et al.; `pass@k = 1 − C(n−c, k) / C(n, k)` for *n* samples with *c* correct)
-measures capability under retry. pass^k measures reliability under repetition —
-under an i.i.d. per-attempt assumption at success probability *p*, `pass^k = p^k`.
-*Worked example (illustrative)*: p=0.90 → pass^5 ≈ 0.59; pass^10 ≈ 0.35. A system
-reliable at pass@1 can collapse at pass^k on identical tasks [EXT-AGENT-001];
-report pass^k — not pass@1 alone — for any reliability claim about a stochastic
-arm, on a declared subset sized to its per-call cost. The i.i.d. assumption is
-exactly what a pass^k measurement should test, not presume — correlated failures
-(a shared root cause) collapse pass^k faster than the formula predicts. Full
-derivation: [references/STATISTICS_FORMULAS.md#pass-at-k-vs-pass-to-the-k](references/STATISTICS_FORMULAS.md#pass-at-k-vs-pass-to-the-k).
+Two questions that sound alike and are not.
+[pass-at-k-vs-pass-to-the-k](GLOSSARY.md#pass-at-k-vs-pass-to-the-k): "can it do
+this if I let it try k times?" is pass@k (Chen et al.;
+`pass@k = 1 − C(n−c, k) / C(n, k)` for *n* samples with *c* correct), and it
+measures capability under retry. "Will it do this k times running?" is pass^k, and
+it measures reliability under repetition — under an i.i.d. per-attempt assumption
+at success probability *p*, `pass^k = p^k`.
 
-### Verdict vocabulary
+The second falls off faster than intuition expects. *Worked example
+(illustrative)*: p=0.90 → pass^5 ≈ 0.59; pass^10 ≈ 0.35. A system reliable at
+pass@1 can collapse at pass^k on identical tasks [EXT-AGENT-001]; report pass^k —
+not pass@1 alone — for any reliability claim about a stochastic arm, on a declared
+subset sized to its per-call cost. And treat the i.i.d. assumption as the thing a
+pass^k measurement should test, not presume: correlated failures (a shared root
+cause) collapse pass^k faster than the formula predicts. Full derivation:
+[references/STATISTICS_FORMULAS.md#pass-at-k-vs-pass-to-the-k](references/STATISTICS_FORMULAS.md#pass-at-k-vs-pass-to-the-k).
+
+### Verdict vocabulary — and why INCONCLUSIVE is a result
+
+A finished comparison ends in one of four ways, and "it looked promising" is not
+among them.
 
 The verdict is read off the **pre-registered test**, never off a post-hoc
 comparison of the observed effect against the MDE (the MDE is a pre-data property
@@ -600,10 +757,19 @@ could not resolve the question at its MDE*.
 | **INCONCLUSIVE** | The primary statistic does not cross its threshold — in either direction. The default verdict, and the one every non-crossing result takes, whatever the size of the observed effect | The interval, and the design's MDE as the statement of what it could have resolved |
 | **RANKED** | Output of a screening comparison (§5 Step 5) | No significance claim of any kind; whether each outcome was a deferral or a warranted elimination (§4) |
 
+INCONCLUSIVE is the row worth dwelling on, because teams read it as a failed
+experiment and it is not one. It is a finding about the design: this test could not
+tell the difference, and here is the size of difference it could have told. You can
+act on that — buy more clusters, change the metric, leave the question open and
+decide on something the suite *can* measure. What you may not do is round it toward
+comfort. INCONCLUSIVE is not evidence that the arms are alike, and an experiment
+with no way to say "we could not tell" will eventually say something false instead.
+
 [Descriptive vocabulary](GLOSSARY.md#descriptive-vocabulary): a set of outcome
 categories MAY be pre-registered *before data* to describe a result the design
-could not resolve. Pre-registration fixes *who chose the words and when*; it cannot
-supply resolving power the data lack, so two constraints bind:
+could not resolve. Be exact about what pre-registration buys. It fixes *who chose
+the words and when*; it cannot supply resolving power the data lack. So two
+constraints bind:
 
 - Pre-registered descriptive categories **MUST NOT assert equivalence or
   direction.** "Materially better/worse" is a comparative inferential claim and
@@ -615,9 +781,10 @@ supply resolving power the data lack, so two constraints bind:
   margin and that check, the verdict is **INCONCLUSIVE**, reported with its
   interval.
 
-A CI that leaves the ±d band fails the equivalence check even when the point
-estimate sits comfortably inside it — that case is INCONCLUSIVE with the interval
-printed, not "competitive." Never treat a null result as evidence of equivalence.
+One case catches people out. A CI that leaves the ±d band fails the equivalence
+check even when the point estimate sits comfortably inside it — that case is
+INCONCLUSIVE with the interval printed, not "competitive." Never treat a null
+result as evidence of equivalence.
 
 ## 9. Failure modes and anti-patterns
 
@@ -680,6 +847,8 @@ configuration changes.
 | pass@k / pass^k literature [ADAPT: EXT-AGENT-001] | ADAPT | Estimator and reliability-collapse finding behind this chapter's pass^k guidance | Not yet run against this playbook's own suites |
 
 ## 11. Worked examples
+
+Invented scenarios, each built to make one of this chapter's failures visible.
 
 - [SCENARIO-01](examples/SCENARIO-01_consequence-bearing-tolerances.md) — a tolerance's
   breach clause carried no priced consequence; a measured, large calibration

@@ -46,7 +46,7 @@ and every question later on this page reads off one of them by number:
 | **19** — Regulatory/compliance · **3** — Criticality / failure cost | Do **audit / reliability obligations dominate** the requirements? | Step 3, node 4 |
 | **6** — Privacy/security/data residency · **17** — Deployment environment | Is a deployment **no managed API can satisfy** actually mandated? | Step 3, node 5 |
 | **21** — Stakes / consequence tolerance | Which [rigor tier](GLOSSARY.md#stakes-tier) governs? | Step 2 |
-| **4** — Quality/reliability target · **2** — Task population & volume | Is output **objectively verifiable** or judge-graded? | Step 3, modifiers |
+| **4** — Quality/reliability target · **7** — Data & knowledge availability | Is output **objectively verifiable** or judge-graded? | Step 3, modifiers |
 | **9** — Model candidates · **12** — Managed APIs | Will any comparison **cross execution surfaces** (machines, sessions, providers)? | Step 3, modifiers |
 
 **You are done with this step when** every field has something written in it — even
