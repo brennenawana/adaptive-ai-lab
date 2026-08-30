@@ -165,7 +165,19 @@ All amounts are list-price-equivalent USD (subscription billing; see §15).
   rules and do not change them during a run.
 
 ## 18. Amendment log (append-only after freeze)
-- (empty)
+- **Amendment 1 (2026-08-30, owner-authorized).** Measured cost is ~1.9× the
+  projections the §6 caps were sized from ($0.057 per TEST task vs $0.03 projected).
+  The owner instructed: "raise the cap to whatever you think allows everything to
+  run, it's okay to overshoot" (subscription billing; completion matters more than
+  the equivalents). New values, all still enforced fail-closed:
+  - Arm-run caps: A $5 → $15 · B $25 → $50 · C $45 → $90
+  - Iteration projections (S2 basis): B $2.30 → $4.50 · C $3.00 → $6.00
+  - Phase caps: P1 $100 → $200 · P2 $200 → $400
+  - Program ceiling (S5): $600 → $1,000
+  Also recorded: attempt 1 of TEST look A-s1 stopped at 43/100 tasks with no result
+  file produced and no per-task score seen by anyone; it continues as the same look.
+  Eval runs are checkpointed per task from this date (`eval_progress.jsonl`), and
+  nobody reads that file's per-task scores before the verdict computation (§12).
 
 ---
 ### Freeze checklist

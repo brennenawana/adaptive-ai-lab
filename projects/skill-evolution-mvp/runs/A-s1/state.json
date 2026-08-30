@@ -1,0 +1,11 @@
+{
+  "run_id": "A-s1",
+  "arm": "A",
+  "seed": 1,
+  "iteration_done": 0,
+  "r_best": 0.3333333333333333,
+  "accepted": [],
+  "plateau": 0,
+  "stop_reason": "baseline-only",
+  "spend_usd_equiv": 0.7174934000000001
+}

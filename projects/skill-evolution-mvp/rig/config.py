@@ -27,9 +27,9 @@ PRICES = {
 TURN_CAP = 15            # S1: max assistant turns per test-case conversation
 CMD_TIMEOUT = 90         # S1: seconds per bash command
 PROPOSER_TURN_CAP = 25   # ReAct turns before forced no_action
-GLOBAL_CAP_USD = 600.0   # S5
-PHASE_CAPS_USD = {"P0": 5.0, "P1": 100.0, "P2": 200.0, "P3": 250.0}  # S4
-RUN_CAPS_USD = {"A": 5.0, "B": 25.0, "C": 45.0}                      # S3
+GLOBAL_CAP_USD = 1000.0  # S5 (contract §18 Amendment 1)
+PHASE_CAPS_USD = {"P0": 5.0, "P1": 200.0, "P2": 400.0, "P3": 250.0}  # S4 (Amendment 1)
+RUN_CAPS_USD = {"A": 15.0, "B": 50.0, "C": 90.0}                     # S3 (Amendment 1)
 ITER_OVERRUN_MULT = 1.5  # S2, applied when an iteration projection is set
 
 K_ITERATIONS = 8         # WikiSkill iterations 0-7 (Tab. 5 grouping)
@@ -47,6 +47,6 @@ SMOKE_TASKS = 3
 
 ROLLOUT_WORKERS = 3
 
-# S2 iteration spend projections (list-equivalent USD), measured in smoke;
-# frozen in SE1 contract §16.
-ITERATION_PROJECTION_USD = {"B": 2.30, "C": 3.00}
+# S2 iteration spend projections (list-equivalent USD); SE1 §16 as amended
+# (§18 Amendment 1) after measured costs came in ~1.9x the smoke estimate.
+ITERATION_PROJECTION_USD = {"B": 4.50, "C": 6.00}

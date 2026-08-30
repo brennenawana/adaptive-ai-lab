@@ -172,7 +172,12 @@ def evaluate_split(*, arm: str, run_id: str, phase: str, tasks: list,
                    split_name: str, skills_from: str | None = None,
                    workers: int = config.ROLLOUT_WORKERS) -> dict:
     """One pre-registered look at a held-out split (S11: caller owns the look
-    ledger). skills_from names a run whose accepted skills/ to inject."""
+    ledger). skills_from names a run whose accepted skills/ to inject.
+
+    Checkpointed per task: each finished task is appended to
+    eval_progress.jsonl, and a restart skips tasks already done, so an
+    interruption never loses paid work. Nobody reads the per-task scores in
+    that file before the verdict computation (contract §12)."""
     run_dir = config.RUNS_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     meter = Meter(phase=phase, run_id=run_id, arm=arm, run_dir=run_dir)
@@ -180,8 +185,43 @@ def evaluate_split(*, arm: str, run_id: str, phase: str, tasks: list,
     skill_section = ""
     if skills_from:
         skill_section = wiki.skills_text(config.RUNS_DIR / skills_from / "skills")
-    results = _rollout(tasks, skill_section, run_dir=run_dir, meter=meter,
-                       iteration=-1, trace_name=None, workers=workers)
+
+    progress = run_dir / "eval_progress.jsonl"
+    done: dict = {}
+    if progress.exists():
+        for line in progress.read_text().splitlines():
+            r = json.loads(line)
+            done[str(r["id"])] = r
+    todo = [t for t in tasks if str(t["id"]) not in done]
+
+    from concurrent.futures import ThreadPoolExecutor as _Pool
+    import threading
+    lock = threading.Lock()
+
+    def one(task):
+        r = executor.run_task(task=task, skill_section=skill_section,
+                              workroot=run_dir / "workdirs", meter=meter,
+                              iteration=-1, keep_trace_dir=None)
+        with lock:
+            with progress.open("a") as f:
+                f.write(json.dumps(r) + "\n")
+        return r
+
+    if todo:
+        if workers <= 1:
+            for t in todo:
+                one(t)
+        else:
+            with _Pool(max_workers=workers) as pool:
+                list(pool.map(one, todo))
+
+    results = []
+    for line in progress.read_text().splitlines():
+        results.append(json.loads(line))
+    crash_rate = sum(r["crash"] for r in results) / max(len(results), 1)
+    if crash_rate > config.CRASH_RATE_HALT:
+        meter.log_event("halt", reason="S9-crash-rate", rate=crash_rate)
+        raise RuntimeError(f"S9: eval crash rate {crash_rate:.0%}")
     out = {"run_id": run_id, "split": split_name, "n": len(results),
            "mean_soft": mean_soft(results),
            "mean_hard": sum(r["hard"] for r in results) / max(len(results), 1),

@@ -129,11 +129,16 @@ def cmd_eval(args):
         spent = {r["spent"] for r in rows if "spent" in r}
         if key not in planned:
             sys.exit(f"REFUSED: TEST look {key} is not in the planned ledger (S11)")
+        results_file = config.RUNS_DIR / run_id / "eval_test.json"
+        if key in spent and results_file.exists():
+            sys.exit(f"REFUSED: TEST look {key} was already spent and completed (S11)")
         if key in spent:
-            sys.exit(f"REFUSED: TEST look {key} was already spent (S11)")
-        with ledger.open("a") as f:
-            f.write(json.dumps({"spent": key, "ts": _time.time(),
-                                "skills_from": args.skills_from}) + "\n")
+            print(f"continuing spent look {key}: the earlier attempt stopped "
+                  "before any result file was produced")
+        else:
+            with ledger.open("a") as f:
+                f.write(json.dumps({"spent": key, "ts": _time.time(),
+                                    "skills_from": args.skills_from}) + "\n")
 
     out = orchestrator.evaluate_split(
         arm=args.arm, run_id=run_id, phase=args.phase, tasks=tasks,
