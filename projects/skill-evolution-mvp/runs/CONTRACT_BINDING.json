@@ -1,0 +1,7 @@
+{
+  "contract": "SE1_EXPERIMENT_CONTRACT.md",
+  "freeze_commit": "2da2ff9fb23718b6ed29a64a1145e881e3a1fbf4",
+  "contract_blob_sha": "62093fdbb671051dd63f716177a747c340f6f0fb",
+  "frozen_at": "2026-08-30",
+  "note": "The freeze commit binds the contract, prompts, rig code, and task-suite manifest. Nothing above contract section 18 changes after this commit."
+}
