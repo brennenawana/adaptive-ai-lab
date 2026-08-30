@@ -350,11 +350,26 @@ property, designed in deliberately — and measured, not argued: see
 [reachability ceiling](#reachability-ceiling). Chapters 03 and 08.
 
 ### evidence-strength labels
-Every principle and default in this playbook states how well supported it is, using one
-of six labels: `consensus`, `strong-evidence`, `heuristic`, `contested`, `case-study`,
-`inference`. You can therefore weigh a claim without going and reading the sources
-yourself. A recent paper is never rendered as law; a single project's result is never
-rendered as consensus.
+Every principle and default in this playbook states how well supported it is, so you can
+weigh a claim without going and reading the sources yourself. A recent paper is never
+rendered as law; a single project's result is never rendered as consensus. Six labels:
+
+- `consensus` — independent practitioners and vendors agree. Safe to adopt.
+- `strong-evidence` — published results back it, and the source is in the
+  [ledger](references/SOURCES.md) with a verdict and a verification date.
+- `heuristic` — a useful starting value that you are expected to retune. The number is
+  a place to begin, not a finding.
+- `contested` — credible people disagree. The playbook states a position and says so.
+- `case-study` — learned from what happened on one project, not from broad evidence.
+  **Read this label carefully in this build.** The playbook was developed alongside a
+  real project, and these claims come from that work — but that project's records are
+  not published here, so you cannot check them. The `SCENARIO-*` files linked beside
+  such claims are invented illustrations of the same lesson; they show you the shape of
+  the reasoning and they are *not* the evidence for it. Treat a `case-study` claim as
+  one team's experience, reported honestly and unverifiable by you.
+- `inference` — reasoned from first principles and argued in place. Nobody measured it.
+
+The last two are the ones to push back on. They are labelled precisely so you can.
 
 ### execution surface
 Where a model runs, in the sense that changes what you can promise about it: local

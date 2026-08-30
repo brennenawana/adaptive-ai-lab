@@ -6,60 +6,94 @@
 
 ## 1. Purpose and when to read this
 
-This chapter answers a question published methodology largely leaves to catalogs and
-marketing: given a project profile, a trusted evaluation, and a bounded budget, which
-**model candidates**, which **runtime/serving engine**, and which **agent harness**
-actually enter your experiments? A structured audit of current vendor material found
-design-time model comparison and runtime-engine selection both documented as
-"measured, not decided" — benchmarking tools and catalogs exist, but no shortlisting
-procedure against a requirement and no engine decision rule are published anywhere in
-that corpus. This is the gap no vendor fills, and it is exactly the gap that turns an
-unbounded universe of models, quantizations, runtimes, and harnesses into a short,
-defensible list worth spending evaluation budget on.
+Count what you are actually choosing between.
 
-Read this chapter after you have a [project profile](GLOSSARY.md#project-profile)
+Five model families you would seriously consider. Three or four sizes inside each
+one. Several quantizations per size, because that is how open weights ship. Two or
+three serving engines that will load the result, each with its own launch flags. A
+harness wrapped around all of it, or none. Multiply it out and the list is in the
+hundreds before anybody has written anything down — and chapter 02 already
+established that every one of those combinations is a *different execution system*,
+not one model wearing different clothes.
+
+Your evaluation budget covers three to six of them.
+
+So something has to do the cutting, and two things reliably volunteer: a leaderboard,
+and a recommendation somebody posted. Neither has seen your latency requirement, your
+licensing constraints, or the machine you already own. Both answer a general question
+— which model is strongest, which engine is fastest — and the question in front of
+you is not a general one.
+
+This chapter is the cutting procedure. Given a project profile, a trusted evaluation,
+and a bounded budget, it returns three answers: which **model candidates** enter your
+experiments, which **runtime/serving engine** executes them, and which **agent
+harness**, if any, wraps them. Specific engines and formats get named along the way.
+**None of those names is the answer.** The answer is the procedure that converts your
+own constraints into a short list — which is why one chapter can serve a project
+running on a single owned GPU and a project running on a rented cluster.
+
+Published methodology largely leaves this to catalogs and marketing. A structured
+audit of current vendor material found design-time model comparison and
+runtime-engine selection both documented as "measured, not decided" — benchmarking
+tools and catalogs exist, but no shortlisting procedure against a requirement and no
+engine decision rule are published anywhere in that corpus. This is the gap no vendor
+fills, and it is exactly the gap that turns an unbounded universe of models,
+quantizations, runtimes, and harnesses into a short, defensible list worth spending
+evaluation budget on.
+
+**When to read it.** After you have a [project profile](GLOSSARY.md#project-profile)
 (01) and a trusted [evaluation instrument](03_EVALUATION_FOUNDATION.md) (03) — not
-before. Selection without a trusted instrument only launders instrument noise into a
-false "winner" (P2). Read it before you freeze the first
+before. Selection against an unvalidated instrument only launders instrument noise
+into a false "winner" (P2). Read it before you freeze the first
 [experiment contract](GLOSSARY.md#experiment-contract) (04): the contract's candidate
-list and execution-system identity are this chapter's outputs. Re-read it whenever a
-new model, runtime release, or harness version appears mid-project — the same hard
-filters and regime criterion apply to a re-shortlisting, not a fresh invention.
+list and execution-system identity are this chapter's outputs. And read it again
+whenever a new model, runtime release, or harness version turns up mid-project — a
+re-shortlisting runs the same hard filters and the same regime criterion, it is not
+invented afresh each time.
 
-**Premature** selection compares candidates against an unvalidated instrument,
-producing a ranking that changes the moment the instrument is fixed — a wasted
-look, not evidence (P1, P2). **Overdue** selection is indefinite postponement of a
-frozen shortlist once a trusted evaluation and hard-filter set both exist — a
-project that never freezes a candidate list never fields a system to measure. §7's
-gates and tripwires operationalize both boundaries.
+**Two ways to get the timing wrong.** **Premature** selection compares candidates
+against an unvalidated instrument, producing a ranking that changes the moment the
+instrument is fixed — a wasted look, not evidence (P1, P2). **Overdue** selection is
+indefinite postponement of a frozen shortlist once a trusted evaluation and
+hard-filter set both exist — and a project that never freezes a candidate list never
+fields a system to measure. §7's gates and tripwires operationalize both boundaries.
 
 ## 2. Inputs required
 
-- A completed [project profile](GLOSSARY.md#project-profile) (01): task shape,
-  quality/reliability target, latency/throughput needs, privacy/residency
-  constraints, data/knowledge availability, tool/action permissions, owned/rentable
-  compute, capex/opex budget, deployment environment, regulatory constraints.
-- A trusted evaluation instrument (03) capable of scoring candidates on the task —
-  including its measured [reachability ceiling](GLOSSARY.md#reachability-ceiling)
-  and any known stratum weaknesses.
-- The [rigor dial](GLOSSARY.md#rigor-dial) / [stakes tier](GLOSSARY.md#stakes-tier)
-  from 00 §6, which sets how much selection rigor is mandatory versus optional.
-- Chapter 04's screening machinery ([MDE](GLOSSARY.md#mde),
-  [elimination rule](GLOSSARY.md#elimination-rule),
-  [screening vs inference](GLOSSARY.md#screening-vs-inference)) — this chapter
+Four things. Three arrive from earlier chapters; the fourth is a dial you have
+already set.
+
+- **A completed [project profile](GLOSSARY.md#project-profile) (01).** This is the
+  constraint list the entire chapter runs on: task shape, quality/reliability target,
+  latency/throughput needs, privacy/residency constraints, data and knowledge
+  availability, tool/action permissions, owned and rentable compute, capex/opex
+  budget, deployment environment, regulatory constraints. Anything blank here is a
+  filter you will not be able to apply.
+- **A trusted evaluation instrument (03)** capable of scoring candidates on the task
+  — including its measured
+  [reachability ceiling](GLOSSARY.md#reachability-ceiling) and any known stratum
+  weaknesses. Without the ceiling you cannot tell a candidate's failure from a
+  question nobody could have answered.
+- **The [rigor dial](GLOSSARY.md#rigor-dial) / [stakes tier](GLOSSARY.md#stakes-tier)
+  from 00 §6**, which sets how much selection rigor is mandatory versus optional.
+- **Chapter 04's screening machinery**: [MDE](GLOSSARY.md#mde), the
+  [elimination rule](GLOSSARY.md#elimination-rule), and the
+  [screening vs inference](GLOSSARY.md#screening-vs-inference) boundary. This chapter
   produces the candidates that machinery screens; it does not re-derive the
   statistics.
 
 ## 3. Decisions this chapter supports
 
-- Which model candidates enter the frozen experiment (04) at all, and which are
-  filtered before spending any evaluation budget.
-- Which runtime/serving engine executes each candidate, and under what regime —
-  determinism/provenance, throughput, vendor-optimized, managed-provider, or hybrid.
-- Whether and which agent/harness framework wraps a candidate, and how that choice is
-  evaluated (a doctrine-only procedure at this writing — see §5).
-- Whether design-time selection work is currently premature, on schedule, or overdue
-  relative to eval trust and the project timeline.
+- **Which candidates are worth paying to evaluate?** Which models enter the frozen
+  experiment (04) at all, and which are filtered out before any evaluation budget is
+  spent on them.
+- **What runs them, and under which regime?** Which runtime/serving engine executes
+  each candidate — determinism/provenance, throughput, vendor-optimized,
+  managed-provider, or hybrid.
+- **Does a harness wrap the candidate, and which one?** Including how that choice is
+  evaluated — a doctrine-only procedure at this writing, see §5.
+- **Is it time yet?** Whether design-time selection work is currently premature, on
+  schedule, or overdue relative to eval trust and the project timeline.
 
 ## 4. Normative principles
 
@@ -68,69 +102,91 @@ gates and tripwires operationalize both boundaries.
 vendor corpus, where design-time model comparison is documented "no procedure" and
 runtime-engine selection is documented "measured, not decided, no decision rules
 anywhere")
-The candidate universe (every model family, size, quantization, and license
-combination) is unbounded; the project profile is what bounds it. Hard filters
-derived from the profile — not preference, not leaderboard rank — decide which
-candidates are even eligible before any evaluation budget is spent. §5 gives the
-procedure.
+
+The candidate universe — every model family, size, quantization, and license
+combination — is unbounded. The project profile is the thing that bounds it. So the
+filters that decide eligibility are derived from the profile, and they are applied
+*before* any evaluation budget is spent: not preference, not leaderboard rank. §5
+gives the procedure.
 
 **[PRINCIPLE] No universal runtime winner — select by measured regime fit.**
 (strong-evidence)
-Runtime/serving engines optimize for structurally different regimes: bit-identical
-provenance for internal comparisons is not the same problem as maximum tokens/second
-under production concurrency, and neither is the same problem as offloading weight
-custody to a managed provider. External corroboration: independently, the
-nondeterminism/batch-invariance literature shows deterministic execution modes are
-opt-in and cost throughput in the engines that ship them
-[EXT-DETERM-001], and a separate research cluster on serving sensitivity finds
-backend choice alone — holding the model fixed — can move measured quality scores
-materially, not merely speed [EXT-PERF-003]. This is the resolution to the
-contested pair between "use the fast throughput engine" and "use the
-determinism-friendly engine": there is no context-free answer, only a regime match.
-§5 gives the criterion table.
+
+Serving engines are not competing to win the same race. Producing bit-identical
+provenance for an internal comparison is one problem. Squeezing maximum tokens per
+second out of a box under production concurrency is a second. Handing weight custody
+to a managed provider is a third. An engine that is excellent at one of these has
+usually traded away something the others need.
+
+External corroboration comes from two independent directions. The
+nondeterminism/batch-invariance literature shows that deterministic execution modes
+are opt-in, and that they cost throughput in the engines that ship them
+[EXT-DETERM-001]. A separate research cluster on serving sensitivity finds that
+backend choice alone — model held fixed — can move measured quality scores
+materially, not merely speed [EXT-PERF-003].
+
+This is also the resolution to a contested pair you will meet in the wild: "use the
+fast throughput engine" versus "use the determinism-friendly engine." There is no
+context-free answer to that argument. There is only a regime match. §5 gives the
+criterion table.
 
 **[PRINCIPLE] Runtime and harness are part of the frozen execution system.**
 (strong-evidence — direct application of chapter 02's execution-system definition)
+
 A [comparability claim](GLOSSARY.md#comparability-claim) is only as good as its
-[frozen identity](GLOSSARY.md#frozen-identity); runtime, harness version, and
-hardware are named components of that identity (02), not incidental deployment
-detail. Swapping any of them mid-comparison without re-measuring is the
-"the model got better/worse" anti-pattern from 00 §9, and the empirical basis is
-concrete: backend choice alone has been shown to move quality scores by double-digit
-percentage points [EXT-PERF-003].
+[frozen identity](GLOSSARY.md#frozen-identity), and runtime, harness version, and
+hardware are named components of that identity (02) — not incidental deployment
+detail. Swap any of them mid-comparison without re-measuring and you have produced
+the "the model got better/worse" anti-pattern from 00 §9. The basis for that is not
+abstract: published work reports backend choice alone moving quality scores by up to
+16.6 percentage points [EXT-PERF-003] — research-only, so treat it as a reason to
+measure your own stack rather than as a number to carry around.
 
 **[PRINCIPLE] Eligibility gates run before selection, and never bend task
 semantics to fit a candidate.** (inference — first-principles corollary of
 02's frozen-instrument/comparability requirement)
-A candidate that cannot meet a hard filter (license, context length, tool-call
-support, deployability) is ineligible; the fix is a thin serving adapter at most,
-never a change to what the task requires. Changing the yardstick to fit one
-candidate breaks the comparison for every other candidate measured against the
-original yardstick.
+
+A candidate that cannot meet a hard filter — license, context length, tool-call
+support, deployability — is ineligible. The most you may do about that is put a thin
+serving adapter in front of it. What you may never do is change what the task
+requires. Changing the yardstick to fit one candidate breaks the comparison for every
+other candidate that was measured against the original yardstick.
 
 **[DEFAULT] Model diversity — complementary failure profiles, not just individual
-scores.** (case-study)
-A candidate that leads on an aggregate score can still lose on strata another
-candidate handles cleanly, because different model families tend to fail
-differently and often silently (a confidently wrong answer, not a refusal —
-[silent failure](GLOSSARY.md#silent-failure)). Before declaring one candidate
-dominant, check pairwise pass-set overlap and unique-success counts, not the
-aggregate alone [SCENARIO: SCENARIO-07]. This is what makes a downstream
-[cascade](GLOSSARY.md#cascade) worth building at all: a second arm earns its keep
-by [rescuing](GLOSSARY.md#rescue) cases the first arm fails, which requires the
-failure sets to be genuinely different, not a strict subset. Chapter 08 is where
-this principle becomes a routing system.
+scores.** (inference — argued from what a cascade requires; illustrated, not
+established, by an invented case)
+
+Two candidates can post nearly the same aggregate score and be wrong about entirely
+different things. Model families tend to fail differently, and they mostly fail
+quietly — a confidently wrong answer rather than a refusal, which this playbook calls
+a [silent failure](GLOSSARY.md#silent-failure). So a candidate that leads on an
+aggregate score can still lose on strata another candidate handles cleanly.
+
+Before declaring one candidate dominant, then, check pairwise pass-set overlap and
+unique-success counts, not the aggregate alone [SCENARIO: SCENARIO-07].
+
+The reasoning here is argued rather than measured, and the argument is structural. A
+[cascade](GLOSSARY.md#cascade) earns its keep only when the second arm
+[rescues](GLOSSARY.md#rescue) cases the first arm fails. If the second arm's
+successes are a strict subset of the first's, there is nothing to rescue and the extra
+tier buys nothing. Complementarity is therefore a precondition for any downstream
+routing design, and shortlisting is the cheapest moment to measure it. Chapter 08 is
+where this becomes a routing system.
 
 **[DEFAULT] Eval trust precedes selection; selection precedes optimization.**
 (consensus — restated from 00 P1 and the default lifecycle, 00 §5)
-Do not select against an unvalidated instrument (P1, P2); do not spend the
+
+Do not select against an unvalidated instrument (P1, P2). Do not spend the
 optimization ladder's budget (07) on a candidate set that was never properly
 shortlisted. Selection sits structurally between "the instrument is trustworthy" and
 "now improve the winner."
 
 ## 5. Default procedure
 
-### 5.1 Candidate-set construction
+### 5.1 Building the candidate set
+
+Nine steps, in order. The first five cost almost nothing and remove most of the
+universe; the last four are where the evaluation budget goes.
 
 | Step | Action | Notes |
 |---|---|---|
@@ -144,8 +200,9 @@ shortlisted. Selection sits structurally between "the instrument is trustworthy"
 | 8 | Break remaining ties with a pre-registered ladder | E.g., pass-count → silent-failure rate → capacity-cap-hit rate → latency → size, with latency/size as tie-breaks only, never the primary criterion |
 | 9 | Confirm the winner on the confirmation split (04) | Record the decision and its evidence |
 
-**Hard-filter dimensions** (derive each from the project profile; mark N/A
-explicitly rather than skipping):
+**Hard-filter dimensions.** Derive each one from the project profile. Where a
+dimension does not apply to your project, mark it N/A explicitly rather than skipping
+it — the written N/A is what stops a filter from being quietly forgotten later.
 
 | Dimension | What it filters | Typical source in the profile |
 |---|---|---|
@@ -161,13 +218,47 @@ explicitly rather than skipping):
 | Cost / latency / complexity | Recurring budget, SLA, operational headcount to run it | Recurring budget, latency/SLA, staffing |
 | Reproducibility | Whether the execution surface supports a frozen, pinned identity (02) | — (derived, not asked directly) |
 
-A dimension that eliminates every candidate is a signal the profile itself needs
-revisiting (01), not a reason to quietly relax the filter.
+If some dimension eliminates every candidate you have, that is a signal about the
+profile, not about the filter. Go back to 01 and revisit the requirement. It is not a
+reason to quietly relax the filter until something survives.
+
+**Running steps 4 and 7 concretely: the quantization case.** Two quantizations of one
+base model are the commonest near-duplicate pair, and this is where "close enough"
+usually gets asserted instead of measured. The gate is runnable, and it has five
+parts:
+
+1. **Check it loads where it will actually serve, before anything else.** A format
+   that works on your development box tells you nothing about the deployment target.
+   Some vendor formats are tied to a single GPU architecture family and will either
+   refuse to run elsewhere or drop silently onto a slower fallback path (02 §5 Step
+   5) — the silent fallback being the worse outcome, because it looks like it worked.
+   A candidate that fails this is removed, not scored, and you have spent nothing.
+2. **Write both numbers down before the run.** A **quality floor** — an absolute pass
+   rate on your instrument that the smaller artifact must reach, not a gap against
+   the larger one — and a **resource ratio** — how much memory, throughput, or cost
+   per success the smaller artifact has to actually buy you. Both fixed in the
+   contract, in advance (04).
+3. **Compare them on the iterate split, paired.** Same items, same order, everything
+   else pinned, one factor different (04). This is cheap screening; it is not a
+   qualification look, and it carries no significance claim.
+4. **Promote only on both conditions** — step 7. Quality floor **and** resource ratio.
+   A resource saving on its own never promotes a candidate, however large it is.
+5. **Read a small measured gap correctly.** If the quality difference between the two
+   quantizations falls below the pilot's own MDE, the design failed to separate them.
+   That is [INCONCLUSIVE](GLOSSARY.md#inconclusive) — it is not a demonstration that
+   the two are equivalent, and §8 states what it does and does not license. The
+   warrant for promoting the smaller artifact is the absolute quality floor it
+   cleared, never an equivalence you inferred from a gap the design could not resolve.
+
+Chapter 07 owns the quantization decision itself, as one rung of its acceptance-gated
+optimization ladder. This chapter's job is narrower: deciding which quantized
+artifacts are even eligible to be compared.
 
 ### 5.2 Runtime/serving-engine selection — the regime criterion
 
-There is no universal best runtime. Select the **regime** the project profile
-requires, then choose an engine within that regime — never the reverse.
+There is no universal best runtime. Pick the **regime** your project profile requires,
+then choose an engine inside that regime. Never the reverse — an engine chosen first
+will quietly rewrite your requirements to match what it is good at.
 
 | Regime | Optimizes for | Typical properties | As-of-dated examples (2026-08-21 — examples, not verdicts) |
 |---|---|---|---|
@@ -177,30 +268,39 @@ requires, then choose an engine within that regime — never the reverse.
 | **Managed-provider** | No weight custody; someone else's infrastructure | Provider-redeploy is a [reproducibility-boundary](GLOSSARY.md#reproducibility-boundary) hazard — a silent backend change can invalidate a running comparison | (execution surface, not a named engine) |
 | **Hybrid** | Different regimes at different tiers of one system | E.g., a determinism-regime local specialist escalating to a managed-provider tier | — |
 
-Decision procedure:
+The decision procedure, in five steps.
 
-1. From the project profile, answer: does any planned comparison require
-   session-scoped, near-bit-identical reproducibility? Does the deployment need
-   production-scale concurrency/throughput? Does a **written**
-   privacy/residency/security requirement prohibit every managed configuration
-   that satisfies the project's retention, residency, tenancy, and data-handling
-   requirements — including in-tenant/VPC-scoped, no-retention, region-bound
-   ones — for some or all traffic? (If a compliant managed configuration exists,
-   the constraint narrows *which* surfaces are admissible; it does not mandate
-   self-hosting — the same test as QUICKSTART step 3 node 5 and 11 Q0a.) Is
-   there a committed enterprise support requirement?
-2. Map the answers to a primary regime (or a hybrid split across tiers of a
-   [cascade](GLOSSARY.md#cascade), 08).
-3. Within the chosen regime, evaluate specific engines with chapter 06's
-   performance-characterization methodology — regime selection narrows the field;
-   it does not replace measurement.
-4. Even within the throughput regime, a determinism sub-mode may exist as an
-   opt-in cost: batch-invariant execution modes are documented in major throughput
-   engines as of the verification date, at a measured throughput cost
-   [EXT-DETERM-001]. Decide explicitly whether that cost is worth paying for a
-   given comparison; do not assume the default mode is deterministic.
-5. The chosen engine, version, and launch configuration MUST be recorded as part
-   of the execution-system identity (02) — never as an incidental deployment note.
+**Step 1 — put four questions to the project profile.**
+
+- Does any planned comparison require session-scoped, near-bit-identical
+  reproducibility?
+- Does the deployment need production-scale concurrency/throughput?
+- Does a **written** privacy/residency/security requirement prohibit every managed
+  configuration that satisfies the project's retention, residency, tenancy, and
+  data-handling requirements — including in-tenant/VPC-scoped, no-retention,
+  region-bound ones — for some or all traffic?
+- Is there a committed enterprise support requirement?
+
+The third question is the one people answer too fast. If a compliant managed
+configuration exists, the constraint narrows *which* surfaces are admissible; it does
+not mandate self-hosting. That is the same test as QUICKSTART step 3 node 5 and 11
+Q0a.
+
+**Step 2 — map the answers to a primary regime**, or to a hybrid split across tiers of
+a [cascade](GLOSSARY.md#cascade) (08).
+
+**Step 3 — evaluate specific engines inside the chosen regime**, using chapter 06's
+performance-characterization methodology. Regime selection narrows the field. It does
+not replace measurement.
+
+**Step 4 — do not assume the default mode is deterministic**, even in the throughput
+regime. Batch-invariant execution modes are documented in major throughput engines as
+of the verification date, at a measured throughput cost [EXT-DETERM-001]. They are
+opt-in. Decide explicitly whether that cost is worth paying for a given comparison.
+
+**Step 5 — record the chosen engine, version, and launch configuration** as part of
+the execution-system identity (02). This is a MUST, and it is not an incidental
+deployment note.
 
 **[STOP CONDITION]** A runtime, engine version, or launch configuration changed
 between two measurements being compared, and no re-measurement has been run. Treat
@@ -211,16 +311,16 @@ the prior comparability claim as void until re-measured (P5).
 *status: doctrine — not yet exercised (see the comparison design below in this
 section for what validation would look like)*
 
-A harness (agent framework, orchestration layer, coding-agent CLI) wraps a model
-with a system prompt, tool schemas, memory/context management, and its own
-observability surface. It is part of the execution system (02) exactly like the
-model and the runtime, and it needs the same selection discipline — but no internal
-or cited external execution record exists for a harness comparison run under this
-playbook's discipline. What follows is the procedure to run one, not a validated
-result.
+A harness — an agent framework, an orchestration layer, a coding-agent CLI — wraps a
+model with a system prompt, tool schemas, memory and context management, and its own
+observability surface. That makes it part of the execution system (02) in exactly the
+way the model and the runtime are, and it needs the same selection discipline. But no
+internal or cited external execution record exists for a harness comparison run under
+this playbook's discipline. What follows is the procedure for running one. It is not a
+validated result.
 
-**Dimension checklist** (evaluate each harness candidate against the task, not in
-the abstract):
+**Dimension checklist.** Evaluate each harness candidate against your actual task, not
+in the abstract.
 
 | Dimension | What to check |
 |---|---|
@@ -232,24 +332,24 @@ the abstract):
 | Cost overhead | Tokens and wall-clock spent by the harness's own scaffolding (system prompt, tool schemas, memory files) versus the task |
 | Version churn | Release cadence and breaking-change history — a harness that changes weekly needs a pinning and re-validation policy |
 
-**Comparison design:** compare harnesses via a same-model, same-task
-cross-harness experiment — same repository/task set, same underlying model, same
-reasoning configuration, only the harness varied. Where model equality across
-harnesses is not achievable (e.g., a harness bundles a fixed model), the result is
-an execution-system comparison, not a harness comparison — label it that way rather
-than attributing the delta to the harness alone.
+**Comparison design.** Compare harnesses with a same-model, same-task cross-harness
+experiment: same repository or task set, same underlying model, same reasoning
+configuration, only the harness varied. Sometimes model equality across harnesses is
+not achievable — a harness that bundles a fixed model, for instance. In that case the
+result is an execution-system comparison rather than a harness comparison. Label it
+that way instead of attributing the delta to the harness alone.
 
-**Isolate harness overhead from model capability.** When benchmarking a model
-*through* an agent or subscription-CLI harness for a model-selection decision,
-either strip the harness's default wrapping (system prompt, tool schemas, memory
-files) down to a bare completion call, or explicitly scope the result as an
-execution-system comparison that includes the harness. Otherwise the measurement
-captures the harness's scaffolding overhead and reports it as if it were the
-model's own capability or cost — an instance of the frozen-execution-system
-principle above, applied specifically to selection-stage benchmarking.
+**Isolate harness overhead from model capability.** Benchmarking a model *through* an
+agent or subscription-CLI harness, for a model-selection decision, gives you two
+choices. Strip the harness's default wrapping — system prompt, tool schemas, memory
+files — down to a bare completion call. Or explicitly scope the result as an
+execution-system comparison that includes the harness. Take neither, and the
+measurement captures the harness's scaffolding overhead and reports it as if it were
+the model's own capability or cost. This is the frozen-execution-system principle
+above, applied specifically to selection-stage benchmarking.
 
-**Harness version is part of execution-system identity** (02): it MUST be pinned
-exactly as model artifact and runtime build are pinned; a harness upgrade
+**Harness version is part of execution-system identity** (02). It MUST be pinned
+exactly as the model artifact and the runtime build are pinned. A harness upgrade
 mid-comparison is the same reproducibility hazard as a runtime upgrade.
 
 ### 5.4 The first baseline execution system
@@ -257,29 +357,31 @@ mid-comparison is the same reproducibility hazard as a runtime upgrade.
 *status: doctrine — not yet exercised (see this subsection for what validation
 would look like)*
 
-The lifecycle's "simplest credible baseline" step is not another candidate for
-§5.1's shortlist — it is the first end-to-end system that shortlist has anything to
-be screened against. Build it before running the screening protocol (§5.1 step 6),
-on the cheapest candidate that survives hard filtering, with nothing more than:
+The lifecycle's "simplest credible baseline" step is not another candidate for §5.1's
+shortlist. It is the first end-to-end system that shortlist has anything to be
+screened *against*. Build it before you run the screening protocol (§5.1 step 6), on
+the cheapest candidate that survived hard filtering, out of exactly three things:
 
 1. **An output schema.** The exact structure the task requires — shape, required
    fields, allowed value ranges — fixed before any prompt is written, not inferred
    after the fact from whatever the model happens to emit.
 2. **A deterministic verifier for that schema.** A parser/validator that mechanically
    accepts or rejects an output against the schema, with no model-in-the-loop
-   judgment in this check; chapter 03's RC-1 instrument-defect discipline applies to
+   judgment in this check. Chapter 03's RC-1 instrument-defect discipline applies to
    the verifier itself.
 3. **A context policy.** What evidence the task receives, in what order, up to what
    budget — a stated rule, not whatever happens to fit.
 
-Nothing else: no retrieval, no tool use, no routing, no fine-tuning — those are
-chapters 07/08/09's job once a diagnosed gap justifies climbing to them (the
-lifecycle order, 00 §5). Pin this combination — model, prompt, schema, verifier,
-context policy — as a [frozen identity](GLOSSARY.md#frozen-identity) (02) *before*
-it is scored against the evaluation instrument (03): a baseline that can still
-change between "build it" and "score it" produces a comparability claim about
-nothing in particular. Its scored result enters the screening comparison (§5.1 step
-6) as an ordinary row, not an exempt reference point.
+Nothing else. No retrieval, no tool use, no routing, no fine-tuning: those belong to
+chapters 07, 08, and 09, once a diagnosed gap justifies climbing to them (the
+lifecycle order, 00 §5).
+
+Then pin the combination — model, prompt, schema, verifier, context policy — as a
+[frozen identity](GLOSSARY.md#frozen-identity) (02) *before* it is scored against the
+evaluation instrument (03). A baseline that can still change between "build it" and
+"score it" produces a comparability claim about nothing in particular. Its scored
+result then enters the screening comparison (§5.1 step 6) as an ordinary row, not as
+an exempt reference point.
 
 ## 6. Project adaptation parameters
 
@@ -310,26 +412,27 @@ not let an engine's popularity substitute for a regime match.
 identity (02).
 
 **[STOP CONDITION] Selection continuing without a trusted evaluation.** Global
-tripwire #1 from 00 §7, applied here directly: no shortlist ranking, no runtime
-choice justified by "it scored better," is meaningful until the instrument
-(03) is trusted.
+tripwire #1 from 00 §7, applied here directly: no shortlist ranking, and no runtime
+choice justified by "it scored better," is meaningful until the instrument (03) is
+trusted.
 
 **[STOP CONDITION] Selection stalling past the project's first-sprint contract
-deadline (01).** Indefinite re-shortlisting without freezing is a selection-stage
-version of the "relaxed lane" anti-pattern (00 §9) — a way to keep deferring a
-committed decision.
+deadline (01).** Re-shortlisting indefinitely without ever freezing is a
+selection-stage version of the "relaxed lane" anti-pattern (00 §9) — a way of
+deferring a committed decision while looking busy.
 
 **[STOP CONDITION] A margin-based elimination is about to happen below the
-screening pilot's own MDE.** Applies the elimination rule (04,
+screening pilot's own MDE.** This applies the elimination rule (04,
 [GLOSSARY](GLOSSARY.md#elimination-rule)) at the selection stage specifically:
 neither candidate is dropped on a margin the design cannot resolve.
 
 ## 8. Metrics and formulas
 
-The statistical machinery that decides whether a screening margin is resolvable
-(MDE, [effective N](GLOSSARY.md#effective-n), the elimination rule) belongs to
-chapter 04 and [references/STATISTICS_FORMULAS.md](references/STATISTICS_FORMULAS.md);
-this chapter only states how it is *used* at the selection stage:
+The statistical machinery that decides whether a screening margin is resolvable —
+MDE, [effective N](GLOSSARY.md#effective-n), the elimination rule — belongs to
+chapter 04 and
+[references/STATISTICS_FORMULAS.md](references/STATISTICS_FORMULAS.md). This chapter
+only states how it is *used* at the selection stage:
 
 > A candidate is eliminated on a measured margin only if that margin exceeds the
 > screening design's own MDE at the stated α and power. A margin below MDE is
@@ -343,9 +446,9 @@ candidates measure 6 points apart on the pilot. Since 6 < 18, the margin is
 INCONCLUSIVE for elimination: neither candidate is dropped on this evidence alone.
 
 **Selection scorecard (non-statistical criteria only).** Once quality is settled by
-the statistical machinery — or tied within MDE — cost, latency, and complexity
-differences are resolved with a simple pre-registered weighted score, never used to
-override a quality decision the statistics could resolve:
+the statistical machinery — or tied within MDE — the remaining differences in cost,
+latency, and complexity are resolved with a simple pre-registered weighted score. It
+is never used to override a quality decision the statistics could resolve:
 
 ```
 score(candidate) = Σ_i  w_i · normalized_criterion_i(candidate)
@@ -367,11 +470,11 @@ reproducibility 0.1):*
 | Latency | 0.2 | 0.60 | 0.70 |
 | Complexity | 0.1 | 0.70 | 0.90 |
 | Reproducibility | 0.1 | 0.90 | 0.60 |
-| **Weighted score** | | **0.70** | **0.79** |
+| **Weighted score** | | **0.72** | **0.79** |
 
-Here B wins the scorecard despite A's higher capability score — legitimate only
-because capability was already established as tied within MDE before the scorecard
-ran; the scorecard never substitutes for that check.
+Here B wins the scorecard despite A's higher capability score. That is legitimate
+only because capability had already been established as tied within MDE before the
+scorecard ran. The scorecard never substitutes for that check.
 
 ## 9. Failure modes and anti-patterns
 
@@ -382,8 +485,8 @@ ran; the scorecard never substitutes for that check.
   structured-output reliability. Restates 00 §9's benchmark-worship rejection,
   specific to the selection stage.
 - **A permanent runtime default.** Declaring one engine the standing choice without
-  re-checking the regime match as project needs (concurrency, determinism
-  requirements, deployment target) change. There is no universal winner (§4).
+  re-checking the regime match as project needs — concurrency, determinism
+  requirements, deployment target — change. There is no universal winner (§4).
 - **Unstripped-harness benchmarking attributed to the model.** Running a
   model-selection benchmark through an agent/subscription CLI's default wrapping
   and reporting the result as the model's own capability or cost, rather than as an
@@ -391,28 +494,30 @@ ran; the scorecard never substitutes for that check.
 - **Aggregate-score dominance claims.** Declaring one candidate dominant from an
   aggregate score without checking pairwise pass-set overlap and unique-success
   counts first (§4).
-- **Resource-savings-only promotion.** Promoting an "efficiency" candidate
-  (smaller, cheaper, faster) on resource savings alone, without the joint quality
-  floor.
+- **Resource-savings-only promotion.** Promoting an "efficiency" candidate — smaller,
+  cheaper, faster — on resource savings alone, without the joint quality floor.
 - **Bending task semantics to fit a candidate.** Modifying what the task requires,
   rather than accepting a candidate's ineligibility or adding a thin serving
   adapter (§4).
 
-**[SCENARIO: SCENARIO-06]** A generation-length (decoding budget) cap shared across
-compared arms confounded a design-time model comparison: an apparent quality gap
-shrank substantially once the operational constraint was isolated in its own
-one-factor experiment. Before attributing any selection-stage delta to "the model,"
-verify no shared operational constraint — context length, decoding budget, timeout
-— is capping one arm disproportionately. Cross-references chapter 04's
-one-factor-per-arm discipline and chapter 07's generation-budget calibration
-procedure.
+**[SCENARIO: SCENARIO-06]** An invented case in which one line of configuration — a
+cap on how many tokens a model may generate — was shared across both arms of a
+design-time model comparison and was doing work everyone attributed to the models. An
+apparent quality gap shrank substantially once that operational constraint was
+isolated in its own one-factor experiment. So before you attribute any selection-stage
+delta to "the model," verify that no shared operational constraint — context length,
+decoding budget, timeout — is capping one arm disproportionately. Cross-references
+chapter 04's one-factor-per-arm discipline and chapter 07's generation-budget
+calibration procedure.
 
-**[SCENARIO: SCENARIO-07]** A deterministic cascade gate over two locally-served
-candidates achieved near-complete rescue with negligible unnecessary escalation —
-outside the design space of the published learned-router literature — because the
-two arms' failure sets were genuinely complementary rather than nested. The
-selection-stage lesson: measuring pairwise complementarity during shortlisting is
-what makes a downstream cascade (08) worth building at all.
+**[SCENARIO: SCENARIO-07]** An invented case in which a deterministic cascade gate
+escalates a small locally-served model's failures to a stronger hosted tier. It
+rescues the large majority of what it escalates while escalating nothing
+unnecessarily — a design outside the space covered by the published learned-router
+literature — and it works because the two arms' failure sets are genuinely
+complementary rather than nested. The selection-stage lesson: measuring pairwise
+complementarity during shortlisting is what makes a downstream cascade (08) worth
+building at all.
 
 ## 10. Vendor recipes
 
@@ -429,32 +534,34 @@ what makes a downstream cascade (08) worth building at all.
 ## 11. Worked examples
 
 *Illustrative scenario (invented, non-project-specific).* A team is building a
-document-summarization assistant with a data-residency constraint (no managed API
-for source documents) and a memory ceiling that rules out the largest local
-model class.
+document-summarization assistant. Two constraints are fixed before any model is
+named: a data-residency rule that keeps source documents off managed APIs, and a
+memory ceiling that rules out the largest local model class.
 
-1. **Hard filters (§5.1):** licensing permits commercial fine-tuning; execution
-   surface restricted to local/self-hosted; hardware fit caps the weight class
-   with explicit KV-cache/runtime-buffer headroom, not just weights; context
-   length covers the longest realistic document; structured output required for
-   the citation schema.
-2. **Shortlist and bake-off:** four candidates survive, spanning three families
-   deliberately rather than quantizations of one base model; two quantizations of
-   one family are compared cheaply on the iterate split first, and the weaker one
+1. **Hard filters (§5.1).** Licensing permits commercial fine-tuning. Execution
+   surface is restricted to local/self-hosted. Hardware fit caps the weight class,
+   counting KV-cache and runtime-buffer headroom explicitly rather than weights
+   alone. Context length has to cover the longest realistic document. Structured
+   output is required for the citation schema.
+2. **Shortlist and bake-off.** Four candidates survive, spanning three families
+   deliberately rather than quantizations of one base model. Two quantizations
+   of one family are compared cheaply on the iterate split first, and the weaker one
    is dropped before full screening.
-3. **Regime (§5.2):** the residency constraint rules out the managed-provider
-   regime entirely; session-scoped reproducibility needs during screening make the
-   determinism/provenance regime primary, with a throughput-regime engine held in
+3. **Regime (§5.2).** The residency constraint rules out the managed-provider regime
+   entirely. Session-scoped reproducibility needs during screening make
+   determinism/provenance the primary regime, with a throughput-regime engine held in
    reserve for the eventual production deployment.
-4. **Screening and tie-break (04, §8):** the three remaining candidates run the
-   pilot; two are separated by a margin below the pilot's MDE and both proceed,
-   deferred to the qualification split rather than eliminated. On the confirmation
-   split, quality resolves statistically and the scorecard is not needed.
+4. **Screening and tie-break (04, §8).** The three remaining candidates run the pilot.
+   Two are separated by a margin below the pilot's MDE, so both proceed, deferred to
+   the qualification split rather than eliminated. On the confirmation split, quality
+   resolves statistically and the scorecard is never needed.
 
-Further worked examples from the case library: [SCENARIO-06](examples/SCENARIO-06_token-budget-confounding.md)
-(a confound that inflated an apparent selection-stage quality gap) and
-[SCENARIO-07](examples/SCENARIO-07_deterministic-cascade-gate.md) (complementary arms
-enabling a cascade).
+Further worked examples from the invented-example set:
+[SCENARIO-06](examples/SCENARIO-06_token-budget-confounding.md) — a shared output cap
+that manufactured an apparent selection-stage quality gap and reversed the ranking
+once it was lifted; and
+[SCENARIO-07](examples/SCENARIO-07_deterministic-cascade-gate.md) — complementary
+arms making a cascade worth building.
 
 ## 12. Outputs and artifacts
 
@@ -468,8 +575,8 @@ enabling a cascade).
 - The first baseline execution system's frozen identity (§5.4): output schema,
   deterministic verifier, context policy, and model/prompt pin, recorded the same
   way as any other execution-system identity (02), before it is scored.
-- Any deviation from this chapter's defaults (regime choice against the criterion,
-  shortlist size, tie-break order) recorded in
+- Any deviation from this chapter's defaults — regime choice against the criterion,
+  shortlist size, tie-break order — recorded in
   [templates/METHOD_DECISION_RECORD.md](templates/METHOD_DECISION_RECORD.md) with
   its evidence and review date.
 

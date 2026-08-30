@@ -148,11 +148,12 @@ produced under conditions that make them mean anything.
 The scarce resources of a small lab are operator attention and measurement validity,
 not compute. Stopping rules, tolerances, and gates exist to make decisions *priced
 and chosen* rather than drifted into.
-This is also why speed is the wrong thing to sell them on. In the one internally
-measured instance, certainty curtailment would have recovered only about 2% of total
-wall clock [SCENARIO: SCENARIO-01] — because that project's dominant arm happened to sit
-near its qualification bar, not because a stopping rule's speed value is generically
-small. On a project where hopeless arms dominate wall clock, or per-item cost is high,
+This is also why speed is the wrong thing to sell them on. On the one project where
+this was actually measured, certainty curtailment would have recovered only about 2% of
+total wall clock — because that project's dominant arm happened to sit near its
+qualification bar, not because a stopping rule's speed value is generically small. That
+measurement is not published here; [SCENARIO: SCENARIO-01] walks the same shape through
+an invented case so you can follow the reasoning. On a project where hopeless arms dominate wall clock, or per-item cost is high,
 the speed value can be genuinely large, and that is not itself a problem (§9). The
 correct fix for an expensive failure mode is usually a consequence attached to a
 tolerance, not a faster loop.
@@ -436,9 +437,9 @@ argued against *because* they cost wall clock)
   save time — not the possibility that a correctly-guarded rule also runs faster.
   Stopping rules purchase decision quality; a rule adopted for decision quality MAY
   incidentally save time too, and that is a welcome side effect, not the
-  justification. In the one internally measured instance the recoverable wall
-  clock was small — about 2% of the run [SCENARIO: SCENARIO-01] — but the rejection does
-  not depend on that number, and does not become weaker on a project where the
+  justification. On the one project where it was measured the recoverable wall
+  clock was small — about 2% of the run, a shape [SCENARIO: SCENARIO-01] works through —
+  but the rejection does not depend on that number, and does not become weaker on a project where the
   speed value is genuinely large (P4).
 
 ## 10. Vendor recipes
