@@ -1,34 +1,76 @@
 # Changelog
 
 > Part of the **Adaptive AI Systems Playbook** · [Index](README.md)
->
-> Every entry records three things, mandatorily: **what changed**, **why**, and
-> **the evidence that forced it**. Method adoptions/rejections carry a
-> [METHOD_DECISION_RECORD](templates/METHOD_DECISION_RECORD.md); source-ledger
-> re-verification sweeps are PATCH entries.
 
-Versioning (semver, interpretation fixed at 0.1.0):
-- **0.x** — the methodology is being generalized/validated; one source project is
-  the only full instantiation.
-- **1.0** — gated on successful instantiation on at least two materially different
-  project types, each carried through at least one frozen, executed experiment
-  contract using only this playbook (no source-project knowledge).
+Every entry here records three things, and all three are mandatory: **what
+changed**, **why**, and **the evidence that forced it**. A decision to adopt or
+reject a method also carries a
+[METHOD_DECISION_RECORD](templates/METHOD_DECISION_RECORD.md). A sweep that
+re-verifies the source ledger is filed as a PATCH.
+
+## What the version numbers mean
+
+The scheme is semver. Its interpretation was fixed at 0.1.0 and has not moved
+since.
+
+**A leading 0 is a statement about validation, not about polish.** While the version
+is **0.x**, the methodology is still being generalized and validated, and one source
+project is the only full instantiation of it. Read the chapters as procedures that
+have been carried all the way through once — not as procedures that many teams have
+run independently.
+
+**1.0 is gated, not scheduled.** Reaching it requires successful instantiation on at
+least two materially different project types. Each of those has to be carried
+through at least one frozen, executed experiment contract, using only this playbook
+and no source-project knowledge. Until that has happened, the number stays below 1
+however complete the book looks.
+
+Within that, each digit moves for its own reason:
+
 - **MAJOR** — a PRINCIPLE changes meaning, or a template's required sections change
-  incompatibly. **MINOR** — new method/chapter/template/supported execution surface;
-  a B→A promotion. **PATCH** — clarification, source refresh, link fix,
-  non-normative example.
+  incompatibly. These are the changes that can invalidate work already built against
+  an earlier version.
+- **MINOR** — a new method, chapter, template, or supported execution surface. A
+  B→A promotion counts here too: a statement that was a generic default hardening
+  into a generic normative principle, in the
+  [A–H classification](GLOSSARY.md#a-to-h-classification).
+- **PATCH** — a clarification, a source refresh, a link fix, a non-normative
+  example.
+
+---
+
+## A note on this build
+
+This is the public build of the playbook. It differs from the releases recorded
+below in one way that matters when you read them.
+
+The 0.1.0 and 0.1.1 releases shipped twelve case studies drawn from a real project,
+with that project's own measurements. This build does not contain them. They were
+removed before publication and replaced by twelve invented scenarios, `SCENARIO-01`
+through `SCENARIO-12`, which preserve each original's lesson and none of its data.
+
+The entries below describe those releases as they actually were. Where they mention
+case studies or empirical project evidence, that is an accurate record of what the
+release contained — not a description of the files in this build. Nothing in this
+build rests on that evidence: a scenario illustrates a rule and is never cited as
+support for one, and every claim the chapters call established is carried by an
+external source in the [ledger](references/SOURCES.md).
+
+The removal also means the `/versions/` history feature is disabled here. It
+reconstructed past releases from their git commits, which still contain the material
+that was removed.
 
 ---
 
 ## 0.1.1 — 2026-08-21 — independent-audit correction release (PATCH)
 
 An external independent audit of the committed v0.1.0 raised seven candidate
-findings. Each was independently re-verified against the repository, re-derived
+findings. Each one was independently re-verified against the repository, re-derived
 mathematically where applicable, and checked against the live source ledger before
-any edit; the audit's having raised an issue was never treated as evidence.
-Verdicts: 3 CONFIRMED, 4 PARTIALLY CONFIRMED, 0 rejected outright. Full
-dispositions: `docs/playbook-development/EVIDENCE_MAP.md` §4 (cited pre-restructuring
-as `docs/research/PLAYBOOK_INTERNAL_EVIDENCE_MAP.md`).
+any edit was made. That the audit had raised an issue was never itself treated as
+evidence. Verdicts: 3 CONFIRMED, 4 PARTIALLY CONFIRMED, 0 rejected outright. Full
+dispositions were recorded in the source project's evidence map, which is not part
+of this build.
 
 | What | Why | Evidence |
 |---|---|---|
@@ -46,10 +88,10 @@ as `docs/research/PLAYBOOK_INTERNAL_EVIDENCE_MAP.md`).
 | What | Why | Evidence |
 |---|---|---|
 | All 15 chapters (00–14), 9 templates, statistics formulary, vendor recipe notes, source ledger (101 sources), glossary (~90 terms), navigator (QUICKSTART + 6 archetypes + rigor dial), 12 empirical case studies, 10 synthetic worked examples, 1 synthetic end-to-end walkthrough | First authored version of the reusable, project-independent methodology; entry point for future projects | Extracted per the committed Pass-1 build plan and Pass-2 authoring spec from: a five-day experimental program's primary record (contracts, reports, autopsy, registries), two adversarially-verified 2026-08 research studies (vendor audit; methodology/hardware study re-derived against the source project's own trajectory data), and a live source re-verification sweep (2026-08-21) |
-| Generic-vs-project boundary enforced: project numerics and identities quarantined to `examples/CASE-*`; generic text carries procedures only | The playbook must be usable with zero source-project context; single-project numbers are not defaults | Build-plan extraction rules §5 ("numbers never travel; procedures travel"); release portability check |
+| Generic-vs-project boundary enforced: project numerics and identities kept out of the shipped examples; generic text carries procedures only | The playbook must be usable with zero source-project context; single-project numbers are not defaults | Build-plan extraction rules §5 ("numbers never travel; procedures travel"); release portability check |
 | Canonical failure taxonomy RC-1…RC-12 defined (ch. 03) with the intervention ladder keyed to it | The record carried two historical taxonomies plus an operating cause→action table; a single taxonomy with explicit mapping replaces a silent pick | Owner decision 9; historical taxonomies extracted verbatim and mapped (maintainer evidence map) |
 | Rigor dial: three stakes tiers over a six-item never-skippable floor | As written, the source methodology read all-or-nothing; proportionality was a named gap (G2) | Owner decision 10; validated against synthetic profiles incl. a deliberately low-stakes project (W4/W9) |
 | Judge-calibration protocol included as `doctrine — not yet exercised` (ch. 03) | Most client projects need judge-graded evals; the source project never exercised one — honesty marker instead of omission | Owner decision 1; JudgeBench/κ-deflation literature as the evidence base |
 | Source ledger with live re-verification: 68 verifications, 53 CONFIRMED, corrections folded in (incl. two claim-attribution corrections and one platform-sunset flag) | FOLLOW/ADAPT verdicts are dated claims; several load-bearing sources are volatile | Authoring-pass verification sweep of 2026-08-21, recorded per source in `references/sources.yaml` (`last_verified` + notes): e.g., the NVIDIA open-eval-recipe blog does not carry the pinning/smoke claims previously attributed to it; NeMo Customizer early-stopping defaults are code-level, not doc guidance; the hosted OpenAI Evals platform sunsets 2026-11-30 |
 | Rejections shipped as conditions, not verdicts (e.g., i.i.d.-calibrated sequential tests rejected *under clustered ordered execution*) | The source project's rejections were evidence-conditional; generic H-class is reserved for generically-wrong practices | Build-plan §5.4; statistics re-derivation on real trajectory data (α-inflation ~2.2× at measured clustering) |
-| Pre-release validation: navigator dry-runs on 7 synthetic profiles (incl. a deliberately low-stakes one for the rigor dial); adversarial scientific/portability/consistency reviews; per-number fact-check of all 12 case studies against the primary record; all BLOCKER/MAJOR findings fixed before tagging | The playbook's own methodology applied to itself: instruments validated before their scores are believed | ~119 recorded findings (19 blocker, 59 major) — highlights fixed: an inverted threshold-vs-ceiling sentence; a mis-derived routing false-negative break-even; SE-vs-MDE conflation in a worked example; a bindable minimum-κ gate added to judge calibration; the quantization acceptance gate bound to the statistics canon; archetype-tree disambiguation for in-tenancy-managed-API profiles; eight case-study numeric/framing corrections to match the primary record |
+| Pre-release validation: navigator dry-runs on 7 synthetic profiles (incl. a deliberately low-stakes one for the rigor dial); adversarial scientific/portability/consistency reviews; per-number fact-check of all 12 case studies; all BLOCKER/MAJOR findings fixed before tagging | The playbook's own methodology applied to itself: instruments validated before their scores are believed | ~119 recorded findings (19 blocker, 59 major) — highlights fixed: an inverted threshold-vs-ceiling sentence; a mis-derived routing false-negative break-even; SE-vs-MDE conflation in a worked example; a bindable minimum-κ gate added to judge calibration; the quantization acceptance gate bound to the statistics canon; archetype-tree disambiguation for in-tenancy-managed-API profiles; eight case-study numeric/framing corrections |
