@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compiled Experience: WikiSkill, the LLM Wiki, and autoresearch</title>
+<meta name="description" content="Research resource on compiling agent experience into persistent knowledge and evolved skills: WikiSkill (arXiv:2608.27454), Karpathy's LLM Wiki pattern, and karpathy/autoresearch — with an integration analysis and MVP proposal for the Adaptive AI Systems Playbook.">
+<meta name="date" content="2026-08-30">
+<style>
+  :root {
+    --bg: #faf9f6;
+    --bg-raised: #ffffff;
+    --bg-inset: #f1efe9;
+    --text: #23211c;
+    --text-muted: #6b675d;
+    --accent: #1a6b5e;
+    --accent-soft: #e3efec;
+    --rule: #ddd9cf;
+    --link: #14594e;
+    --mark: #fff3c4;
+    --warn-bg: #fdf3e4;
+    --warn-edge: #c98a2b;
+    --code-bg: #f1efe9;
+    --kept: #2e9e6b;
+    --discarded: #b9b4a7;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #191a1c;
+      --bg-raised: #202225;
+      --bg-inset: #26282c;
+      --text: #e6e3dc;
+      --text-muted: #a09b8f;
+      --accent: #5fc2ae;
+      --accent-soft: #1f3733;
+      --rule: #3a3d42;
+      --link: #7fd0be;
+      --mark: #4a4118;
+      --warn-bg: #33291a;
+      --warn-edge: #d09a45;
+      --code-bg: #26282c;
+      --kept: #4dbd88;
+      --discarded: #5c5f66;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Charter, Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  .page { max-width: 56rem; margin: 0 auto; padding: 0 1.25rem 6rem; }
+  header.doc-head {
+    border-bottom: 3px double var(--rule);
+    padding: 3rem 0 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .doc-kicker {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin: 0 0 0.75rem;
+  }
+  h1 { font-size: 2.1rem; line-height: 1.2; margin: 0 0 0.5rem; font-weight: 700; }
+  .doc-sub { font-size: 1.15rem; color: var(--text-muted); margin: 0 0 1.25rem; font-style: italic; }
+  h2 {
+    font-size: 1.55rem; line-height: 1.25; margin: 3rem 0 1rem;
+    padding-top: 1rem; border-top: 1px solid var(--rule);
+  }
+  h3 { font-size: 1.2rem; margin: 2rem 0 0.75rem; }
+  h4 { font-size: 1.02rem; margin: 1.5rem 0 0.5rem; font-family: system-ui, -apple-system, sans-serif; }
+  h2 .sec-num, h3 .sec-num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 0.4rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { text-decoration-thickness: 2px; }
+  .anchor-link { text-decoration: none; color: var(--rule); margin-left: 0.4rem; font-size: 0.85em; }
+  h2:hover .anchor-link, h3:hover .anchor-link { color: var(--accent); }
+  code, pre {
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.86em;
+  }
+  code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 0.9rem 1.1rem; overflow-x: auto; line-height: 1.5; margin: 0 0 1rem;
+  }
+  pre code { background: none; padding: 0; }
+  blockquote {
+    margin: 1.25rem 0; padding: 0.75rem 1.25rem;
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    border-radius: 0 8px 8px 0; font-style: italic;
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+  blockquote .attr { display: block; font-style: normal; font-size: 0.85rem; color: var(--text-muted); margin-top: 0.4rem; }
+  ul, ol { padding-left: 1.5rem; margin: 0 0 1rem; }
+  li { margin-bottom: 0.4rem; }
+  .table-wrap { overflow-x: auto; margin: 1.25rem 0; border: 1px solid var(--rule); border-radius: 8px; }
+  table {
+    border-collapse: collapse; width: 100%;
+    font-family: system-ui, -apple-system, sans-serif; font-size: 0.85rem;
+    background: var(--bg-raised);
+  }
+  caption {
+    caption-side: top; text-align: left; padding: 0.7rem 0.9rem 0.5rem;
+    font-family: system-ui, -apple-system, sans-serif; font-size: 0.82rem;
+    color: var(--text-muted); background: var(--bg-raised);
+  }
+  caption b { color: var(--text); }
+  th, td { padding: 0.45rem 0.8rem; border-top: 1px solid var(--rule); text-align: left; vertical-align: top; }
+  th { background: var(--bg-inset); font-weight: 600; border-top: none; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.hl td { background: var(--accent-soft); font-weight: 600; }
+  td .best { font-weight: 700; color: var(--accent); }
+  .fig { margin: 1.5rem 0; }
+  .fig svg { width: 100%; height: auto; display: block; }
+  .fig figcaption {
+    font-family: system-ui, -apple-system, sans-serif; font-size: 0.82rem;
+    color: var(--text-muted); margin-top: 0.6rem; line-height: 1.5;
+  }
+  .callout {
+    background: var(--bg-raised); border: 1px solid var(--rule); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 1rem 1.25rem; margin: 1.25rem 0;
+  }
+  .callout.warn { border-left-color: var(--warn-edge); background: var(--warn-bg); }
+  .callout > :last-child { margin-bottom: 0; }
+  .callout-label {
+    display: block; font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 0.4rem;
+  }
+  .callout.warn .callout-label { color: var(--warn-edge); }
+  .provenance {
+    background: var(--bg-raised); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 1.1rem 1.35rem; margin: 1.5rem 0;
+    font-family: system-ui, -apple-system, sans-serif; font-size: 0.85rem; line-height: 1.6;
+  }
+  .provenance dt { font-weight: 700; margin-top: 0.6rem; }
+  .provenance dt:first-child { margin-top: 0; }
+  .provenance dd { margin: 0.1rem 0 0; }
+  .provenance dl { margin: 0; }
+  .status-strip {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0;
+    font-family: system-ui, -apple-system, sans-serif; font-size: 0.75rem;
+  }
+  .chip {
+    border: 1px solid var(--rule); border-radius: 999px; padding: 0.2rem 0.75rem;
+    background: var(--bg-raised); color: var(--text-muted); font-weight: 600;
+  }
+  .chip.accent { border-color: var(--accent); color: var(--accent); }
+  nav.toc {
+    background: var(--bg-raised); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 1.1rem 1.5rem; margin: 1.5rem 0 2.5rem;
+    font-family: system-ui, -apple-system, sans-serif; font-size: 0.9rem;
+  }
+  nav.toc h2 { border: none; margin: 0 0 0.5rem; padding: 0; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+  nav.toc ol { margin: 0; padding-left: 1.3rem; }
+  nav.toc li { margin-bottom: 0.25rem; }
+  nav.toc ol ol { margin-top: 0.25rem; font-size: 0.85rem; }
+  sup.ref { font-family: system-ui, sans-serif; font-size: 0.7em; }
+  sup.ref a { text-decoration: none; font-weight: 700; }
+  .refs { font-size: 0.92rem; }
+  .refs li { margin-bottom: 0.7rem; }
+  .refs .ret { color: var(--text-muted); font-size: 0.85em; }
+  .backref { text-decoration: none; margin-left: 0.3rem; }
+  .term { font-weight: 600; }
+  .muted { color: var(--text-muted); }
+  .kv-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 0.9rem;
+    margin: 1.25rem 0; font-family: system-ui, -apple-system, sans-serif;
+  }
+  .kv {
+    background: var(--bg-raised); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 0.8rem 1rem;
+  }
+  .kv .k { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  .kv .v { font-size: 1.35rem; font-weight: 700; color: var(--accent); line-height: 1.3; margin-top: 0.15rem; }
+  .kv .d { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.45; }
+  .agent-note {
+    border: 1px dashed var(--rule); border-radius: 8px; padding: 0.9rem 1.2rem; margin: 1.25rem 0;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.78rem;
+    color: var(--text-muted); background: var(--bg-inset); line-height: 1.6;
+  }
+  footer.doc-foot {
+    margin-top: 4rem; padding-top: 1.25rem; border-top: 3px double var(--rule);
+    font-family: system-ui, -apple-system, sans-serif; font-size: 0.82rem; color: var(--text-muted);
+  }
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    h1 { font-size: 1.65rem; }
+    h2 { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="doc-head" id="top">
+  <p class="doc-kicker">Adaptive AI Lab · Research Layer · 2026-08-30</p>
+  <h1>Compiled Experience: WikiSkill, the LLM&nbsp;Wiki, and autoresearch</h1>
+  <p class="doc-sub">Skills as “fine-tuning without touching the weights”: what the evidence actually shows, how the three source systems fit together, and what a small end-to-end validation could look like for this lab.</p>
+  <div class="status-strip">
+    <span class="chip accent">Informative, never normative</span>
+    <span class="chip">Not integrated into the playbook</span>
+    <span class="chip">Frozen on landing — corrections arrive as new dated reports</span>
+    <span class="chip">Cite by anchor, e.g. <code>#ws-results</code></span>
+  </div>
+
+  <div class="provenance" id="provenance">
+    <dl>
+      <dt>Primary sources (all read in full; retrieved 2026-08-30)</dt>
+      <dd>① <a href="https://arxiv.org/abs/2608.27454">arXiv:2608.27454</a> — Tang, Rashtchian, Ferng, Tomkins, Juan &amp; Vu (Google Research / Virginia Tech), <i>WikiSkill: Compiling Agent Experience into Persistent Knowledge for Skill Evolution</i>, v1, submitted 27&nbsp;Aug&nbsp;2026 (HTML version ingested). Cited inline as <b>[P&nbsp;§…]</b>.</dd>
+      <dd>② <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">Andrej Karpathy, “LLM Wiki” gist</a> — the idea file the paper credits as its inspiration. Cited inline as <b>[G]</b>. <span class="muted">(Note: a commonly circulated link drops the final two characters of the gist ID; the URL here is the one the paper itself links.)</span></dd>
+      <dd>③ <a href="https://github.com/karpathy/autoresearch">github.com/karpathy/autoresearch</a> — Karpathy’s autonomous-overnight-training harness, MIT license; ingested at commit <code>228791f</code> (2026-03-25). Cited inline as <b>[A]</b>.</dd>
+      <dt>Method</dt>
+      <dd>Paper HTML converted to plain text and read end-to-end, including appendices A–E (algorithm, dataset splits, implementation details, baseline complexity analysis, and the verbatim system prompts). Gist and repository files (<code>README.md</code>, <code>program.md</code>, <code>train.py</code>, <code>prepare.py</code>, <code>progress.png</code>) read in full. Every number in this document traces to one of these three sources or to the repository this file lives in; secondary works are cited only as the primary sources cite them.</dd>
+      <dt>Author</dt>
+      <dd>Compiled by Claude (Fable 5) for Brennen Awana, in a worktree of <code>adaptive-ai-lab</code>. Human review pending — extraction status is tracked in the <code>research/README.md</code> index; treat findings as unadjudicated draft evidence until a promotion lands there.</dd>
+    </dl>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#how-to-read">How to read this document (humans &amp; agents)</a></li>
+    <li><a href="#tldr">Findings in brief</a></li>
+    <li><a href="#source-llm-wiki">Source ②: the LLM Wiki pattern — compile, don’t re-retrieve</a></li>
+    <li><a href="#source-wikiskill">Source ①: WikiSkill — the empirical test of compiled experience</a>
+      <ol>
+        <li><a href="#ws-architecture">Three-layer architecture</a></li>
+        <li><a href="#ws-loop">The evolution loop</a></li>
+        <li><a href="#ws-results">Main results</a></li>
+        <li><a href="#ws-transfer">Cross-model skill transfer</a></li>
+        <li><a href="#ws-ablation">The ablation that matters most</a></li>
+        <li><a href="#ws-dynamics">What evolved skills and wikis actually look like</a></li>
+        <li><a href="#ws-cost">Cost anatomy</a></li>
+        <li><a href="#ws-limitations">Stated limitations</a></li>
+      </ol>
+    </li>
+    <li><a href="#source-autoresearch">Source ③: autoresearch — the minimal harness archetype</a></li>
+    <li><a href="#synthesis">Synthesis: one design pattern, three instantiations</a>
+      <ol>
+        <li><a href="#pattern-mapping">The mapping table</a></li>
+        <li><a href="#thesis">The “fine-tuning without weights” thesis, examined</a></li>
+        <li><a href="#economics">The economics: spend frontier tokens once, run cheap tokens forever</a></li>
+      </ol>
+    </li>
+    <li><a href="#playbook">Relation to the Adaptive AI Systems Playbook</a></li>
+    <li><a href="#mvp">A karpathy-scale MVP: skill evolution on a five-dollar harness</a></li>
+    <li><a href="#meta">The meta possibility</a></li>
+    <li><a href="#open-questions">Open questions before any integration</a></li>
+    <li><a href="#references">References</a></li>
+  </ol>
+</nav>
+
+<section id="how-to-read">
+  <h2><span class="sec-num">1</span>How to read this document<a class="anchor-link" href="#how-to-read">#</a></h2>
+  <p><b>For humans:</b> Sections 3–5 are faithful deep summaries of the three sources, one each — read them in order if the material is new, or skip straight to <a href="#synthesis">§6 Synthesis</a> if you already know the sources. Sections 7–10 are the lab-specific part: how this relates to the playbook, and a concrete MVP design. Nothing here is a decision; per the conventions of <code>research/</code>, this report is informative and becomes method only through the promotion path (<a href="#playbook">§7</a>).</p>
+  <p><b>For agents:</b> Every section and figure carries a stable <code>id</code>; cite claims as <code>&lt;this-file&gt;#anchor</code> rather than by line number (HTML reflows; anchors don’t). Inline evidence tags are <b>[P&nbsp;§n]</b> (paper section), <b>[P&nbsp;Tab.&nbsp;n]</b> (paper table), <b>[G]</b> (gist), <b>[A]</b> (autoresearch repo, with filename). Numbers reproduced from the paper are averages over three independent runs of the full evolution pipeline unless marked otherwise [P&nbsp;§4.2, App.&nbsp;B]. A machine-readable claims index is embedded at the end of this file in <code>&lt;script id="claims-index" type="application/json"&gt;</code>; anything asserted there also appears in prose with its evidence tag — if the two ever disagree, the prose plus its cited source wins.</p>
+</section>
+
+<section id="tldr">
+  <h2><span class="sec-num">2</span>Findings in brief<a class="anchor-link" href="#tldr">#</a></h2>
+  <ol>
+    <li><b>The core claim survives scrutiny, with sharper edges than the folk version.</b> Evolved skills — plain-markdown procedural modules discovered from an agent’s own execution traces — lift task performance without touching weights across five models and five benchmarks (23 of 25 model-benchmark pairs improve) [P&nbsp;Tab.&nbsp;1]. A 9B model with evolved skills beats a 27B model without them (47.4% vs 39.4% average) [P&nbsp;§4.2.1].</li>
+    <li><b>But the marketing intuition “skills help small models most” is backwards.</b> Absolute gains <i>grow</i> with model scale (+12.3 / +17.5 / +23.9 points for Qwen 4B/9B/27B) [P&nbsp;§4.2.1]. The correct economic claim is different and stronger: skills let a <i>cheaper</i> model do a <i>bigger</i> model’s job — and skills evolved by one model transfer to another, so the discovery cost can be paid once, by whichever model discovers best [P&nbsp;Tab.&nbsp;2].</li>
+    <li><b>Skill discovery and skill execution are distinct capabilities.</b> Transferred skills frequently beat self-evolved ones (e.g. Qwen-9B on ALFWorld: 70.2% with 27B-evolved skills vs 63.4% with its own) [P&nbsp;§4.2.2]. There is also a capability floor: a model too weak to execute a multi-step procedure gains nothing from owning it, and over-specific skills can transfer negatively (50.5%&nbsp;→&nbsp;18.1% in the worst case) [P&nbsp;§4.2.2].</li>
+    <li><b>The single most important mechanism is the persistent wiki, not the skill format.</b> Giving the skill-proposing agent a compounding knowledge base — rather than just raw traces — is worth +15.0 points on its own (48.7%&nbsp;→&nbsp;63.7%, Gemini-3.5-Flash four-benchmark average) [P&nbsp;Tab.&nbsp;3]. This is the paper’s direct validation of Karpathy’s LLM-Wiki thesis: knowledge should be compiled once and kept current, not re-derived per query [G].</li>
+    <li><b>Separation of layers is the recurring design law.</b> All three sources converge on the same decomposition — immutable raw experience, compiled knowledge, and executable procedure — with an audit trail and a validation gate between knowledge and procedure. The wiki is never rolled back; skills are [P&nbsp;§3.2.4] [G] [A].</li>
+    <li><b>Counter-intuitive detail worth remembering:</b> letting the <i>executing</i> agent read the wiki during training rollouts makes the final skills <i>worse</i> (63.7%&nbsp;→&nbsp;60.9%) — knowledge leaking into execution robs the optimizer of signal [P&nbsp;§5.1]. Layer boundaries are load-bearing.</li>
+    <li><b>The whole loop is cheap where it matters.</b> WikiSkill’s optimizer overhead is constant per iteration (one maintainer call plus a 10–20-turn proposer agent), independent of training-set size; rollouts dominate cost [P&nbsp;App.&nbsp;D]. Training sets were tiny: 16–80 tasks [P&nbsp;Tab.&nbsp;6].</li>
+    <li><b>autoresearch shows the harness can be almost embarrassingly small.</b> Three files, one metric, a keep/discard rule, and an overnight run: 83 experiments, 15 kept improvements, on a ~50M-parameter model with 5-minute training runs [A&nbsp;README, progress.png]. That — not another heavyweight project — is the right shape for this lab’s first validation of skill evolution (<a href="#mvp">§8</a>).</li>
+  </ol>
+</section>
+<section id="source-llm-wiki">
+  <h2><span class="sec-num">3</span>Source ②: the LLM Wiki pattern — compile, don’t re-retrieve<a class="anchor-link" href="#source-llm-wiki">#</a></h2>
+  <p>Karpathy’s “LLM Wiki” gist is a deliberately abstract idea file — <i>“it describes the idea, not a specific implementation”</i> — meant to be handed to a coding agent, which then instantiates the specifics collaboratively [G]. It is the conceptual seed the WikiSkill paper explicitly credits: <i>“Inspired by Karpathy (2026)’s perspective on LLM Wiki, which advocates compiling experience into persistent, compounding knowledge”</i> [P&nbsp;§1].</p>
+
+  <h3 id="lw-core">3.1 The core idea: accumulation beats retrieval<a class="anchor-link" href="#lw-core">#</a></h3>
+  <p>The gist positions itself against the default RAG mental model, where <i>“the LLM is rediscovering knowledge from scratch on every question. There’s no accumulation.”</i> Instead:</p>
+  <blockquote>
+    <p>“The LLM <b>incrementally builds and maintains a persistent wiki</b> — a structured, interlinked collection of markdown files that sits between you and the raw sources. […] The knowledge is compiled once and then <i>kept current</i>, not re-derived on every query. […] <b>The wiki is a persistent, compounding artifact.</b>”</p>
+    <span class="attr">— Karpathy, “LLM Wiki” [G]</span>
+  </blockquote>
+  <p>The division of labor is explicit: the human curates sources, directs analysis, and asks questions; the LLM does <i>all</i> the maintenance — <i>“the summarizing, cross-referencing, filing, and bookkeeping.”</i> His working image: <i>“Obsidian is the IDE; the LLM is the programmer; the wiki is the codebase.”</i> The claimed reason the pattern works is economic, not technical: humans abandon wikis because <i>“the maintenance burden grows faster than the value,”</i> while for an LLM <i>“the cost of maintenance is near zero”</i> [G]. He traces the lineage to Vannevar Bush’s Memex (1945) — a curated personal knowledge store with associative trails — noting that <i>“the part he couldn’t solve was who does the maintenance. The LLM handles that”</i> [G]<sup class="ref"><a href="#ref-memex">[13]</a></sup>.</p>
+
+  <h3 id="lw-architecture">3.2 Architecture and operations<a class="anchor-link" href="#lw-architecture">#</a></h3>
+  <p>Three layers [G&nbsp;§Architecture]:</p>
+  <ul>
+    <li><span class="term">Raw sources</span> — curated, <b>immutable</b> source documents. “The LLM reads from them but never modifies them. This is your source of truth.”</li>
+    <li><span class="term">The wiki</span> — LLM-generated markdown: summaries, entity pages, concept pages, comparisons, a synthesis. “You read it; the LLM writes it.”</li>
+    <li><span class="term">The schema</span> — a configuration document (his examples: <code>CLAUDE.md</code> for Claude Code, <code>AGENTS.md</code> for Codex) defining structure, conventions, and workflows. “It’s what makes the LLM a disciplined wiki maintainer rather than a generic chatbot. You and the LLM co-evolve this over time.”</li>
+  </ul>
+  <p>Three operations run over these layers: <span class="term">Ingest</span> (a single source may touch 10–15 wiki pages: summary page, index update, entity/concept page updates, log entry), <span class="term">Query</span> (search index → read pages → synthesize with citations — and crucially, <i>“good answers can be filed back into the wiki as new pages,”</i> so explorations compound too), and <span class="term">Lint</span> (periodic health checks for contradictions, stale claims, orphan pages, missing cross-references) [G&nbsp;§Operations].</p>
+  <p>Two special files carry navigation: <code>index.md</code> (content-oriented catalog — one line per page; the LLM reads it first when answering, which “works surprisingly well at moderate scale (~100 sources, ~hundreds of pages) and avoids the need for embedding-based RAG infrastructure”) and <code>log.md</code> (chronological, append-only, with grep-parseable entry prefixes) [G&nbsp;§Indexing]. Tooling stays optional and incremental — a markdown search engine like <code>qmd</code> only once the index file stops being enough<sup class="ref"><a href="#ref-qmd">[12]</a></sup>.</p>
+
+  <div class="callout">
+    <span class="callout-label">Why this source matters here</span>
+    <p>Everything in the gist is qualitative — it makes no measured claims. Its significance for this lab is that WikiSkill (<a href="#source-wikiskill">§4</a>) turned exactly this architecture into a controlled experiment and measured the value of the middle layer: the compounding wiki is worth +15.0 points of task accuracy to a skill optimizer on its own (Gemini-3.5-Flash, four-benchmark average) [P&nbsp;Tab.&nbsp;3]. The gist supplies the design language; the paper supplies the evidence.</p>
+  </div>
+</section>
+
+<section id="source-wikiskill">
+  <h2><span class="sec-num">4</span>Source ①: WikiSkill — the empirical test of compiled experience<a class="anchor-link" href="#source-wikiskill">#</a></h2>
+  <p><i>WikiSkill: Compiling Agent Experience into Persistent Knowledge for Skill Evolution</i> (Tang, Rashtchian, Ferng, Tomkins, Juan, Vu — Google Research, with a Virginia Tech affiliation; arXiv:2608.27454v1, 27&nbsp;Aug&nbsp;2026, CC&nbsp;BY&nbsp;4.0)<sup class="ref"><a href="#ref-paper">[1]</a></sup>. The paper sits in a fast-moving 2025–2026 literature on <b>skill evolution</b>: automatically discovering agent skills from execution experience rather than authoring them by hand. Its named competitors are EvoSkill (frontier search over candidate skill programs, failure traces + flat feedback history)<sup class="ref"><a href="#ref-evoskill">[6]</a></sup>, Trace2Skill (per-trajectory analysts whose lessons are hierarchically merged into patches)<sup class="ref"><a href="#ref-trace2skill">[7]</a></sup>, and SkillOpt (a six-stage “ReflACT” pipeline maintaining one monolithic skill document)<sup class="ref"><a href="#ref-skillopt">[8]</a></sup> [P&nbsp;§1, App.&nbsp;D.1].</p>
+  <p>Its diagnosis of all three: <i>“these methods do not maintain what has been learned as a separate, evolving knowledge representation”</i> — insights stay scattered across optimization histories [P&nbsp;§1, §6]. WikiSkill’s move is to insert a persistent, never-rolled-back knowledge layer between raw experience and executable skills.</p>
+
+  <h4 id="ws-what-is-a-skill">What “skill” means here</h4>
+  <p>A skill is <i>“a modular, filesystem-based directory that packages domain-specific procedural knowledge into instructions, scripts, and other resources”</i> — concretely a <code>SKILL.md</code> with frontmatter metadata (name, concise description), full procedural instructions, and applicability conditions [P&nbsp;§2]. This is the open format popularized by Anthropic’s Agent Skills work, which the paper cites directly<sup class="ref"><a href="#ref-anthropic-skills">[4]</a></sup><sup class="ref"><a href="#ref-anthropic-guide">[5]</a></sup>. WikiSkill adds one file per skill: <code>PURPOSE.md</code>, mapping the skill back to the wiki patterns that motivated it [P&nbsp;§3.1]. Important experimental control: evolved skills are <b>injected in full into the inference agent’s system prompt</b> — no retrieval or triggering step — so skill <i>quality</i> is measured without retrieval failures as a confound [P&nbsp;§3.2.1, Limitations].</p>
+
+  <h3 id="ws-architecture">4.1 Three-layer architecture<a class="anchor-link" href="#ws-architecture">#</a></h3>
+  <p>The agent workspace is split into three directories [P&nbsp;§3.1] — a direct formalization of the gist’s raw&nbsp;/&nbsp;wiki&nbsp;/&nbsp;schema split:</p>
+  <ul>
+    <li><code>raw/</code> — <b>immutable</b> execution traces from each iteration’s training rollouts: full step-by-step reasoning, tool calls, outputs, final answers.</li>
+    <li><code>wiki/</code> — the persistent knowledge base: <code>patterns/</code> (one markdown page per failure mode or successful strategy, with root cause and workaround), <code>index.md</code> (one-line catalog per pattern: <i>problem + root cause + fix</i>), an evolution log, and <code>skill-impact.md</code> — an <b>audit trail written programmatically by the harness</b>, recording every proposal’s metadata, target skill, unified diff, validation score, and accept/reject outcome [P&nbsp;§3.1, §3.2.4]. The wiki is never reset and never rolled back.</li>
+    <li><code>skills/</code> — the active skill set: per skill, <code>SKILL.md</code> + <code>PURPOSE.md</code>. Subject to validation gating and rollback.</li>
+  </ul>
+
+  <figure class="fig" id="fig-loop">
+    <svg viewBox="0 0 860 470" role="img" aria-labelledby="fig-loop-title" font-family="system-ui, sans-serif">
+      <title id="fig-loop-title">WikiSkill evolution loop: four components over three workspace layers</title>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+        </marker>
+        <marker id="arr-warn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--warn-edge)"/>
+        </marker>
+      </defs>
+      <!-- Layer lanes -->
+      <rect x="20" y="30" width="250" height="410" rx="12" fill="var(--bg-inset)" stroke="var(--rule)"/>
+      <rect x="305" y="30" width="250" height="410" rx="12" fill="var(--bg-inset)" stroke="var(--rule)"/>
+      <rect x="590" y="30" width="250" height="410" rx="12" fill="var(--bg-inset)" stroke="var(--rule)"/>
+      <text x="145" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">Raw Layer <tspan font-weight="400" fill="var(--text-muted)">raw/</tspan></text>
+      <text x="430" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">Wiki Layer <tspan font-weight="400" fill="var(--text-muted)">wiki/</tspan></text>
+      <text x="715" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">Skills Layer <tspan font-weight="400" fill="var(--text-muted)">skills/</tspan></text>
+      <text x="145" y="78" text-anchor="middle" font-size="11.5" fill="var(--text-muted)">immutable traces</text>
+      <text x="430" y="78" text-anchor="middle" font-size="11.5" fill="var(--text-muted)">persistent · never rolled back</text>
+      <text x="715" y="78" text-anchor="middle" font-size="11.5" fill="var(--text-muted)">gated · rolled back on failure</text>
+      <!-- Raw layer contents -->
+      <rect x="45" y="100" width="200" height="64" rx="8" fill="var(--bg-raised)" stroke="var(--rule)"/>
+      <text x="145" y="126" text-anchor="middle" font-size="13" fill="var(--text)">execution traces τᵢ</text>
+      <text x="145" y="146" text-anchor="middle" font-size="11.5" fill="var(--text-muted)">reasoning · tool calls · answers</text>
+      <!-- Wiki layer contents -->
+      <rect x="330" y="100" width="200" height="130" rx="8" fill="var(--bg-raised)" stroke="var(--rule)"/>
+      <text x="430" y="124" text-anchor="middle" font-size="12.5" fill="var(--text)">patterns/*.md</text>
+      <text x="430" y="146" text-anchor="middle" font-size="12.5" fill="var(--text)">index.md · log.md</text>
+      <text x="430" y="168" text-anchor="middle" font-size="12.5" fill="var(--text)">skill-impact.md</text>
+      <text x="430" y="192" text-anchor="middle" font-size="11" fill="var(--text-muted)">diffs · scores · accept/reject —</text>
+      <text x="430" y="208" text-anchor="middle" font-size="11" fill="var(--text-muted)">written by the harness, not the LLM</text>
+      <!-- Skills layer contents -->
+      <rect x="615" y="100" width="200" height="86" rx="8" fill="var(--bg-raised)" stroke="var(--rule)"/>
+      <text x="715" y="126" text-anchor="middle" font-size="12.5" fill="var(--text)">SKILL.md</text>
+      <text x="715" y="148" text-anchor="middle" font-size="12.5" fill="var(--text)">PURPOSE.md</text>
+      <text x="715" y="170" text-anchor="middle" font-size="11" fill="var(--text-muted)">links skill → motivating patterns</text>
+      <!-- Agents -->
+      <rect x="45" y="330" width="200" height="76" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="145" y="360" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--text)">① Inference Agent</text>
+      <text x="145" y="382" text-anchor="middle" font-size="11" fill="var(--text-muted)">runs tasks with active skills</text>
+      <rect x="330" y="270" width="200" height="76" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="430" y="300" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--text)">② Wiki Maintainer</text>
+      <text x="430" y="322" text-anchor="middle" font-size="11" fill="var(--text-muted)">consolidates traces → patterns</text>
+      <rect x="330" y="360" width="200" height="76" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="430" y="390" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--text)">③ Skill Proposer</text>
+      <text x="430" y="412" text-anchor="middle" font-size="10" fill="var(--text-muted)">ReAct · reads wiki + traces · one atomic proposal</text>
+      <rect x="615" y="330" width="200" height="76" rx="10" fill="var(--bg-raised)" stroke="var(--warn-edge)" stroke-width="1.5"/>
+      <text x="715" y="360" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--text)">④ Gate &amp; Rollback</text>
+      <text x="715" y="382" text-anchor="middle" font-size="11" fill="var(--text-muted)">accept iff val score &gt; best-so-far</text>
+      <!-- Flows -->
+      <path d="M145 330 L145 168" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      <text x="152" y="256" font-size="11" fill="var(--text-muted)">writes traces</text>
+      <path d="M245 145 C 290 145 300 290 328 300" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      <path d="M430 270 L430 234" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      <text x="438" y="258" font-size="11" fill="var(--text-muted)">updates wiki</text>
+      <path d="M382 360 C 375 345 380 250 400 234" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      <path d="M530 398 L613 380" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      <text x="540" y="416" font-size="11" fill="var(--text-muted)">proposal Pₖ</text>
+      <path d="M715 330 L715 186" stroke="var(--warn-edge)" stroke-width="2" stroke-dasharray="6 4" fill="none" marker-end="url(#arr-warn)"/>
+      <text x="722" y="262" font-size="11" fill="var(--text-muted)">accept → update skills</text>
+      <path d="M615 368 C 420 452 210 442 150 408" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      <text x="300" y="462" font-size="11" fill="var(--text-muted)">next iteration: rollout with accepted skills (full prompt injection)</text>
+      <path d="M665 406 C 620 442 560 430 532 420" stroke="var(--warn-edge)" stroke-width="1.5" stroke-dasharray="3 4" fill="none" marker-end="url(#arr-warn)"/>
+      <text x="580" y="446" font-size="10.5" fill="var(--text-muted)">reject → roll back skills; diff logged</text>
+      <!-- No-access marker -->
+      <text x="145" y="312" text-anchor="middle" font-size="10.5" fill="var(--warn-edge)" font-weight="600">✕ no wiki access during rollouts (§4.5)</text>
+    </svg>
+    <figcaption><b>Figure A.</b> The WikiSkill loop, redrawn from the paper’s Figure 2 and §3.2 [P]. Solid arrows are LLM-agent actions; dashed arrows are deterministic harness actions. Two asymmetries do the real work: the wiki persists through skill rollbacks, and the executing agent is deliberately blind to the wiki.</figcaption>
+  </figure>
+
+  <h3 id="ws-loop">4.2 The evolution loop<a class="anchor-link" href="#ws-loop">#</a></h3>
+  <p>State at iteration <i>k</i> is the pair (Sₖ, Wₖ) — skill set and wiki — starting from (∅,&nbsp;∅). Each of K iterations runs [P&nbsp;§2, §3.2, Alg.&nbsp;1]:</p>
+  <ol>
+    <li><b>Rollout.</b> The Inference Agent executes all training tasks with the current skills injected in full into its system prompt; traces land in <code>raw/</code>.</li>
+    <li><b>Consolidate.</b> The Wiki Maintainer receives the full current wiki plus a stratified sample of traces — at most 8 per iteration: up to 5 failures (root-cause analysis) and up to 3 successes (strategy extraction), each log capped at 15,000 characters [P&nbsp;App.&nbsp;C]. It creates/patches pattern pages, rewrites <code>index.md</code>, appends to the log. Pattern pages are told to be “10–30 lines, not essays” [P&nbsp;App.&nbsp;E.2].</li>
+    <li><b>Propose.</b> The Skill Proposer runs as a multi-turn ReAct agent<sup class="ref"><a href="#ref-react">[10]</a></sup> (≈10–20 turns in practice). It starts from the wiki index, <code>skill-impact.md</code>, and a pass/fail summary of all training tasks, then pulls specific pattern pages and raw traces on demand (it must read at least 4 traces before proposing [P&nbsp;App.&nbsp;E.3]). Output: <b>one atomic proposal</b> — create one skill, or patch one skill.</li>
+    <li><b>Gate.</b> The candidate skill set is scored on the validation split. Accepted only if it <i>strictly beats the best validation score so far</i>; otherwise skills roll back. Either way, the harness appends the diff, score, and outcome to <code>skill-impact.md</code>. Evolution stops early if validation hits 100% [P&nbsp;§3.2.4].</li>
+  </ol>
+  <p>The rejected-proposal record is not bookkeeping trivia — the proposer prompt makes it operational: <i>“Read <code>wiki/skill-impact.md</code> to see what was tried before (includes full content of rejected proposals — DO NOT repeat rejected approaches)”</i> [P&nbsp;App.&nbsp;E.3]. That is the mechanism by which the system learns from its own optimization failures, not just from task failures.</p>
+
+  <h3 id="ws-results">4.3 Main results<a class="anchor-link" href="#ws-results">#</a></h3>
+  <p>Setup: five benchmarks spanning single-step math (LiveMathematicianBench), agentic web search (SealQA), code-mediated spreadsheet manipulation (SpreadsheetBench), long-context document QA over Treasury bulletins (OfficeQA), and interactive embodied tasks (ALFWorld)<sup class="ref"><a href="#ref-benchmarks">[14]</a></sup>; five models — Qwen-3.5-4B/9B-Instruct, Qwen-3.6-27B, Gemma-4-31B-It (all via vLLM), and Gemini-3.5-Flash [P&nbsp;§4.1]. In each condition, <b>the same model plays every role</b> (inference, maintainer, proposer) — cross-model splits come later in <a href="#ws-transfer">§4.4</a>. All scores average three independent runs of the full evolution; significance via paired bootstrap, 1,000 resamples, p&nbsp;&lt;&nbsp;0.05 [P&nbsp;§4.2, App.&nbsp;C].</p>
+
+  <div class="table-wrap">
+  <table id="tbl-main">
+    <caption><b>Table 1 (reproduced from [P Tab. 1]).</b> Test accuracy (%) by inference model and skill-evolution method. Bold marks the highest value per column within each model block (the paper additionally bolds statistical ties, which are not reproduced here). WikiSkill rows highlighted.</caption>
+    <thead><tr><th>Model</th><th>Method</th><th class="num">LiveMath</th><th class="num">SealQA</th><th class="num">SpreadSheet</th><th class="num">OfficeQA</th><th class="num">ALFWorld</th><th class="num">Avg.</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="5">Qwen-3.5-4B</td><td>No skill</td><td class="num">29.1</td><td class="num">32.5</td><td class="num">14.6</td><td class="num">30.2</td><td class="num">24.4</td><td class="num">26.2</td></tr>
+      <tr><td>Trace2Skill</td><td class="num">31.5</td><td class="num">37.6</td><td class="num">17.5</td><td class="num">31.0</td><td class="num">42.8</td><td class="num">32.1</td></tr>
+      <tr><td>EvoSkill</td><td class="num">41.7</td><td class="num">37.3</td><td class="num">18.6</td><td class="num">29.5</td><td class="num">41.5</td><td class="num">33.7</td></tr>
+      <tr><td>SkillOpt</td><td class="num">48.7</td><td class="num">33.3</td><td class="num">14.0</td><td class="num"><span class="best">34.5</span></td><td class="num">45.3</td><td class="num">35.2</td></tr>
+      <tr class="hl"><td>WikiSkill</td><td class="num"><span class="best">49.7</span></td><td class="num"><span class="best">39.4</span></td><td class="num"><span class="best">21.1</span></td><td class="num">28.5</td><td class="num"><span class="best">53.7</span></td><td class="num"><span class="best">38.5</span></td></tr>
+      <tr><td rowspan="5">Qwen-3.5-9B</td><td>No skill</td><td class="num">28.2</td><td class="num">26.3</td><td class="num">24.3</td><td class="num">35.9</td><td class="num">34.7</td><td class="num">29.9</td></tr>
+      <tr><td>Trace2Skill</td><td class="num">33.1</td><td class="num">36.9</td><td class="num">26.5</td><td class="num">38.4</td><td class="num">48.8</td><td class="num">36.7</td></tr>
+      <tr><td>EvoSkill</td><td class="num"><span class="best">58.1</span></td><td class="num">34.5</td><td class="num"><span class="best">35.4</span></td><td class="num">34.9</td><td class="num">48.5</td><td class="num">42.3</td></tr>
+      <tr><td>SkillOpt</td><td class="num">48.7</td><td class="num">29.4</td><td class="num">29.0</td><td class="num">38.0</td><td class="num">55.7</td><td class="num">40.2</td></tr>
+      <tr class="hl"><td>WikiSkill</td><td class="num">56.3</td><td class="num"><span class="best">43.1</span></td><td class="num">33.6</td><td class="num"><span class="best">40.5</span></td><td class="num"><span class="best">63.4</span></td><td class="num"><span class="best">47.4</span></td></tr>
+      <tr><td rowspan="5">Qwen-3.6-27B</td><td>No skill</td><td class="num">33.9</td><td class="num">27.5</td><td class="num">40.8</td><td class="num">42.1</td><td class="num">52.8</td><td class="num">39.4</td></tr>
+      <tr><td>Trace2Skill</td><td class="num">36.3</td><td class="num">37.3</td><td class="num">53.3</td><td class="num">54.3</td><td class="num">55.5</td><td class="num">47.3</td></tr>
+      <tr><td>EvoSkill</td><td class="num">57.3</td><td class="num">32.9</td><td class="num">59.5</td><td class="num">52.5</td><td class="num">64.2</td><td class="num">53.3</td></tr>
+      <tr><td>SkillOpt</td><td class="num">51.9</td><td class="num">34.5</td><td class="num">53.2</td><td class="num"><span class="best">54.8</span></td><td class="num">59.2</td><td class="num">50.7</td></tr>
+      <tr class="hl"><td>WikiSkill</td><td class="num"><span class="best">61.9</span></td><td class="num"><span class="best">41.6</span></td><td class="num"><span class="best">81.7</span></td><td class="num">53.7</td><td class="num"><span class="best">77.6</span></td><td class="num"><span class="best">63.3</span></td></tr>
+      <tr><td rowspan="5">Gemma-4-31B</td><td>No skill</td><td class="num">33.9</td><td class="num">30.6</td><td class="num">48.3</td><td class="num">43.3</td><td class="num">50.4</td><td class="num">41.3</td></tr>
+      <tr><td>Trace2Skill</td><td class="num">32.3</td><td class="num">37.7</td><td class="num">58.5</td><td class="num">43.2</td><td class="num">57.2</td><td class="num">45.8</td></tr>
+      <tr><td>EvoSkill</td><td class="num">29.8</td><td class="num">38.4</td><td class="num">56.4</td><td class="num">39.9</td><td class="num">52.6</td><td class="num">43.4</td></tr>
+      <tr><td>SkillOpt</td><td class="num">40.1</td><td class="num">36.1</td><td class="num">63.1</td><td class="num"><span class="best">44.4</span></td><td class="num">61.9</td><td class="num">49.1</td></tr>
+      <tr class="hl"><td>WikiSkill</td><td class="num"><span class="best">56.7</span></td><td class="num"><span class="best">41.2</span></td><td class="num"><span class="best">68.0</span></td><td class="num">44.2</td><td class="num"><span class="best">64.4</span></td><td class="num"><span class="best">54.9</span></td></tr>
+      <tr><td rowspan="5">Gemini-3.5-Flash</td><td>No skill</td><td class="num">33.0</td><td class="num">29.4</td><td class="num">50.5</td><td class="num">48.6</td><td class="num">85.9</td><td class="num">49.5</td></tr>
+      <tr><td>Trace2Skill</td><td class="num">41.9</td><td class="num">44.3</td><td class="num">56.0</td><td class="num">50.0</td><td class="num">85.9</td><td class="num">55.6</td></tr>
+      <tr><td>EvoSkill</td><td class="num">44.6</td><td class="num">43.6</td><td class="num">55.4</td><td class="num">51.2</td><td class="num">85.9</td><td class="num">56.1</td></tr>
+      <tr><td>SkillOpt</td><td class="num">49.7</td><td class="num">28.2</td><td class="num">66.1</td><td class="num">49.8</td><td class="num">85.9</td><td class="num">55.9</td></tr>
+      <tr class="hl"><td>WikiSkill</td><td class="num"><span class="best">72.6</span></td><td class="num"><span class="best">44.7</span></td><td class="num"><span class="best">76.6</span></td><td class="num"><span class="best">60.7</span></td><td class="num">85.9</td><td class="num"><span class="best">68.1</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="muted" style="font-size:0.85rem">Note: Gemini-3.5-Flash scored 100% on the ALFWorld <i>validation</i> split before evolution began, so early stopping fired and no skill was ever evolved there — all methods show the unchanged 85.9% [P&nbsp;§4.2].</p>
+
+  <h4 id="ws-headlines">Three headline findings</h4>
+  <ul>
+    <li id="claim-consistency"><b>Consistency, not just peak performance.</b> WikiSkill has the best average for all five models, beating the strongest competing method by +3.3, +5.1, +10.0, +5.8, and +12.0 points (4B, 9B, 27B, Gemma, Flash respectively). The baselines are erratic — EvoSkill lifts Qwen-9B on LiveMath (28.2→58.1) but <i>degrades</i> Gemma-31B on the same benchmark (33.9→29.8) [P&nbsp;§4.2.1].</li>
+    <li id="claim-scaling"><b>Skill evolution complements scaling — gains grow with capability.</b> Within the Qwen family: +12.3 (4B), +17.5 (9B), +23.9 (27B) average points over no-skill. Most dramatic on SpreadSheet: +6.5, +9.3, +40.9. Yet skills also <i>compensate</i> for scale: Qwen-9B+WikiSkill (47.4) beats Qwen-27B bare (39.4) [P&nbsp;§4.2.1].</li>
+    <li id="claim-domains"><b>Domain amenability varies a lot.</b> For Qwen-27B: +40.9 (SpreadSheet), +28.0 (LiveMath), +24.8 (ALFWorld) vs +14.1 (SealQA), +11.6 (OfficeQA). Procedural, tool-mediated, error-recoverable domains benefit most; long-context navigation least — and on OfficeQA the 4B model actually degraded slightly (30.2→28.5) because it could not execute the multi-step search workflows its own skills prescribed [P&nbsp;§4.2.1].</li>
+  </ul>
+
+  <h3 id="ws-transfer">4.4 Cross-model skill transfer<a class="anchor-link" href="#ws-transfer">#</a></h3>
+  <p>This is the table that carries the economic thesis (<a href="#thesis">§6.2</a>): skills evolved by one model, executed by another.</p>
+  <div class="table-wrap">
+  <table id="tbl-transfer">
+    <caption><b>Table 2 (reproduced from [P Tab. 2]).</b> Test accuracy (%) with skills evolved by WikiSkill using different source models. Highlighted rows = self-evolved (source = inference model). Bold = best per column within block (as in Table 1, the paper additionally bolds statistical ties, not reproduced here). “—” = source model hit 100% validation before evolution, so no skill exists.</caption>
+    <thead><tr><th>Inference model</th><th>Skill source</th><th class="num">LiveMath</th><th class="num">SealQA</th><th class="num">SpreadSheet</th><th class="num">OfficeQA</th><th class="num">ALFWorld</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="4">Qwen-3.5-4B</td><td>None</td><td class="num">29.1</td><td class="num">32.5</td><td class="num">14.6</td><td class="num">30.2</td><td class="num">24.4</td></tr>
+      <tr class="hl"><td>Qwen-3.5-4B</td><td class="num">49.7</td><td class="num"><span class="best">39.4</span></td><td class="num">21.1</td><td class="num">28.5</td><td class="num">53.7</td></tr>
+      <tr><td>Qwen-3.6-27B</td><td class="num">59.7</td><td class="num">38.8</td><td class="num"><span class="best">33.0</span></td><td class="num">25.4</td><td class="num"><span class="best">57.0</span></td></tr>
+      <tr><td>Gemini-3.5-Flash</td><td class="num"><span class="best">62.6</span></td><td class="num">37.3</td><td class="num">23.0</td><td class="num"><span class="best">32.2</span></td><td class="num">—</td></tr>
+      <tr><td rowspan="5">Qwen-3.5-9B</td><td>None</td><td class="num">28.2</td><td class="num">26.3</td><td class="num">24.3</td><td class="num">35.9</td><td class="num">34.7</td></tr>
+      <tr><td>Qwen-3.5-4B</td><td class="num"><span class="best">61.0</span></td><td class="num">40.4</td><td class="num">25.0</td><td class="num">40.3</td><td class="num">69.2</td></tr>
+      <tr class="hl"><td>Qwen-3.5-9B</td><td class="num">56.3</td><td class="num"><span class="best">43.1</span></td><td class="num">33.6</td><td class="num"><span class="best">40.5</span></td><td class="num">63.4</td></tr>
+      <tr><td>Qwen-3.6-27B</td><td class="num">59.1</td><td class="num">40.4</td><td class="num"><span class="best">50.5</span></td><td class="num">39.9</td><td class="num"><span class="best">70.2</span></td></tr>
+      <tr><td>Gemini-3.5-Flash</td><td class="num">53.0</td><td class="num">39.6</td><td class="num">48.8</td><td class="num"><span class="best">40.5</span></td><td class="num">—</td></tr>
+      <tr><td rowspan="4">Qwen-3.6-27B</td><td>None</td><td class="num">33.9</td><td class="num">27.5</td><td class="num">40.8</td><td class="num">42.1</td><td class="num">52.8</td></tr>
+      <tr><td>Qwen-3.5-4B</td><td class="num">62.6</td><td class="num">41.6</td><td class="num">40.6</td><td class="num">52.9</td><td class="num">72.1</td></tr>
+      <tr class="hl"><td>Qwen-3.6-27B</td><td class="num">61.9</td><td class="num">41.6</td><td class="num"><span class="best">81.7</span></td><td class="num"><span class="best">53.7</span></td><td class="num"><span class="best">77.6</span></td></tr>
+      <tr><td>Gemini-3.5-Flash</td><td class="num"><span class="best">65.1</span></td><td class="num"><span class="best">51.0</span></td><td class="num">76.0</td><td class="num">52.5</td><td class="num">—</td></tr>
+      <tr><td rowspan="5">Gemma-4-31B</td><td>None</td><td class="num">33.9</td><td class="num">30.6</td><td class="num">48.3</td><td class="num">43.3</td><td class="num">50.4</td></tr>
+      <tr><td>Qwen-3.5-4B</td><td class="num">73.1</td><td class="num">38.8</td><td class="num">37.1</td><td class="num">42.1</td><td class="num"><span class="best">66.9</span></td></tr>
+      <tr><td>Qwen-3.6-27B</td><td class="num"><span class="best">73.7</span></td><td class="num">37.7</td><td class="num"><span class="best">72.0</span></td><td class="num"><span class="best">44.2</span></td><td class="num"><span class="best">66.9</span></td></tr>
+      <tr class="hl"><td>Gemma-4-31B</td><td class="num">56.7</td><td class="num"><span class="best">41.2</span></td><td class="num">68.0</td><td class="num"><span class="best">44.2</span></td><td class="num">64.4</td></tr>
+      <tr><td>Gemini-3.5-Flash</td><td class="num">61.8</td><td class="num">37.7</td><td class="num">68.8</td><td class="num">43.4</td><td class="num">—</td></tr>
+      <tr><td rowspan="4">Gemini-3.5-Flash</td><td>None</td><td class="num">33.0</td><td class="num">29.4</td><td class="num">50.5</td><td class="num">48.6</td><td class="num">85.9</td></tr>
+      <tr><td>Qwen-3.5-4B</td><td class="num">67.5</td><td class="num">40.0</td><td class="num">18.1</td><td class="num">48.5</td><td class="num"><span class="best">87.3</span></td></tr>
+      <tr><td>Qwen-3.6-27B</td><td class="num"><span class="best">73.9</span></td><td class="num">43.5</td><td class="num">63.4</td><td class="num">47.7</td><td class="num">86.8</td></tr>
+      <tr class="hl"><td>Gemini-3.5-Flash</td><td class="num">72.6</td><td class="num"><span class="best">44.7</span></td><td class="num"><span class="best">76.6</span></td><td class="num"><span class="best">60.7</span></td><td class="num">—</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Four findings from this table, all load-bearing for the lab’s interests [P&nbsp;§4.2.2]:</p>
+  <ol>
+    <li id="claim-transfer"><b>Transfer works, and often beats self-evolution.</b> Qwen-27B’s skills lift Qwen-9B to 50.5% on SpreadSheet (vs 24.3 bare, 33.6 self-evolved) and 70.2% on ALFWorld (vs 63.4 self-evolved). The paper’s conclusion, as its introduction phrases it [P&nbsp;§1]: <i>“skill discovery and skill execution are distinct capabilities.”</i></li>
+    <li><b>Transfer runs uphill too.</b> The tiny 4B model’s skills improve Gemma-31B to 73.1% on LiveMath and even nudge Gemini Flash on ALFWorld (85.9→87.3). <i>“Stronger source models do not necessarily produce better skills.”</i></li>
+    <li id="claim-negative-transfer"><b>Negative transfer is real and mechanistically understood.</b> 4B-evolved SpreadSheet skills crater Gemini Flash from 50.5% to 18.1%: the small model’s skills encode <i>low-level workarounds</i> (single-line Python commands, string-conversion rules) that handcuff a stronger model’s end-to-end scripting, and fragmented diagnostic steps exhaust its interaction budget. General procedures transfer; model-specific crutches don’t.</li>
+    <li id="claim-floor"><b>Execution has a capability floor.</b> The same 27B-evolved SpreadSheet skills yield +18.4 / +26.2 / +40.9 for 4B / 9B / 27B executors — identical knowledge, more than double the value as executor capability rises. And OfficeQA shows a skill can help another model more than its author: 4B’s skills hurt itself (30.2→28.5) but lift 27B by +10.8 (42.1→52.9).</li>
+  </ol>
+
+  <h3 id="ws-ablation">4.5 The ablation that matters most<a class="anchor-link" href="#ws-ablation">#</a></h3>
+  <p>Using Gemini-3.5-Flash on four benchmarks (ALFWorld excluded by early stopping), the paper independently toggles wiki access for the two components that could use it [P&nbsp;§5.1, Tab.&nbsp;3]:</p>
+  <div class="table-wrap">
+  <table id="tbl-ablation">
+    <caption><b>Table 3 (reconstructed from [P Tab. 3 + §5.1]).</b> Which components may read the wiki during evolution. When the Skill Proposer has no wiki access, the Wiki Maintainer is removed entirely — no persistent knowledge accumulates. Row–configuration mapping follows the §5.1 prose (48.7→63.7 and 63.7→60.9 are stated explicitly; the 45.3 row follows by elimination; the paper’s caption confirms the bottom row is the default).</caption>
+    <thead><tr><th>Inference Agent reads wiki</th><th>Skill Proposer reads wiki</th><th class="num">LiveMath</th><th class="num">SealQA</th><th class="num">SpreadSheet</th><th class="num">OfficeQA</th><th class="num">Avg.</th></tr></thead>
+    <tbody>
+      <tr><td colspan="2">No skill baseline</td><td class="num">33.0</td><td class="num">29.4</td><td class="num">50.5</td><td class="num">48.6</td><td class="num">40.4</td></tr>
+      <tr><td>yes</td><td>no (no wiki at all)</td><td class="num">43.8</td><td class="num">42.0</td><td class="num">44.4</td><td class="num">51.0</td><td class="num">45.3</td></tr>
+      <tr><td>no</td><td>no (no wiki at all)</td><td class="num">51.3</td><td class="num">38.4</td><td class="num">49.9</td><td class="num">55.2</td><td class="num">48.7</td></tr>
+      <tr><td>yes</td><td>yes</td><td class="num">64.8</td><td class="num">42.8</td><td class="num">80.2</td><td class="num">55.6</td><td class="num">60.9</td></tr>
+      <tr class="hl"><td>no</td><td>yes</td><td class="num">72.6</td><td class="num">44.7</td><td class="num">76.6</td><td class="num">60.7</td><td class="num"><span class="best">63.7</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Two conclusions, both structural rather than incremental:</p>
+  <ul>
+    <li id="claim-wiki-value"><b>The wiki is the engine.</b> Same skill format, same gating, same proposer — adding persistent consolidated knowledge to the proposer’s inputs moves the average from 48.7% to 63.7% (+15.0). <i>“Without persistent knowledge accumulated across iterations, the Skill Proposer struggles to resolve intricate failure modes”</i> [P&nbsp;§5.1].</li>
+    <li id="claim-blind-executor"><b>The executor must stay blind.</b> Also granting the Inference Agent wiki access during training rollouts <i>drops</i> the result to 60.9% (LiveMath 72.6→64.8). The paper’s hypothesis: the agent solves tasks from the wiki instead of from skills, making trajectories less informative for skill development [P&nbsp;§5.1]. Knowledge for the optimizer and procedure for the executor are different products and must not leak into each other during training.</li>
+  </ul>
+
+  <h3 id="ws-dynamics">4.6 What evolved skills and wikis actually look like<a class="anchor-link" href="#ws-dynamics">#</a></h3>
+  <p>Concreteness worth keeping, because it calibrates expectations for any reimplementation [P&nbsp;§5.2, Tab.&nbsp;4–5]:</p>
+  <ul>
+    <li><b>Skills are short.</b> Average evolved-skill length ranges from 45.1 markdown lines (Gemma-4-31B) to 128.6 (Qwen-9B). By benchmark: SpreadSheet longest (142.5 lines), LiveMath shortest (84.6). These are pages, not manuals.</li>
+    <li><b>Few skills survive gating.</b> Per run, roughly 2.3–4.8 skill creations are <i>proposed</i> but only ≈1.2–1.6 <i>accepted</i>; edits face an even harsher gate (3.2–5.7 proposed, 0.7–1.3 accepted). The gate rejects most of what the proposer produces — that is the design, not a failure.</li>
+    <li><b>The wiki grows freely.</b> 6.3–8.9 patterns created and 7.0–18.4 pattern edits on average (never gated, never rolled back), each pattern averaging 18–48 lines.</li>
+    <li><b>Refinement continues late.</b> Only 39–52% of accepted updates by model (39–58% by benchmark) land in iterations 0–1; the rest arrive mid (2–4) and late (5–7) — on SealQA, 28% of accepted updates come in iterations 5–7. Skill evolution is not a one-shot distillation [P&nbsp;App.&nbsp;A.2, Tab.&nbsp;5].</li>
+  </ul>
+  <p id="ws-case-study">The paper’s case study (Qwen-3.6-27B on ALFWorld) shows the full causal chain [P&nbsp;§5.3]: iteration 0 — the maintainer files a pattern for a take-examine-move loop; the proposer’s <code>goal-directed-action</code> skill fails validation and is rejected, <i>with its diff preserved</i>. Iteration 1 — informed by that audit trail, the proposer instead creates <code>break-repetition-loop</code> with a concrete action rule (“Never Return an Item to Its Origin Location”), which is accepted. Iteration 4 — new loop variants appear in traces, the maintainer accumulates evidence (<code>multi-operation-loop.md</code>), and the skill is refined with a second rule (“Each Operation Type ONCE Per Item”). Compiled knowledge → targeted procedure → evidence-driven refinement, exactly the loop the architecture promises.</p>
+
+  <h3 id="ws-cost">4.7 Cost anatomy<a class="anchor-link" href="#ws-cost">#</a></h3>
+  <p>Appendix D gives per-iteration <i>optimizer</i> API-call complexity (excluding rollouts, which every method pays) [P&nbsp;App.&nbsp;D.2]:</p>
+  <div class="table-wrap">
+  <table id="tbl-cost">
+    <caption><b>Optimizer LLM calls per evolution iteration</b> (N = training-set size, B = batch size). WikiSkill runs full-batch (B = N), making its optimizer cost constant: 1 maintainer call + T ReAct turns (T ≈ 10–20 observed).</caption>
+    <thead><tr><th>Framework</th><th>Per iteration</th><th>Scaling in N</th></tr></thead>
+    <tbody>
+      <tr><td>Trace2Skill</td><td>N + (1 + 1/(c−1))·N/B + 1</td><td>O(N) — one call per trace</td></tr>
+      <tr><td>EvoSkill</td><td>2N/B</td><td>O(N/B)</td></tr>
+      <tr><td>SkillOpt</td><td>K<sub>opt</sub>·N/B, K<sub>opt</sub> ≈ 6–8</td><td>O(N/B)</td></tr>
+      <tr class="hl"><td>WikiSkill</td><td>(1 + T<sub>ReAct</sub>)·N/B = 1 + T<sub>ReAct</sub> at B=N</td><td><b>O(1)</b></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The wiki is what makes full-batch O(1) viable: instead of pushing every trace through the optimizer, the proposer navigates an <i>index of compiled knowledge</i> and pulls only the traces it needs. Compare training-set sizes — 16 (SealQA) to 80 (SpreadSheet) tasks, validation 10–40, test 85–280 [P&nbsp;Tab.&nbsp;6]. Total cost is dominated by rollouts: K iterations × (N<sub>train</sub> + N<sub>val</sub>) trajectories, times three runs in the paper’s protocol.</p>
+
+  <h3 id="ws-limitations">4.8 Stated limitations<a class="anchor-link" href="#ws-limitations">#</a></h3>
+  <ul>
+    <li><b>No retrieval/triggering evaluated.</b> Full prompt injection sidesteps the question of whether agents would <i>choose</i> to load the right skill — “which becomes important as the number of available skills grows” [P&nbsp;Limitations]. (This is the progressive-disclosure problem the skills literature already flags [P&nbsp;§1].)</li>
+    <li><b>Strict gating discards neutral stepping stones.</b> A proposal that holds performance flat but enables later gains is rejected. Adopted for baseline comparability, flagged as future work.</li>
+    <li><b>No wiki pruning.</b> The wiki compounds without garbage collection; the authors expect pruning to become necessary on longer runs.</li>
+    <li><b>No very-long-horizon tasks</b> (hundreds of actions / multi-hour executions), and no within-episode skill adaptation.</li>
+    <li class="muted"><b>Our additional note (not the paper’s):</b> validation splits are small (10–40 tasks), which the authors acknowledge introduces gating noise, mitigated by averaging three full evolution runs [P&nbsp;App.&nbsp;B]. Any reimplementation inherits this noise — see the seed-change anecdote in <a href="#ar-gating-noise">§5.3</a> and the statistics conventions this lab already maintains (<a href="#playbook">§7</a>).</li>
+  </ul>
+</section>
+<section id="source-autoresearch">
+  <h2><span class="sec-num">5</span>Source ③: autoresearch — the minimal harness archetype<a class="anchor-link" href="#source-autoresearch">#</a></h2>
+  <p><code>karpathy/autoresearch</code> (March 2026, MIT)<sup class="ref"><a href="#ref-autoresearch">[3]</a></sup> is the other half of the inspiration: not a knowledge system but a demonstration of how <b>small</b> a credible autonomous-improvement harness can be. The idea, from its README: <i>“give an AI agent a small but real LLM training setup and let it experiment autonomously overnight. It modifies the code, trains for 5 minutes, checks if the result improved, keeps or discards, and repeats.”</i></p>
+
+  <h3 id="ar-structure">5.1 Three files and a rule<a class="anchor-link" href="#ar-structure">#</a></h3>
+  <p>The training target is a simplified single-GPU nanochat<sup class="ref"><a href="#ref-nanochat">[11]</a></sup>: a GPT at <code>DEPTH = 8</code> (~50M parameters), 8,192-token BPE vocab, 2,048 context, Muon + AdamW, trained on a fixed web-data mix for a hard wall-clock budget of 300 seconds per run [A&nbsp;<code>prepare.py</code>, <code>train.py</code>, <code>program.md</code>]. The whole system is three files with strict ownership:</p>
+  <ul>
+    <li><code>prepare.py</code> — constants, data, tokenizer, dataloader, and the ground-truth metric (<code>evaluate_bpb</code>). <b>Nobody modifies it.</b> (The immutable layer.)</li>
+    <li><code>train.py</code> — model, optimizer, training loop. <b>The agent modifies only this.</b> (The procedure layer.)</li>
+    <li><code>program.md</code> — the agent’s standing instructions. <b>The human modifies only this.</b> The README names it exactly: <i>“The <code>program.md</code> file is essentially a super lightweight ‘skill’.”</i></li>
+  </ul>
+  <p>The metric is validation bits-per-byte (val_bpb) — chosen because it is vocabulary-independent, so architectural changes stay comparable. The fixed 5-minute budget makes every experiment comparable regardless of what the agent changed, and yields <i>“approx 12 experiments/hour and approx 100 experiments while you sleep”</i> [A&nbsp;README].</p>
+
+  <h3 id="ar-loop">5.2 The loop, and where knowledge lives<a class="anchor-link" href="#ar-loop">#</a></h3>
+  <p><code>program.md</code> specifies a WikiSkill-shaped loop in miniature: edit <code>train.py</code> → commit → run → grep <code>val_bpb</code> from the log → record a row in <code>results.tsv</code> (<code>commit, val_bpb, memory_gb, status ∈ {keep, discard, crash}, description</code>) → advance the branch if the metric improved, <code>git reset</code> if not [A&nbsp;<code>program.md</code>]. The gate is the same strict rule as WikiSkill’s (accept iff strictly better); git is the rollback mechanism; <code>results.tsv</code> plus the git log are the audit trail. It even carries an autonomy clause worth quoting for its bluntness: <i>“Do NOT pause to ask the human if you should continue… If you run out of ideas, think harder — read papers referenced in the code, re-read the in-scope files for new angles, try combining previous near-misses.”</i></p>
+  <p>What autoresearch conspicuously <b>lacks</b> is WikiSkill’s middle layer: there is no pattern catalog, no consolidation step, no persistent “what we learned and why” — only one-line descriptions in a TSV and diffs in git history. That is precisely the configuration WikiSkill’s ablation measured at 48.7% vs 63.7% (<a href="#ws-ablation">§4.5</a>): traces and outcome history without compiled knowledge. The two projects are therefore perfect complements: autoresearch shows the minimum viable <i>harness</i>; WikiSkill shows the highest-leverage <i>missing organ</i> for it.</p>
+
+  <h3 id="ar-demo">5.3 The demo that proves the shape<a class="anchor-link" href="#ar-demo">#</a></h3>
+  <figure class="fig" id="fig-progress">
+    <svg viewBox="0 0 860 400" role="img" aria-labelledby="fig-progress-title" font-family="system-ui, sans-serif">
+      <title id="fig-progress-title">autoresearch overnight run: validation bits-per-byte improving over 83 experiments</title>
+      <!-- gridlines + y ticks -->
+      <g stroke="var(--rule)" stroke-width="1">
+        <line x1="70" y1="30" x2="830" y2="30"/><line x1="70" y1="91.5" x2="830" y2="91.5"/>
+        <line x1="70" y1="153" x2="830" y2="153"/><line x1="70" y1="214.6" x2="830" y2="214.6"/>
+        <line x1="70" y1="276.2" x2="830" y2="276.2"/><line x1="70" y1="337.7" x2="830" y2="337.7"/>
+      </g>
+      <g font-size="11" fill="var(--text-muted)" text-anchor="end">
+        <text x="62" y="34">1.000</text><text x="62" y="95.5">0.995</text><text x="62" y="157">0.990</text>
+        <text x="62" y="218.6">0.985</text><text x="62" y="280.2">0.980</text><text x="62" y="341.7">0.975</text>
+      </g>
+      <g font-size="11" fill="var(--text-muted)" text-anchor="middle">
+        <text x="70" y="368">0</text><text x="253" y="368">20</text><text x="436" y="368">40</text>
+        <text x="619" y="368">60</text><text x="803" y="368">80</text>
+        <text x="450" y="392" font-size="12">experiment #</text>
+      </g>
+      <text x="20" y="200" font-size="12" fill="var(--text-muted)" transform="rotate(-90 20 200)" text-anchor="middle">val_bpb (lower is better)</text>
+      <!-- running best staircase -->
+      <path d="M70,55.8 H88.3 V144.5 H124.9 V156.8 H143.3 V185.1 H198.2 V220.8 H280.6 V226.9 H326.4 V234.3 H363 V250.3 H418 V277.4 H427.1 V281.1 H463.8 V289.7 H656 V297.1 H665.2 V300.8 H683.5 V304.5 H756.7 V309.4 H830"
+            fill="none" stroke="var(--kept)" stroke-width="2.5"/>
+      <!-- kept points -->
+      <g fill="var(--kept)" stroke="var(--bg)" stroke-width="1.5">
+        <circle cx="70" cy="55.8" r="5"/><circle cx="88.3" cy="144.5" r="5"/><circle cx="124.9" cy="156.8" r="5"/>
+        <circle cx="143.3" cy="185.1" r="5"/><circle cx="198.2" cy="220.8" r="5"/><circle cx="280.6" cy="226.9" r="5"/>
+        <circle cx="326.4" cy="234.3" r="5"/><circle cx="363" cy="250.3" r="5"/><circle cx="418" cy="277.4" r="5"/>
+        <circle cx="427.1" cy="281.1" r="5"/><circle cx="463.8" cy="289.7" r="5"/><circle cx="656" cy="297.1" r="5"/>
+        <circle cx="665.2" cy="300.8" r="5"/><circle cx="683.5" cy="304.5" r="5"/><circle cx="756.7" cy="309.4" r="5"/>
+      </g>
+      <!-- point numbers -->
+      <g font-size="9.5" fill="var(--text-muted)">
+        <text x="75" y="50">1</text><text x="93" y="139">2</text><text x="129" y="151">3</text><text x="148" y="180">4</text>
+        <text x="203" y="215">5</text><text x="285" y="221">6</text><text x="331" y="229">7</text><text x="368" y="245">8</text>
+        <text x="423" y="272">9</text><text x="434" y="294">10</text><text x="468" y="284">11</text><text x="649" y="291">12</text>
+        <text x="670" y="314">13</text><text x="688" y="299">14</text><text x="761" y="304">15</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure B.</b> Redrawn (simplified) from <code>progress.png</code> in the autoresearch repository [A], titled “Autoresearch Progress: 83 Experiments, 15 Kept Improvements.” Only the running-best staircase and kept experiments are shown; 68 discarded/crashed attempts are omitted. Values are read off the original chart and approximate. Kept changes, in order: <b>1</b> baseline (≈0.998) · <b>2</b> halve total batch 524K→262K · <b>3</b> warmdown 0.5→0.7 · <b>4</b> add 5% warmup · <b>5</b> depth 9, aspect_ratio 57 · <b>6</b> x0_lambda init 0.1→0.05 · <b>7</b> unembedding LR 0.004→0.008 · <b>8</b> SSSSL window pattern · <b>9</b> short window ¼ context · <b>10</b> short window ⅛ context (256 tokens) · <b>11</b> embedding LR 0.6→0.8 · <b>12–14</b> RoPE base frequency 10000→50000→100000→200000 · <b>15</b> random seed 42→137 (≈0.977).</figcaption>
+  </figure>
+  <p id="ar-gating-noise">Two lessons ride on that last kept point. First, the harness works: an unattended agent produced 83 controlled experiments and a ≈2% val_bpb improvement overnight, most gains arriving as small, legible, individually-gated changes. Second, <b>gating on a noisy metric will eventually accept noise</b>: “random seed 42→137” improved validation bpb and was kept, but a seed is not an improvement — it is variance harvesting. WikiSkill hits the same issue from the other side (small validation splits, mitigated by averaging three full runs [P&nbsp;App.&nbsp;B]); this lab’s existing statistics doctrine (pre-registered thresholds, paired tests, refusal of unlicensed claims — <a href="#playbook">§7</a>) is exactly the antidote, and any MVP here should apply it (<a href="#mvp">§8</a>).</p>
+  <p class="muted" style="font-size:0.9rem">Scale-down guidance worth keeping: the README sketches how to shrink the rig for small machines (narrower TinyStories-style data, smaller vocab / byte-level tokenizer, shorter sequences, <code>DEPTH</code> 8→4, full-attention window pattern, smaller total batch)<sup class="ref"><a href="#ref-tinystories">[15]</a></sup>, and links community forks for macOS/MLX/Windows/AMD [A&nbsp;README]. The same shrink-everything-but-the-loop philosophy drives our MVP design in <a href="#mvp">§8</a>.</p>
+</section>
+
+<section id="synthesis">
+  <h2><span class="sec-num">6</span>Synthesis: one design pattern, three instantiations<a class="anchor-link" href="#synthesis">#</a></h2>
+  <p>Read together, the three sources describe a single recurring architecture for improving an AI system <i>without touching model weights</i>: separate what happened (immutable), what we know (compounding), and what to do (gated); let agents compile the first into the second and propose the third; accept proposals only against a measured criterion; and keep an audit trail the optimizer itself can read. The differences are mostly about which parts are automated and how rigorously acceptance is tested.</p>
+
+  <h3 id="pattern-mapping">6.1 The mapping table<a class="anchor-link" href="#pattern-mapping">#</a></h3>
+  <div class="table-wrap">
+  <table id="tbl-mapping">
+    <caption><b>One pattern, four instantiations.</b> The fourth column maps the pattern onto machinery that already exists in this repository (paths verified 2026-08-30 on the worktree branch; wholesaling paths live on branch <code>project/wholesaling-intake</code>).</caption>
+    <thead><tr><th>Concern</th><th>LLM Wiki [G]</th><th>WikiSkill [P]</th><th>autoresearch [A]</th><th>Adaptive AI Lab (today)</th></tr></thead>
+    <tbody>
+      <tr><td><b>Immutable experience</b></td><td>raw sources</td><td><code>raw/</code> execution traces</td><td>git history + <code>run.log</code></td><td>FIS provenance ledgers, run artifacts, wholesaling cassettes/traces</td></tr>
+      <tr><td><b>Compiled knowledge</b></td><td>the wiki (entity/concept pages, synthesis)</td><td><code>wiki/patterns/</code> + <code>index.md</code> + logs</td><td><i>missing</i> (one-line TSV descriptions only)</td><td><code>research/</code> reports, <code>EVIDENCE_MAP.md</code>, <code>PLAYBOOK_FEEDBACK.md</code> ledgers, precompact-flushed docs</td></tr>
+      <tr><td><b>Executable procedure</b></td><td>the schema (CLAUDE.md / AGENTS.md)</td><td><code>skills/*/SKILL.md</code></td><td><code>program.md</code> (“a super lightweight skill”)</td><td>playbook chapters &amp; templates; wholesaling compiled BRIEFs; <code>/goal</code> command</td></tr>
+      <tr><td><b>Knowledge updater</b></td><td>the LLM, on ingest/lint</td><td>Wiki Maintainer agent (LLM)</td><td>nobody</td><td>lab sessions (LLM) + human review; PreCompact hook forces the flush</td></tr>
+      <tr><td><b>Procedure updater</b></td><td>human + LLM co-evolve schema</td><td>Skill Proposer agent (LLM, ReAct)</td><td>human edits <code>program.md</code>; agent edits <code>train.py</code></td><td>human, via promotion path (finding → EVIDENCE_MAP row → chapter rule)</td></tr>
+      <tr><td><b>Acceptance rule</b></td><td>human judgment</td><td>validation score strictly improves, else rollback</td><td>val_bpb strictly improves, else <code>git reset</code></td><td>evidence class + corroboration gates; frozen experiment contracts; pre-registered thresholds</td></tr>
+      <tr><td><b>Audit trail</b></td><td><code>log.md</code> (append-only)</td><td><code>skill-impact.md</code>: diffs, scores, accept/reject — written by the harness</td><td><code>results.tsv</code> + git log</td><td><code>CHANGELOG.md</code> (what/why/evidence), hash-chained registries, test-look ledger</td></tr>
+      <tr><td><b>Optimizer reads its own history?</b></td><td>yes (wiki is the memory)</td><td>yes — “DO NOT repeat rejected approaches”</td><td>weakly (TSV descriptions)</td><td>yes, for humans; no agent-facing consolidation</td></tr>
+      <tr><td><b>Update cadence</b></td><td>continuous, conversational</td><td>K ≈ 8 iterations per dataset</td><td>~12 experiments/hour, overnight</td><td>milestone-gated, human-paced</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The comparison exposes the lab’s exact position: it already owns unusually strong <i>immutable-experience</i> and <i>audit-trail</i> layers (better than any of the three sources — hash-chained, fail-closed), and a disciplined but <b>entirely human-paced</b> procedure updater. What it does not have is the middle organ in agent-usable form: knowledge compiled <i>for an optimizing agent to consume</i>, and any closed loop in which procedures are proposed and gated automatically. The gap is not capability but wiring.</p>
+
+  <h3 id="thesis">6.2 The “fine-tuning without weights” thesis, examined<a class="anchor-link" href="#thesis">#</a></h3>
+  <p>The motivating intuition for this report was: <i>well-tuned skills act like fine-tuning without touching weights — spend frontier-level tokens once to compile capability into small units, then run cheaper models with guidance instead of a frontier model figuring everything out each time.</i> The evidence supports a sharpened version of each half:</p>
+  <h4>What the evidence supports</h4>
+  <ul>
+    <li><b>Skills move performance the way training would, at text speed.</b> +12 to +24 average points across model scales, up to +40.9 on a single benchmark, from markdown files of 45–143 lines [P&nbsp;Tab.&nbsp;1, Tab.&nbsp;4]. The paper frames skills explicitly as capturing expertise “without updating model parameters,” consistent with the Agent Skills format they build on<sup class="ref"><a href="#ref-anthropic-skills">[4]</a></sup>.</li>
+    <li><b>The artifact is portable in a way weights never are.</b> Skills evolved by one model transfer across scales <i>and vendors</i> (Qwen→Gemma, Qwen→Gemini, Gemini→Qwen), sometimes beating self-evolved skills [P&nbsp;Tab.&nbsp;2]. A LoRA does not transfer across model families; a SKILL.md does.</li>
+    <li><b>“Small + compiled guidance ≥ large + nothing” is real.</b> 9B+skills (47.4) &gt; 27B bare (39.4); 4B+skills (38.5) sits just under 27B bare [P&nbsp;§4.2.1]. This is the substitution the economic argument needs.</li>
+    <li><b>And unlike fine-tuning, every unit is inspectable, reviewable, diffable, and rollbackable</b> — properties this lab’s governance doctrine already demands of interventions. The audit trail (<code>skill-impact.md</code>) is a first-class part of the method, not an afterthought.</li>
+  </ul>
+  <h4>Where the folk version needs correcting</h4>
+  <ul>
+    <li><b>Gains grow with executor capability, not against it</b> (+12.3 → +23.9 across Qwen 4B→27B) [P&nbsp;§4.2.1]. Skills are not a prosthetic that rescues weak models; they are a multiplier whose factor rises with the model’s ability to follow procedures. The cheapest adequate executor, not the cheapest executor, is the target.</li>
+    <li><b>There is a floor.</b> Below the capability needed to execute a procedure, a skill is worthless or harmful (4B on OfficeQA: −1.7 with its own skill) [P&nbsp;§4.2.2].</li>
+    <li><b>Frontier-evolved is not automatically better.</b> Discovery quality is not monotonic in model size (4B skills lifting 31B and Flash on some tasks; Flash skills losing to 27B skills on others) [P&nbsp;Tab.&nbsp;2]. Whoever’s traces expose the failure modes best is the best teacher for that domain–executor pair.</li>
+    <li><b>Skills must encode general procedures, not the discoverer’s crutches</b> — else negative transfer (50.5→18.1) [P&nbsp;§4.2.2]. If we evolve skills with a frontier model for a cheap executor, the evolution loop should <i>roll out with the executor</i>, exactly as WikiSkill separates proposer from inference agent.</li>
+    <li><b>Domain matters more than anything.</b> Amenability ranged from ~+11 to ~+41 points for the same model [P&nbsp;§4.2.1]. Procedural, tool-mediated, verifiable domains are where this pays.</li>
+  </ul>
+
+  <h3 id="economics">6.3 The economics: spend frontier tokens once, run cheap tokens forever<a class="anchor-link" href="#economics">#</a></h3>
+  <p>The right cost model, assembled from the paper’s own accounting [P&nbsp;App.&nbsp;B–D]:</p>
+  <pre><code>C_evolve ≈ K · [ N_train + N_val ] · c_rollout        (rollouts dominate)
+         + K · [ 1 + T_ReAct ] · c_optimizer          (T_ReAct ≈ 10–20; O(1) per iteration)
+         × R runs if averaging for gating robustness   (paper: R = 3)
+
+with paper-scale numbers: K ≈ 8 (inferred from the paper's iteration 0–7 grouping, Tab. 5),
+N_train = 16–80, N_val = 10–40.</code></pre>
+  <p>This is a <b>one-time, per-domain capital cost</b>, after which the marginal cost of every future query is the cheap executor’s inference plus the injected skill tokens (skills average 45–143 markdown lines — small relative to typical agent contexts). The amortization logic:</p>
+  <pre><code>break_even_queries ≈ C_evolve / (c_frontier_query − c_small_query)</code></pre>
+  <p>Three structural observations, deliberately price-free (plug in current per-token rates when deciding — they change; the structure doesn’t):</p>
+  <ol>
+    <li><b>The gap being amortized is large.</b> Per-token price ratios between frontier and small tiers are routinely an order of magnitude or more, and the substitution evidence (<a href="#thesis">§6.2</a>) is precisely that a small-tier model with skills does big-tier work on amenable tasks.</li>
+    <li><b>Evolution cost scales with the <i>task suite</i>, not with the deployment volume.</b> A few hundred to ~1,000 rollouts per evolution run on 16–80 training tasks is the entire discovery bill; production volume never re-pays it. Contrast fine-tuning: comparable one-time cost, but the artifact is locked to one base model and invisible to review.</li>
+    <li><b>Transfer changes who pays for discovery.</b> Because skills transfer across models (<a href="#ws-transfer">§4.4</a>), the discovery bill can be paid by whichever model discovers best, once, and harvested by every executor that clears the capability floor — including future model generations, if the skills encode general procedures rather than workarounds.</li>
+  </ol>
+  <div class="callout warn">
+    <span class="callout-label">Honest accounting</span>
+    <p>The paper never runs the exact configuration the thesis dreams of — <i>frontier proposer + cheap executor throughout evolution</i>. Its cross-model results transplant finished skills; the maintainer/proposer during any given evolution run is the same model as the executor. The closest supporting cells (e.g. Flash-evolved skills lifting Qwen-9B SpreadSheet 24.3→48.8, or Qwen-27B-evolved skills lifting 9B ALFWorld to 70.2) are strong but post-hoc transplants. Running the mixed configuration natively — strong optimizer, cheap executor, executor-in-the-loop rollouts — is an open experiment, and a cheap one. That is exactly what the MVP in <a href="#mvp">§8</a> is designed to test.</p>
+  </div>
+</section>
+<section id="playbook">
+  <h2><span class="sec-num">7</span>Relation to the Adaptive AI Systems Playbook<a class="anchor-link" href="#playbook">#</a></h2>
+  <p class="muted">Repository facts in this section were verified against the worktree on 2026-08-30; paths under <code>projects/wholesaling/</code> live on branch <code>project/wholesaling-intake</code> and are quoted from there.</p>
+
+  <h3 id="pb-position">7.1 Where this report sits<a class="anchor-link" href="#pb-position">#</a></h3>
+  <p>Per <code>research/README.md</code>, this layer is informative, never normative. If anything here is ever to change the playbook, the path is fixed: finding → adjudication row in <code>docs/playbook-development/EVIDENCE_MAP.md</code> (with project corroboration and an A–H class) → chapter rule with evidence-strength label → <code>playbook/CHANGELOG.md</code> entry, with external sources recorded in <code>playbook/references/sources.yaml</code>. Two consequences worth stating now:</p>
+    <ul>
+    <li>The promotion path wants both halves: an adjudication row pairs project evidence with external corroboration. WikiSkill supplies only the <b>external corroboration</b> half — and a single 3-day-old preprint is not yet “external consensus,” so on its own it supports at most a candidate default. The project-evidence half must come from an executed experiment such as <a href="#mvp">§8</a>.</li>
+    <li>The three primary sources here are <code>sources.yaml</code>-compatible as <code>type: "paper"</code> / <code>"official-repo"</code> entries (EXT-prefixed IDs) with <code>evidence_strength: "research-only"</code> until the lab reproduces anything — the honest label for a single 3-day-old arXiv preprint, however well-constructed.</li>
+  </ul>
+
+  <h3 id="pb-existing">7.2 What the playbook already believes, and where the gap is<a class="anchor-link" href="#pb-existing">#</a></h3>
+  <p>The striking thing about the survey is how much of the WikiSkill worldview the lab already practices — <i>by hand</i>:</p>
+  <ul>
+    <li><b>The intervention ladder already predicts this result.</b> Chapter 07 orders interventions so that evidence/retrieval/context (rung 2) and specification &amp; verification (rung 4) precede fine-tuning (rung 7) and a larger model (rung 8). WikiSkill is a controlled, five-model demonstration of exactly that ordering: a rung-2/4 artifact (an evolved skill) recovering — and in places exceeding — the value of rung 8 (a 3× larger model) [P&nbsp;§4.2.1]. This is the single cleanest external corroboration the ladder has yet had in the skills direction.</li>
+    <li><b>Compiled context is already lab practice — one-shot, human-paced.</b> The wholesaling <code>HANDOFF_PROTOCOL.md</code> §0 rule — <i>“The lab session (which holds the full context) COMPILES context into the brief; the agent never follows links to acquire context”</i> — is the report’s thesis in production: an expensive, context-rich session spends tokens once so a cheaper, context-poor session can execute. What it lacks relative to WikiSkill is the loop: briefs are compiled forward from human understanding, never evolved backward from measured execution traces, and nothing consolidates what the executing sessions learned.</li>
+    <li><b>Experience compilation exists but targets humans and evals, not agents.</b> Chapter 12’s production-failure harvesting compiles failures into eval corpora; the <code>PreCompact</code> hook flushes session knowledge into durable docs; <code>PLAYBOOK_FEEDBACK.md</code> ledgers (F-1…F-11) accumulate candidate lessons. All of it is the Wiki Maintainer’s job description — performed by humans and lab sessions, consumed by humans, with no agent-facing pattern catalog and no optimizer reading it.</li>
+    <li><b>Skills are already named as experimental objects</b> in <code>projects/millwork-estimating/</code> (“Skills/workflows are experimental objects”; its pipeline hypothesis separately names “bounded agent skills”; <code>WORKFLOW_HYPOTHESIS.md</code> line 179 proposes “generic prompt vs reusable estimator skill” as a comparison) — a hypothesis waiting for exactly the harness this report describes.</li>
+    <li><b>The measurement discipline needed is already built.</b> FIS runs frozen experiment contracts, hash-chained provenance, a test-look ledger, and stdlib statistics with a fixed verdict vocabulary — and its model gateway already runs Claude Code with <code>--safe-mode</code> to strip CLAUDE.md/skills/hooks, which is precisely the isolation WikiSkill’s methodology requires (measure the skill as the <i>only</i> moving part).</li>
+    <li><b>Verified absent:</b> no playbook chapter, glossary term, or template covers packaged agent skills, persistent agent wikis, or expensive-model-compiles-for-cheap-model workflows. The gap is real, and it is doctrine-shaped, not tooling-shaped.</li>
+  </ul>
+
+  <h3 id="pb-integration">7.3 What integration could look like (three rungs of ambition)<a class="anchor-link" href="#pb-integration">#</a></h3>
+  <ol>
+    <li><b>Vocabulary and doctrine (cheap, low-risk).</b> Glossary entries for <i>agent skill</i>, <i>skill evolution</i>, <i>experience compilation</i>; a chapter-08 (or 07) subsection placing evolved skills on the ladder as a rung-2/4 intervention with a stated capability floor and negative-transfer failure mode (<a href="#thesis">§6.2</a>), initially labeled <code>research-only</code>/<code>doctrine — not yet exercised</code>.</li>
+    <li><b>A lab-operations wiki layer (medium).</b> Extend the existing PreCompact flush into a maintained <code>wiki/</code>-style pattern catalog compiled from process logs and traces — with <code>index.md</code> descriptions written to the paper’s standard (<i>problem + root cause + fix</i> in one line [P&nbsp;App.&nbsp;E.2]) so future <i>agent</i> sessions, not just humans, can consume accumulated lab experience. This is valuable even if the full loop never ships, and it is the gist’s original use case [G].</li>
+    <li><b>The closed loop (only after validation).</b> A WikiSkill-style evolution rig — with the lab’s gate, not the paper’s: pre-registered thresholds, paired statistics, and a human freeze on skill <i>adoption</i> even where skill <i>proposal</i> is automated. The playbook’s governance doctrine and the paper’s architecture are compatible: gating-and-rollback is already a frozen-contract shape; <code>skill-impact.md</code> is already a CHANGELOG shape. But the lab should not adopt machinery it has not exercised — hence <a href="#mvp">§8</a>.</li>
+  </ol>
+</section>
+
+<section id="mvp">
+  <h2><span class="sec-num">8</span>A karpathy-scale MVP: skill evolution on a five-dollar-a-run harness<a class="anchor-link" href="#mvp">#</a></h2>
+  <p>The lab’s current test cases are big by design — FIS is a 312-file platform, wholesaling a 46&nbsp;MB live-system intake. autoresearch demonstrates the opposite validation style: shrink everything except the loop until one experiment costs minutes and the overnight budget buys ~100 of them [A]. That is the right first exposure to skill evolution: the claim to validate is about the <i>loop</i>, not about any production domain.</p>
+
+  <h3 id="mvp-shape">8.1 Design, by direct analogy<a class="anchor-link" href="#mvp-shape">#</a></h3>
+  <div class="table-wrap">
+  <table id="tbl-mvp-map">
+    <caption><b>Every design element inherited, none invented.</b></caption>
+    <thead><tr><th>Element</th><th>Choice</th><th>Inherited from</th></tr></thead>
+    <tbody>
+      <tr><td>Workspace</td><td><code>raw/</code> + <code>wiki/</code> + <code>skills/</code> directories; wiki never rolled back; harness-written <code>skill-impact.md</code></td><td>WikiSkill §3 [P]</td></tr>
+      <tr><td>Roles</td><td>Inference Agent (blind to wiki) · Wiki Maintainer · Skill Proposer (ReAct, atomic proposals, must read ≥4 traces) · deterministic gate</td><td>WikiSkill §3.2, App. E [P]</td></tr>
+      <tr><td>Scale</td><td>~30 train / ~15 val / ~100 test tasks; K = 8 iterations; runs in hours, not days</td><td>WikiSkill Tab. 6 (16–80 train) [P]; autoresearch cadence [A]</td></tr>
+      <tr><td>Mutability rule</td><td>Only <code>skills/</code> is agent-mutable; scorer and task set frozen before the run</td><td>autoresearch’s “<code>prepare.py</code> is read-only” [A]; FIS frozen contracts</td></tr>
+      <tr><td>Audit trail</td><td>TSV/JSONL of every proposal: diff, val score, accept/reject — append-only</td><td><code>results.tsv</code> [A]; <code>skill-impact.md</code> [P]; lab ledgers</td></tr>
+      <tr><td>Gate statistics</td><td>Pre-registered primary metric and thresholds; paired test on held-out TEST, spent through a test-look ledger; verdict vocabulary CONFIRMED/REFUTED/INCONCLUSIVE (plus RANKED)</td><td>Lab doctrine (ch. 04; <code>fis_platform/stats.py</code>) — deliberately <i>stronger</i> than the paper’s gate, because of <a href="#ar-gating-noise">the seed-change lesson</a></td></tr>
+      <tr><td>Isolation</td><td>Executor runs stripped of ambient context (the <code>--safe-mode</code> pattern from the FIS gateway); skills injected explicitly in the prompt, full-injection style</td><td>WikiSkill §3.2.1 [P]; <code>fis_platform/model_gateway/gateway.py</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 id="mvp-question">8.2 The question worth answering first<a class="anchor-link" href="#mvp-question">#</a></h3>
+  <p>Not “does skill evolution work?” — the paper answered that across five models. The cell the paper left empty (<a href="#economics">§6.3</a>) is the one this lab actually cares about:</p>
+  <div class="callout">
+    <span class="callout-label">Primary hypothesis</span>
+    <p><b>H1:</b> With a <i>cheap executor in the rollout loop</i> and a <i>frontier maintainer/proposer</i>, evolved skills lift the cheap executor’s held-out accuracy significantly over (a) its no-skill baseline, and — secondarily — (b) skills evolved entirely by the cheap model, at comparable evolution cost. Concretely: executor Claude Haiku 4.5, optimizer Claude Opus 5 (per current first-party rates a 5× per-token spread — $1/$5 vs $5/$25 per Mtok in/out<sup class="ref"><a href="#ref-pricing">[9]</a></sup>), so discovery intelligence is bought where WikiSkill showed it matters (root-cause analysis, [P&nbsp;§5.1]) while rollout volume stays at the cheap tier — and the executor-in-the-loop design guards against the workaround-encoding failure that sank 4B→Flash transfer [P&nbsp;§4.2.2].</p>
+  </div>
+  <p>Three arms, one task suite: <b>A</b> no skill · <b>B</b> self-evolved (Haiku throughout) · <b>C</b> mixed (Haiku executes, Opus consolidates/proposes). A beats nothing, B replicates the paper’s direction of effect at the small tier, C tests H1. Each arm reports accuracy <i>and</i> cost-per-completed-task, because the economic claim is a ratio, not a score.</p>
+
+  <h3 id="mvp-task">8.3 Task suite<a class="anchor-link" href="#mvp-task">#</a></h3>
+  <p>Requirements, distilled from the amenability findings [P&nbsp;§4.2.1]: deterministic scorer; tool-mediated, procedural work with recoverable errors; cheap-executor baseline in the 20–50% band so there is headroom in both directions; ~150 tasks total. Two candidates, in recommended order:</p>
+  <ol>
+    <li><b>Phase A — calibration on public ground:</b> a drawn subset of SpreadsheetBench-style tasks (spreadsheet manipulation via code + shell was the single most skill-amenable domain measured: +6.5 to +40.9 across scales [P&nbsp;§4.2.1]), scored by the benchmark’s own checkers. Purpose: verify <i>our rig</i> reproduces the paper’s direction of effect before trusting it on anything else. Known risk: benchmark contamination in executor training data — acceptable here because the comparison is paired (skill vs no-skill on the same model), not absolute.</li>
+    <li><b>Phase B — same rig, lab domain:</b> millwork document microtasks (room-by-room coverage checks, finish-schedule reconciliation, cross-sheet reference following — the skill candidates <code>PLAYBOOK_PATH.md</code> §4 already names — against a surrogate document pack with hand-built answer keys). This converts <code>WORKFLOW_HYPOTHESIS.md</code>’s “generic prompt vs reusable estimator skill” from hypothesis to executed contract, and produces the project-evidence half of a future EVIDENCE_MAP row (<a href="#pb-position">§7.1</a>).</li>
+  </ol>
+
+  <h3 id="mvp-budget">8.4 Budget envelope<a class="anchor-link" href="#mvp-budget">#</a></h3>
+  <pre><code>rollouts  = K·(N_train + N_val) + N_val + 2·N_test        per arm-run
+          = 8·(30+15) + 15 + 200  ≈ 575 executor trajectories
+optimizer = K·(1 + T_ReAct) ≈ 8·16 ≈ 128 frontier calls     (arms B/C only)
+
+Illustrative, at ~5K in / 1K out per executor trajectory (Haiku 4.5)
+and ~10K in / 1K out per optimizer call (Opus 5), first-party rates
+as of this writing[9]: ≈ $6 executor + $10 optimizer per arm-run;
+three arms × 3 seeds ≈ low hundreds of dollars for the whole study,
+Phase A. (Batch-API pricing, 50% off, roughly halves the rollout
+bill when running on API billing.)</code></pre>
+  <p>Order autoresearch taught us to respect: this is an overnight-scale experiment. If a design iteration is wrong, the loss is a few dollars, not a milestone — this is what makes it safe to keep improving the <i>rig</i> until it earns trust.</p>
+
+  <h3 id="mvp-success">8.5 Pre-registerable outcomes<a class="anchor-link" href="#mvp-success">#</a></h3>
+  <ul>
+    <li><b>CONFIRMED:</b> arm C beats arm A on held-out TEST with the pre-registered paired statistic at p&nbsp;&lt;&nbsp;0.05 (mirroring the paper’s bar [P&nbsp;App.&nbsp;C]) and a pre-registered minimum effect (suggest ≥5 points, below which the machinery isn’t worth its complexity). Secondary readout: C vs B on accuracy <i>and</i> total evolution cost.</li>
+    <li><b>REFUTED:</b> C fails to beat A, or gains vanish on TEST (val-only gains = the seed-change pathology).</li>
+    <li><b>INCONCLUSIVE:</b> effects positive but under the minimum, or seed variance swamps them — informative either way about domain amenability at the cheap tier. (The lab vocabulary’s fourth verdict, RANKED, fits the secondary three-arm ordering.)</li>
+    <li><b>Guardrails:</b> wiki and skills inspected qualitatively after each run (are these general procedures or Haiku crutches? [P&nbsp;§4.2.2]); no mid-run threshold edits; every TEST evaluation logged against a look ledger.</li>
+  </ul>
+  <p>Deliverables: the rig (a few hundred lines against three directories, in the spirit of autoresearch’s three files), the frozen contract, the run artifacts, and a dated follow-up report whose findings — not this report’s — would be the thing eligible for EVIDENCE_MAP adjudication.</p>
+</section>
+
+<section id="meta">
+  <h2><span class="sec-num">9</span>The meta possibility<a class="anchor-link" href="#meta">#</a></h2>
+  <p>Flagged as speculation, because the recursion is real but untested at every level: the playbook’s own development process is already shaped like a WikiSkill loop running at human cadence. Project sessions generate experience (process logs, walktest findings, feedback ledgers F-1…F-11 — raw layer); maintainers consolidate it into EVIDENCE_MAP rows and research reports (wiki layer); promotions turn consolidated knowledge into chapter rules and templates (skills layer); the CHANGELOG’s what/why/evidence triple is <code>skill-impact.md</code> for humans. Under this mapping, a validated skill-evolution rig would not be a new capability bolted onto the playbook — it would be a faster inner loop for the process the playbook already runs on itself, with the same gates. The sensible order remains: validate the loop on a five-dollar harness (<a href="#mvp">§8</a>), use it inside one project, and only then ask whether the playbook’s own maintenance wants it. The paper’s ablation gives the warning label for skipping steps: knowledge layers pay off only when their boundaries are enforced (<a href="#ws-ablation">§4.5</a>), and the playbook’s boundary — humans gate what becomes normative — is a feature, not a bottleneck to automate away.</p>
+</section>
+
+<section id="open-questions">
+  <h2><span class="sec-num">10</span>Open questions before any integration<a class="anchor-link" href="#open-questions">#</a></h2>
+  <ol>
+    <li><b>Skill retrieval at scale.</b> The paper injects all skills into the prompt and says plainly this dodges the triggering problem [P&nbsp;Limitations]. A real library needs progressive disclosure, and mis-triggering becomes a new failure class the playbook would have to instrument.</li>
+    <li><b>Wiki pruning and drift.</b> No garbage collection exists in the paper; the gist’s answer is a periodic lint pass [G]. Who prunes, on what evidence, without destroying the audit trail?</li>
+    <li><b>Skills vs compiled briefs.</b> The wholesaling protocol compiles <i>per-session, disposable</i> context; WikiSkill evolves <i>durable, reusable</i> procedures. When is each right? Plausible answer — briefs for one-off work, skills for recurring task families — but that boundary deserves its own note once both exist.</li>
+    <li><b>Where the human gate sits.</b> The paper auto-accepts on a validation statistic; the lab’s doctrine would keep humans on adoption. Does the loop still compound at human cadence, or does the value depend on tight iteration?</li>
+    <li><b>Generalization across model generations.</b> Skills that encode general procedures should survive model upgrades (the transfer results are encouraging [P&nbsp;Tab.&nbsp;2]); skills that encode workarounds become silent tech debt on upgrade day. A re-validation trigger on model change belongs in any adopted doctrine.</li>
+    <li><b>Where this fails.</b> SealQA/OfficeQA-shaped work gained least [P&nbsp;§4.2.1]; knowledge-heavy, low-procedure domains may never repay evolution cost. The playbook’s domain-amenability question should be answered <i>before</i> a project buys the loop.</li>
+  </ol>
+</section>
+
+<section id="references">
+  <h2>References<a class="anchor-link" href="#references">#</a></h2>
+  <ol class="refs">
+    <li id="ref-paper">Liyan Tang, Cyrus Rashtchian, Chun-Sung Ferng, Andrew Tomkins, Da-Cheng Juan, Tu Vu (Google Research; Virginia Tech). <i>WikiSkill: Compiling Agent Experience into Persistent Knowledge for Skill Evolution.</i> arXiv:2608.27454v1 [cs.AI], 27 Aug 2026. CC BY 4.0. <a href="https://arxiv.org/abs/2608.27454">arxiv.org/abs/2608.27454</a> · <a href="https://arxiv.org/html/2608.27454">HTML</a> · <a href="https://arxiv.org/pdf/2608.27454">PDF</a>. <span class="ret">Retrieved and read in full (incl. App. A–E) 2026-08-30.</span></li>
+    <li id="ref-gist">Andrej Karpathy. <i>LLM Wiki — a pattern for building personal knowledge bases using LLMs.</i> GitHub Gist. <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">gist.github.com/karpathy/442a6bf555914893e9891c11519de94f</a>. <span class="ret">Retrieved in full 2026-08-30; undated; cited as “Karpathy (2026)” by [1].</span></li>
+    <li id="ref-autoresearch">Andrej Karpathy. <i>autoresearch.</i> GitHub repository, MIT license, March 2026. <a href="https://github.com/karpathy/autoresearch">github.com/karpathy/autoresearch</a>. <span class="ret">Cloned at commit 228791f (2026-03-25); README.md, program.md, train.py, prepare.py, progress.png read in full 2026-08-30.</span></li>
+    <li id="ref-anthropic-skills">Barry Zhang, Keith Lazuka, Mahesh Murag (Anthropic). <i>Equipping agents for the real world with Agent Skills.</i> Anthropic Engineering blog, 2025. <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">anthropic.com/engineering/…agent-skills</a>. <span class="ret">Cited by [1] as Zhang et al. (2025) for the skills format; [1] attributes progressive disclosure separately to Jiang et al. (2026).</span></li>
+    <li id="ref-anthropic-guide">Anthropic. <i>A complete guide to building skills for Claude.</i> 2026. <a href="https://claude.com/blog/complete-guide-to-building-skills-for-claude">claude.com/blog/complete-guide-to-building-skills-for-claude</a>. <span class="ret">Cited by [1] as Anthropic (2026).</span></li>
+    <li id="ref-evoskill">S. Alzubi, N. Provenzano, J. Bingham, W. Chen, T. Vu. <i>EvoSkill: Automated Skill Discovery for Multi-Agent Systems.</i> arXiv:2603.02766. <span class="ret">Baseline; description per [1] App. D.1.</span></li>
+    <li id="ref-trace2skill">J. Ni et al. <i>Trace2Skill: Distill Trajectory-Local Lessons into Transferable Agent Skills.</i> arXiv:2603.25158. <span class="ret">Baseline; description per [1] App. D.1.</span></li>
+    <li id="ref-skillopt">Y. Yang et al. <i>SkillOpt: Executive Strategy for Self-Evolving Agent Skills.</i> arXiv:2605.23904. <span class="ret">Baseline; description per [1] App. D.1; also source of the OfficeQA/tool setups [1] App. B.</span></li>
+    <li id="ref-pricing">Anthropic. <i>Model pricing</i>, first-party API rates (Claude Haiku 4.5 $1/$5, Claude Sonnet 5 $2/$10, Claude Opus 5 $5/$25 per Mtok input/output). <a href="https://docs.claude.com/en/docs/about-claude/pricing">docs.claude.com/en/docs/about-claude/pricing</a>. <span class="ret">Rates as read 2026-08 from bundled reference (cached 2026-06-24); verify before budgeting — the §8 argument depends only on the ratio.</span></li>
+    <li id="ref-react">S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. Narasimhan, Y. Cao. <i>ReAct: Synergizing Reasoning and Acting in Language Models.</i> ICLR 2023. <span class="ret">The Skill Proposer’s operating mode [1] §3.2.3.</span></li>
+    <li id="ref-nanochat">Andrej Karpathy. <i>nanochat.</i> <a href="https://github.com/karpathy/nanochat">github.com/karpathy/nanochat</a>. <span class="ret">Parent of the autoresearch training code [3].</span></li>
+    <li id="ref-qmd"><i>qmd — local hybrid search for markdown</i> (GitHub user “tobi”). <a href="https://github.com/tobi/qmd">github.com/tobi/qmd</a>. <span class="ret">Recommended in [2] as the wiki’s optional search layer.</span></li>
+    <li id="ref-memex">Vannevar Bush. <i>As We May Think.</i> The Atlantic, July 1945. <a href="https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/">theatlantic.com/…/as-we-may-think</a>. <span class="ret">The Memex lineage claimed in [2].</span></li>
+    <li id="ref-benchmarks">Benchmarks used by [1] §4.1/App. B: <i>LiveMathematicianBench</i> (He et al., arXiv:2604.01754); <i>SealQA</i> (Pham et al., ICLR 2026); <i>SpreadsheetBench</i> (Ma et al., NeurIPS 2024 D&amp;B); <i>OfficeQA</i> (Singhvi et al., Databricks, 2025); <i>ALFWorld</i> (Shridhar et al., ICLR 2021).</li>
+    <li id="ref-tinystories">Karpathy mirror of GPT-4-generated TinyStories data. <a href="https://huggingface.co/datasets/karpathy/tinystories-gpt4-clean">huggingface.co/datasets/karpathy/tinystories-gpt4-clean</a>. <span class="ret">Recommended in [3] README for small-compute forks.</span></li>
+  </ol>
+  <p class="muted" style="font-size:0.85rem">Repository-internal citations (e.g. <code>playbook/07_…</code>, <code>projects/wholesaling/HANDOFF_PROTOCOL.md</code>, <code>fis_platform/stats.py</code>) are given as live paths rather than numbered references; they were verified on 2026-08-30 against the branches named in §7. X/Twitter posts linked from [3]’s README (additional autoresearch context) were not retrieved and are cited only via the README.</p>
+</section>
+
+<footer class="doc-foot">
+  <p><b>Document status.</b> Compiled 2026-08-30 in worktree <code>wikiskill-research</code>. This file is the full report; a site-renderable abstract lives beside it as the <code>.md</code> of the same date-stamped name. Frozen on landing per <code>research/README.md</code> — corrections arrive as new dated reports. Cite by anchor: <code>2026-08-30_WikiSkill_LLM_Wiki_Autoresearch.html#&lt;id&gt;</code>.</p>
+</footer>
+
+</div>
+
+<script id="claims-index" type="application/json">
+{
+  "document": "2026-08-30_WikiSkill_LLM_Wiki_Autoresearch.html",
+  "purpose": "Machine-readable index of load-bearing claims. Prose + cited source wins over this index on any disagreement.",
+  "sources": {
+    "P": {"title": "WikiSkill", "id": "arXiv:2608.27454v1", "url": "https://arxiv.org/abs/2608.27454", "retrieved": "2026-08-30"},
+    "G": {"title": "LLM Wiki gist", "url": "https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f", "retrieved": "2026-08-30"},
+    "A": {"title": "karpathy/autoresearch", "url": "https://github.com/karpathy/autoresearch", "commit": "228791f", "retrieved": "2026-08-30"}
+  },
+  "claims": [
+    {"id": "wikiskill-beats-baselines", "claim": "WikiSkill has the best 5-benchmark average for all 5 models, beating the strongest competing skill-evolution method by +3.3 to +12.0 points", "source": "P Tab.1, §4.2.1", "anchor": "#ws-results"},
+    {"id": "small-plus-skills-beats-large-bare", "claim": "Qwen-3.5-9B with WikiSkill skills averages 47.4% vs Qwen-3.6-27B without skills at 39.4%", "source": "P §4.2.1", "anchor": "#claim-scaling"},
+    {"id": "gains-grow-with-scale", "claim": "Average WikiSkill gain over no-skill rises with model scale: +12.3 (4B), +17.5 (9B), +23.9 (27B) points", "source": "P §4.2.1", "anchor": "#claim-scaling"},
+    {"id": "wiki-ablation", "claim": "Ablation (Gemini-3.5-Flash, 4 benchmarks): giving the Skill Proposer wiki access raises the average from 48.7% to 63.7% (+15.0); also giving the Inference Agent access drops it to 60.9%", "source": "P Tab.3, §5.1", "anchor": "#ws-ablation"},
+    {"id": "transfer-beats-self", "claim": "Transferred skills can beat self-evolved: Qwen-9B ALFWorld 70.2% with 27B-evolved skills vs 63.4% self-evolved; SpreadSheet 50.5% vs 33.6%", "source": "P Tab.2, §4.2.2", "anchor": "#claim-transfer"},
+    {"id": "negative-transfer", "claim": "4B-evolved SpreadSheet skills drop Gemini-3.5-Flash from 50.5% to 18.1% (model-specific workarounds constrain stronger executors)", "source": "P §4.2.2", "anchor": "#claim-negative-transfer"},
+    {"id": "capability-floor", "claim": "Same 27B-evolved SpreadSheet skills give +18.4/+26.2/+40.9 points to 4B/9B/27B executors; 4B's own OfficeQA skill hurts it (30.2→28.5) while lifting 27B (+10.8)", "source": "P §4.2.2", "anchor": "#claim-floor"},
+    {"id": "optimizer-cost-o1", "claim": "WikiSkill optimizer cost is 1 + T_ReAct LLM calls per iteration (T≈10–20), independent of training-set size at full batch", "source": "P App.D.2", "anchor": "#ws-cost"},
+    {"id": "small-data", "claim": "Training splits are 16–80 tasks; validation 10–40; test 85–280; K covers iterations 0–7 (inferred from Tab.5 grouping); scores average 3 full evolution runs; paired bootstrap 1000 iters, p<0.05", "source": "P Tab.6, Tab.5/App.A.2, App.B, App.C", "anchor": "#ws-cost"},
+    {"id": "skills-are-short", "claim": "Evolved skills average 45.1–128.6 markdown lines by model; wiki patterns 6.3–8.9 created and 7.0–18.4 edited per run", "source": "P Tab.4", "anchor": "#ws-dynamics"},
+    {"id": "gist-thesis", "claim": "LLM Wiki: knowledge compiled once into a persistent, compounding wiki maintained by the LLM; layers = raw sources / wiki / schema; ops = ingest, query, lint", "source": "G", "anchor": "#source-llm-wiki"},
+    {"id": "autoresearch-demo", "claim": "autoresearch overnight run: 83 experiments, 15 kept improvements, val_bpb ≈0.998→≈0.977 on a ~50M-param model with 5-minute runs; final kept change was a random-seed swap (gating-noise caution)", "source": "A progress.png, README, program.md", "anchor": "#ar-demo"},
+    {"id": "program-md-is-a-skill", "claim": "autoresearch README: 'The program.md file is essentially a super lightweight skill'", "source": "A README", "anchor": "#ar-structure"},
+    {"id": "ladder-corroboration", "claim": "WikiSkill corroborates playbook ch.07 ladder ordering: a rung-2/4 artifact (evolved skill) substitutes for rung 8 (larger model) on amenable domains", "source": "P §4.2.1 + playbook/07", "anchor": "#pb-existing"},
+    {"id": "mvp-h1", "claim": "Proposed MVP H1: Haiku-4.5 executor in-loop + Opus-5 optimizer beats no-skill and matches/beats self-evolved at lower cost; 3 arms, ~150 tasks, pre-registered paired stats", "source": "this report (proposal, not evidence)", "anchor": "#mvp-question"}
+  ]
+}
+</script>
+</body>
+</html>

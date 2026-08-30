@@ -32,8 +32,11 @@ project's implementation question) lives with that project under `projects/<name
 |---|---|---|
 | [2026-08-19_NVIDIA_AI_Lab_Playbook_Research.md](2026-08-19_NVIDIA_AI_Lab_Playbook_Research.md) | Adversarially-verified NVIDIA vendor-methodology audit: 14-stage lifecycle map, gap matrix, toolchain boundary, deprecation watchlist | Absorbed into playbook chapters 05/06/07/09/10/12 and `references/VENDOR_RECIPE_NOTES.md` |
 | [2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md](2026-08-20_AI_Lab_Methodology_Hardware_Strategy.md) | Methodology + statistics review (ICC/N_eff re-derivation, consequence-bearing tolerances), Aug-2026 hardware market verification, staged purchase triggers | Absorbed into playbook chapters 03/04/07/09/11/13; FIS-specific decisions re-anchored in `projects/fis/` living docs and `docs/COMPUTE_POLICY.md` |
+| [2026-08-30_WikiSkill_LLM_Wiki_Autoresearch.md](2026-08-30_WikiSkill_LLM_Wiki_Autoresearch.md) | Deep-dive on compiling agent experience into evolved skills (WikiSkill arXiv:2608.27454, Karpathy LLM-Wiki gist, karpathy/autoresearch): evidence review, playbook gap analysis, MVP skill-evolution experiment proposal | Not yet adjudicated; candidate corroboration for ch. 07 ladder ordering pending the §8 MVP experiment |
 
 ## Standing annotations
+
+- **HTML companion (2026-08-30_WikiSkill_LLM_Wiki_Autoresearch.md):** that .md is an abstract; the full citable report is the sibling file `2026-08-30_WikiSkill_LLM_Wiki_Autoresearch.html` (self-contained; cite by `#anchor` instead of line number; embeds a JSON claims index). Intentionally not linked from site-rendered markdown — the site corpus is markdown-only and its link validator would fail on an `.html` href.
 
 - **SPRT caveat (2026-08-20 report):** its §2.3 gap-matrix retains two stale
   pre-correction rows suggesting SPRT-style sequential rules. Its own §2.2 /

@@ -1,0 +1,9 @@
+# Raw traces and per-rollout workdirs are kept locally, never committed (PLAN §3).
+runs/*/raw/
+runs/*/workdirs/
+runs/*/candidate_skills/
+# Benchmark data lives in ~/.cache/skill-evolution-mvp (no-license upstream: never redistribute).
+*.tar.gz
+__pycache__/
+.venv/
+uv.lock

@@ -1,0 +1,11 @@
+{
+  "run_id": "smoke-C",
+  "arm": "C",
+  "seed": 0,
+  "iteration_done": 1,
+  "r_best": 1.0,
+  "accepted": [],
+  "plateau": 1,
+  "stop_reason": "completed-K",
+  "spend_usd_equiv": 1.0218209999999999
+}
