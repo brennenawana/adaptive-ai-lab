@@ -1,14 +1,24 @@
 # Operational Handoff
 
-The operational-state document a new operator — or a future version of you — needs
-to run, verify, and safely change a deployed system without re-deriving what is
-already known. It stands beside, and always points back to, the
-[execution system](../GLOSSARY.md#execution-system) identities pinned by an active
-[experiment contract](../GLOSSARY.md#experiment-contract): the contract is the
-per-experiment record, this is the standing operational picture across whatever is
-currently running.
+Something is behaving oddly in production, and the person looking at it is not the
+person who built it. Maybe that is a new operator. Maybe it is you, four months later,
+with none of it still in your head. Either way, what that person needs — what is
+running, at what version, which weirdnesses are normal, what to run to check, and who
+decides — either exists on one page or gets re-derived under pressure.
 
-> Index: [../README.md](../README.md) · Governing chapter: [12. Observability, Learning, and Promotion](../12_OBSERVABILITY_LEARNING_AND_PROMOTION.md) (also [02. Execution System Model](../02_EXECUTION_SYSTEM_MODEL.md))
+This is that page. It is the standing operational picture of whatever is currently
+running, and it stands beside the [execution system](../GLOSSARY.md#execution-system)
+identities pinned by an active
+[experiment contract](../GLOSSARY.md#experiment-contract), always pointing back to
+them: the contract is the per-experiment record, this is the picture across everything
+live at once.
+
+**The test it has to pass** (chapter 10 §12): hand it to somebody who did not build the
+system, and ask them two questions — what would make you roll this back, and who
+executes it? If they cannot answer from the page, the document is not finished and the
+system is not ready to run unattended. Length is not the test.
+
+> Index: [../README.md](../README.md) · Governing chapter: [10. Deployment and Operations](../10_DEPLOYMENT_AND_OPERATIONS.md) (also [12. Observability, Learning, and Promotion](../12_OBSERVABILITY_LEARNING_AND_PROMOTION.md) and [02. Execution System Model](../02_EXECUTION_SYSTEM_MODEL.md))
 
 ## When to use / when not to use
 
@@ -58,15 +68,25 @@ delete the guidance. No section may be silently omitted; see
 *What runs, where, and at what version. One row per service/component; add rows
 freely, remove none of the columns.*
 
+*A component missing from this list is one nobody will think to check when something
+breaks, so include the quiet ones — the index, the scheduled job, the sidecar. Version
+means an identity you could reproduce: a build hash or a container tag, never
+"latest".*
+
 | Component | Runs where (host/environment) | Port / endpoint | Version / build identity | Owner |
 |---|---|---|---|---|
 | [component] | [host or environment class] | [port/endpoint placeholder] | [version, build hash, or container tag] | [role] |
 
 ### 2. Execution-System Identities in Force
 
-*The full [execution system](../GLOSSARY.md#execution-system) currently pinned for
-each system this document covers: model/artifact, runtime/provider, hardware/host,
-harness, context policy, tools, workflow, generation/reasoning budget,
+*"We are running model X" is not an identity. The runtime, the host, the harness, the
+context policy and the grader all move independently of the model and of each other,
+and any one of them moving makes this a different system — which is why the identity
+is recorded here rather than assumed.*
+
+*So write out the full [execution system](../GLOSSARY.md#execution-system) currently
+pinned for each system this document covers: model/artifact, runtime/provider,
+hardware/host, harness, context policy, tools, workflow, generation/reasoning budget,
 verifier/grader, environment. State the
 [frozen identity](../GLOSSARY.md#frozen-identity) actually in force, not the
 intended one — a [comparability claim](../GLOSSARY.md#comparability-claim) about
@@ -81,7 +101,8 @@ this system is only as good as this section.*
 
 *Every recurring symptom this environment produces that is NOT a defect in the
 system under study — each entry closes the loop from confusion back to a rule, so
-the next operator does not re-diagnose it from scratch.*
+the next operator does not re-diagnose it from scratch. The test for whether a row
+belongs here: somebody has already lost an afternoon to it once.*
 
 | Symptom | Cause | Rule / workaround |
 |---|---|---|
@@ -99,8 +120,9 @@ chapter 12.*
 
 *Executable, copy-pasteable commands that answer "is this actually working right
 now?" — each with its expected output, so a mismatch is immediately legible as a
-problem rather than something the operator has to interpret. Prefer generic
-integrity-gate commands over ad hoc checks — see
+problem rather than something the operator has to interpret. "Confirm the gateway is
+healthy" is not a check; a command plus the exact string you expect back is. Prefer
+generic integrity-gate commands over ad hoc ones — see
 [static integrity gates](../GLOSSARY.md#static-integrity-gates), chapter 03.*
 
 | Check | Command | Expected output |
@@ -111,7 +133,9 @@ integrity-gate commands over ad hoc checks — see
 
 *Every store this system reads or writes, labeled by its role, so nobody mistakes a
 working cache for the [record of record](../GLOSSARY.md#record-of-record) or feeds
-a working store back into evaluation.*
+a working store back into evaluation. The Notes column is where the isolation lives:
+who may write, how long it is kept, and whether anything in it may ever reach an
+evaluation.*
 
 | Store | Role | Notes |
 |---|---|---|
@@ -121,7 +145,10 @@ a working store back into evaluation.*
 
 *Every [experiment contract](../GLOSSARY.md#experiment-contract) currently open
 against this system, and where it sits in its lifecycle — so an operator does not
-treat a diagnostic run as decision-grade, or touch a frozen artifact mid-experiment.*
+treat a diagnostic run as decision-grade, or touch a frozen artifact mid-experiment.
+The Notes column answers exactly one question: what breaks if somebody touches this?
+"Do not redeploy the gateway until this closes" is the sentence that saves an
+experiment.*
 
 | Experiment | State (registered / frozen / qualifying / confirming / closed) | Notes |
 |---|---|---|
@@ -129,9 +156,16 @@ treat a diagnostic run as decision-grade, or touch a frozen artifact mid-experim
 
 ### 7. Standing Rules in Force
 
-*[Consequence-bearing tolerances](../GLOSSARY.md#consequence-bearing-tolerance),
+*The rules an operator must not silently override:
+[consequence-bearing tolerances](../GLOSSARY.md#consequence-bearing-tolerance),
 [purchase triggers](../GLOSSARY.md#purchase-trigger), stop conditions, and this
-document's own review cadence — the rules an operator must not silently override.*
+document's own review cadence. Write each as a condition and the response it
+compels, so nothing here reads as advice.*
+
+*A rollback trigger is a standing rule, and so is the cadence on which the rollback
+gets re-rehearsed (chapter 10 §5). Where the rollback path itself lives in a separate
+runbook, name that runbook here along with the date it was last rehearsed — an
+unrehearsed rollback is a hypothesis, not a path.*
 
 - [Rule]: [trigger condition] → [required response].
 - **This document's review cadence:** [interval or triggering event].
@@ -141,7 +175,8 @@ document's own review cadence — the rules an operator must not silently overri
 *Who interprets results, who executes changes, and who to escalate to — roles, not
 necessarily names, per the [experiment contract](../GLOSSARY.md#experiment-contract)
 role split (scientific owner interprets; executor runs the rules; the contract
-executes).*
+executes). The rollback owner and the on-call contact belong in this table
+(chapter 10 §12), as named roles: "whoever is online" is not an owner.*
 
 | Role | Responsibility | Contact |
 |---|---|---|
@@ -204,19 +239,22 @@ concerns observed to date.
 | "Retrieval chunk-count sweep" | qualifying | do not redeploy gateway until closed |
 
 **§7 Standing rules:** Purchase trigger: 3 consecutive months of rented spend above
-$400/mo → evaluate owned hardware. This document's review cadence: monthly, first
-business day.
+$400/mo → evaluate owned hardware. Rollback: severity-1 outcomes exceed the canary's
+pre-registered tolerance within one aggregation window → execute the rehearsed rollback
+(runbook `rollback-ledger-assist`, last rehearsed 2026-01-20). This document's review
+cadence: monthly, first business day.
 
 **§8 Contacts:**
 
 | Role | Responsibility | Contact |
 |---|---|---|
 | Scientific owner | Interprets experiment results, approves promotion | [placeholder] |
-| Executor | Runs deployments, verification commands | [placeholder] |
+| Executor | Runs deployments, verification commands, the rollback | [placeholder] |
 
 ---
 
-**Governing chapters:** [12. Observability, Learning, and Promotion](../12_OBSERVABILITY_LEARNING_AND_PROMOTION.md)
+**Governing chapters:** [10. Deployment and Operations](../10_DEPLOYMENT_AND_OPERATIONS.md)
+· [12. Observability, Learning, and Promotion](../12_OBSERVABILITY_LEARNING_AND_PROMOTION.md)
 · [02. Execution System Model](../02_EXECUTION_SYSTEM_MODEL.md)
 
 **Related templates:** [EXPERIMENT_CONTRACT.md](EXPERIMENT_CONTRACT.md) ·

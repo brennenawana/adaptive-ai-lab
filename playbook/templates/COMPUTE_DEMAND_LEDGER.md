@@ -1,10 +1,16 @@
 # Compute Demand Ledger
 
-The append-only record of compute demand — device-hours and spend, owned and
-rented, month over month, including honest NOT-RUN rows — that this playbook's
-[demand ledger](../GLOSSARY.md#demand-ledger) concept names. It exists to
-distinguish within-run busyness from sustained fleet demand, and it must predate
-the wanting of any hardware it might eventually be used to justify buying.
+Two things can be true about the same month: the machine was pinned for a twenty-hour
+round, and the project has barely used any compute all year. From inside the week that
+round happened in, they feel like one fact. Only the second one has anything to say
+about whether you should buy hardware.
+
+Keeping them apart is this ledger's whole job. It is the append-only record of the
+compute you actually used and paid for — device-hours and spend, owned and rented,
+month over month, including honest NOT-RUN rows — which is what this playbook calls a
+[demand ledger](../GLOSSARY.md#demand-ledger). It separates within-run busyness from
+sustained fleet demand, and it must predate the wanting of any hardware it might
+eventually be used to justify buying.
 
 > Index: [../README.md](../README.md) · Governing chapter: [11. Economics, Hardware and Cloud](../11_ECONOMICS_HARDWARE_AND_CLOUD.md)
 
@@ -20,14 +26,16 @@ the wanting of any hardware it might eventually be used to justify buying.
 - **MUST** log NOT-RUN months honestly: a month with zero owned/rented usage
   still gets a row, so idle capacity stays visible rather than silently absent.
 - **SHOULD** keep one ledger per fleet/lab, not per project — the decision this
-  feeds (buy or don't) is about shared capacity.
+  feeds (buy or don't) is about shared capacity, and one ledger per project only
+  ever shows a fraction of it.
 - **Do not** treat this as a substitute for a
   [performance autopsy](../GLOSSARY.md#performance-autopsy) — this ledger is
   the cross-run monthly rollup; a single run's critical path and cost-bucket
   attribution belong in [PERFORMANCE_AUTOPSY.md](PERFORMANCE_AUTOPSY.md).
 - Mark the whole template `N/A` only if literally no owned or rented
   device-hours are ever consumed (managed-API-only projects) — state that
-  explicitly rather than omitting the file.
+  explicitly rather than omitting the file, because nobody can tell a missing
+  ledger from an unconsidered one.
 
 ## Rigor-tier applicability
 
@@ -54,24 +62,40 @@ this document.*
 
 ### 1. Ledger Table
 
+One row per milestone, written as the work happens. A ledger reconstructed from
+invoices six months later is a story about the past; this one is evidence.
+
 | Date | Milestone / project | Node | Purpose | Device-hours | Spend | Notes |
 |---|---|---|---|---|---|---|
 | [YYYY-MM-DD] | [milestone or project name] | owned \| rented · [device class] | training \| eval \| serving-capacity-test \| NOT-RUN | [hours; state the authoritative clock] | [$; "$0" if owned/idle] | [anything a later reader needs] |
 
-*`Node`: name the device **class** generically enough to survive a hardware
-refresh ("owned, single-GPU workstation" / "rented, multi-GPU node") — precise
-SKUs belong in a private inventory, not this ledger's portable structure.
-`Device-hours`: state which clock is
-[authoritative](../GLOSSARY.md#authoritative-clock) — wall-clock reservation
-time and device-busy time diverge, sometimes by a lot, and the purchase
-decision needs to know which one it is reading; see
-[dual-clock telemetry](../GLOSSARY.md#dual-clock-telemetry). A `NOT-RUN` row
-still needs a date and a node — "which capacity sat idle, when" is exactly what
-a busy-sprint illusion hides.*
+*Filling a row:*
+
+- **Node** — name the device **class**, generically enough to survive a hardware
+  refresh: `owned, single-GPU workstation`, `rented, multi-GPU node`. Precise SKUs
+  belong in a private inventory, not in this ledger's portable structure — the rows
+  have to still mean something after the hardware underneath them changes.
+- **Device-hours** — the hours, plus which clock they came from. Wall-clock
+  reservation time and device-busy time diverge, sometimes by a lot, and the purchase
+  decision needs to know which one it is reading. So name the
+  [authoritative clock](../GLOSSARY.md#authoritative-clock) in the cell: write
+  `6.0 (device-busy)`, not `6.0`. See
+  [dual-clock telemetry](../GLOSSARY.md#dual-clock-telemetry).
+- **Spend** — what it actually cost, `$0` for owned or idle capacity. Never blank; a
+  blank cell reads as unknown rather than as zero.
+- **A `NOT-RUN` row still needs a date and a node.** "Which capacity sat idle, when"
+  is exactly what a busy-sprint illusion hides, and a month with no row at all cannot
+  tell a reviewer whether nothing ran or nobody logged it.
 
 ### 2. Monthly Rollup
 
 *The trigger in §3 reads this table, not the raw rows.*
+
+Once a month, sum §1 into one line: owned hours, rented hours, rented spend. Then
+update the running count — how many *consecutive* months so far have met §3's
+condition. Because the condition is consecutive, a month below the threshold resets
+that count to zero. That count is the reason this section exists: a trigger phrased as
+"K consecutive months" cannot be read off a pile of dated rows.
 
 | Month | Owned device-hours | Rented device-hours | Rented spend | Months at/above trigger threshold (running) | Notes |
 |---|---|---|---|---|---|
@@ -82,8 +106,8 @@ a busy-sprint illusion hides.*
 **[PARAMETER]** Pre-commit, before wanting the hardware: `[K] consecutive
 months of rented spend at or above $[X]/mo` **OR** `a committed always-on
 serving requirement of ≥ [Y] sustained device-hours/month`. Derive `X`/`Y` from
-the project's rent-vs-buy [break-even](../GLOSSARY.md#break-even) (chapter 11;
-formulas in
+the project's rent-vs-buy [break-even](../GLOSSARY.md#break-even) — the sustained
+utilization above which owning the hardware beats renting it (chapter 11; formulas in
 [references/STATISTICS_FORMULAS.md](../references/STATISTICS_FORMULAS.md)) —
 do not pick round numbers by feel.
 

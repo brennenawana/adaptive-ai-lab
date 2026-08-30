@@ -170,10 +170,12 @@ function extractStructure(tree: MdastRoot, source: string, ctx: RenderCtx): Extr
     if (isSynth || ctx.repoPath.startsWith('playbook/examples/WALKTHROUGH')) {
       // italic synthetic-disclaimer paragraph
       const first = kids[0];
+      // The banner is authored as either *italic* or **bold**, and may carry a
+      // trailing sentence in the same paragraph. Match on the leading marked-up
+      // run and the opening words, not on the exact shape.
       if (
         first?.type === 'paragraph' &&
-        first.children.length === 1 &&
-        first.children[0]!.type === 'emphasis' &&
+        (first.children[0]?.type === 'emphasis' || first.children[0]?.type === 'strong') &&
         /^Synthetic worked example/.test(mdToString(first))
       ) {
         const s = first.position ? source.slice(first.position.start.offset!, first.position.end.offset!) : '';

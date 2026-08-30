@@ -1,9 +1,14 @@
 # Method Decision Record
 
-An ADR-style record of one decision about this playbook's *method* — adopted,
-rejected, revised, or superseded — so the reasoning outlives the person who made it
-and future projects do not re-litigate a question this practice has already
-answered. Feeds `CHANGELOG.md` on every entry.
+Six months from now somebody who was not in the room will ask why the work is done this
+way. If nobody can answer, the question gets argued again from the start, by people with
+less evidence than you have in front of you today.
+
+A method decision record is that answer, written once. One decision about *method* —
+adopted, rejected, revised, or superseded — with the reasoning that forced it, in the
+style of an architecture decision record, so the reasoning outlives the person who made
+it and future projects do not re-litigate a question this practice has already answered.
+Feeds `CHANGELOG.md` on every entry.
 
 > Index: [../README.md](../README.md) · Governing chapter: [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md)
 
@@ -53,14 +58,18 @@ delete the guidance. No section may be silently omitted; see
 ### 1. ID and Date
 
 *A stable identifier (sequential per practice, e.g. `MDR-YYYY-NNN`) and the date
-the decision was made.*
+the decision was made — the date it was decided, not the date somebody got around to
+writing it up. Other records point at this ID (§8), so it does not change once
+published.*
 
 [MDR-ID], [date]
 
 ### 2. Status
 
 *One of: proposed / adopted / rejected / superseded. A record can sit at
-"proposed" while evidence is gathered; move it forward explicitly, never silently.*
+"proposed" while evidence is gathered; move it forward explicitly, never silently.
+This is the first thing a later reader checks, and a record still at "proposed" is
+not something to build on.*
 
 [status]
 
@@ -68,32 +77,50 @@ the decision was made.*
 
 *The decision this record was forced to make, and why it could not be avoided —
 what problem, contradiction, or new evidence made the prior default (or the
-absence of one) untenable.*
+absence of one) untenable. If the context does not name something that broke, or two
+defensible practices that could not both be followed, what you have is a preference
+rather than a decision.*
 
 [context, 2–5 sentences]
 
 ### 4. Decision
 
 *The decision itself, stated as an instruction a future reader could follow
-without re-reading the context — this is the sentence that gets quoted elsewhere.*
+without re-reading the context — this is the sentence that gets quoted elsewhere.
+Write it imperatively and name its scope: what must now be done, on which class of
+work, and what stays out of scope.*
 
 [decision statement]
 
 ### 5. Evidence
 
-*What supports this decision: cited source IDs (`[EXT-...]`, `[NV-...]`), internal
-scenario links (`[SCENARIO-NN]`), or first-principles reasoning stated in place. Per the
-extraction rules this playbook follows, a single project's result alone caps a
-claim at generic-default strength, not principle strength — say so if that is the
-ceiling here, and carry an
-[evidence-strength label](../GLOSSARY.md#evidence-strength-labels).*
+*What actually supports this decision. Three kinds are admissible, and they do not
+carry the same weight:*
 
-- [evidence item, with source ID or case link]
+- *cited source IDs from the ledger (`[EXT-...]`, `[NV-...]`) — the strongest, because
+  a reader can go and check them;*
+- *first-principles reasoning — legitimate, and it has to be written out here, not
+  gestured at;*
+- *what happened on one project — real, and the weakest of the three, because nobody
+  else can audit it.*
+
+*Carry an [evidence-strength label](../GLOSSARY.md#evidence-strength-labels) on each
+item. Where a single project's result is all you have, say so: on its own it supports a
+generic default, not a generic normative principle — the B-versus-A distinction in the
+[A-to-H classification](../GLOSSARY.md#a-to-h-classification) — and naming that ceiling
+here is what stops a later reader assuming a stronger one.*
+
+*A scenario is not evidence. The `SCENARIO-*` files are invented illustrations; link one
+the way the chapters do (`[SCENARIO: SCENARIO-NN]`) if it shows the shape of the
+reasoning, and keep it out of the list of things that support the claim.*
+
+- [evidence item, with its source ID and evidence-strength label]
 
 ### 6. Consequences
 
 *What this decision changes going forward, INCLUDING what becomes harder — a
-decision with only upside was not examined honestly. State the trade explicitly.*
+decision with only upside was not examined honestly. State the trade explicitly; an
+empty second line means the record is not finished.*
 
 - Becomes easier / possible: [...]
 - Becomes harder / ruled out: [...]
@@ -102,14 +129,17 @@ decision with only upside was not examined honestly. State the trade explicitly.
 
 *When this decision is re-examined — a fixed date, or a triggering event (a new
 suite version, a vendor-verdict change, a stated volume of new evidence). Never
-"indefinitely" — everything here is a default until reviewed.*
+"indefinitely": everything here is a default until reviewed, and an unreviewed default
+quietly hardens into a rule nobody chose.*
 
 [review date or trigger condition]
 
 ### 8. Supersedes / Superseded-by
 
 *Links to the record this replaces and, once it happens, the record that replaces
-this one — so the decision history reads as a chain, not scattered fragments.*
+this one — so the decision history reads as a chain, not scattered fragments. Going
+back to the older record to fill in its "superseded by" line is the step that gets
+forgotten, and it is the one that makes the chain readable from either end.*
 
 - Supersedes: [MDR-ID or "none"]
 - Superseded by: [MDR-ID or "none — current"]

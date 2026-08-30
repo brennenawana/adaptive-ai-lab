@@ -8,10 +8,14 @@
 
 ## Profile summary
 
-"Norrbridge Media," a social platform's trust-and-safety team, runs an
-in-production content-moderation triage model that flags posts for human
-moderator review. A larger candidate model is proposed as a replacement.
-The team wants to know if it is actually better before paying more for it.
+The bigger model scored 88%. The one already in production scored 84%. Four
+points is the sort of margin that gets a model promoted — and this experiment
+could not tell whether those four points were real.
+
+"Norrbridge Media" is a social platform's trust-and-safety team. It runs a
+content-moderation triage model in production that flags posts for human
+moderator review, and a larger candidate has been proposed to replace it. The
+team wants to know whether it is actually better before paying more for it.
 
 | [Project profile](../GLOSSARY.md#project-profile) field | Value |
 |---|---|
@@ -29,101 +33,123 @@ The team wants to know if it is actually better before paying more for it.
 
 ## Archetype & rigor tier
 
-A cost-vs-quality upgrade decision on an already-production system:
-**Tier 2**, consequential and customer-visible but reversible with no
-regulatory dimension. That signature requires the full experiment-contract
-machinery of chapter 04 — frozen comparison, MDE statement, look ledger —
-but not chapter 13's Tier-3 provenance and audit set.
+A cost-versus-quality upgrade decision on a system that is already in
+production. **Tier 2**: consequential and customer-visible, but reversible,
+with no regulatory dimension.
+
+That signature requires the full experiment-contract machinery of chapter 04
+— a frozen comparison, a stated MDE, a look ledger. It does not require
+chapter 13's Tier-3 provenance and audit set.
 
 ## The decisive moves
 
-1. **Paired design on the frozen confirmation split.** Both candidates were
-   scored on the same 400 items under one experiment contract. Same-item
-   cross-arm comparison licenses [paired](../GLOSSARY.md#paired-design)
-   standard errors — free power the team was not going to leave on the table.
-2. **Clustering unit named and its ICC measured before any significance
-   claim.** Outcomes correlate within content category (harassment, spam,
-   self-harm-adjacent, and so on — the
-   [clustering unit](../GLOSSARY.md#clustering-unit)). An ANOVA-style
-   estimate from pilot data put ICC ≈ 0.30 — not assumed zero. With an
-   average of 8 items per category,
-   [design effect](../GLOSSARY.md#design-effect) DEFF = 1 + (8 − 1) × 0.30 =
-   3.1, so [effective N](../GLOSSARY.md#effective-n) N_eff = 400 / 3.1 ≈ 129
-   — well under the raw item count [EXT-STATS-001].
-3. **MDE and an equivalence-margin licence pre-registered together, before
-   data.** At N_eff ≈ 129, α = .05, power = .80, the cluster-robust paired
-   procedure gave [MDE](../GLOSSARY.md#mde) ≈ 9 percentage points on the
-   triage-quality score. The contract pre-registered ±9pp as an equivalence
-   margin: the phrase "competitive (within ±9pp)" would be the licensed
-   [descriptive vocabulary](../GLOSSARY.md#descriptive-vocabulary) reading
-   *only if* the realized cluster-robust confidence interval on the paired
-   difference landed entirely inside that margin. Pre-registration supplies
-   who chose the words and when, not the resolving power to earn them — the
-   interval still has to clear the bar. Decided before anyone had seen an
-   outcome.
-4. **[STOP CONDITION]** The result lands inside MDE — but the interval
-   doesn't clear the equivalence margin either, so the verdict is
-   INCONCLUSIVE, not "competitive." Measured delta: Candidate-Upgrade 88%
-   vs. Candidate-Current 84%, a 4pp gain with a cluster-robust 95% CI of
-   roughly [−3pp, +11pp]. That interval straddles zero and sits well inside
-   the 9pp MDE, so no CONFIRMED or REFUTED difference is supported — but its
-   upper bound (+11pp) also extends past the pre-registered ±9pp equivalence
-   margin, so move 3's licensed "competitive" reading is not triggered
-   either. Per principle P9, the recorded verdict is
-   [INCONCLUSIVE](../GLOSSARY.md#inconclusive), reported with its CI: the
-   comparison can rule out neither an 11-point Upgrade gain nor a 3-point
-   Upgrade loss — exactly the tripwire (a sub-MDE margin about to be read as
-   a real difference, *or* as an equivalence the data don't support) that
-   the pre-registered rule exists to catch before either becomes a headline
-   number.
-5. **The deployment decision moved to economics instead of the unresolved
-   quality question.** With quality unproven, cost per successful task
-   decided it (chapter 11): Candidate-Upgrade runs ~2.3× the per-request cost
-   of Candidate-Current for a gain the experiment cannot confirm. The
-   incumbent was retained on that basis, not on the inconclusive quality
-   result.
-6. **The look ledger was updated, and its refresh trigger flagged.** This
-   was look 4 of a pre-registered 5-look budget on the confirmation split
-   before a mandatory suite-refresh review
+1. **A paired design on the frozen confirmation split.** Both candidates were
+   scored on the same 400 items under one experiment contract. Comparing
+   arms on the same item licenses
+   [paired](../GLOSSARY.md#paired-design) standard errors — free statistical
+   power the team was not going to leave on the table.
+2. **The clustering unit was named, and its correlation measured, before any
+   significance claim.** Outcomes are not independent: posts within a content
+   category — harassment, spam, self-harm-adjacent, and so on — resemble each
+   other, which makes the category the
+   [clustering unit](../GLOSSARY.md#clustering-unit). An ANOVA-style estimate
+   from pilot data put that within-category correlation at ICC ≈ 0.30. It was
+   not assumed to be zero. With an average of 8 items per category, the
+   [design effect](../GLOSSARY.md#design-effect) is
+   DEFF = 1 + (8 − 1) × 0.30 = 3.1, so the
+   [effective N](../GLOSSARY.md#effective-n) is N_eff = 400 / 3.1 ≈ 129 —
+   well under the raw item count [EXT-STATS-001].
+3. **The MDE and a licence for the word "competitive" were pre-registered
+   together, before data.** At N_eff ≈ 129, α = .05, and power = .80, the
+   cluster-robust paired procedure gives an
+   [MDE](../GLOSSARY.md#mde) ≈ 9 percentage points on the triage-quality
+   score. The contract then pre-registered ±9pp as an equivalence margin, and
+   fixed what could be said about it: the phrase "competitive (within ±9pp)"
+   would become licensed
+   [descriptive vocabulary](../GLOSSARY.md#descriptive-vocabulary) *only if*
+   the realized cluster-robust confidence interval on the paired difference
+   landed entirely inside that margin. Pre-registration supplies who chose
+   the words and when. It does not supply the resolving power to earn them —
+   the interval still has to clear the bar. All of this was decided before
+   anyone had seen an outcome.
+4. **[STOP CONDITION]** The honest answer is "we still don't know," and the
+   pre-registered rule is what forces it to be written down that way.
+
+   The measured result: Candidate-Upgrade 88% against Candidate-Current 84%
+   — a 4pp gain, with a cluster-robust 95% confidence interval of roughly
+   **[−3pp, +11pp]**.
+
+   That interval fails two different tests, and it matters that they are
+   different.
+
+   *It cannot support a difference.* The interval straddles zero, and the
+   whole 4pp sits well inside the design's own 9pp MDE. Nothing here is
+   CONFIRMED or REFUTED.
+
+   *It cannot support an equivalence either.* Its upper bound of +11pp
+   reaches past the ±9pp margin move 3 pre-registered, so the licensed
+   "competitive" reading is not triggered. The data did not earn that phrase.
+
+   What is left is the verdict principle P9 makes first-class:
+   [INCONCLUSIVE](../GLOSSARY.md#inconclusive), reported with its interval.
+   This comparison can rule out neither an 11-point gain for Candidate-Upgrade
+   nor a 3-point loss. That is the whole result, and it *is* a result.
+
+   This is precisely the tripwire the pre-registered rule exists to catch: a
+   sub-MDE margin about to become a headline number, either as a real
+   difference *or* as an equivalence the data do not support.
+5. **With quality unresolved, the decision moved to the question the evidence
+   could actually answer.** That question is cost per successful task
+   (chapter 11): per request, Candidate-Upgrade runs about 2.3×
+   Candidate-Current, in exchange for a gain the experiment cannot confirm.
+   The incumbent was retained on that basis — on the economics, stated as
+   such, and explicitly not on the inconclusive quality result, which decided
+   nothing.
+6. **The look ledger was updated, and its refresh trigger flagged.** This was
+   look 4 of a pre-registered 5-look budget on the confirmation split before
+   a mandatory suite-refresh review
    ([look ledger](../GLOSSARY.md#look-ledger)). With one look left, the team
-   chose not to spend it re-running the same comparison — the next look is
+   chose not to spend it re-running the same comparison. The next look is
    pre-registered for after the suite refresh, on a narrower question.
 
 ## What was skipped and why
 
 - **pass^k reliability claims.** Both candidates are deterministic
-  classifiers at inference (temperature 0 in production); repetition
-  variance is not in play, so the pass^1/pass^k distinction does not apply.
+  classifiers at inference — temperature 0 in production — so repetition
+  variance is not in play and the pass^1/pass^k distinction does not apply.
 - **New judge calibration.** The one subjective-severity dimension already
-  has a calibrated judge from a prior release cycle; no new calibration was
+  has a calibrated judge from a prior release cycle. No new calibration was
   needed for this comparison.
-- **Tier-3 provenance and security-review artifacts (13).** This is a
-  Tier-2 signature — business-consequential, not safety/regulated — so the
-  heavier record-of-record and threat-model machinery legitimately does not
-  apply. Floor items (provenance sufficient to identify what produced a
-  result, held-out exposure recorded) were kept regardless — the
+- **Tier-3 provenance and security-review artifacts (13).** This is a Tier-2
+  signature — business-consequential, not safety- or regulation-bound — so
+  the heavier record-of-record and threat-model machinery legitimately does
+  not apply. The floor items were kept regardless: provenance sufficient to
+  identify what produced a result, and held-out exposure recorded. The
   [never-skippable floor](../GLOSSARY.md#never-skippable-floor) is never
   skippable.
 - **A hardware purchase decision (11's demand ledger).** Both candidates run
-  on existing rented capacity; no capex question exists yet.
+  on existing rented capacity. No capex question exists yet.
 
 ## Outcome
 
-The experiment cost about 3 engineer-weeks (1 engineer building the
-comparison, 1 analyst on the statistics and write-up) and used compute
-already budgeted for routine evaluation — no new spend. The production
-decision was: keep Candidate-Current. The write-up states plainly that the
-result is INCONCLUSIVE on triage quality — the cluster-robust 95% CI
-[−3pp, +11pp] does not exclude an 11-point gain for Candidate-Upgrade, so even
-the pre-registered ±9pp equivalence margin is not satisfied — and that the
-comparison cannot resolve which candidate is actually better at this
-effective N. The deployment decision was made on cost with that uncertainty
-stated, not by rounding the inconclusive result into either a difference or
-an equivalence. The team recorded a plan
-for the next cycle: after the suite refresh, run a narrower, higher-power
-comparison restricted to the severe-violation stratum alone, where the
-practical stakes are highest and a smaller true effect would still be worth
-resolving.
+The experiment cost about 3 engineer-weeks — 1 engineer building the
+comparison, 1 analyst on the statistics and the write-up — and used compute
+already budgeted for routine evaluation. No new spend. The production
+decision was to keep Candidate-Current.
+
+The write-up says plainly that the result is INCONCLUSIVE on triage quality.
+The cluster-robust 95% CI of [−3pp, +11pp] does not exclude an 11-point gain
+for Candidate-Upgrade, so not even the pre-registered ±9pp equivalence margin
+is satisfied, and the comparison cannot resolve which candidate is actually
+better at this effective N. That sentence is the finding. The deployment
+decision was then made on cost, with the uncertainty stated alongside it —
+not by rounding an inconclusive result into either a difference or an
+equivalence.
+
+The team recorded a plan for the next cycle: after the suite refresh, run a
+narrower, higher-power comparison restricted to the severe-violation stratum
+alone, where the practical stakes are highest and a smaller true effect would
+still be worth resolving.
 
 ## Chapter trail
 

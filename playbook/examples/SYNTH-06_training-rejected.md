@@ -6,10 +6,16 @@
 
 ## Profile summary
 
-"Halvorsen Archive Group," a regional public-media archive, wants a model to
-auto-tag digitized historical photographs with subject, approximate location,
-and usage-rights status for a public catalog. The team's working plan going
-in is "let's fine-tune on our archivist-tagged photos."
+This team arrived with the answer already picked. "Let's fine-tune on our
+archivist-tagged photos" was the plan before anyone had measured what the
+model got wrong, or why — a solution in search of a problem, which is the
+whole reason this example is here.
+
+"Halvorsen Archive Group" is a regional public-media archive sitting on a
+backlog of roughly 200,000 digitized historical photographs that archivists
+tag by hand. The proposed tool would read a photograph and assign three
+things for the public catalog: subject, approximate location, and
+usage-rights status.
 
 | [Project profile](../GLOSSARY.md#project-profile) field | Value |
 |---|---|
@@ -34,79 +40,100 @@ in is "let's fine-tune on our archivist-tagged photos."
 
 ## Archetype & rigor tier
 
-The team has not diagnosed an archetype at all — they have a solution
-("fine-tune") in search of a problem, which is the point of this example.
-Correctly routed, this is an evaluate-first, ladder-diagnosis project before
-any training decision. Tier 2: a wrong rights tag carries real external
-(contractual/reputational) consequence, but it is reversible pre-publish and
-there is no external regulator forcing Tier 3.
+There is no archetype here yet, because nothing has been diagnosed. A
+fine-tune is a repair, and the project has not established what it is
+repairing. Routed correctly, this is an evaluate-first project that owes a
+ladder diagnosis before any training decision gets made.
+
+**Tier 2.** A wrong rights tag has a real consequence outside the building:
+the archive could publish an image it is not licensed to publish, which is a
+contractual and reputational problem, not an internal one. But nothing
+reaches the catalog without a human step, so the error is reversible before
+it escapes — and no external regulator forces the heavier Tier-3 set.
 
 ## The decisive moves
 
-1. **Evaluate first, before any training talk.** A small trusted eval is
-   built from a stratified, held-out sample of already-tagged photos, scored
-   against archivist gold tags. The rights-status field is a closed enum and
-   scored exactly.
-2. **Baseline the untrained model as it exists today.** Per chapter 05's
-   simplest-credible-baseline default, the baseline runs with the production
-   tools *as currently wired* — no rights DB, no taxonomy in context — the
-   honest starting point, not the aspirational one.
-3. **Diagnosis lands in two [canonical failure taxonomy](../GLOSSARY.md#canonical-failure-taxonomy)
-   classes, not one.** (a) **RC-3, missing/unreachable evidence** — the
-   model is asked for a rights-status verdict that requires the per-collection
-   licensing database, which is in neither its context nor its tool set; a
-   measured [reachability ceiling](../GLOSSARY.md#reachability-ceiling) on
-   the rights-status stratum sits near the floor regardless of which model
-   answers. (b) **RC-6, task-specification gap** — subject/location tags
-   scatter across synonyms because the controlled taxonomy was never given to
-   the model; the model knows the concepts, it was never told the vocabulary.
-4. **[STOP CONDITION]** fires before the fine-tune request goes further. A
-   quality claim — "the model is bad at rights tagging" — is about to be made
-   with no reachable evidence behind it. The instrument-before-score
-   principle stops that claim cold: a stratum whose measured ceiling sits
-   near the pass bar cannot support a capability verdict about the model
-   answering inside it.
-5. **Fix in ladder order, not by training.** Rung 2: the rights database is
-   wired in as a lookup tool and the taxonomy as retrieved context; the same
-   frozen eval is re-run unchanged. Rung 4: the taxonomy addition is also a
-   specification fix — the vocabulary drift closes once the model is told
-   the vocabulary, not given more examples of it.
-6. **Training refused, with the evidence stated.** After rungs 2 and 4 close
-   the measured gap to within the eval's MDE against the archivist baseline,
-   no capability gap (RC-10/RC-11) remains to justify rung 7. The request is
-   declined, and the decision — with the evidence, not just the outcome — is
-   written into a method decision record so "let's just fine-tune it" cannot
-   resurface later without new evidence.
+1. **Evaluate first, before anyone says the word "training."** A small
+   trusted eval is built from a stratified, held-out sample of photographs
+   the archivists have already tagged, scored against those tags as gold.
+   Rights status is a closed list of allowed values, so it is scored exactly.
+   No judgment is involved in marking it right or wrong.
+2. **Baseline the model as it exists today, not as it is meant to exist.**
+   Chapter 05's simplest-credible-baseline default means running with the
+   production tools *as currently wired* — no rights database, no taxonomy in
+   context. That is the honest starting point. The aspirational one would
+   have measured a system nobody had built yet.
+3. **The diagnosis lands in two classes of the
+   [canonical failure taxonomy](../GLOSSARY.md#canonical-failure-taxonomy),
+   not one.** The model is being asked two different kinds of question, and
+   it is failing them for two different reasons.
+
+   *It cannot know.* A rights-status verdict depends on the per-collection
+   licensing database, and the model has no path to that database — not in
+   its context, not in its tool set. Measured, the best score anything could
+   achieve on the rights-status stratum sits near the floor, whichever model
+   answers. That measured best-possible score is the stratum's
+   [reachability ceiling](../GLOSSARY.md#reachability-ceiling). **(RC-3,
+   missing/unreachable evidence.)**
+
+   *It was never told.* Subject and location tags scatter across synonyms,
+   because the controlled taxonomy lives in a style guide the model has never
+   seen. It knows the concepts perfectly well. It does not know which word
+   the catalog wants. **(RC-6, task-specification gap.)**
+4. **[STOP CONDITION]** fires, and it stops the fine-tune request cold.
+   A quality claim — "the model is bad at rights tagging" — is about to be
+   made with no reachable evidence behind it. This is
+   the instrument-before-score principle doing its one job: a stratum whose
+   measured ceiling sits near the pass bar cannot support a capability
+   verdict about the model answering inside it. The score is not measuring
+   the model. It is measuring a question the model was never given the
+   evidence to answer.
+5. **Fix in ladder order — which is not the training order.** Rung 2: the
+   rights database is wired in as a lookup tool, and the taxonomy goes into
+   retrieved context. The same frozen eval is re-run, unchanged. Rung 4: that
+   taxonomy addition doubles as a specification fix. The vocabulary drift
+   closes once the model is *told* the vocabulary — not once it is shown more
+   examples of it.
+6. **Training is refused, and the refusal is written down with its
+   evidence.** After rungs 2 and 4, the gap left against the archivist
+   baseline is smaller than the eval's own [MDE](../GLOSSARY.md#mde) — the
+   smallest difference this eval could reliably detect. No capability gap
+   (RC-10/RC-11) survives to justify descending to rung 7. The request is
+   declined, and the decision goes into a method decision record with the
+   evidence attached, not just the outcome. That is what stops "let's just
+   fine-tune it" from resurfacing next quarter on no new evidence.
 
 ## What was skipped and why
 
 - **No fine-tuning pipeline, LoRA/full-FT decision, or forgetting gate.**
-  None of chapter 09's machinery is reached: the never-train-around-defects
-  rule forbids descending to rung 7 while rungs 2 and 4 are unexhausted, and
-  once exhausted, the measured gap closed.
-- **No pass^k / reliability machinery.** A batch tagging task, not a
+  None of chapter 09's machinery is reached. The never-train-around-defects
+  rule forbids descending to rung 7 while rungs 2 and 4 are unexhausted —
+  and once they were exhausted, the measured gap had closed.
+- **No pass^k / reliability machinery.** This is a batch tagging task, not a
   stochastic multi-turn agent.
 - **No shadow/canary deployment yet.** The pilot stays pre-publish and
-  human-gated by design; deployment-chapter machinery engages only once
-  auto-publish is proposed in a later phase.
-- **Hardware/compute economics stayed light.** One rented eval node; no
-  purchase question raised.
+  human-gated by design. The deployment chapter's machinery engages only when
+  auto-publish is proposed, in a later phase.
+- **Hardware and compute economics stayed light.** One rented eval node, and
+  no purchase question was ever raised.
 
 ## Outcome
 
-- Effort: ~5 weeks to build the eval and wire in retrieval + taxonomy,
+- Effort: ~5 weeks to build the eval and wire in retrieval plus taxonomy,
   against the ~10+ weeks the team's original fine-tune-first sketch assumed.
 - Rights-status accuracy on the held-out stratum moves from an
-  uninterpretable score below a ~52% reachability ceiling (before the rights
-  DB was wired in) to 97% once the database is a reachable tool.
-- Subject/location tag consistency (exact-match to the controlled
-  vocabulary) rises from 61% to 89% once the taxonomy is in context.
+  uninterpretable score below a ~52% reachability ceiling — the state before
+  the rights database was wired in — to 97% once that database is a reachable
+  tool.
+- Subject/location tag consistency, measured as exact match to the controlled
+  vocabulary, rises from 61% to 89% once the taxonomy is in context.
 - Training stays open as a future, evidence-gated option for a narrower gap
-  the ladder might not close on its own — not ruled out permanently, just
-  not justified yet. Contrast [SYNTH-07](SYNTH-07_training-justified.md),
-  where a narrower gap does survive the same ladder.
+  the ladder might not close on its own. It is not ruled out permanently;
+  it is not justified yet. Contrast
+  [SYNTH-07](SYNTH-07_training-justified.md), where a narrower gap does
+  survive the same ladder.
 - Cost avoided: no training-data curation, no fine-tune compute, no
-  forgetting-gate suite — the grant pilot stays inside its allocated budget.
+  forgetting-gate suite. The grant pilot stays inside its allocated budget.
 
 ## Chapter trail
 

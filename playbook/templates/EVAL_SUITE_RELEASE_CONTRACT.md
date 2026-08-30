@@ -1,9 +1,14 @@
 # Eval Suite Release Contract
 
-> A versioned, contract-governed release of an evaluation suite: the document that
-> freezes what a [suite release](../GLOSSARY.md#suite-release) claims, gates, and
-> refuses to compare against — before any score computed from it is trusted for a
-> decision.
+> Sooner or later somebody will set a score from this suite beside a score taken
+> on a different version of it, and read the gap as the system getting better. It
+> may just be the test that changed.
+>
+> This document is what stops that. It is a versioned, frozen cut of an evaluation
+> suite — a [suite release](../GLOSSARY.md#suite-release) — recording what is in
+> it, what it was checked against before anyone trusted a number from it, and what
+> it structurally refuses to be compared with. Every score you keep is attached to
+> one of these, so "we improved" can never quietly mean "we edited the test".
 >
 > Index: [../README.md](../README.md) · Governing chapter:
 > [03. Evaluation Foundation](../03_EVALUATION_FOUNDATION.md)
@@ -12,21 +17,22 @@
 
 - **MUST** use this template for any suite version an
   [experiment contract](EXPERIMENT_CONTRACT.md) will cite as its frozen scientific
-  baseline (§2 of that template) — a suite that qualifies or confirms a decision is
-  itself part of the decision's evidence chain and needs the same discipline.
+  baseline (§2 of that template). A suite that qualifies or confirms a decision is
+  part of that decision's evidence chain, and needs the same discipline as the
+  rest of it.
 - **MUST** use it whenever an existing suite changes in any way that alters what a
-  score means: items, gold answers, ontology, grader, or split boundaries. Write it
-  *at the moment of freeze*, not while criteria are still being discovered — this is
-  the [criteria drift](../GLOSSARY.md#criteria-drift) window closing.
-- **SHOULD NOT** use it for routine, already-versioned regression runs against a
-  suite whose release contract already exists — see
-  [regression suite vs capability suite](../GLOSSARY.md#regression-suite-vs-capability-suite);
-  that is ordinary CI against a frozen instrument, not a new release.
-- **Do not** use it to license comparing two suite versions to each other — that
-  comparison is *refused* by §9 of a completed contract, not authorized by
-  completing one.
-- One contract per suite version. A version with unlisted changes, or a "what
-  changed" field left blank on anything but a first release, is a defect in this
+  score means: items, gold answers, ontology, grader, or split boundaries. Write
+  it *at the moment of freeze*, not while criteria are still being discovered —
+  writing it is the [criteria drift](../GLOSSARY.md#criteria-drift) window closing.
+- **SHOULD NOT** use it for routine regression runs against a suite whose release
+  contract already exists — see
+  [regression suite vs capability suite](../GLOSSARY.md#regression-suite-vs-capability-suite).
+  That is ordinary CI against a frozen instrument, not a new release.
+- **Do not** use it to license comparing two suite versions to each other. That
+  comparison is *refused* by §9 of a completed contract; completing one does not
+  authorize it.
+- One contract per suite version. A version with unlisted changes — or a "what
+  changed" field left blank on anything but a first release — is a defect in this
   contract, not evidence that nothing changed.
 
 ## Rigor-tier applicability
@@ -37,108 +43,149 @@
 | Tier 2 — Consequential (default) | **MUST** be completed before this suite version backs any [experiment contract](EXPERIMENT_CONTRACT.md). §4 and §7 below are this tier's concrete form of the [never-skippable floor](../GLOSSARY.md#never-skippable-floor)'s "define the evaluation boundary before any quality claim." |
 | Tier 3 — High-stakes/regulated | **MUST** be completed as Tier 2, plus: a judge named in §5 **MUST** have a current calibration record before its scores may qualify a candidate; this contract is retained in the tamper-evident [record of record](../GLOSSARY.md#record-of-record) and revisited at the periodic methodology audit. |
 
-Rigor attaches to the *decision's* consequence, not the suite's apparent maturity: a
-suite first built for internal direction-finding that later backs a shipping
+Rigor attaches to the *decision's* consequence, not the suite's apparent maturity.
+A suite first built for internal direction-finding that later backs a shipping
 decision completes this contract at Tier 2+ before that decision is made.
 
 ---
 
 ## 1. Suite Identity and Version
 
+*How a reader six months from now identifies which instrument produced a given
+score, and what changed since the last one.*
+
 - **Suite name:** [name]
-- **Version:** [identifier — pick and state one convention (date-stamp, sequential
-  integer, or semver) and use it consistently for this suite from here on]
+- **Version:** [identifier. Pick one convention — date-stamp, sequential integer,
+  or semver — and use it consistently for this suite from here on]
 - **Prior version:** [identifier, or `N/A — first release`]
-- **What changed vs. the prior version, and why:** [list every change as *was X, now
-  Y, because Z*. This is where [criteria drift](../GLOSSARY.md#criteria-drift) gets
-  written down instead of silently absorbed — criteria and ground truth co-evolve as
-  graders see real output, and that evolution is expected, not a discipline failure,
-  as long as it is versioned rather than edited in place [EXT-EVAL-004]]
+- **What changed vs. the prior version, and why:** [one line per change, in the
+  form *was X, now Y, because Z*. This is where
+  [criteria drift](../GLOSSARY.md#criteria-drift) gets written down instead of
+  silently absorbed. You cannot fully specify evaluation criteria before seeing
+  real output, so criteria and ground truth co-evolve as graders see it — that is
+  expected, not a discipline failure, as long as it is versioned rather than
+  edited in place [EXT-EVAL-004]]
 - **Effective date:** [date]
 - **Owner:** [name/role]
 
 ## 2. Corpus Identity
 
-- **Generation method:** [templated/generated, human-authored, mined-from-production,
-  or mixed — state per stratum if it varies]
-- **Determinism / identity record:** [generated corpus: seed + generator version +
-  content digest, re-derivable from those three alone. Annotated corpus:
-  annotation-batch identity + annotator roster + guideline version. Either way, the
-  identity must be reconstructable, not just remembered by whoever built it]
+*Enough to rebuild this exact corpus without asking whoever built it.*
+
+- **Generation method:** [templated/generated, human-authored,
+  mined-from-production, or mixed — state it per stratum if it varies]
+- **Determinism / identity record:** [for a generated corpus: seed + generator
+  version + content digest, from which the corpus is re-derivable and nothing
+  else. For an annotated corpus: annotation-batch identity + annotator roster +
+  guideline version. Either way it must be reconstructable, not remembered]
 - **Corpus digest/hash:** [digest]
 - **Item count:** [N total]; [N per stratum]
 
 ## 3. Ontology/Taxonomy Version and Change Discipline
 
+*The closed vocabulary this suite scores against, and what counts as breaking it.*
+
 - **Task ontology version:** [identifier/link — see
   [task ontology](../GLOSSARY.md#task-ontology)]
-- **Breaking-change rule:** [state plainly what counts as a breaking change here:
-  adding/removing/redefining a category, a root-cause class, a forbidden-claim rule,
-  or a scoring boundary. A breaking change to the ontology **MUST** produce a new
-  suite version — never an in-place edit to an existing one]
+- **Breaking-change rule:** [state plainly what counts as breaking here: adding,
+  removing, or redefining a category, a root-cause class, a forbidden-claim rule,
+  or a scoring boundary. A breaking change **MUST** produce a new suite version —
+  never an in-place edit to an existing one]
 
 ## 4. Ground-Truth Gates
 
-- **Gold-answer verification:** [method, who verified, date]
-- **Per-stratum reachability/solvability ceiling:** [MEASURED value per stratum,
-  printed — never assumed 100%. See
-  [the full [reachability ceiling](../GLOSSARY.md#reachability-ceiling) definition]:
-  a stratum whose ceiling sits below its own passing threshold is unwinnable, and its
-  scores measure the defect, not the model. Fix or exclude it before release; do not
-  ship it with a footnote]
-- **Frontier-saturation check:** [run the strongest available system; does it
-  approach its own measured ceiling? See
-  [frontier-saturation check](../GLOSSARY.md#frontier-saturation-check) — a suite the
-  strongest arm cannot approach is a suspect instrument]
-- **Inversion check:** [any stratum where a weaker system beat a stronger one? See
-  [inversion check](../GLOSSARY.md#inversion-check) — investigate the instrument
-  before believing the score]
+*Before you believe any score off this suite, prove the suite can be passed. These
+four checks are what turn "the model is weak here" from an assumption into a
+finding.*
+
+- **Gold-answer verification:** [method, who verified, date. The gold answers are
+  replayed through the scorer and must score at ceiling — a corrupted answer key
+  reads exactly like model failure]
+- **Per-stratum reachability/solvability ceiling:** [the MEASURED value per
+  stratum, printed. Never assumed to be 100%. See
+  [reachability ceiling](../GLOSSARY.md#reachability-ceiling) — establish it by
+  replaying the evidence plan through the real tool surface, not by arguing from
+  what the generator intended. **Threshold-below-ceiling check: any stratum whose
+  declared passing threshold sits at or above its measured ceiling is unwinnable
+  and fails this release.** Its scores measure the defect, not the model. Fix it
+  or exclude it; do not ship it with a footnote]
+- **Frontier-saturation check:** [point the strongest system you have access to at
+  the suite. Does it approach its own measured ceiling? See
+  [frontier-saturation check](../GLOSSARY.md#frontier-saturation-check) — a suite
+  the strongest arm cannot approach is a suspect instrument, and the instrument is
+  presumptively at fault until you show otherwise]
+- **Inversion check:** [rank your systems by how strong you believe they are, then
+  read each stratum in that order. Any stratum where a weaker system wins is a bug
+  report, not a finding. See [inversion check](../GLOSSARY.md#inversion-check) —
+  investigate the instrument before believing the score]
+- **Cross-arm disagreement review:** [list every item where your systems disagree,
+  and every item they all failed. Read them before crediting or blaming any system.
+  An item every arm fails is usually a broken item, not a hard one — this is the
+  check that catches scorer and harness defects, which the other gates miss. Record
+  the review as closed, with what it changed]
 
 ## 5. Grader Identity
 
+*Who or what decides an answer is right, pinned as tightly as the corpus is.*
+
 - **Deterministic scorer/verifier version(s):** [version(s)]
 - **Judge, if used:** [model/version + calibration-record reference. Judges score
-  near chance on objectively verifiable tasks absent calibration [EXT-JUDGE-002];
-  with no calibration record yet, mark this
+  near chance on objectively verifiable tasks when they are not calibrated
+  [EXT-JUDGE-002]. With no calibration record yet, mark this
   `status: doctrine — not yet exercised` and route decisions around it]
-- **Grader-to-taxonomy binding:** [how scorer/judge output maps onto the
-  [canonical failure taxonomy](../GLOSSARY.md#canonical-failure-taxonomy) root-cause
-  classes, if it does]
+- **Grader-to-taxonomy binding:** [how scorer or judge output maps onto the
+  [canonical failure taxonomy](../GLOSSARY.md#canonical-failure-taxonomy)
+  root-cause classes, if it does]
 
 ## 6. Split Design
 
-- **Strata:** [list each stratum and the
-  [clustering unit](../GLOSSARY.md#clustering-unit) it represents — this feeds every
-  MDE/effective-N calculation downstream in chapter 04]
-- **Split sizes:** [iterate / qualify / confirm, or your equivalent split names, with
+*Which items sit where, and what stops the held-out ones leaking into the system
+being tested.*
+
+- **Strata:** [each stratum, and the
+  [clustering unit](../GLOSSARY.md#clustering-unit) it represents. This feeds
+  every MDE and effective-N calculation downstream in chapter 04, so a vague
+  answer here becomes a wrong sample size there]
+- **Split sizes:** [iterate / qualify / confirm, or your equivalent names, with
   item counts and disjointness stated]
-- **Disjointness / leakage protections:** [how splits are kept non-overlapping; see
-  [leakage](../GLOSSARY.md#leakage)]
-- **Canary strings:** present: [yes/no]; location: [where embedded — see
+- **Disjointness / leakage protections:** [how splits are kept non-overlapping;
+  see [leakage](../GLOSSARY.md#leakage)]
+- **Canary strings:** present: [yes/no]; location: [where embedded. A unique
+  marker in held-out content and in any published excerpt gives you a tripwire:
+  there is only one way it could turn up in a training corpus. See
   [canary string](../GLOSSARY.md#canary-string) [EXT-EVAL-007]]
 
 ## 7. Static Integrity Gates
 
-- **Gate commands (executable):** [list each command, what it checks, and its
-  pass/fail criterion — these must be runnable, not descriptive prose]
-- **Full-corpus rule:** [state explicitly that these gates run on the FULL corpus on
-  every release, never a subset. See
+*The checks that validate the instrument itself, written as commands somebody can
+run — not as a review somebody signs.*
+
+- **Gate commands (executable):** [each command, what it checks, and its pass/fail
+  criterion. These must be runnable; descriptive prose is not a gate]
+- **Full-corpus rule:** [state explicitly that these gates run on the FULL corpus
+  on every release, never a subset. See
   [static integrity gates](../GLOSSARY.md#static-integrity-gates) — they are the
-  instruments that catch instrument defects, so they do not inherit the sampling
-  shortcuts applied elsewhere]
+  instruments that catch instrument defects, so sampling them means sampling
+  exactly where an undetected defect would sit]
 
 ## 8. Baseline Re-Measurement Plan
+
+*A new instrument means every old number is from a different instrument. Say who
+gets re-measured, and by when.*
 
 - **Arms/incumbents that MUST re-baseline on this version:** [list]
 - **Re-baseline deadline or trigger:** [date or condition]
 
 ## 9. Cross-Suite Refusal Statement
 
-- [name the enforcement mechanism — a tooling/CI check, a comparison-function guard,
-  whatever makes it structurally true — that refuses to compare a number computed on
-  this suite version against a number from any other version. See
-  [cross-suite refusal](../GLOSSARY.md#cross-suite-refusal): a paragraph asking
-  people not to compare is not this]
+*Sooner or later somebody will put last quarter's score next to this quarter's.
+Make that structurally impossible rather than discouraged.*
+
+- [name the enforcement mechanism — a CI check, a comparison-function guard,
+  whatever makes it structurally true — that refuses to compare a number computed
+  on this suite version against a number from any other version. See
+  [cross-suite refusal](../GLOSSARY.md#cross-suite-refusal). A paragraph asking
+  people not to compare is not this; a convention is what loses to a deadline]
 
 ## 10. Release Checklist
 
@@ -148,6 +195,7 @@ decision completes this contract at Tier 2+ before that decision is made.
 - [ ] Ground-truth gates passed (§4)
 - [ ] Static integrity gates green on the full corpus (§7)
 - [ ] Frontier-saturation and inversion checks clean, or each anomaly explained
+- [ ] Cross-arm disagreement review closed (§4)
 - [ ] Canary strings embedded and verified present
 - [ ] Baseline re-measurement plan scheduled (§8)
 - [ ] Cross-suite refusal mechanism verified live (§9)
@@ -215,8 +263,10 @@ scientific baseline) · [TEST_LOOK_LEDGER.md](TEST_LOOK_LEDGER.md) ·
 [PROJECT_PROFILE.md](PROJECT_PROFILE.md)
 
 **See also:** [SCENARIO-09](../examples/SCENARIO-09_suite-versioning-criteria-drift.md)
-(suite-versioning criteria drift) ·
-[SCENARIO-04](../examples/SCENARIO-04_harness-defects.md) (harness defects an integrity
-gate would have caught)
+— an invented team choosing a versioned release over an in-place fix, and keeping the
+old version's results as labeled history ·
+[SCENARIO-04](../examples/SCENARIO-04_harness-defects.md) — thirteen harness defects
+found by auditing the instrument rather than the model, every one of them initially
+indistinguishable from model weakness
 
 [Index](../README.md) · [Glossary](../GLOSSARY.md)

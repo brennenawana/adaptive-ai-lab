@@ -1,32 +1,42 @@
 # Prediction Ledger
 
-A running record of pre-run effect estimates — point and interval, per primary
-metric — scored against actuals once a confirmation split reports. This is the
-operational form of the
-[prediction ledger](../GLOSSARY.md#prediction-ledger): it turns "is this
-experiment worth running?" from taste into an empirical property of the
-estimator's own calibration. An
-[experiment contract](../GLOSSARY.md#experiment-contract) fills its prediction
-register at freeze (its §1); this document is where that entry is scored and
-accumulated across every experiment.
+Before you run anything, you already expect something — otherwise you would not have
+chosen to run it. This ledger is where that expectation gets written down, one line
+per metric, while the answer is still unknown. When the result lands, you score the
+line against it.
+
+One scored line teaches you nothing. A handful teaches you something no single
+experiment can: whether your expectations are any good. That is what turns "is this
+experiment worth running?" from a matter of taste into an empirical question about
+your own calibration, and it is the working form of the
+[prediction ledger](../GLOSSARY.md#prediction-ledger). It also shows you whether your
+surprises are genuine surprises or just optimism — a question only answerable against a
+record written before you knew. Writing it down first is the uncomfortable part,
+and the discomfort is the mechanism: a prediction that can be wrong in public is the
+only kind that can teach you anything.
+
+Where this sits relative to the rest: an
+[experiment contract](../GLOSSARY.md#experiment-contract) fills its prediction register
+at [freeze](../GLOSSARY.md#freeze) (its §1). This document is where that entry gets
+scored, and where entries accumulate across every experiment you run.
 
 > Index: [../README.md](../README.md) · Governing chapter: [04. Experiment Design and Statistics](../04_EXPERIMENT_DESIGN_AND_STATISTICS.md)
 
 ## When to use / when not to use
 
-- **MUST** log one entry per primary metric at [freeze](../GLOSSARY.md#freeze)
-  — before any qualification or confirmation look — mirroring the experiment
-  contract's prediction register.
-- **SHOULD** use at Tier 1 too, for the calibration practice — it costs one
-  line and a moment of honesty before the answer is already known.
-- **Do not** backfill a prediction after seeing the result. A "prediction"
-  entered after a look has started is not a prediction; if this happens, mark
-  the row `VOID (post-hoc)` and state why rather than quietly discarding it — a
-  pattern of voided rows is itself a finding.
+- **MUST** log one entry per primary metric at [freeze](../GLOSSARY.md#freeze) —
+  before any qualification or confirmation look — mirroring the experiment contract's
+  prediction register. Same numbers, now in the place where they get scored.
+- **SHOULD** be kept at Tier 1 too, purely for the calibration practice. It costs one
+  line and a moment of honesty, spent before the answer is available to lean on.
+- **Do not** backfill a prediction after seeing the result. A row entered once a look
+  has started is not a prediction. If it happens anyway, do not quietly drop it: mark
+  the row `VOID (post-hoc)` and state why — a pattern of voided rows is itself a
+  finding.
 - **Do not** treat this ledger as a substitute for the statistical plan's
-  [MDE](../GLOSSARY.md#mde) and verdict — a well-calibrated wrong-direction
-  prediction and a badly-calibrated right-direction one both still need the
-  primary/secondary statistics to call
+  [MDE](../GLOSSARY.md#mde) and verdict. A well-calibrated wrong-direction prediction
+  and a badly-calibrated right-direction one both still need the primary/secondary
+  statistics to call
   [CONFIRMED / REFUTED / INCONCLUSIVE](../GLOSSARY.md#verdict-vocabulary).
 
 ## Rigor-tier applicability
@@ -34,13 +44,12 @@ accumulated across every experiment.
 | Tier | Requirement |
 |---|---|
 | Tier 1 — Exploratory | Optional; recommended for the calibration habit. |
-| Tier 2 — Consequential (default) | **MUST** be maintained — part of the experiment contract's frozen prediction register (its §1, Freeze Checklist). |
+| Tier 2 — Consequential (default) | **MUST** be maintained — the prediction register is part of the frozen experiment contract (its §1), and the Freeze Checklist checks that it is filled. |
 | Tier 3 — High-stakes/regulated | **MUST** be maintained, and scored entries are subject to the periodic methodology audit (chapter 12). |
 
-Rigor attaches to the *decision's* consequence, same as elsewhere: any
-experiment whose contract is required to freeze a prediction register (Tier 2+)
-is required to score it here. See chapter 00 §6 (rigor dial) and
-[PROJECT_PROFILE.md](PROJECT_PROFILE.md).
+Rigor attaches to the *decision's* consequence, same as elsewhere: any experiment whose
+contract is required to freeze a prediction register (Tier 2+) is required to score it
+here. See chapter 00 §6 (rigor dial) and [PROJECT_PROFILE.md](PROJECT_PROFILE.md).
 
 ---
 
@@ -53,34 +62,55 @@ this document.*
 
 ### 1. Ledger Table
 
+One row per primary metric per experiment. Rows are appended, and the prediction columns
+are written once — the later columns are the ones that get filled in.
+
 | Date | Experiment | Primary metric | Predicted (point + interval) | Actual | Inside interval? | Surprise notes |
 |---|---|---|---|---|---|---|
 | [YYYY-MM-DD, ≤ freeze date] | [contract ID] | [the one metric named primary in the contract] | [point estimate; interval reflecting genuine uncertainty] | [scored result, filled after confirm] | yes \| no \| pending | [what you'd revise about your model of the system if this diverged] |
 
-*`Date` must be at or before the contract's freeze date — a prediction dated
-after the look started is not a prediction (see "When to use"). The interval
-should be wide enough to reflect real uncertainty; an interval you are never
-surprised to miss is not doing calibration work.*
+*Filling a row:*
+
+- **Date** — when the prediction was written, which must be at or before the contract's
+  freeze date. A row dated after the look started is not a prediction (see "When to
+  use"), and the date column is what makes that checkable by someone else.
+- **Primary metric** — the one metric the contract names primary, stated the way the
+  contract states it: `misrouting rate, paired delta`, not `accuracy`. A vague metric
+  makes the row unscoreable later, which is the same as not having written it.
+- **Predicted** — a point estimate *and* an interval, because the two fail differently:
+  the point tells you whether you are biased, the interval tells you whether you know
+  how much you don't know. Make the interval wide enough to reflect real uncertainty;
+  an interval you would not be surprised to miss is not doing calibration work.
+- **Actual / Inside interval?** — left `pending` until the confirmation split reports,
+  then filled from the scored result. The yes/no column is what §2 counts.
+- **Surprise notes** — the column that pays for the rest. When the actual lands outside
+  the interval, write what you would now revise about your model of the system, not why
+  the run was unusual.
 
 ### 2. Scoring
 
-**Coverage rate.** `count(inside interval? = yes) / count(scored)`, updated as
-rows resolve. Compare against the intervals' *nominal* coverage — an interval
-intended as an 80% interval should contain the actual roughly 80% of the time
-over enough entries; a coverage rate persistently far from nominal, in either
-direction, is a finding about the intervals, not noise to explain away.
+**Coverage rate.** `count(inside interval? = yes) / count(scored)`, updated as rows
+resolve.
 
-**Systematic bias.** Track direction, not just hit rate: are predictions
-consistently over- or under-stating effect size? Consistently too narrow
-(overconfident) or too wide (underconfident)? Note any pattern here in prose as
-it becomes visible across rows — this is where the ledger earns its keep.
+Read that number against what your intervals *claimed*. An interval intended as an 80%
+interval should contain the actual roughly 80% of the time over enough entries. A
+coverage rate persistently far from nominal, in either direction, is a finding about
+the intervals, not noise to explain away — too low means they are too narrow, too high
+means they are so wide they commit to nothing.
 
-**[PARAMETER]** The handful-of-entries rule: coverage rate is data-thin
-evidence — read it as anecdote before roughly 5–10 scored entries have
-accumulated, and as a genuine (if still small-sample) signal after. Calibrate
-this threshold against how often consequential experiments actually run; the
-caution echoes vendor precedent for treating small-n statistics as insufficient
-evidence rather than a verdict [NV-EVALSDK-001].
+**Systematic bias.** Track direction, not just hit rate: are predictions consistently
+over- or under-stating effect size? Consistently too narrow (overconfident) or too wide
+(underconfident)? Note any pattern here in prose as it becomes visible across rows —
+this is where the ledger earns its keep.
+
+**[PARAMETER]** The handful-of-entries rule: coverage rate is data-thin evidence — read
+it as anecdote before roughly 5–10 scored entries have accumulated, and as a genuine
+(if still small-sample) signal after. Calibrate this threshold against how often
+consequential experiments actually run; the caution echoes vendor precedent for
+treating small-n statistics as insufficient evidence rather than a verdict
+[NV-EVALSDK-001]. The coverage arithmetic, the calibration curve, and how far a gap
+from nominal has to be before it means anything are worked in
+[references/STATISTICS_FORMULAS.md §12](../references/STATISTICS_FORMULAS.md#12-prediction-ledger-scoring).
 
 ---
 
