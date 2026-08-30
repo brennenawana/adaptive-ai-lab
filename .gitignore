@@ -38,3 +38,6 @@ Thumbs.db
 # site build output
 site/dist/
 site/.versions-cache/
+
+# local agent worktrees (not part of the book)
+.claude/
