@@ -7,15 +7,31 @@
 
 ## 1. Purpose and when to read this
 
-Read this chapter once a candidate has a [frozen execution system](GLOSSARY.md#execution-system),
+Your evaluation ran items you picked, in an order you set, while you watched, and a
+wrong answer cost you a re-run. Production hands the same system a request nobody
+screened, at 03:40 on a Sunday, and shows the answer to someone who acts on it before
+anyone reviews it.
+
+Everything that made the evaluation trustworthy was local to the evaluation. The fixed
+inputs, the attention, the cheapness of being wrong — none of it survives the moment
+traffic is pointed at the candidate. This chapter is about crossing that distance
+deliberately, in stages you can stop, rather than in one switch flip.
+
+Read it once a candidate has a [frozen execution system](GLOSSARY.md#execution-system),
 has cleared its evaluation gates (03, 04), has a measured performance/capacity
 profile at its intended [operating point](GLOSSARY.md#operating-point) (06), and the
 economics close (11). It answers one question: how does that candidate earn real
 traffic, in what shape, and how do you get back out if it goes wrong.
 
-**Read this honestly, per this playbook's own rule (conventions on voice and
-honesty).** This chapter is a deliberate mix of two very different kinds of claim,
-and they are labeled apart everywhere below:
+**The last third of that question is the part teams skip.** Almost everyone can
+describe their rollback. Far fewer have ever run one. The difference between those two
+states is invisible right up until the night it matters, and then it is the whole
+incident: a rollback nobody has executed is a hypothesis about what would happen, not a
+way out. That is why §5 spends more space on rehearsing the exit than on any other step.
+
+**Two kinds of claim live in this chapter, and they are labeled apart everywhere
+below** — this is the honesty rule (P12, chapter 00) applied to a chapter where the two
+are easy to confuse:
 
 1. **Established SRE and progressive-delivery practice** — staged rollout,
    [shadow](GLOSSARY.md#shadow-deployment) traffic,
@@ -27,39 +43,53 @@ and they are labeled apart everywhere below:
    stochastic generator rather than a deterministic function, and what a rollback
    actually has to undo for a system with in-flight generation state. This half is
    carried at `inference` strength or explicitly marked
-   `status: doctrine — not yet exercised`: this playbook's own record has named the
+   `status: doctrine — not yet exercised`: the playbook's source project named its
    promotion pipeline as a sequence of stages without a rehearsed rollback
    procedure or pre-registered trigger thresholds behind it (gap disposition G10,
-   §13). You get the full procedure; you also get an honest account of what has and
-   has not been exercised.
+   §13). That project's records are not published in this build, so you cannot audit
+   that statement yourself — what you can do is read the marker, which appears on every
+   procedure it affects. You get the full procedure; you also get an honest account of
+   what has and has not been exercised.
 
 ## 2. Inputs required
 
-- A [frozen execution system](GLOSSARY.md#frozen-identity) that passed the
-  promotion gate of a frozen [experiment contract](GLOSSARY.md#experiment-contract) (04).
-- A versioned [suite release](GLOSSARY.md#suite-release) result the candidate
+Six things exist before the first request is mirrored anywhere. Each is produced by an
+earlier chapter, and none of them is convincing if you assemble it after the fact.
+
+- **A [frozen execution system](GLOSSARY.md#frozen-identity)** — the whole stack pinned
+  and hashed, not the model's name alone — that passed the promotion gate of a frozen
+  [experiment contract](GLOSSARY.md#experiment-contract) (04).
+- **A versioned [suite release](GLOSSARY.md#suite-release) result** the candidate
   cleared, including the [static integrity gates](GLOSSARY.md#static-integrity-gates) (03).
-- A performance/capacity profile at the intended operating point, from the
-  [performance autopsy](GLOSSARY.md#performance-autopsy) discipline (06).
-- An economics decision that the candidate is worth serving at its measured cost (11).
-- The project's [stakes tier](GLOSSARY.md#stakes-tier) (00, 01) — it sets which
+- **A performance/capacity profile at the intended operating point**, from the
+  [performance autopsy](GLOSSARY.md#performance-autopsy) discipline (06). This chapter
+  consumes that profile; it never re-derives it.
+- **An economics decision** that the candidate is worth serving at its measured cost (11).
+- **The project's [stakes tier](GLOSSARY.md#stakes-tier)** (00, 01) — it sets which
   parts of this chapter are mandatory versus optional.
-- If the candidate came off the training rung: forgetting-gate results and
+- **If the candidate came off the training rung**: forgetting-gate results and
   adapter/base [provenance](GLOSSARY.md#provenance) (09), and a model-license
   check (13).
 
 ## 3. Decisions this chapter supports
 
-- Ship or don't ship: the promotion go/no-go.
-- What shape the rollout takes for this stakes tier — direct swap, shadow-only,
+- **Ship or don't ship** — the promotion go/no-go.
+- **What shape the rollout takes** for this stakes tier: direct swap, shadow-only,
   shadow-then-canary, or a fully staged progressive rollout.
-- What triggers a rollback, who decides, and what the rollback mechanically has to
+- **What triggers a rollback**, who decides, and what the rollback mechanically has to
   undo.
-- Where a human approval gate sits in the pipeline.
+- **Where a human approval gate sits** in the pipeline.
 
 ## 4. Normative principles
 
+Seven rules. Some are inherited intact from production engineering that has nothing to
+do with AI; the rest exist because the thing being promoted generates rather than
+computes. Each carries its own evidence label, and the labels are not decoration — they
+tell you how hard to push back.
+
 **[PRINCIPLE] Staged promotion.** (consensus)
+The candidate has passed everything you can run offline. What that buys it is a copy of
+the traffic, not the traffic.
 No candidate goes from passing its offline suite straight to full traffic. The
 default sequence — offline confirm → shadow → canary → progressive rollout →
 steady state — is standard practice across managed ML platforms
@@ -68,16 +98,24 @@ steady state — is standard practice across managed ML platforms
 exit gate (what must be true to advance); §5 gives the default table.
 
 **[PRINCIPLE] Restraint over instrumentation.** (consensus)
-"Use the simplest model that meets your technical and business objectives"; run
-exactly one canary at a time; every canary metric must be causally attributable to
-the change under test, not confounded by unrelated system activity; the
-aggregation window must be much shorter than the canary's total duration so a
-regression is visible before the canary ends
-[EXT-OPS-001C]. A small lab's default is manual mirrored comparison plus a small,
+The temptation at this point is to build the thing that decides for you: a service that
+watches the canary, runs statistics on every metric it can reach, and returns a verdict.
+Resist it. Four constraints, all from one source [EXT-OPS-001C]:
+
+- "Use the simplest model that meets your technical and business objectives."
+- Run exactly one canary at a time.
+- Every canary metric must be causally attributable to the change under test, not
+  confounded by unrelated system activity.
+- The aggregation window must be much shorter than the canary's total duration, so a
+  regression is visible before the canary ends.
+
+A small lab's default is manual mirrored comparison plus a small,
 named, causally-attributable metric set — not a bespoke statistical canary judge.
 Building the judge is a scale decision (§10), not a starting point.
 
 **[PRINCIPLE] Execution-system identity is pinned per stage.** (strong-evidence)
+Halfway through your canary, the provider redeploys the model behind the API. Nothing
+in your dashboard says so.
 A [comparability claim](GLOSSARY.md#comparability-claim) about a promotion candidate
 is only as good as the [frozen identity](GLOSSARY.md#frozen-identity) behind it (02).
 A provider-side model or runtime redeploy in the middle of a canary silently creates
@@ -86,6 +124,9 @@ longer applies, and continuing to compare against it is invalid regardless of ho
 much traffic has already been served.
 
 **[PRINCIPLE] Compare distributions, not cases, under measured nondeterminism.** (inference)
+Your shadow run says the candidate answered 30 of 500 mirrored requests differently
+from the incumbent. Whether that is a regression depends on a fact about your system
+that you have to have measured: does it even reproduce against itself?
 Where the [reproducibility boundary](GLOSSARY.md#reproducibility-boundary) is not
 strict case-by-case identity — the common case for LLM serving
 [EXT-DETERM-001] — a shadow or canary comparison against the incumbent is a
@@ -93,13 +134,14 @@ comparison of outcome *distributions*, evaluated with the same clustered/paired
 statistical machinery as any other experiment (04), not a demand that every
 individual case match. Treating a single differing output as a regression, on a
 system that was never shown to reproduce case-by-case even against a frozen copy of
-*itself*, manufactures false alarms. [SCENARIO: SCENARIO-12] is the internal precedent for
-measuring the boundary before trusting a comparison across it.
+*itself*, manufactures false alarms. [SCENARIO: SCENARIO-12] is an invented
+illustration of exactly that discipline: measure the boundary before trusting a
+comparison across it.
 
 **[PRINCIPLE] Rollback is a designed, rehearsed path.** (inference — first-principles;
 *status: doctrine — not yet exercised*, see §5)
 A rollback that has never been exercised is a hypothesis about what would happen,
-not a path. This playbook's own operating record has named the pipeline stages
+not a path. The playbook's source project named the pipeline stages
 (shadow → canary → gate → rollback) without a trigger threshold, an owner, or a
 rehearsal behind them — precisely the gap this principle exists to close (G10).
 State ownership, mechanics, and a rehearsal cadence *before* the first real
@@ -109,9 +151,10 @@ promotion, not after the first incident.
 (consensus, corollary of P5/02)
 The unit that promotes is a **declared treatment** — usually a complete frozen
 candidate [execution system](GLOSSARY.md#execution-system) (chapter 02), which MAY
-differ from the incumbent in several components at once (new model + new runtime +
-new quantization is one legitimate treatment, "candidate system B vs. incumbent
-system A"). What the restraint doctrine forbids is *undeclared concurrency*: a
+differ from the incumbent in several components at once. A new model plus a new runtime
+plus a new quantization is one legitimate treatment: "candidate system B vs. incumbent
+system A."
+What the restraint doctrine forbids is *undeclared concurrency*. A
 second change — related or not — riding through the same canary alongside the
 declared treatment destroys causal attributability, because a regression cannot be
 assigned to either. Two distinctions follow:
@@ -123,6 +166,7 @@ assigned to either. Two distinctions follow:
   comparison speaks to one factor only when the experiment explicitly isolates it,
   run under chapter 04's statistical plan — before or after promotion, never
   inferred from the bundle's result.
+
 Sequence *treatments*; bundle *components* only inside a declared, frozen treatment.
 
 **[PRINCIPLE] Human approval gates scale with stakes tier.** (inference, from the
@@ -133,6 +177,10 @@ at every stage advance from shadow onward, plus the security/threat-model review
 13. §6 gives the parameter table.
 
 ## 5. Default procedure
+
+Each stage below buys the candidate slightly more exposure than the last. Each has a
+price of admission and a condition for leaving, and neither is negotiable once the
+stage has started.
 
 **Table 10.1 — the promotion pipeline (default sequence).**
 
@@ -150,12 +198,17 @@ metric, the pre-registered threshold, and the named consequence (ABORT the stage
 hold and re-measure / advance) before the stage starts, exactly as 04 requires for
 any other decision-driving threshold.
 
-**The human-baseline shadow variant, in full (for greenfield / no-incumbent
-deployments).** Some promotions have no automated incumbent to mirror against — a
-new capability entering a process a human previously ran alone, reached via the
-routing tree's "no incumbent" branch. "No regression beyond tolerance" is undefined
-without a comparator; the comparator here is the current human process, and it needs
-its own metric pair rather than the incumbent row's outcome-distribution comparison:
+### When there is nothing to mirror: the human-baseline shadow variant
+
+*(greenfield / no-incumbent deployments)*
+
+Some promotions have no automated incumbent. The work is done today by a person — a
+reviewer, an analyst, a clinician — and the candidate is the first automated thing to
+touch it. That is the routing tree's "no incumbent" branch, and the shadow row above
+does not work as written for it: "no regression beyond tolerance" is undefined without
+a comparator, and there isn't one. The comparator here is the current human process,
+and it needs its own metric pair rather than the incumbent row's outcome-distribution
+comparison:
 
 - **Agreement rate**: the share of paired cases (same item, candidate output vs. the
   human process's actual output) where the two match, or fall inside a
@@ -185,19 +238,21 @@ Exit gate for this variant — **veto authority sits with adjudicated outcomes, 
 imitation of the incumbent**: the gate is the adjudicated **regret rate** resolving
 below its pre-registered ceiling, at or beyond the design's own MDE — an
 underpowered shadow period holds and extends rather than advancing on a favorable
-but INCONCLUSIVE read. The **agreement rate is a compatibility diagnostic by
-default, not a gate**: a candidate that frequently disagrees with the human process
-while adjudication shows those disagreements resolve in the candidate's favor is
-evidence of a *better* system, and an agreement floor would block exactly that
-system for imitating the incumbent insufficiently. Report agreement (clustered, with
-its MDE) and pre-register a review trigger on low agreement — a burst of
-disagreement is always worth reading — but it vetoes promotion only when the
+but INCONCLUSIVE read.
+
+The **agreement rate is a compatibility diagnostic by
+default, not a gate**, and the reason matters. A candidate that frequently disagrees
+with the human process, where adjudication shows those disagreements resolve in the
+candidate's favor, is evidence of a *better* system; an agreement floor would block
+exactly that system for imitating the incumbent insufficiently. So report agreement
+(clustered, with its MDE) and pre-register a review trigger on low agreement — a burst
+of disagreement is always worth reading — but it vetoes promotion only when the
 [project profile](GLOSSARY.md#project-profile) explicitly declares human-process
-interchangeability or behavioral compatibility a requirement — the field-4
-sub-prompt in [templates/PROJECT_PROFILE.md](templates/PROJECT_PROFILE.md) is
-where that declaration lives (some projects do declare it: deviations themselves
-can carry operational or safety cost), in which case the pre-registered agreement
-floor is a gate and says so in the contract (§6's parameter table).
+interchangeability or behavioral compatibility a requirement. The
+field-4 sub-prompt in [templates/PROJECT_PROFILE.md](templates/PROJECT_PROFILE.md) is
+where that declaration lives, and some projects do declare it: deviations themselves
+can carry operational or safety cost. Where it is declared, the pre-registered
+agreement floor is a gate and says so in the contract (§6's parameter table).
 
 *status: doctrine — not yet exercised* — the shadow→canary sequence above composes
 individually-consensus mechanics (SageMaker/Azure-style mirroring, SRE-style
@@ -206,34 +261,39 @@ that make each exit gate real rather than aspirational, have no internal executi
 record behind them yet. Treat the table as the procedure to run, not as a validated
 result.
 
-**Rollback rehearsal procedure (do this before the first real canary, not during
-the first incident):**
+### Rehearsing the rollback
 
-1. Identify every piece of state a rollback has to undo: in-flight requests
+A rollback fails in two ways, and a rehearsal finds both: the command that does not
+work, and the state the command does not touch. Neither is discoverable by reading the
+plan. Do this before the first real canary, not during the first incident.
+
+1. **Enumerate the state a rollback has to undo.** In-flight requests
    mid-generation, any KV-cache or session state pinned to the candidate,
    adapter/LoRA version references held by callers, cached tool-call results keyed
    to the candidate's execution-system identity, and — separately from all of the
    above, because rolling back the model does not undo it — **side effects already
-   committed to an external system of record** (a note written into a record store,
+   committed to an external system of record**: a note written into a record store,
    a submitted transaction, a downstream system updated by a write-capable tool
-   call under 13's tool-permission gate). For each write-capable integration, name
-   what a rollback must do to a side effect already committed: retract it, amend it
+   call under 13's tool-permission gate. For each write-capable integration, name
+   what a rollback must do to a side effect already committed — retract it, amend it
    with a stated correction, or flag it for human review — and who is notified when
    that path fires. A rollback that only reverts the serving system is incomplete
    for any candidate with write access to something outside it.
-2. Write the rollback as an executable command or script, not a paragraph of prose
+2. **Write the rollback as an executable command or script**, not a paragraph of prose
    — the same [fail-closed](GLOSSARY.md#fail-closed) discipline 13 requires of the
    promotion path applies to the exit.
-3. Run it against a non-production copy of the pipeline and time it. If the
+3. **Run it against a non-production copy of the pipeline and time it.** If the
    candidate is stateful (multi-turn sessions, cached context), verify a rollback
    mid-session does not corrupt or silently truncate in-flight state.
-4. Record the rehearsal (who, when, what was verified) as part of the
+4. **Record the rehearsal** — who, when, what was verified — as part of the
    [operational handoff](templates/OPERATIONAL_HANDOFF.md) artifact (§12).
-5. Re-rehearse whenever the execution system's identity changes materially (new
-   runtime, new adapter format, new serving stack) — a rollback rehearsed against
+5. **Re-rehearse whenever the execution system's identity changes materially** (new
+   runtime, new adapter format, new serving stack). A rollback rehearsed against
    last quarter's stack is not evidence about this quarter's stack.
 
-**Incident-response runbook skeleton** (*status: doctrine — not yet exercised*):
+### The incident-response runbook
+
+Written out, the sequence is short (*status: doctrine — not yet exercised*):
 
 ```
 detect            — the trigger that fired (§7), or a human report
@@ -244,10 +304,14 @@ detect            — the trigger that fired (§7), or a human report
   → postmortem      — feeds 12's failure harvesting and the look/prediction ledgers
 ```
 
-Freeze-before-rollback matters: a rollback decided under pressure while other
-promotions are still advancing compounds the incident instead of containing it.
+Freeze-before-rollback is the step that looks skippable and is not: a rollback decided
+under pressure while other promotions are still advancing compounds the incident
+instead of containing it.
 
 ## 6. Project adaptation parameters
+
+Eight parameters. None has a universal value; the third column says what each one is
+calibrated against.
 
 | Parameter | What it governs | How to set it |
 |---|---|---|
@@ -269,7 +333,8 @@ aggregation window → advance; tolerance breached → execute the named consequ
 advance on an [INCONCLUSIVE](GLOSSARY.md#inconclusive) read. Outcomes: ADVANCE /
 HOLD / ROLLBACK.
 
-**[STOP CONDITION] Global tripwires for this chapter** (in addition to 00's list):
+**[STOP CONDITION] Global tripwires for this chapter** (in addition to 00's list).
+Each is a moment to stop and re-plan:
 
 1. A provider-side or infrastructure redeploy is detected mid-canary — freeze; the
    execution-system identity changed (§4).
@@ -302,12 +367,13 @@ operation eventually justifies building one.
 
 ## 8. Metrics and formulas
 
-**Causal metric set design.** For each candidate metric, require an explicit answer
-to: *if this metric moves, can the movement be attributed to the change under
-test rather than to something else happening in the system at the same time?*
-[EXT-OPS-001C]. Metrics that fail this test (e.g., system-wide resource usage
-during a canary that shares infrastructure with unrelated workloads) are dropped
-from the causal set; they may still be watched, but they do not gate the decision.
+**Causal metric set design.** Every metric you plan to judge the canary on has to
+survive one question first: *if this metric moves, can the movement be attributed to
+the change under test rather than to something else happening in the system at the same
+time?* [EXT-OPS-001C]. Metrics that fail that test — system-wide resource usage during
+a canary that shares infrastructure with unrelated workloads is the standard example —
+are dropped from the causal set. They may still be watched; they do not gate the
+decision.
 
 **Distributional shadow/canary comparison.** Use the same clustered/paired
 inference machinery as any other comparison (04): identify the
@@ -374,6 +440,11 @@ that profile at the chosen operating point, it does not redefine it.
 
 ## 10. Vendor recipes
 
+The first column is this playbook's stance on each source — FOLLOW, ADAPT, or
+REFERENCE ([vendor verdicts](GLOSSARY.md#vendor-verdicts)). Read the scope column for
+what each one leaves to you: with one exception, these products supply mechanism and
+no judgment.
+
 | Verdict | Source | Scope | As-of |
 |---|---|---|---|
 | **[FOLLOW: EXT-OPS-001C]** | Google SRE Workbook, ch.16 Canarying Releases | Restraint doctrine: simplest model that meets objectives; one canary at a time; causally attributable metrics; aggregation window ≪ canary duration | Verified 2026-08-21; stable, mature |
@@ -383,24 +454,30 @@ that profile at the chosen operating point, it does not redefine it.
 | **[REFERENCE: EXT-OPS-004]** | Kayenta (Netflix/Google automated canary analysis) | The *ceiling* of canary automation — full automated statistical judgment. Explicitly not the small-team starting point (§4, §9); consult only once traffic/team scale justifies the build. | Verified 2026-08-20 — existence-proof only, its exact statistical test not independently re-verified this pass |
 
 **Deprecation watch (as-of 2026-08-21):** vendor serving/deployment paths churn
-under you. Two examples worth naming so a stale assumption doesn't survive a
-redeploy: a major NIM serving backend has moved its default away from
+under you, and a promotion path built on last year's default is a promotion path that
+breaks without warning. Two examples worth naming so a stale assumption doesn't
+survive a redeploy. A major NIM serving backend has moved its default away from
 TensorRT-LLM toward vLLM — pin your serving backend explicitly in the execution-
 system identity (02) rather than trusting "the default"
-[NV-NIMTRTLLM-DEP-001]; the only official end-to-end local fine-tune-to-deploy
+[NV-NIMTRTLLM-DEP-001]. The only official end-to-end local fine-tune-to-deploy
 workflow one major vendor shipped was discontinued with no successor named — do
 not build a local/private-deployment [archetype](GLOSSARY.md#archetype)'s
 promotion path around a single vendor's packaging tool without a fallback
-[NV-RTXAITOOLKIT-DEP-001]. A rented
-deployment destination's own product name and positioning can also change under
+[NV-RTXAITOOLKIT-DEP-001]. And a rented
+deployment destination's own product name and positioning can change under
 you — verify the current identity of any rented serving destination before pinning
 it into a contract or a runbook [NV-DGXCLOUD-DEP-001].
 
 ## 11. Worked examples
 
+Both files below are invented illustrations. They show the reasoning working; the
+claims in this chapter rest on the sources in §13, not on the scenarios.
+
 - [SCENARIO-07](examples/SCENARIO-07_deterministic-cascade-gate.md) — the deterministic
-  verifier-gated cascade that chapter 08 develops was, in the source project's
-  record, a *production-topology* decision: promoting a
+  verifier-gated cascade that chapter 08 develops. What ships there is a
+  *topology*, not a model swap: a cheap model, a program that checks its output, and a
+  rule that escalates the failures — with the learned alternative refused on its leakage
+  audit rather than promoted. Promoting a
   [cascade](GLOSSARY.md#cascade) does not require promoting a
   [learned router](GLOSSARY.md#learned-router). The lesson for this chapter is that
   the pipeline of §5 applies to topology decisions as well as single-model swaps —
@@ -408,31 +485,44 @@ it into a contract or a runbook [NV-DGXCLOUD-DEP-001].
   pin and its own shadow/canary comparison to run before it is trusted with real
   traffic.
 - [SCENARIO-12](examples/SCENARIO-12_restart-instability-paired-controls.md) — the
-  internal precedent for §4's distributional-comparison principle: restarting the
-  serving process by itself changed outcomes that had been stable moments before,
-  on an otherwise-unchanged execution system. The response was not to chase
+  illustration behind §4's distributional-comparison principle: restarting the
+  serving process, with nothing else about the request or the model changed, flipped
+  about half the item-level outcomes on a suite that had been stable within a session
+  moments before. The response was not to chase
   case-by-case parity but to measure the reproducibility boundary and scope
   comparisons — including any shadow/canary comparison — to what was actually
   measured to hold.
 
 ## 12. Outputs and artifacts
 
-- A recorded promotion decision (go/no-go, rollout shape, stage-by-stage
-  entry/exit results) into
-  [templates/OPERATIONAL_HANDOFF.md](templates/OPERATIONAL_HANDOFF.md), covering
-  at minimum: pinned execution-system identity; the causal metric set and its
-  tolerances (or, for a no-incumbent promotion, the regret ceiling that gates, the
-  agreement diagnostic and any profile-declared compatibility floor, and the
-  disagreement-adjudication procedure, §5); the rollback owner, mechanics,
-  external-system-of-record retraction/amendment path, and rehearsal log; on-call
-  contact; known limitations; the security/privacy gate result at this stakes tier
-  (13).
+The promotion decision has to land somewhere a stranger can read it at speed, because
+the person reading it mid-incident may not be the person who built it. That somewhere is
+[templates/OPERATIONAL_HANDOFF.md](templates/OPERATIONAL_HANDOFF.md): the go/no-go,
+the rollout shape, and the stage-by-stage entry/exit results, covering at minimum
+
+- the pinned execution-system identity;
+- the causal metric set and its tolerances — or, for a no-incumbent promotion, the
+  regret ceiling that gates, the agreement diagnostic and any profile-declared
+  compatibility floor, and the disagreement-adjudication procedure (§5);
+- the rollback owner, the rollback mechanics, the external-system-of-record
+  retraction/amendment path, and the rehearsal log;
+- an on-call contact;
+- known limitations;
+- the security/privacy gate result at this stakes tier (13).
+
+Three more artifacts come out of this chapter:
+
 - A rehearsed, versioned rollback runbook, re-rehearsed on execution-system
   identity change (§5).
-- Any principle override or restraint-doctrine deviation as a
+- Any principle override or restraint-doctrine deviation, as a
   [method decision record](templates/METHOD_DECISION_RECORD.md).
 - Postmortems and rollback events feeding 12's failure-harvesting loop and the
   [look ledger](GLOSSARY.md#look-ledger) and [prediction ledger](GLOSSARY.md#prediction-ledger) (04).
+
+None of this is long, and length is not the test. Hand the handoff to someone who did
+not build the system and ask them two questions: what would make you roll this back,
+and who executes it? If they cannot answer from the page, the document is not finished
+and the system is not ready to run unattended.
 
 ## 13. Sources
 
@@ -454,8 +544,8 @@ it into a contract or a runbook [NV-DGXCLOUD-DEP-001].
 - **G10 (rollback / incident-response runbook mechanics): COVERED-AS-DOCTRINE-NOT-YET-EXERCISED.**
   §1 states the split up front; §5 gives the full rollback-rehearsal procedure and
   incident-response runbook skeleton, both carrying the
-  `status: doctrine — not yet exercised` marker; §13 records that this playbook's
-  own operating history has named the pipeline stages without a rehearsed
+  `status: doctrine — not yet exercised` marker. What sits behind that marker: the
+  playbook's source project named these pipeline stages without a rehearsed
   procedure behind them.
 - **G9 (multi-tenant capacity/concurrency/SLA burn under real traffic): EXPLICITLY-OUT-OF-SCOPE-FOR-0.1.**
   Stated in §7, mirroring the identical scope boundary chapter 06 states for
