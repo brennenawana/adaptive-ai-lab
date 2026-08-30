@@ -4,9 +4,8 @@
 
 **An invented scenario.** The project is fictional; the lesson and the reasoning are the
 part to take seriously.
-**Illustrates:** [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md) (P1, P2) ·
-[02. Execution System Model](../02_EXECUTION_SYSTEM_MODEL.md) ·
-[03. Evaluation Foundation](../03_EVALUATION_FOUNDATION.md)
+**Illustrates:** [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md) · [03. Evaluation Foundation](../03_EVALUATION_FOUNDATION.md) ·
+[08. Retrieval, Tools, Workflows, and Routing](../08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md)
 
 ## Situation
 

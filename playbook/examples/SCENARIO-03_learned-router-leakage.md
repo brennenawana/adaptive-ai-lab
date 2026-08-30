@@ -4,8 +4,8 @@
 
 **An invented scenario.** The project is fictional; the lesson and the reasoning are the
 part to take seriously.
-**Illustrates:** [03. Evaluation Foundation](../03_EVALUATION_FOUNDATION.md) ·
-[08. Retrieval, Tools, Workflows, and Routing](../08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md)
+**Illustrates:** [03. Evaluation Foundation](../03_EVALUATION_FOUNDATION.md) · [08. Retrieval, Tools, Workflows, and Routing](../08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md) ·
+[13. Governance, Provenance, and Security](../13_GOVERNANCE_PROVENANCE_AND_SECURITY.md)
 
 ---
 

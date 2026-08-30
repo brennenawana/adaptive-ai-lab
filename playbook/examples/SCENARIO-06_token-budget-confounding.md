@@ -4,9 +4,9 @@
 
 **An invented scenario.** The project is fictional; the lesson and the reasoning are the
 part to take seriously.
-**Illustrates:** [04. Experiment Design and Statistics](../04_EXPERIMENT_DESIGN_AND_STATISTICS.md) ·
-[05. Model, Runtime, and Harness Selection](../05_MODEL_RUNTIME_AND_HARNESS_SELECTION.md) ·
-[07. Optimization and Intervention Ladder](../07_OPTIMIZATION_AND_INTERVENTION_LADDER.md)
+**Illustrates:** [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md) · [02. Execution System Model](../02_EXECUTION_SYSTEM_MODEL.md) ·
+[05. Model, Runtime, and Harness Selection](../05_MODEL_RUNTIME_AND_HARNESS_SELECTION.md) · [06. Inference Performance and Capacity](../06_INFERENCE_PERFORMANCE_AND_CAPACITY.md) ·
+[07. Optimization and the Intervention Ladder](../07_OPTIMIZATION_AND_INTERVENTION_LADDER.md) · [09. Training and Data](../09_TRAINING_AND_DATA.md)
 
 ## Situation
 

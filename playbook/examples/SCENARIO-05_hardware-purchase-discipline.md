@@ -4,8 +4,8 @@
 
 **An invented scenario.** The project is fictional; the lesson and the reasoning are the
 part to take seriously.
-**Illustrates:** [06. Inference Performance and Capacity](../06_INFERENCE_PERFORMANCE_AND_CAPACITY.md) ·
-[11. Economics, Hardware, and Cloud](../11_ECONOMICS_HARDWARE_AND_CLOUD.md)
+**Illustrates:** [01. Project Intake and Decision Context](../01_PROJECT_INTAKE_AND_DECISION_CONTEXT.md) · [06. Inference Performance and Capacity](../06_INFERENCE_PERFORMANCE_AND_CAPACITY.md) ·
+[11. Economics, Hardware, and Cloud](../11_ECONOMICS_HARDWARE_AND_CLOUD.md) · [12. Observability, Learning, and Promotion](../12_OBSERVABILITY_LEARNING_AND_PROMOTION.md)
 
 ## Situation
 

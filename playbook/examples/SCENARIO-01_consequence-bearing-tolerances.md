@@ -4,9 +4,8 @@
 
 **An invented scenario.** The project is fictional; the lesson and the reasoning are the
 part to take seriously.
-**Illustrates:** [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md) ·
-[04. Experiment Design and Statistics](../04_EXPERIMENT_DESIGN_AND_STATISTICS.md) ·
-[07. Optimization and Intervention Ladder](../07_OPTIMIZATION_AND_INTERVENTION_LADDER.md)
+**Illustrates:** [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md) · [04. Experiment Design and Statistics](../04_EXPERIMENT_DESIGN_AND_STATISTICS.md) ·
+[07. Optimization and the Intervention Ladder](../07_OPTIMIZATION_AND_INTERVENTION_LADDER.md) · [13. Governance, Provenance, and Security](../13_GOVERNANCE_PROVENANCE_AND_SECURITY.md)
 
 ---
 

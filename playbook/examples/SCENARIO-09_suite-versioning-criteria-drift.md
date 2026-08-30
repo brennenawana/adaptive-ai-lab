@@ -4,8 +4,7 @@
 
 **An invented scenario.** The project is fictional; the lesson and the reasoning are the
 part to take seriously.
-**Illustrates:** [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md) ·
-[03. Evaluation Foundation](../03_EVALUATION_FOUNDATION.md) ·
+**Illustrates:** [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md) · [03. Evaluation Foundation](../03_EVALUATION_FOUNDATION.md) ·
 [13. Governance, Provenance, and Security](../13_GOVERNANCE_PROVENANCE_AND_SECURITY.md)
 
 ## Situation

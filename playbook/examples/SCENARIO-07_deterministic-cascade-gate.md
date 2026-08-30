@@ -4,7 +4,7 @@
 
 **An invented scenario.** The project is fictional; the lesson and the reasoning are the
 part to take seriously.
-**Illustrates:** [08. Retrieval, Tools, Workflows, and Routing](../08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md) ·
+**Illustrates:** [05. Model, Runtime, and Harness Selection](../05_MODEL_RUNTIME_AND_HARNESS_SELECTION.md) · [08. Retrieval, Tools, Workflows, and Routing](../08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md) ·
 [10. Deployment and Operations](../10_DEPLOYMENT_AND_OPERATIONS.md)
 
 ## Situation

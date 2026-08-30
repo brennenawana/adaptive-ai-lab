@@ -4,8 +4,8 @@
 
 **An invented scenario.** The project is fictional; the lesson and the reasoning are the
 part to take seriously.
-**Illustrates:** [02. Execution System Model](../02_EXECUTION_SYSTEM_MODEL.md) ·
-[08. Retrieval, Tools, Workflows, and Routing](../08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md)
+**Illustrates:** [00. Principles and Scope](../00_PRINCIPLES_AND_SCOPE.md) · [02. Execution System Model](../02_EXECUTION_SYSTEM_MODEL.md) ·
+[07. Optimization and the Intervention Ladder](../07_OPTIMIZATION_AND_INTERVENTION_LADDER.md) · [08. Retrieval, Tools, Workflows, and Routing](../08_RETRIEVAL_TOOLS_WORKFLOWS_AND_ROUTING.md)
 
 ## Situation
 
