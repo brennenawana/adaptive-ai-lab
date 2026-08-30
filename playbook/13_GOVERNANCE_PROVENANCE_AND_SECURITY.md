@@ -250,8 +250,9 @@ a document asserting it is not sufficient.
 8. **Threat-model the tool-calling surface before granting write or side-effecting
    capability**, and gate write actions by human approval scaled to stakes tier (§6).
 9. **Apply publication hygiene** before anything derived from held-out evaluation
-   content leaves the project: [canary strings](GLOSSARY.md#canary-string), no verbatim
-   eval text, stated benchmark provenance (§9).
+   content leaves the project: [canary strings](GLOSSARY.md#canary-string) — unique
+   markers embedded in the content, so that seeing one anywhere else is evidence your
+   held-out set escaped — no verbatim eval text, stated benchmark provenance (§9).
 10. **Rehearse the audit.** Periodically, hand the record of record for one past
     decision to someone who was not involved and ask them to reconstruct what produced
     it. A step they cannot reconstruct is a gap in the record, found while it is still
@@ -322,7 +323,7 @@ check passed for the project's actual intended use. **Outcomes:** PROCEED (recor
 BLOCK (use prohibited) / ESCALATE (ambiguous terms — legal review before use).
 
 **[DECISION GATE] Tool-permission gate.** Before a tool or action moves from read-only
-to write-capable: threat model reviewed (§6), human-approval policy defined for the
+to write-capable: threat model reviewed (§11), human-approval policy defined for the
 action's stakes tier. **Outcomes:** GRANT-WITH-APPROVAL-GATE / GRANT-AUTONOMOUS (Tier 1
 only, reversible, low blast radius) / DENY.
 
@@ -398,7 +399,7 @@ statistics canon for decision-quality claims lives in chapter 04 and
   even when the general domain category is public knowledge. The general shape of a
   problem is yours to carry between projects. The specifics of somebody's non-public
   system are not, and "I rewrote it from memory" does not change which one you shipped.
-  The test in §6 exists precisely to catch this.
+  That distinction is the whole test.
 - **Auto-promoting ephemeral capability**: letting a system that can autonomously create
   a candidate tool, workflow, or configuration convert it into durable, trusted platform
   configuration without a separate, explicit review and promotion gate — the same
@@ -420,7 +421,7 @@ require internal validation to state.
   be in a backup, a log line, or an index.
 - **Immutable-record-implies-undeletable-payload**: assuming an append-only,
   hash-chained record forbids ever satisfying a legitimate erasure request. It does
-  not — see the structural pattern in §6.
+  not — see the structural pattern in §11.
 - **Treating corpus de-identification as free**: de-identifying or tokenizing an eval
   corpus and continuing to cite its old reachability-ceiling or passing-threshold
   numbers without re-checking whether the transform changed the measured ceiling (§5
@@ -465,8 +466,8 @@ irreversible.
 |---|---|---|---|
 | **[REFERENCE: EXT-OPS-003]** | MLflow / Weights & Biases / DVC | Versioning and lineage-by-reference; a good dashboard mirror | Tamper evidence — none of the three offers it |
 | **[REFERENCE: NV-LINEAGEREGISTRY-001]** (as-of 2026-08-20) | NGC Private Registry + NeMo Entity/Data Store | Semver artifact versions, per-version metrics, HF-compatible one-hop base-model/adapter lineage fields | No end-to-end dataset→deployment lineage prescription; adapter artifacts are versionless in the same system — plan your own chain across the gap |
-| **[REFERENCE: NV-WORKBENCH-001]** (as-of 2026-08-20) / **[REFERENCE: NV-NEMOCLAW-001]** (pre-alpha, as-of 2026-08-20) | Git-versioned agent-sandbox environments; a credential-custody wrapper pattern | Useful building blocks for the sandbox/credential-custody control in §6 | Neither is a governance system by itself; no run/eval tracking, no production maturity claim |
-| **[REFERENCE: NV-GARAK-001]** (as-of 2026-08-20) | An LLM security-probing tool | A ready battery for injection/adversarial red-teaming of the tool-calling surface (§6) | Not a substitute for a project-specific threat model — a probe library finds known shapes, not your system's actual attack surface |
+| **[REFERENCE: NV-WORKBENCH-001]** (as-of 2026-08-20) / **[REFERENCE: NV-NEMOCLAW-001]** (pre-alpha, as-of 2026-08-20) | Git-versioned agent-sandbox environments; a credential-custody wrapper pattern | Useful building blocks for the sandbox/credential-custody control in §11 | Neither is a governance system by itself; no run/eval tracking, no production maturity claim |
+| **[REFERENCE: NV-GARAK-001]** (as-of 2026-08-20) | An LLM security-probing tool | A ready battery for injection/adversarial red-teaming of the tool-calling surface (§11) | Not a substitute for a project-specific threat model — a probe library finds known shapes, not your system's actual attack surface |
 | **[FOLLOW: EXT-LEGAL-001]** (eff. 2025-06-17 / AUP eff. 2025-09-15) / **[FOLLOW: EXT-LEGAL-002]** (eff. 2026-01-01) / **[FOLLOW: EXT-LEGAL-003]** (eff. 2026-03-23, rev. 2026-04-28) | Anthropic Commercial Terms + Usage Policy; OpenAI Business Terms; Google Gemini API terms | Each currently prohibits using that provider's outputs to train a competing model, with provider-specific exceptions | Read the current page for your provider at training time — these three effective dates, checked the same day, do not agree with each other |
 | **[ADAPT: NV-NEMOTRONCC-LICENSE-001]** (as-of 2026-08-20) | An NVIDIA open-model license document | A worked contrast case: this license explicitly *permits* training other models on that model's outputs | Do not generalize the permission — check the specific license text for whatever model you acquire; permissions are not symmetric across vendors |
 | **[ADAPT: EXT-EVAL-007]** | BIG-bench canary-string convention | A standard, citable format for a cooperative-scraper exclusion marker | Cooperative only — it deters compliant crawlers and detects verbatim reproduction; it is not access control |
@@ -547,14 +548,14 @@ then state what makes each entry point survivable.
 - The **record of record**: hash-chained, append-only, one entry per irreversible state
   transition, referencing execution-system digests.
 - A **clean-room boundary document**: what must never enter this project, the
-  shape-vs-specifics test (§6), reviewed at project start and whenever a new data or
+  shape-vs-specifics distinction (§9), reviewed at project start and whenever a new data or
   content source is added.
 - A **license register**: one row per acquired model/dataset — content hash, license
   snapshot, permitted-use determination, attribution obligations,
   license-change-watch status.
 - A **trajectory privacy-classification table** (§6), feeding chapter 12's telemetry
   floor.
-- A **tool-calling threat model** and permission-tier table (§6), reviewed before any
+- A **tool-calling threat model** (§11) and permission-tier table (§6), reviewed before any
   write-capable grant.
 - A **canary-string registry** for anything published from held-out content.
 - An **eval-corpus regulated-data disposition record** (§5 obligation 11): for each eval
@@ -596,8 +597,9 @@ sets to instantiate until one is written (open issue, §13).
   construction. Read that as a `case-study` claim — it comes from one project whose
   records are not published in this build, so you cannot check it — and note that even
   taken at face value it is a claim about *avoiding* real PII entirely, not about having
-  exercised redaction of real production PII. Nobody whose record you can inspect has
-  run these two designs against real personal data. §5 obligation 11 extends G6 to
+  exercised redaction of real production PII. Treat both designs as designs: this build
+  contains no record of either one being run against real personal data. §5 obligation
+  11 extends G6 to
   regulated personal data appearing in an **eval corpus** specifically (as opposed to
   telemetry) — the decision to de-identify, tokenize, or hold raw under access control,
   and its measurement-validity trade-off — added this pass on the same
