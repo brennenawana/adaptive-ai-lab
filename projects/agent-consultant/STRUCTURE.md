@@ -265,6 +265,14 @@ answering a single question.
    names + the never-written word) passed before the push.
 2. **M2 — the recorder.** Proxy (record mode), Claude Code hooks pack, ledger
    formats, step-2 GUIDE. First real observation possible.
+   **DONE 2026-08-31 — commit `4e0891c`.** Owner steer folded in and now
+   doctrine (BRIEF hard requirement 6): observability is a checklist
+   (O1–O10, MUST/SHOULD) with an explicit accept/reject rule for
+   user-proposed tools, enforced by probes (`engine/recorder/probe.py`:
+   proxy / hook / third-party-ledger modes) plus a live-canary calibration
+   gate — no real session until `calibration.json` says ready. All 14
+   automated probes green on this machine; validator proven to reject a
+   planted secret.
 3. **M3 — diagnosis + measuring stick.** Step-3 scoring, step-4 suite builder,
    contract generation, baseline runner (gateway + budget land here).
 4. **M4 — capsules + the loop + the benchmark.** Freeze/replay (proxy replay

@@ -38,6 +38,14 @@ agent." His words: the system "could use some improvement."
    reference resolves inside the new repo.
 5. Very user friendly. The engineer steers as much as they want, or accepts
    informed recommendations at every step.
+6. (Added 2026-08-31, M2.) Observability is a **standard, not a tool**:
+   recorder implementations vary by project and OS, so the product ships
+   generic guidance with strong opinions — a requirements checklist that any
+   proposed tooling ("I have tool A / program B") is checked against and
+   REJECTED with a suggested alternative if it fails, plus miniature tests
+   (probes) the agent runs to prove every requirement on the user's actual
+   machine before any real observed session. "Trust the probe, not the
+   brochure." Our own components face the same checklist.
 
 ## The user journey (aligned, confirmed)
 
@@ -150,7 +158,12 @@ Owner decisions 2026-08-31 (these update the sections above):
 private repo — README/START/shims, interview step, harness notes, glossary,
 workspace contract, steps 2–5 as honest stubs, and the full public spreadsheet
 case study. No LICENSE file (owner decision; CC BY 4.0 notice will accompany
-the WikiSkill prompts when they land in step 5). Next step: **M2 — the
-recorder** (proxy record mode, Claude Code hooks pack, ledger formats, step-2
-guide). The SE-1 rig at `projects/skill-evolution-mvp/` is the code quarry to
-generalize from.
+the WikiSkill prompts when they land in step 5). **M2 is BUILT and PUSHED
+(2026-08-31, commit `4e0891c`):** step-2 guide, Observability Checklist
+O1–O10 with the accept/reject rule (hard requirement 6), probe catalog +
+calibration gate, ledger formats, and `engine/recorder/` (stdlib recording
+proxy, Claude Code hooks pack, probe.py — all 14 automated probes green on
+macOS). Next step: **M3 — diagnosis + measuring stick** (step-3 scoring,
+step-4 suite builder, contract generation, baseline runner; gateway + budget
+port from the rig). The SE-1 rig at `projects/skill-evolution-mvp/` is the
+code quarry to generalize from.
