@@ -15,6 +15,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 
 from . import config
 from .budget import Meter
@@ -87,36 +88,51 @@ def run_cli(*, meter: Meter, role: str, model: str, system: str, prompt: str,
     if extra_env:
         env.update(extra_env)
 
-    try:
-        proc = subprocess.run(argv, cwd=cwd, env=env, capture_output=True,
-                              text=True, timeout=timeout)
-    except subprocess.TimeoutExpired as e:
-        raise GatewayError(f"{role}: CLI wall-clock timeout after {timeout}s") from e
-
     events: list = []
     payload: dict = {}
-    if stream:
-        for line in proc.stdout.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                obj = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            events.append(obj)
-            if obj.get("type") == "result":
-                payload = obj
-    else:
+    last_error = ""
+    for attempt in (1, 2, 3):
         try:
-            payload = json.loads(proc.stdout or "{}")
-        except json.JSONDecodeError:
-            payload = {}
+            proc = subprocess.run(argv, cwd=cwd, env=env, capture_output=True,
+                                  text=True, timeout=timeout)
+        except subprocess.TimeoutExpired as e:
+            raise GatewayError(f"{role}: CLI wall-clock timeout after {timeout}s") from e
+
+        events = []
+        payload = {}
+        if stream:
+            for line in proc.stdout.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                events.append(obj)
+                if obj.get("type") == "result":
+                    payload = obj
+        else:
+            try:
+                payload = json.loads(proc.stdout or "{}")
+            except json.JSONDecodeError:
+                payload = {}
+
+        # Retry only transport/overload failures (rate limits under parallel
+        # load), never task-level results — a retried refusal or wrong answer
+        # would bias arms.
+        status = payload.get("api_error_status")
+        overloaded = status in (429, 500, 502, 503, 529)
+        if payload and not overloaded:
+            break
+        last_error = (f"rc={proc.returncode} api_error_status={status} "
+                      f"stderr={proc.stderr[:300]!r}")
+        if attempt < 3:
+            meter.log_event("retry", role=role, attempt=attempt, error=last_error)
+            time.sleep(45 * attempt)
 
     if not payload:
-        raise GatewayError(
-            f"{role}: no result payload (rc={proc.returncode}) "
-            f"stderr={proc.stderr[:400]!r} stdout={proc.stdout[:400]!r}")
+        raise GatewayError(f"{role}: no result payload after retries ({last_error})")
 
     usage, total_usd = _extract_usage(payload, model)
     meter.record(model=model, usage=usage, role=role, usd_total=total_usd,

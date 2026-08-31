@@ -6,12 +6,26 @@ a row to the run ledger. A cap breach raises BudgetExceeded — the orchestrator
 checkpoints and halts cleanly; it never tops up on its own.
 """
 
+import fcntl
 import json
 import os
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 from . import config
+
+
+@contextmanager
+def _locked(path: Path):
+    """Cross-process lock so parallel runs cannot lose spend updates."""
+    lock_path = path.with_suffix(".lock")
+    with lock_path.open("w") as lf:
+        fcntl.flock(lf, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN)
 
 
 class BudgetExceeded(Exception):
@@ -81,11 +95,12 @@ class Meter:
         # all-models total — the meter must never undercount.
         usd = max(computed, usd_total or 0.0)
 
-        t = self._totals()
-        t["global"] += usd
-        t["phases"][self.phase] = t["phases"].get(self.phase, 0.0) + usd
-        t["runs"][self.run_id] = t["runs"].get(self.run_id, 0.0) + usd
-        _atomic_write(self.spend_file, t)
+        with _locked(self.spend_file):
+            t = self._totals()
+            t["global"] += usd
+            t["phases"][self.phase] = t["phases"].get(self.phase, 0.0) + usd
+            t["runs"][self.run_id] = t["runs"].get(self.run_id, 0.0) + usd
+            _atomic_write(self.spend_file, t)
         self.iteration_spend += usd
 
         row = {"ts": time.time(), "kind": "api_call", "run": self.run_id,

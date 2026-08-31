@@ -105,7 +105,9 @@ def cmd_run(args):
     state = orchestrator.run_evolution(
         arm=args.arm, seed=args.seed, phase=args.phase,
         train=tasksio.tasks_by_id(manifest["splits"]["train"]),
-        val=tasksio.tasks_by_id(manifest["splits"]["val"]))
+        val=tasksio.tasks_by_id(manifest["splits"]["val"]),
+        run_id=f"{args.arm}-s{args.seed}",
+        workers=args.workers)
     print(json.dumps(state, indent=2))
 
 
@@ -142,7 +144,8 @@ def cmd_eval(args):
 
     out = orchestrator.evaluate_split(
         arm=args.arm, run_id=run_id, phase=args.phase, tasks=tasks,
-        split_name=args.split, skills_from=args.skills_from)
+        split_name=args.split, skills_from=args.skills_from,
+        workers=args.workers)
     print(json.dumps({k: v for k, v in out.items() if k != "per_task"}, indent=2))
 
 
@@ -165,6 +168,7 @@ def main():
     pr.add_argument("--arm", required=True, choices=["A", "B", "C"])
     pr.add_argument("--seed", type=int, required=True)
     pr.add_argument("--phase", required=True, choices=list(config.PHASE_CAPS_USD))
+    pr.add_argument("--workers", type=int, default=config.ROLLOUT_WORKERS)
     pr.set_defaults(fn=cmd_run)
     pe = sub.add_parser("eval")
     pe.add_argument("--arm", required=True, choices=["A", "B", "C"])
@@ -173,6 +177,7 @@ def main():
     pe.add_argument("--split", required=True, choices=["val", "test"])
     pe.add_argument("--skills-from", default=None,
                     help="run id whose accepted skills/ to inject (omit for no skills)")
+    pe.add_argument("--workers", type=int, default=config.ROLLOUT_WORKERS)
     pe.set_defaults(fn=cmd_eval)
     sub.add_parser("spend").set_defaults(fn=cmd_spend)
     args = p.parse_args()

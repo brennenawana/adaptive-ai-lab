@@ -1,0 +1,10 @@
+{
+  "run_id": "C-s1",
+  "arm": "C",
+  "seed": 1,
+  "iteration_done": 0,
+  "r_best": 0.3333333333333333,
+  "accepted": [],
+  "plateau": 0,
+  "stop_reason": null
+}

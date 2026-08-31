@@ -1,0 +1,24 @@
+{
+  "run_id": "B-s1",
+  "arm": "B",
+  "seed": 1,
+  "iteration_done": 6,
+  "r_best": 0.9333333333333333,
+  "accepted": [
+    {
+      "iteration": 2,
+      "action": "create",
+      "name": "python_data_parsing_filtering",
+      "val": 0.6
+    },
+    {
+      "iteration": 3,
+      "action": "patch",
+      "name": "python_data_parsing_filtering",
+      "val": 0.9333333333333333
+    }
+  ],
+  "plateau": 3,
+  "stop_reason": "EARLY-PLATEAU",
+  "spend_usd_equiv": 16.845707299999997
+}

@@ -178,6 +178,25 @@ All amounts are list-price-equivalent USD (subscription billing; see §15).
   file produced and no per-task score seen by anyone; it continues as the same look.
   Eval runs are checkpointed per task from this date (`eval_progress.jsonl`), and
   nobody reads that file's per-task scores before the verdict computation (§12).
+- **Amendment 2 (2026-08-30, owner-authorized).** The owner authorized parallel
+  execution of independent flows ("we can use this opportunity to run parallel runs
+  wherever it makes sense … raise the limit to 20"), after confirming run isolation
+  (fresh CLI process per call, --safe-mode, --no-session-persistence, per-run
+  workspaces, seeds start from empty wiki and skills). Changes:
+  - Rollout worker ceiling raised 3 → 20 per flow; concurrent flows split it so the
+    machine runs ~20–30 CLI processes at once. Worker counts do not differ between
+    arms within a comparison.
+  - Seed-extension runs (B-s2, B-s3, C-s2, C-s3) start before the S7 futility gate
+    resolves (C-s1 still running). Risk accepted by the owner: if S7 later reads
+    futile, the extension spend was wasted. Rationale: subscription window economics;
+    B-s1's validation result makes futility unlikely.
+  - Gateway retries transport/overload failures only (HTTP 429/5xx, up to 3
+    attempts): a rate-limited call is not evidence about the model. Task-level
+    results are never retried.
+  - The shared spend file now uses a file lock. The still-running C-s1 process
+    predates the lock, so cross-process totals may drift slightly until it finishes;
+    per-run ledgers are append-only and authoritative, and `runs/spend.json` will be
+    recomputed from them at Phase-2 close.
 
 ---
 ### Freeze checklist
