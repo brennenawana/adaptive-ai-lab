@@ -1,0 +1,14 @@
+{"planned": "A-s1", "contract": "spreadsheet-v1", "note": "no-skill baseline TEST look"}
+{"planned": "B-s1", "contract": "spreadsheet-v1"}
+{"planned": "B-s2", "contract": "spreadsheet-v1"}
+{"planned": "B-s3", "contract": "spreadsheet-v1"}
+{"planned": "C-s1", "contract": "spreadsheet-v1"}
+{"planned": "C-s2", "contract": "spreadsheet-v1"}
+{"planned": "C-s3", "contract": "spreadsheet-v1"}
+{"spent": "A-s1", "ts": 1788130582.568466, "skills_from": null}
+{"spent": "B-s1", "ts": 1788141506.9136078, "skills_from": "B-s1"}
+{"spent": "B-s2", "ts": 1788147817.289522, "skills_from": "B-s2"}
+{"spent": "B-s3", "ts": 1788149045.575865, "skills_from": "B-s3"}
+{"spent": "C-s3", "ts": 1788150224.648042, "skills_from": "C-s3"}
+{"spent": "C-s2", "ts": 1788150631.9998121, "skills_from": "C-s2"}
+{"spent": "C-s1", "ts": 1788158758.095038, "skills_from": "C-s1"}

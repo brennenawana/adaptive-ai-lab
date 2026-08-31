@@ -41,7 +41,6 @@ never are.** Deleting `workspace/` removes every trace.
 wikiskills-lab/
 ├── README.md               # for the human: what this is, 3-step quick start, credits
 ├── START.md                # for the agent: the consultant's entry instructions (router)
-├── LICENSE                 # owner decision — recommend MIT (see §10)
 ├── CREDITS.md              # WikiSkill (arXiv:2608.27454), LLM Wiki gist,
 │                           #   karpathy/autoresearch; CC BY 4.0 notice for prompts
 ├── CLAUDE.md               # one-line shim: "Read START.md and follow it."
@@ -241,13 +240,18 @@ generated contract, and a before/after report. Labeled fiction on every page.
 Purpose: the user sees the destination in five minutes of scrolling, before
 answering a single question.
 
-## 10. Licensing and attribution
+## 10. Attribution (no license file — owner decision 2026-08-31)
 
-- Code: recommend **MIT** (friendliest, shortest to read). Owner decision.
-- `steps/5-improve/prompts/`: WikiSkill's prompts are CC BY 4.0 — that directory
-  carries its own NOTICE with full attribution, and CREDITS.md repeats it.
+- **No LICENSE file.** The owner declined one: the repo is private, and a
+  license only grants rights to other people. Implication recorded for the
+  future public flip: with no license, default copyright applies — visitors can
+  read and fork on GitHub but have no legal right to reuse the code. That is a
+  valid choice, revisitable later or never; nothing in the build depends on it.
+- `steps/5-improve/prompts/`: WikiSkill's prompts are CC BY 4.0 — that is the
+  paper authors' license condition for carrying their text, not our choice, so
+  that directory keeps its own NOTICE regardless, and CREDITS.md repeats it.
 - CREDITS.md also cites the LLM Wiki gist and karpathy/autoresearch as lineage.
-- Our own experiment numbers appear nowhere; public evidence cites the paper.
+- Our own experiment numbers appear only in the §13 case study.
 
 ## 11. Build order
 
@@ -269,7 +273,7 @@ answering a single question.
 
 1. ~~Repo name~~ — decided: `wikiskills-lab` (§1).
 2. ~~GitHub account~~ — decided: github.com/brennenawana/wikiskills-lab.
-3. Code license — recommendation MIT (§10); the repo has none yet.
+3. ~~Code license~~ — decided: none (§10).
 4. When to flip the repo from private to public — recommendation: after M5.
 
 ## 13. The spreadsheet benchmark (owner-approved public case study)
@@ -313,3 +317,12 @@ includes a redistribution check: no upstream-authored file in git history.
 one adaptation pass — strip lab references, make every concept resolve inside the
 repo, ESL polish. The code port was already planned as `engine/` (§8); the
 adapter is the only new code, and it exists in the lab rig today.
+
+**Status: the adaptation pass is DONE (2026-08-31).** The finished public content
+is staged at `projects/agent-consultant/staging/benchmarks/spreadsheet/`:
+README, REPORT.md, public CONTRACT.md (with a stop-code legend added), the
+winning skill verbatim plus a provenance README, and sanitized results (the
+internal contract codename in VERDICT.json / test_looks.jsonl was renamed to
+`spreadsheet-v1`; every number unchanged). The internal-reference grep passes
+over the whole folder. It moves into the repo as `benchmarks/spreadsheet/` —
+only `adapter/` and `fetch_data.py` remain, landing with the M4 engine port.

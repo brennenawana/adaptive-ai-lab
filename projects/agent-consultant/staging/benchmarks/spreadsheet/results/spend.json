@@ -1,0 +1,26 @@
+{
+  "global": 166.7658,
+  "phases": {
+    "P1": 71.8038,
+    "P2": 93.9416,
+    "P0": 1.0204
+  },
+  "runs": {
+    "A-s1": 0.7175,
+    "B-s1": 16.8457,
+    "B-s2": 10.8827,
+    "B-s3": 12.3786,
+    "C-s1": 46.1548,
+    "C-s2": 20.1563,
+    "C-s3": 20.2008,
+    "eval-A-s1-test": 8.0857,
+    "eval-B-s1-test": 4.3202,
+    "eval-B-s2-test": 4.5354,
+    "eval-B-s3-test": 4.5218,
+    "eval-C-s1-test": 5.9012,
+    "eval-C-s2-test": 5.729,
+    "eval-C-s3-test": 5.3156,
+    "smoke-C": 1.0204
+  },
+  "reconciled_from_ledgers": true
+}
