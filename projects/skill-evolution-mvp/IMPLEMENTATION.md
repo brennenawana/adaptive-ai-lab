@@ -158,3 +158,85 @@ Next: resolve the contract's open values, make the first commit (the freeze rule
 requires the contract to be committed before any training inference), then Phase 1
 in the pre-registered order — the no-skill baseline and the S6 headroom check come
 before any evolution spend.
+
+---
+
+## 2026-08-30 (night) → 2026-08-31 — Freeze, the first halt, and the parallel night
+
+The owner set a second standard mid-day: all human-facing documents must be plain
+English that a technical ESL reader can follow, and this file was revised once to meet
+it. The contract froze at commit `2da2ff9` with the language standard applied.
+
+**Phase 1 began and the stop system fired on its first real outing.** The no-skill
+baseline scored 33.3% on the validation split — inside the S6 headroom band, so the
+experiment was allowed to proceed. Then a routine status check showed the 100-task
+TEST evaluation pacing at $0.057 per task, 1.9× the projection the $5 arm-A cap was
+sized from. The run was stopped before the cap could kill it mid-flight, because a
+budget halt at that moment would have lost all paid work: the evaluation step, unlike
+the evolution loop, had no per-task checkpoint. Three fixes followed: evaluations now
+save every finished task; an interrupted TEST look may continue as the same look (no
+result was ever seen, so the no-peeking rule stays intact); and the owner raised the
+caps through the contract's own amendment path (Amendment 1) with the reason on the
+record. A detail worth keeping: the deepest run of the night later spent $46.15 —
+$1.15 more than the original cap. Without the amendment it would have been cut off
+before its best skill existed.
+
+**Then the owner opened the throttle.** With his usage window fresh, he authorized
+parallel execution (Amendment 2) after asking the right question first — are runs
+truly isolated? They are, by construction: every model call is a fresh CLI process
+with no session persistence, no memories, a fully replaced system prompt, and only
+its own run's files. Five flows ran at once. Two more lessons came out of that:
+
+- **The machine, not the provider, was the first limit.** At ~31 concurrent CLI
+  processes, the 16 GB build host went deep into memory swap (9 GB used, 15-minute
+  load 17) and the owner's other work slowed to a crawl. The concurrency sizing was
+  the operator's error, not the owner's: he said 20, the flows totaled 31. Standing
+  rule now in the config: check RAM and count TOTAL concurrent processes before any
+  parallel launch; ~12–15 is this machine's limit when it is shared.
+- **Zero rate-limit retries all night.** The provider never pushed back at this
+  scale; the transport-retry code went unused.
+
+**Results.** All six evolution runs accepted at least one skill. Every run's TEST
+score landed 8–14 points below its VAL peak — the small validation split flatters,
+which is exactly why the contract scores arms on TEST only. The verdict, computed by
+the pre-registered statistics (`runs/VERDICT.json`):
+
+| Arm | TEST mean (n=100) | Per-seed | Evolution cost |
+|---|---|---|---|
+| A — no skill | 36.0% | — | $0.72 |
+| B — Haiku self-evolved | 62.7% | 81 / 59 / 48 | $40.11 |
+| C — Opus-guided | **75.7%** | 80 / 77 / 70 | $86.51 |
+
+- **Primary (C vs A): +39.7 points, 95% interval [+30.0, +49.3], p < 0.001 →
+  CONFIRMED** (the pre-registered floor was +5).
+- **Secondary (C vs B): +13.0 points, interval [+6.0, +20.0]** — the frontier
+  optimizer beats cheap self-evolution. Look at the seed spreads: B ranged 48–81
+  (one seed found the key insight fully, one partially, one missed it); C landed
+  70–80 (every seed found it). Frontier discovery bought reliability more than peak.
+- **Economics:** at inference time, cost per solved task fell from $0.225 (no skill)
+  to ~$0.07 (either skill arm) — skills make the executor both better AND cheaper
+  per attempt, because it stops wasting turns on failing approaches. The discovery
+  bill ($40–87 for three seeds) is paid once.
+- **Prediction register: badly under-called.** The drafted estimate for C−A was +8
+  points with interval [0, +16]; reality was +39.7. Recorded for calibration — the
+  next contract's estimate should weight "one dominant failure cause" scenarios
+  higher.
+
+**Qualitative review of the winning skill** (C-s1's `spreadsheet_values_and_oracle`,
+200 lines, created at iteration 1 and refined twice through the gate): two ideas
+carry it. First, the rule every strong seed found: compute results in Python and
+write literal values — formulas written by openpyxl carry no computed values, so the
+grader reads them as empty. Second, an idea only the Opus-guided runs found: many
+workbooks contain their own answer key — a sheet named like "Manual Result" or a
+column of already-completed rows — and the skill teaches the executor to check its
+work against that built-in example before saving. Classification: general procedures
+for this task family (one line names the benchmark; a client version would name the
+client's file conventions instead).
+
+**Program totals, reconciled from the ledgers:** $166.77 list-equivalent, against the
+$1,000 ceiling. Six evolution runs, seven TEST looks, zero crashes, zero rate-limit
+events, one operator-caused memory incident, every halt clean.
+
+Next: the dated follow-up report in `research/` (the artifact eligible for
+EVIDENCE_MAP adjudication), and the owner's Phase 3 decision — the gate to it is now
+formally open.

@@ -1,0 +1,18 @@
+{
+  "run_id": "B-s2",
+  "arm": "B",
+  "seed": 2,
+  "iteration_done": 4,
+  "r_best": 0.7333333333333333,
+  "accepted": [
+    {
+      "iteration": 1,
+      "action": "create",
+      "name": "python-over-formulas-for-complexity",
+      "val": 0.7333333333333333
+    }
+  ],
+  "plateau": 3,
+  "stop_reason": "EARLY-PLATEAU",
+  "spend_usd_equiv": 10.8827412
+}

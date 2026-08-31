@@ -1,0 +1,80 @@
+{
+  "contract": "SE1",
+  "computed_at": "2026-08-31",
+  "n_tasks": 100,
+  "test_means": {
+    "A": 0.36,
+    "B": 0.6267,
+    "C": 0.7567
+  },
+  "per_seed_test": {
+    "B": [
+      0.81,
+      0.59,
+      0.48
+    ],
+    "C": [
+      0.8,
+      0.77,
+      0.7
+    ]
+  },
+  "primary_C_vs_A": {
+    "n_tasks": 100,
+    "delta": 0.39666666666666667,
+    "p_one_sided": 0.0,
+    "ci95": [
+      0.3,
+      0.4933333333333333
+    ],
+    "n_boot": 1000,
+    "seed": 20260830,
+    "delta_pp": 39.67
+  },
+  "secondary_C_vs_B": {
+    "n_tasks": 100,
+    "delta": 0.13,
+    "p_one_sided": 0.0,
+    "ci95": [
+      0.06000000000000001,
+      0.2
+    ],
+    "n_boot": 1000,
+    "seed": 20260830,
+    "delta_pp": 13.0
+  },
+  "secondary_B_vs_A": {
+    "n_tasks": 100,
+    "delta": 0.26666666666666666,
+    "p_one_sided": 0.0,
+    "ci95": [
+      0.19333333333333333,
+      0.33666666666666667
+    ],
+    "n_boot": 1000,
+    "seed": 20260830,
+    "delta_pp": 26.67
+  },
+  "verdict_primary": "CONFIRMED",
+  "effect_floor_pp": 5.0,
+  "economics": {
+    "A": {
+      "evolution_usd": 0.72,
+      "test_inference_usd_per_eval": 8.09,
+      "solved_per_100": 36.0,
+      "inference_usd_per_solved_task": 0.2246
+    },
+    "B": {
+      "evolution_usd": 40.11,
+      "test_inference_usd_per_eval": 4.46,
+      "solved_per_100": 62.7,
+      "inference_usd_per_solved_task": 0.0712
+    },
+    "C": {
+      "evolution_usd": 86.51,
+      "test_inference_usd_per_eval": 5.65,
+      "solved_per_100": 75.7,
+      "inference_usd_per_solved_task": 0.0747
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": "C-s3",
+  "arm": "C",
+  "seed": 3,
+  "iteration_done": 4,
+  "r_best": 0.8666666666666667,
+  "accepted": [
+    {
+      "iteration": 1,
+      "action": "create",
+      "name": "excel_literal_answers_from_worked_example",
+      "val": 0.8666666666666667
+    }
+  ],
+  "plateau": 3,
+  "stop_reason": "EARLY-PLATEAU",
+  "spend_usd_equiv": 20.200813999999998
+}

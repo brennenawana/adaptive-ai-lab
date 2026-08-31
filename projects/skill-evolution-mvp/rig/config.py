@@ -45,8 +45,11 @@ SUITE_SEED = 20260830
 SPLIT_SIZES = {"train": 30, "val": 15, "test": 100}
 SMOKE_TASKS = 3
 
-ROLLOUT_WORKERS = 20  # ceiling per flow (SE1 §18 Amendment 2); parallel flows
-                      # split this so total concurrent CLI processes stay ~20-30
+ROLLOUT_WORKERS = 20  # ceiling per flow (SE1 §18 Amendment 2). Machine guidance,
+                      # measured 2026-08-31 on the 16 GB build host: keep TOTAL
+                      # concurrent CLI processes at ~12-15 when other work shares
+                      # the machine — 31 concurrent pushed it into heavy swap
+                      # (9 GB used, 15-min load 17) and slowed every other session.
 
 # S2 iteration spend projections (list-equivalent USD); SE1 §16 as amended
 # (§18 Amendment 1) after measured costs came in ~1.9x the smoke estimate.
