@@ -166,8 +166,12 @@ proxy, Claude Code hooks pack, probe.py — all 14 automated probes green on
 macOS). **M3 is BUILT and PUSHED (2026-08-31, commit `0d25436`):** steps 3–4
 complete (graded findings → ranked focus; frozen suite + generated contract +
 metered baseline), engine gained budget/meter.py, gateway/gateway.py,
-measure/runner.py, selftest.py (16 checks green). Next step: **M4 — capsules
-+ the loop** (proxy replay mode, evolve engine with the verbatim CC BY
-prompts, gate, report generator, spreadsheet benchmark adapter +
-fetch_data.py). The SE-1 rig at `projects/skill-evolution-mvp/` is the code
-quarry to generalize from.
+measure/runner.py, selftest.py (16 checks green). **M4 is BUILT and PUSHED (2026-08-31, commit `e86a3ec`):** step 5 complete —
+evolve engine (verbatim CC BY prompts; ReAct + packet proposer modes so
+local-only optimizers work), proxy replay mode (fail-closed), capsules,
+report generator, and the runnable benchmark (fetch_data.py + adapter;
+`verify` passed on real data). All five steps now READY. Next step: **M5 —
+worked example + release gates** (examples/ticket-bot, internal-name grep
+gate as CI-able script, first-mile path test per §7, redistribution check,
+ESL polish pass) — after M5 the owner can flip the repo public. The SE-1
+rig at `projects/skill-evolution-mvp/` remains the reference.

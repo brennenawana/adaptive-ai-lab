@@ -286,6 +286,13 @@ answering a single question.
 4. **M4 — capsules + the loop + the benchmark.** Freeze/replay (proxy replay
    mode), evolve engine, gate, report generator. The spreadsheet benchmark (§13)
    ports here — it is the engine's integration test, so it lands with the engine.
+   **DONE 2026-08-31 — commit `e86a3ec`.** Verbatim App-E prompts shipped with
+   CC BY NOTICE (tool-mapping notes appended at run time, files stay verbatim);
+   loop generalized with TWO proposer modes (CLI ReAct + packet mode for local
+   backends — the colleague-path requirement); proxy replay fails closed;
+   capsule create/verify/checkout; adapter `run.py verify` PASSED against real
+   cached benchmark data; 32 selftests + all probes green. fetch_data.py pins
+   HF revision ab0b742b… and checker commit 49b73a94…, checksum-verified.
 5. **M5 — worked example + release gate.** ticket-bot example, internal-name grep
    gate, first-mile path test (§7), redistribution check (§13), polish pass in
    ESL plain language. Only after M5 passes does the repo flip to public.
