@@ -9,22 +9,16 @@ Read BRIEF.md first. This document answers the four questions the brief left ope
 
 ---
 
-## 1. Name
+## 1. Name — DECIDED
 
-Rules the name must follow: common English words (ESL standard applies to the name
-too), easy to say out loud, describes help rather than audit, does not overclaim,
-no internal vocabulary.
+**`wikiskills-lab`** — the owner created the repo 2026-08-31:
+https://github.com/brennenawana/wikiskills-lab (empty at creation, **private** for
+now; flipping it public is the owner's switch, after the release gates in §11).
 
-**Recommendation: `agent-coach`.**
-
-Why: a coach is exactly what the repo does — watches you work, measures, suggests
-one drill at a time, tracks whether you got better, and never takes the wheel.
-"Coach" is a common word in every ESL curriculum. It sets the help-not-audit tone
-before a single file is read.
-
-Alternates considered: `tune-up` (friendly, but vague about the subject),
-`agent-checkup` (medical tone drifts toward audit), `groundwork` (too abstract).
-Final call is the owner's; nothing below depends on the name.
+The name works in our favor: it openly credits the WikiSkill lineage (attribution
+is encouraged, and the paper name is public — no internal-reference conflict), and
+"lab" honestly frames what §13 adds: the repo ships a reproducible experiment,
+not just a method.
 
 ## 2. Shape on disk
 
@@ -34,7 +28,7 @@ The user clones the repo **next to** their project, never inside it:
 ~/code/
 ├── their-project/          # and any other blast-radius repos, as siblings
 ├── their-other-repo/
-└── agent-coach/            # the consultant; agent session opens here
+└── wikiskills-lab/         # the consultant; agent session opens here
 ```
 
 Everything generated for this user lands in `agent-coach/workspace/`, which is
@@ -44,7 +38,7 @@ never are.** Deleting `workspace/` removes every trace.
 ## 3. File tree
 
 ```
-agent-coach/
+wikiskills-lab/
 ├── README.md               # for the human: what this is, 3-step quick start, credits
 ├── START.md                # for the agent: the consultant's entry instructions (router)
 ├── LICENSE                 # owner decision — recommend MIT (see §10)
@@ -104,10 +98,15 @@ agent-coach/
 │   ├── skills/             # gated, accepted artifacts
 │   └── runs/               # spend ledgers, run outputs, verdicts
 │
-└── examples/
-    └── ticket-bot/         # one fictional team, end to end: filled profile, a ledger,
-                            #   a diagnosis, a capsule manifest, a contract, a
-                            #   before/after report. Clearly labeled as fiction.
+├── examples/
+│   └── ticket-bot/         # one fictional team, end to end: filled profile, a ledger,
+│                           #   a diagnosis, a capsule manifest, a contract, a
+│                           #   before/after report. Clearly labeled as fiction.
+│
+└── benchmarks/
+    └── spreadsheet/        # the real, reproducible experiment (see §13):
+                            #   public report, our evolved skills, results, contract,
+                            #   suite adapter + fetch scripts. NO upstream data committed.
 ```
 
 Design notes:
@@ -254,17 +253,63 @@ answering a single question.
 
 1. **M1 — skeleton + arrival.** Tree, README, START router, shims, interview step,
    workspace contract, glossary. Usable on day one (interview alone has value).
+   Pushes to the (private) GitHub repo from the start.
 2. **M2 — the recorder.** Proxy (record mode), Claude Code hooks pack, ledger
    formats, step-2 GUIDE. First real observation possible.
 3. **M3 — diagnosis + measuring stick.** Step-3 scoring, step-4 suite builder,
    contract generation, baseline runner (gateway + budget land here).
-4. **M4 — capsules + the loop.** Freeze/replay (proxy replay mode), evolve engine,
-   gate, report generator.
+4. **M4 — capsules + the loop + the benchmark.** Freeze/replay (proxy replay
+   mode), evolve engine, gate, report generator. The spreadsheet benchmark (§13)
+   ports here — it is the engine's integration test, so it lands with the engine.
 5. **M5 — worked example + release gate.** ticket-bot example, internal-name grep
-   gate, first-mile path test (§7), polish pass in ESL plain language.
+   gate, first-mile path test (§7), redistribution check (§13), polish pass in
+   ESL plain language. Only after M5 passes does the repo flip to public.
 
 ## 12. Open decisions for the owner
 
-1. Repo name — recommendation `agent-coach` (§1).
-2. Code license — recommendation MIT (§10).
-3. GitHub org/account it publishes under (affects clone one-liner in README).
+1. ~~Repo name~~ — decided: `wikiskills-lab` (§1).
+2. ~~GitHub account~~ — decided: github.com/brennenawana/wikiskills-lab.
+3. Code license — recommendation MIT (§10); the repo has none yet.
+4. When to flip the repo from private to public — recommendation: after M5.
+
+## 13. The spreadsheet benchmark (owner-approved public case study)
+
+Owner decision 2026-08-31: the lab's spreadsheet experiment ships in the public
+repo. This supersedes the brief's "our numbers only via a future public write-up"
+line — this IS that write-up. It lives at `benchmarks/spreadsheet/` and doubles
+as the engine's integration test: anyone can re-run the loop and check that the
+machinery works before trusting it on their own project.
+
+**What ships (already ours, already done):**
+
+- `REPORT.md` — a public rewrite of the frozen lab report: self-contained,
+  internal names stripped, plain language. The story it tells: a cheap executor
+  went 36% → 76% (frontier-guided) / 63% (self-evolved) on 100 held-out
+  spreadsheet tasks, p < 0.001, at ~3× lower inference cost per solved task;
+  frontier optimization bought run-to-run reliability. Cites the WikiSkill paper
+  as the method source.
+- `skills/` — the evolved skill texts we authored, including the winning one
+  (write values, not formulas; use the workbook's own worked example as the
+  oracle). These are the best possible advertisement: a reader sees exactly what
+  the loop produces.
+- `results/` — verdict JSON, per-arm and per-seed numbers, spend summary, the
+  pre-registered stats as run.
+- `CONTRACT.md` — the frozen pre-registration, adapted for public reading
+  (internal file names stripped, content otherwise faithful). Shows what
+  "generated governance" looks like when filled in for real.
+- `adapter/` — the suite adapter wiring `engine/` to the benchmark's task format
+  and checker, plus the run scripts.
+
+**What must NOT ship (hard rule):** the upstream benchmark has **no license
+file**, so we never commit or redistribute its task data (workbooks,
+instructions) or its checker code. Instead: `fetch_data.py` downloads the data
+from the upstream source and the checker at a **pinned upstream commit**, verifies
+checksums, and stores everything under gitignored `benchmarks/spreadsheet/data/`.
+The README there explains this in one plain sentence ("we point at their work; we
+do not copy it") and credits the benchmark's authors. The M5 release gate
+includes a redistribution check: no upstream-authored file in git history.
+
+**Rewrite cost (the honest "not quite free" part):** the report and contract need
+one adaptation pass — strip lab references, make every concept resolve inside the
+repo, ESL polish. The code port was already planned as `engine/` (§8); the
+adapter is the only new code, and it exists in the lab rig today.

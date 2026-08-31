@@ -130,8 +130,22 @@ our numbers only via a future public write-up if the owner publishes one.
 
 ## Status and next step
 
-Alignment confirmed through the capsule design (2026-08-31). Next step: **repo
-structure design** (naming, file tree, interview flow, instrumentation approach
-per harness) — not yet started. Lab-side context lives in the wikiskill-research
-worktree; the SE-1 rig at `projects/skill-evolution-mvp/` is the code quarry to
+Alignment confirmed through the capsule design (2026-08-31). Structure design
+done same day — see `STRUCTURE.md` beside this file (naming, tree, interview
+flow, three-telescope instrumentation doctrine, build order M1–M5).
+
+Owner decisions 2026-08-31 (these update the sections above):
+
+- **Repo exists and is named:** https://github.com/brennenawana/wikiskills-lab
+  (created empty, currently PRIVATE; flips public only after the M5 release
+  gates). The name openly credits the WikiSkill lineage — allowed, encouraged.
+- **The spreadsheet experiment goes public** in the repo as
+  `benchmarks/spreadsheet/` (STRUCTURE.md §13). This supersedes the "our numbers
+  only via a future public write-up" line above — that write-up is now this case
+  study. Hard rule preserved: the upstream benchmark has no license, so its data
+  and checker are fetched at setup from a pinned upstream commit, never
+  committed or redistributed.
+
+Next step: **build M1** (skeleton + arrival + interview), pushing to the private
+repo. The SE-1 rig at `projects/skill-evolution-mvp/` is the code quarry to
 generalize from.
