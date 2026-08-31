@@ -163,7 +163,11 @@ the WikiSkill prompts when they land in step 5). **M2 is BUILT and PUSHED
 O1–O10 with the accept/reject rule (hard requirement 6), probe catalog +
 calibration gate, ledger formats, and `engine/recorder/` (stdlib recording
 proxy, Claude Code hooks pack, probe.py — all 14 automated probes green on
-macOS). Next step: **M3 — diagnosis + measuring stick** (step-3 scoring,
-step-4 suite builder, contract generation, baseline runner; gateway + budget
-port from the rig). The SE-1 rig at `projects/skill-evolution-mvp/` is the
-code quarry to generalize from.
+macOS). **M3 is BUILT and PUSHED (2026-08-31, commit `0d25436`):** steps 3–4
+complete (graded findings → ranked focus; frozen suite + generated contract +
+metered baseline), engine gained budget/meter.py, gateway/gateway.py,
+measure/runner.py, selftest.py (16 checks green). Next step: **M4 — capsules
++ the loop** (proxy replay mode, evolve engine with the verbatim CC BY
+prompts, gate, report generator, spreadsheet benchmark adapter +
+fetch_data.py). The SE-1 rig at `projects/skill-evolution-mvp/` is the code
+quarry to generalize from.

@@ -275,6 +275,14 @@ answering a single question.
    planted secret.
 3. **M3 — diagnosis + measuring stick.** Step-3 scoring, step-4 suite builder,
    contract generation, baseline runner (gateway + budget land here).
+   **DONE 2026-08-31 — commit `0d25436`.** Rig machinery generalized into
+   `engine/`: fail-closed meter + look ledger (continuation rule kept,
+   cross-platform locking), pluggable gateway (openai/anthropic/claude-cli/
+   canned; sums every usage entry, bills highest accounting; CLI isolation
+   flags preserved, --bare still forbidden), checkpointed suite runner with
+   free dry-run mode. Contract template = 10-section scaled-down public
+   descendant of the experiment contract; budgets in the user's own cost
+   unit. `engine/selftest.py`: 16 checks green on this machine.
 4. **M4 — capsules + the loop + the benchmark.** Freeze/replay (proxy replay
    mode), evolve engine, gate, report generator. The spreadsheet benchmark (§13)
    ports here — it is the engine's integration test, so it lands with the engine.
