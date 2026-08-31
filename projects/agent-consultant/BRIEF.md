@@ -170,8 +170,15 @@ measure/runner.py, selftest.py (16 checks green). **M4 is BUILT and PUSHED (2026
 evolve engine (verbatim CC BY prompts; ReAct + packet proposer modes so
 local-only optimizers work), proxy replay mode (fail-closed), capsules,
 report generator, and the runnable benchmark (fetch_data.py + adapter;
-`verify` passed on real data). All five steps now READY. Next step: **M5 —
-worked example + release gates** (examples/ticket-bot, internal-name grep
-gate as CI-able script, first-mile path test per §7, redistribution check,
-ESL polish pass) — after M5 the owner can flip the repo public. The SE-1
-rig at `projects/skill-evolution-mvp/` remains the reference.
+`verify` passed on real data). All five steps now READY. **M5 is BUILT and
+PUSHED (2026-08-31, commit `bb86116`):** ticket-bot dropped by owner
+decision (fabricated numbers cut against the evidence-first stance) and
+replaced with `examples/sample-artifacts/` — format samples of every
+steps-1–3 artifact, zero invented results; release gates are committed code
+(`scripts/release_gate.py`: vocabulary + full-history redistribution +
+tests; `scripts/first_mile_test.py`: the §7 local-model path as 9 passing
+checks); ESL idiom pass done; gate PASSED before push. **All five
+milestones complete. The repo is release-ready; flipping it public is the
+owner's decision.** Future real example: the first actual engagement
+(colleague, or a dry run on an owner repo), published only with consent.
+The SE-1 rig at `projects/skill-evolution-mvp/` remains the reference.

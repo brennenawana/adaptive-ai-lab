@@ -230,15 +230,23 @@ stop rules. The product says this plainly at tier-selection time.
 | machine-sizing lesson (~12–15 concurrent processes / 16 GB) | pre-launch RAM check in `engine/evolve/` + one line in step-5 GUIDE | |
 | FIS, SE-1, wholesaling, millwork, battery, playbook | — | Do not exist in the product. `grep -ri` for each is a release gate. |
 
-## 9. Worked example (`examples/ticket-bot/`)
+## 9. Worked example — REVISED (owner decision 2026-08-31)
 
-A fictional two-person team with a fictional tracker. Every artifact the journey
-produces appears filled in: profile, one observation ledger, a diagnosis with
-ranked candidates (one is the classic "linked tickets pulled in whole, ~100K
-tokens" process finding — genericized), a capsule manifest with fake fixtures, a
-generated contract, and a before/after report. Labeled fiction on every page.
-Purpose: the user sees the destination in five minutes of scrolling, before
-answering a single question.
+The original plan here was `examples/ticket-bot/`, a fictional team with
+fictional numbers. **Dropped before building.** Reason: once the real case
+study shipped (§13), invented ledgers and made-up before/after numbers —
+even labeled as fiction — cut against the repo's core stance (evidence
+grades, "trust the probe, not the brochure", never invent measurements).
+
+Replacement, built in M5 as `examples/sample-artifacts/`: filled-in **format
+samples** of every steps-1–3 artifact (profile, blast radius, harness plan,
+session manifest, calibration record, findings with evidence grades, focus,
+generated contract), framed explicitly as "illustration of format, not a
+record of anything that happened", with zero invented outcome numbers — the
+destination number is the real one in `benchmarks/spreadsheet/`. The future
+real example: the first actual engagement (the colleague, or a dry run on
+one of the owner's own repos), published later only with consent and
+scrubbing.
 
 ## 10. Attribution (no license file — owner decision 2026-08-31)
 
@@ -296,6 +304,16 @@ answering a single question.
 5. **M5 — worked example + release gate.** ticket-bot example, internal-name grep
    gate, first-mile path test (§7), redistribution check (§13), polish pass in
    ESL plain language. Only after M5 passes does the repo flip to public.
+   **DONE 2026-08-31 — commit `bb86116`.** ticket-bot replaced by
+   `examples/sample-artifacts/` (see revised §9). Gates are now committed
+   code: `scripts/release_gate.py` (vocabulary gate with run-time-assembled
+   banned terms, full-history redistribution gate, selftests+probes) and
+   `scripts/first_mile_test.py` (§7 as an executable 9-check test of the
+   local-model path: record → capsule → hermetic replay → token-metered
+   baseline → report; passes; does not replace a test with a real local
+   model, and says so). ESL idiom pass done. Release gate PASSED before the
+   push. **All five milestones complete — the public flip is now solely the
+   owner's decision (§12 item 4).**
 
 ## 12. Open decisions for the owner
 
