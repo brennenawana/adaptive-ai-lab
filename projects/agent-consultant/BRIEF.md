@@ -146,6 +146,11 @@ Owner decisions 2026-08-31 (these update the sections above):
   and checker are fetched at setup from a pinned upstream commit, never
   committed or redistributed.
 
-Next step: **build M1** (skeleton + arrival + interview), pushing to the private
-repo. The SE-1 rig at `projects/skill-evolution-mvp/` is the code quarry to
+**M1 is BUILT and PUSHED (2026-08-31):** root commit `65bd4d5` on `main` of the
+private repo — README/START/shims, interview step, harness notes, glossary,
+workspace contract, steps 2–5 as honest stubs, and the full public spreadsheet
+case study. No LICENSE file (owner decision; CC BY 4.0 notice will accompany
+the WikiSkill prompts when they land in step 5). Next step: **M2 — the
+recorder** (proxy record mode, Claude Code hooks pack, ledger formats, step-2
+guide). The SE-1 rig at `projects/skill-evolution-mvp/` is the code quarry to
 generalize from.

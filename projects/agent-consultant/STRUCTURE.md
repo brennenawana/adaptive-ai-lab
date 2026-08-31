@@ -258,6 +258,11 @@ answering a single question.
 1. **M1 — skeleton + arrival.** Tree, README, START router, shims, interview step,
    workspace contract, glossary. Usable on day one (interview alone has value).
    Pushes to the (private) GitHub repo from the start.
+   **DONE 2026-08-31 — pushed as the repo's root commit `65bd4d5` on `main`**
+   (32 files, incl. the §13 case study, harness notes for stage-3 lock-in, and
+   honest stubs for steps 2–5). The build clone lived in session scratch space;
+   GitHub is canonical — clone fresh to continue. Release-gate grep (internal
+   names + the never-written word) passed before the push.
 2. **M2 — the recorder.** Proxy (record mode), Claude Code hooks pack, ledger
    formats, step-2 GUIDE. First real observation possible.
 3. **M3 — diagnosis + measuring stick.** Step-3 scoring, step-4 suite builder,
