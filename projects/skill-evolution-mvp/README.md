@@ -23,6 +23,8 @@ this project executes; the claims index there carries the evidence base).
 | `PLAN.md` | The game plan: readiness, structure decision, architecture, phases, budget and stop criteria, proof standard |
 | `IMPLEMENTATION.md` | The running story of how the plan became a working experiment |
 | `SE1_EXPERIMENT_CONTRACT.md` | The pre-registration: frozen values, stop rules, statistics, verdict readings — written before the data |
+| `RUNBOOK.md` | The operator skill: commands, sequences, incident table, escalation rules, and the model-tier delegation doctrine (§8). Opus-level sessions run experiments from this |
+| `PLAYBOOK_FEEDBACK.md` | Captured candidate playbook rules (F-SEP-1 delegation by tier, F-SEP-2 runbook compilation) awaiting adjudication |
 | `rig/` | The experiment code: 11 modules, one gateway, fail-closed budget meter |
 | `runs/` | Ledgers, look ledger, wiki snapshots, accepted skills (committed); raw traces stay local (gitignored) |
 

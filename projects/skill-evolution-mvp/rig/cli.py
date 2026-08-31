@@ -149,6 +149,44 @@ def cmd_eval(args):
     print(json.dumps({k: v for k, v in out.items() if k != "per_task"}, indent=2))
 
 
+def cmd_status(_):
+    """One line per run: progress, best VAL, spend, stop state. Reads only
+    harness bookkeeping (never per-task TEST results)."""
+    import time as _time
+    now = _time.time()
+    for d in sorted(p for p in config.RUNS_DIR.iterdir() if p.is_dir()):
+        led = d / "ledger.jsonl"
+        if not led.exists():
+            continue
+        rows = [json.loads(l) for l in led.read_text().splitlines()]
+        calls = [r for r in rows if r.get("kind") == "api_call"]
+        spend = sum(r.get("usd", 0) for r in calls)
+        st = {}
+        sf = d / "state.json"
+        if sf.exists():
+            st = json.loads(sf.read_text())
+        stop = st.get("stop_reason")
+        if not stop and (d / "eval_test.json").exists():
+            stop = "eval-complete"
+        last = calls[-1]["ts"] if calls else 0
+        live = "" if stop else f" (last call {(now - last) / 60:.0f}m ago)"
+        best = st.get("r_best")
+        best_s = f"{best:.3f}" if isinstance(best, float) else "-"
+        print(f"{d.name:20s} iter={st.get('iteration_done', '-'):>2} "
+              f"best_val={best_s:>6} accepted={len(st.get('accepted', [])):>2} "
+              f"spend=${spend:6.2f} {stop or 'RUNNING'}{live}")
+    t = json.loads((config.RUNS_DIR / 'spend.json').read_text()) \
+        if (config.RUNS_DIR / 'spend.json').exists() else {}
+    print(f"{'TOTAL':20s} ${t.get('global', 0):.2f} "
+          f"phases={{{', '.join(f'{k}: ${v:.0f}' for k, v in sorted(t.get('phases', {}).items()))}}}")
+    looks = config.RUNS_DIR / "test_looks.jsonl"
+    if looks.exists():
+        rows = [json.loads(l) for l in looks.read_text().splitlines()]
+        spent = [r["spent"] for r in rows if "spent" in r]
+        planned = [r["planned"] for r in rows if "planned" in r]
+        print(f"{'TEST LOOKS':20s} spent {len(spent)}/{len(planned)}: {', '.join(spent)}")
+
+
 def cmd_spend(_):
     f = config.RUNS_DIR / "spend.json"
     print(f.read_text() if f.exists() else "no spend recorded")
@@ -179,6 +217,7 @@ def main():
                     help="run id whose accepted skills/ to inject (omit for no skills)")
     pe.add_argument("--workers", type=int, default=config.ROLLOUT_WORKERS)
     pe.set_defaults(fn=cmd_eval)
+    sub.add_parser("status").set_defaults(fn=cmd_status)
     sub.add_parser("spend").set_defaults(fn=cmd_spend)
     args = p.parse_args()
     args.fn(args)
