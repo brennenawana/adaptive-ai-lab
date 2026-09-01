@@ -30,9 +30,12 @@ agent." His words: the system "could use some improvement."
 1. Harness-agnostic on arrival, harness-specialized after discovery.
 2. Support both frontier-model and fully-local optimizer tiers (evidence says
    fully-local self-evolution works; frontier optimizer adds reliability).
-3. Public repo. Attributions and references encouraged — cite WikiSkill
-   (arXiv:2608.27454; its prompts are CC BY 4.0, attribution required), the
-   LLM-Wiki gist, karpathy/autoresearch.
+3. Built to public-repo standards: attributions and references encouraged —
+   cite WikiSkill (arXiv:2608.27454; its prompts are CC BY 4.0, attribution
+   required), the LLM-Wiki gist, karpathy/autoresearch.
+   **(Amended 2026-08-31: the repo stays PRIVATE and is shared by direct
+   access — never flip it public. Every public-facing standard still
+   applies.)**
 4. **Zero internal references.** Nothing named FIS, SE-1, wholesaling, or any lab
    file may appear. Concepts must stand alone or be reorganized until every
    reference resolves inside the new repo.

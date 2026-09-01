@@ -351,7 +351,12 @@ someone lives with"; all closed in one milestone:
 1. ~~Repo name~~ — decided: `wikiskills-lab` (§1).
 2. ~~GitHub account~~ — decided: github.com/brennenawana/wikiskills-lab.
 3. ~~Code license~~ — decided: none (§10).
-4. When to flip the repo from private to public — recommendation: after M5.
+4. ~~When to flip public~~ — **DECIDED (owner, 2026-08-31): the repo stays
+   PRIVATE and is shared by direct access.** Do not propose or perform a
+   public flip; that decision is closed unless the owner reopens it. All
+   public-facing standards (attribution, no internal references, release
+   gates) still apply in full — the repo is built as if public, shared
+   privately.
 
 ## 13. The spreadsheet benchmark (owner-approved public case study)
 
