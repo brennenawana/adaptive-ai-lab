@@ -315,6 +315,37 @@ scrubbing.
    push. **All five milestones complete — the public flip is now solely the
    owner's decision (§12 item 4).**
 
+## 11b. M6 — lifecycle gaps (owner-identified, built 2026-08-31, commit `cdd4576`)
+
+The owner identified seven gaps between "one clean experiment" and "a tool
+someone lives with"; all closed in one milestone:
+
+1. **Engagements** — workspace restructured: shared profile + growing
+   ledger/capsule pool; each focus opens `workspace/engagements/<nnn-slug>/`
+   (focus, suite, contract, runs, report), frozen when finished.
+2. **Resume protocol** — router summarizes state, then checks current
+   environment identity against the contract's §3 before continuing;
+   mismatch → amend/re-baseline or record deviation, never silent.
+3. **Revisiting skills** — new engagement seeded with existing skills (the
+   machinery already supported skill-as-base); new suite version; the
+   **two-baseline ablation** (with/without the skill) is the one new
+   guideline.
+4. **User proposals** — `loop.apply_user_proposal()`: human ideas through
+   the same gate, author recorded, rejected user ideas don't advance the
+   plateau; `wiki/owner-notes.md` reaches both optimizer roles labeled
+   human; adapter gained `run.py propose`.
+5. **Improve-existing-skill** — covered by 3+4; uncovered and fixed a real
+   defect: packet-mode proposers never saw current skill text, so patch
+   replace-targets could not match. Fixed + selftested.
+6. **Skills ownership** — inventoried in step 1, active in baselines,
+   installed only with approval + provenance header; hand edits allowed
+   but expire the before/after claim.
+7. **Return path** — `harness/return-path/`: thin door-not-brochure skill
+   per harness; captures intent into `workspace/inbox/`; router surfaces
+   inbox on every greeting.
+
+38 selftests green; first-mile test + full release gate passed pre-push.
+
 ## 12. Open decisions for the owner
 
 1. ~~Repo name~~ — decided: `wikiskills-lab` (§1).
