@@ -20,6 +20,22 @@ is encouraged, and the paper name is public — no internal-reference conflict),
 "lab" honestly frames what §13 adds: the repo ships a reproducible experiment,
 not just a method.
 
+## 1b. Local homes and repo relationship (owner decisions 2026-08-31)
+
+- Canonical local clone: **`~/code/wikiskills-lab`** (a sibling of the other
+  code checkouts, which is also the layout the product itself assumes).
+- Relationship to adaptive-ai-lab: **sibling checkout only, never a
+  submodule or subtree.** The two repos have permanently different sharing
+  audiences (lab: private always; wikiskills-lab: shared with outsiders);
+  git-level coupling would invite bleed across the rename wall. The lab
+  keeps the development record and pointers; deeper integration flows
+  through the lab's own adjudication, not git plumbing.
+- Session scratchpad salvage (viewer + generator, SE-1 helper scripts, the
+  research report's downloaded source materials) preserved under the lab's
+  gitignored `local/scratchpad-salvage/` (rule added to .gitignore,
+  commit `254afb6`; see WHAT-IS-THIS.txt there). NOTE: gitignored files do
+  not travel with git — move `local/` by hand if this worktree is retired.
+
 ## 2. Shape on disk
 
 The user clones the repo **next to** their project, never inside it:
