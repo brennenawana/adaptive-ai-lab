@@ -35,3 +35,6 @@ Thumbs.db
 *.log
 
 # FIS-project-specific generated/runtime paths live in projects/fis/.gitignore
+
+# ---- machine-local files (dev notes, salvage, scratch) — never committed ----
+local/
