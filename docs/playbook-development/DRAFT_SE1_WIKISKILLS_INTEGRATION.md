@@ -152,37 +152,72 @@ continuing (which is chapter 02 doctrine, mechanized), engagement folders
 frozen on completion, and an inbox where mid-work observations queue as
 future candidates.
 
-**Proposal — `playbook/OPERATOR.md` (draft to be written on accept):**
+**Proposal — the operator layer (draft to be written on accept). Owner
+addition 2026-09-01: the append-only engagement ledger is the core of it,
+and the layer is a delivery mechanism over the corpus, never a fork.**
 
-1. **Router.** On session start in an engagement: read
-   `ENGAGEMENT_STATE.json` (chapter/procedure position, stage, artifacts
-   produced, next action, environment fingerprint). No state → run the
-   intake interview. State present → summarize position in plain words
-   and continue.
-2. **Intake as interview.** Instantiate the existing
+1. **Engagement implementation ledger (the record of record).**
+   `engagement/ledger.jsonl`, append-only, written by the operator agent
+   *as it acts* — one row per significant action at **decision level**
+   (procedure entered, gate passed/failed, artifact produced, deviation
+   recorded, spend, owner decision), never keystroke level and never
+   batch-reconstructed. Rationale: the playbook prescribes ledgers
+   everywhere (look, spend, prediction, hash-chained records, ch. 13)
+   but keeps none about its own implementation; the ledger is also the
+   raw material every future EVIDENCE_MAP row needs — SE-1's
+   IMPLEMENTATION.md was hand-reconstructed narrative, and the
+   generalized lesson is *ledger first, narrative distilled from it*.
+2. **Router over derived state.** `ENGAGEMENT_STATE.json` is a
+   **derived snapshot of the ledger** (position, next action,
+   environment fingerprint); on conflict the ledger wins — the same
+   rule as the budget meter recomputing totals from its ledger. On
+   session start: no state → intake interview; state → summarize
+   position in plain words and continue.
+3. **Intake as interview.** Instantiate the existing
    `templates/PROJECT_PROFILE.md` conversationally — one question at a
    time, recommend-with-override, answers written as given — instead of
-   handing the client-side operator a blank template. (This is
-   wikiskills' step 1 pointed at the playbook's own intake artifact.)
-3. **Resume protocol.** Before continuing any experiment mid-flight:
+   handing the operator a blank template.
+4. **Procedure-level routing — no reading assignments.** The corpus is
+   large only if someone is told to read it. Every chapter shares the
+   same 13-section skeleton, so "ch. 07 §5 rung 2, entry evidence
+   pending" is a routable position: the operator surfaces the
+   applicable procedure (§5), gate (§7), or ch. 14 checklist — never a
+   whole chapter. The corpus stays normative and untouched; the layer
+   is thin (door, not brochure — chapters are never rewritten into
+   conversational form, because that copy would drift).
+5. **Resume protocol.** Before continuing any experiment mid-flight:
    compare current environment identity against what the active
    contract recorded (ch. 02); mismatch → amend/re-baseline or record
    the deviation, never continue silently.
-4. **Inbox.** `engagement/inbox/` for observations captured mid-work;
+6. **Inbox.** `engagement/inbox/` for observations captured mid-work;
    surfaced at every session start; feeds the next decision point.
 
-**Candidate rule F-SEP-3** (for PLAYBOOK_FEEDBACK.md, then the map):
-*Long-running engagements get a durable state file, a session router,
-and a resume-with-identity-check protocol; conversational memory is
-never the record of where an engagement stands.* Internal evidence:
-wikiskills-lab field pattern + this lab's own compaction lessons.
-External: none yet — which is exactly why the right adjudication is:
+Audience boundary, permanent: wikiskills-lab serves outsiders; the
+operator layer serves this lab's own engagements. They share patterns,
+never files.
 
-**Recommended disposition:** write OPERATOR.md as a draft, run it on the
-next real engagement (millwork discovery is the standing candidate), and
-adjudicate F-SEP-3 with that engagement as internal evidence — the
-playbook's own rule that procedures earn their place through use, applied
-to itself.
+**Candidate rules** (for PLAYBOOK_FEEDBACK.md, then the map):
+
+- **F-SEP-3:** *Long-running engagements get a durable state file, a
+  session router, and a resume-with-identity-check protocol;
+  conversational memory is never the record of where an engagement
+  stands.* Internal evidence: wikiskills-lab field pattern + this lab's
+  compaction lessons.
+- **F-SEP-4:** *Implementing the playbook produces an append-only,
+  decision-level action ledger written at act time; state files and
+  narratives are views derived from it, and the ledger wins on
+  conflict.* Internal evidence: SE-1's ledger-first practice (spend
+  reconciled from ledgers; hand-written narrative was the expensive
+  part); ch. 13's record-of-record doctrine applied reflexively.
+
+External evidence: none yet for either — which is exactly why the right
+adjudication is:
+
+**Recommended disposition:** write OPERATOR.md (with the ledger format)
+as a draft, run it on the next real engagement (millwork discovery is
+the standing candidate), and adjudicate F-SEP-3/F-SEP-4 with that
+engagement as internal evidence — the playbook's own rule that
+procedures earn their place through use, applied to itself.
 
 ## 5. Adjudication checklist (owner)
 
@@ -191,5 +226,7 @@ to itself.
 - [ ] §2a/§2b: land in chapter 07 (after §1), then run check_playbook.py
 - [ ] §2c/§2d: land vendor recipe + example pointer + sources
 - [ ] §3: append to sources.yaml, regenerate SOURCES.md via the renderer
-- [ ] §4: authorize drafting OPERATOR.md for field trial on the next
-      engagement; add F-SEP-3 to PLAYBOOK_FEEDBACK.md
+- [ ] §4: authorize drafting OPERATOR.md (router + engagement ledger
+      format + interview + procedure-level routing) for field trial on
+      the next engagement; add F-SEP-3 and F-SEP-4 to
+      PLAYBOOK_FEEDBACK.md
