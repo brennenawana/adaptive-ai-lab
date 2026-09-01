@@ -31,10 +31,14 @@ not just a method.
   keeps the development record and pointers; deeper integration flows
   through the lab's own adjudication, not git plumbing.
 - Session scratchpad salvage (viewer + generator, SE-1 helper scripts, the
-  research report's downloaded source materials) preserved under the lab's
-  gitignored `local/scratchpad-salvage/` (rule added to .gitignore,
-  commit `254afb6`; see WHAT-IS-THIS.txt there). NOTE: gitignored files do
-  not travel with git — move `local/` by hand if this worktree is retired.
+  research report's downloaded source materials) lives in the BASE repo's
+  gitignored `local/scratchpad-salvage/` (moved out of the worktree
+  2026-09-01 ahead of worktree retirement; see WHAT-IS-THIS.txt there;
+  ignore rule from commit `254afb6`).
+- Checkout layout (owner decision 2026-09-01): `~/code/adaptive-ai-lab` on
+  `main` is the operational checkout; `playbook-public` lives only in a
+  dedicated site worktree (`~/code/adaptive-ai-lab-site`); the
+  `wikiskill-research` worktree is retired once no session uses it.
 
 ## 2. Shape on disk
 
