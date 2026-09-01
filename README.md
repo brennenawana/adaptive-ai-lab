@@ -16,6 +16,7 @@ research evidence → playbook → project implementations → primary records
 | I want to… | Go to |
 |---|---|
 | Start a new AI project with the methodology | [`playbook/QUICKSTART.md`](playbook/QUICKSTART.md) |
+| Run an engagement interactively — an agent walks me through implementing the playbook on a lab or client project, with resumable state | [`playbook/operator/`](playbook/operator/README.md) (DRAFT; install the `/operator` skill from [`skill-template.md`](playbook/operator/skill-template.md) and just say "start an engagement") |
 | Read the methodology | [`playbook/`](playbook/README.md) |
 | Read and study it as a website (search, glossary popovers, versions) | `make site` — see [`site/README.md`](site/README.md) |
 | See the evidence behind it | [`research/`](research/README.md) · [`playbook/references/SOURCES.md`](playbook/references/SOURCES.md) |

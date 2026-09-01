@@ -22,12 +22,16 @@ rewritten conversationally here.
 
 **How an engagement starts:**
 
-1. Create the engagement home — a private folder or repo **next to the
+1. One-time setup: install the `/operator` skill from
+   `skill-template.md` (user-level, so it works from any directory, on
+   each machine you work from).
+2. Create the engagement home — a private folder or repo **next to the
    client's code**, never inside the playbook repo (client data and the
    playbook never mix; see `ledger-format.md` for the layout).
-2. Open an agent session there and point it at this kit:
+3. Open an agent session there and say **"start an engagement"** (or
+   `/operator`). Without the skill, the long form works anywhere:
    *"Read `<playbook path>/playbook/operator/START.md` and follow it."*
-3. Answer the interview. Every later session starts with "hello" and a
+4. Answer the interview. Every later session starts with "hello" and a
    one-paragraph summary of exactly where the engagement stands.
 
 **Audience boundary (permanent):** this kit serves the lab. Outsiders get
