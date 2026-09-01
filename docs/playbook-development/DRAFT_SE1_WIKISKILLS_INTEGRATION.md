@@ -152,9 +152,18 @@ continuing (which is chapter 02 doctrine, mechanized), engagement folders
 frozen on completion, and an inbox where mid-work observations queue as
 future candidates.
 
-**Proposal — the operator layer (draft to be written on accept). Owner
-addition 2026-09-01: the append-only engagement ledger is the core of it,
-and the layer is a delivery mechanism over the corpus, never a fork.**
+**Status update 2026-09-01: the kit is DRAFTED at `playbook/operator/`
+(README, START router, interview, routing doctrine, ledger format — every
+file headed DRAFT-pending-field-trial), and F-SEP-3/F-SEP-4 are CAPTURED
+in the project feedback ledger. The design below is what was built; the
+field trial and adjudication remain owner-gated.**
+
+**The operator layer. Owner additions 2026-09-01: the append-only
+engagement ledger is the core of it; the layer is a delivery mechanism
+over the corpus, never a fork; and it exists so an agent can walk the
+owner through implementing the playbook on lab and client projects the
+way wikiskills walks an outsider — clone-alongside, conversational,
+resumable.**
 
 1. **Engagement implementation ledger (the record of record).**
    `engagement/ledger.jsonl`, append-only, written by the operator agent
@@ -226,7 +235,8 @@ procedures earn their place through use, applied to itself.
 - [ ] §2a/§2b: land in chapter 07 (after §1), then run check_playbook.py
 - [ ] §2c/§2d: land vendor recipe + example pointer + sources
 - [ ] §3: append to sources.yaml, regenerate SOURCES.md via the renderer
-- [ ] §4: authorize drafting OPERATOR.md (router + engagement ledger
-      format + interview + procedure-level routing) for field trial on
-      the next engagement; add F-SEP-3 and F-SEP-4 to
-      PLAYBOOK_FEEDBACK.md
+- [x] §4 (done 2026-09-01): operator kit drafted at `playbook/operator/`;
+      F-SEP-3/F-SEP-4 captured in PLAYBOOK_FEEDBACK.md
+- [ ] §4 field trial: run the next real engagement (millwork discovery is
+      the standing candidate) on the operator kit, then adjudicate
+      F-SEP-3/F-SEP-4 with its ledger as internal evidence

@@ -48,3 +48,46 @@ the LLM-Wiki "schema" idea applied to operations.
 the incident table is exactly the set of incidents that consumed frontier judgment
 during the run. External: WikiSkill's skills layer (compiled procedure beats scattered
 experience: +15.0 ablation); Karpathy LLM-Wiki schema layer. Class B ceiling.
+
+## F-SEP-3 — Session router + durable engagement state — CAPTURED
+
+**Candidate rule.** Long-running engagements get a durable state file, a session
+router, and a resume-with-identity-check protocol: any session begins by reading
+recorded state, summarizing the position in plain words, and verifying the current
+execution-system identity (ch. 02 sense) against what the active contract recorded
+before continuing measured work. Conversational memory is never the record of where
+an engagement stands. Draft mechanism: `playbook/operator/START.md`.
+
+**Why.** Playbook engagements run weeks to months across many sessions; without a
+router and durable state, every session pays a re-derivation tax and risks silently
+continuing measured work in a changed environment.
+
+**Evidence.** Project: wikiskills-lab's field-shaped pattern (state.json, streaming
+writes, resume protocol, engagement folders, inbox), which is this lab's compaction
+lesson productized — the SE-1 sessions themselves survived context compaction only
+via files written as work happened. External: none yet; the disposition is a field
+trial on the next real engagement before adjudication. Class B ceiling. Likely
+playbook homes: ch. 12 (operator practice), ch. 14 (checklists), ch. 01 (intake).
+
+## F-SEP-4 — Append-only engagement implementation ledger — CAPTURED
+
+**Candidate rule.** Implementing the playbook produces an append-only,
+decision-level action ledger written at act time (procedures entered, gates
+passed/failed/inapplicable, artifacts produced, deviations, spend, handoffs, owner
+decisions). State files and narratives — status updates, engagement reports,
+evidence submitted for adjudication — are views derived from the ledger, cite its
+rows, and the ledger wins on conflict. Draft format:
+`playbook/operator/ledger-format.md`.
+
+**Why.** The playbook prescribes ledgers everywhere (look, spend, prediction,
+hash-chained record of record, ch. 13) yet keeps none about its own implementation;
+engagement history is otherwise reconstructed after the fact — lossy, expensive, and
+unauditable. The ledger is also the raw material every future EVIDENCE_MAP row
+needs.
+
+**Evidence.** Project: SE-1's ledger-first practice — spend reconciled from
+append-only ledgers at close; the harness-written skill-impact audit trail; by
+contrast, IMPLEMENTATION.md was hand-written narrative and was the expensive,
+lossy part. External: ch. 13's record-of-record doctrine applied reflexively; no
+published instance of a methodology keeping an implementation ledger about itself.
+Class B ceiling. Likely playbook homes: ch. 12, ch. 13, ch. 01.
